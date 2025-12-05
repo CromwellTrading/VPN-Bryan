@@ -44,84 +44,62 @@
                 </div>
             </div>
             
-            <!-- Instrucciones de Pago -->
-            <div class="payment-instructions">
-                <h3 class="instructions-title">Instrucciones de Pago</h3>
-                <div class="instructions-steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h4>Realiza la transferencia</h4>
-                            <div class="payment-details">
-                                <div class="bank-info">
-                                    <span class="info-label">Banco:</span>
-                                    <span class="info-value">Banco Metropolitano</span>
-                                </div>
-                                <div class="bank-info">
-                                    <span class="info-label">Tarjeta:</span>
-                                    <span class="info-value">1234 5678 9012 3456</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('1234 5678 9012 3456')">📋</button>
-                                </div>
-                                <div class="bank-info">
-                                    <span class="info-label">Nombre:</span>
-                                    <span class="info-value">Juan Pérez García</span>
-                                </div>
-                            </div>
-                            <div class="alternative-payment">
-                                <p><strong>Alternativa:</strong> También puedes pagar con USDT (TRC20)</p>
-                                <div class="bank-info">
-                                    <span class="info-label">Wallet:</span>
-                                    <span class="info-value">TXXXXXXXXXXXXXXXXXXXXXXXX</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('TXXXXXXXXXXXXXXXXXXXXXXXX')">📋</button>
-                                </div>
-                            </div>
-                        </div>
+    <!-- En la sección de instrucciones de pago, actualizar con: -->
+
+<div class="payment-instructions">
+    <h3 class="instructions-title">Instrucciones de Pago</h3>
+    <div class="instructions-steps">
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h4>Realiza la transferencia a:</h4>
+                <div class="payment-details">
+                    <div class="bank-info">
+                        <span class="info-label">Tarjeta:</span>
+                        <span class="info-value">9248-1299-7027-1730</span>
+                        <button class="copy-btn" onclick="copyToClipboard('9248129970271730')">📋</button>
                     </div>
-                    
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h4>Toma una captura de pantalla</h4>
-                            <p>Asegúrate de que en la captura se vea:</p>
-                            <ul class="screenshot-tips">
-                                <li>El monto transferido</li>
-                                <li>El número de referencia</li>
-                                <li>La fecha y hora</li>
-                                <li>El destinatario (si es posible)</li>
-                            </ul>
-                        </div>
+                    <div class="bank-info">
+                        <span class="info-label"># a confirmar:</span>
+                        <span class="info-value">63806513</span>
+                        <button class="copy-btn" onclick="copyToClipboard('63806513')">📋</button>
                     </div>
-                    
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h4>Sube la captura aquí</h4>
-                            <p>Sube la imagen del comprobante de pago:</p>
-                            
-                            <div class="upload-area" id="uploadArea">
-                                <div class="upload-icon">📤</div>
-                                <div class="upload-text">Arrastra o haz clic para subir</div>
-                                <div class="upload-subtext">Formatos: JPG, PNG, PDF (Máx. 5MB)</div>
-                                <input type="file" id="screenshotInput" accept="image/*,.pdf" hidden>
-                            </div>
-                            
-                            <div class="preview-container" id="previewContainer" style="display: none;">
-                                <div class="preview-header">
-                                    <span>Vista previa:</span>
-                                    <button class="remove-btn" onclick="removeImage()">✕</button>
-                                </div>
-                                <img id="imagePreview" class="preview-image">
-                            </div>
-                            
-                            <div class="notes-container">
-                                <label for="paymentNotes" class="notes-label">Notas adicionales (opcional):</label>
-                                <textarea id="paymentNotes" class="notes-textarea" 
-                                          placeholder="Ej: Número de referencia, hora exacta, etc."></textarea>
-                            </div>
-                        </div>
+                    <div class="payment-note">
+                        <p><strong>IMPORTANTE:</strong> Incluye el número de confirmación en la transferencia.</p>
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h4>Toma una captura de pantalla</h4>
+                <p><strong>ES OBLIGATORIO enviar la captura</strong></p>
+                <ul class="screenshot-tips">
+                    <li>✅ Monto transferido</li>
+                    <li>✅ Número de confirmación (63806513)</li>
+                    <li>✅ Fecha y hora</li>
+                    <li>✅ Destinatario</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h4>Sube la captura aquí</h4>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">Haz clic para subir la captura</div>
+                    <div class="upload-subtext">Formatos: JPG, PNG (Máx. 5MB)</div>
+                    <input type="file" id="screenshotInput" accept="image/*" hidden>
+                </div>
+                <p class="upload-warning">❌ No podrás completar la compra sin la captura</p>
+            </div>
+        </div>
+    </div>
+</div>
             
             <!-- Botón de enviar -->
             <button id="submitBtn" class="btn-primary" onclick="submitPayment()" disabled>
@@ -268,10 +246,10 @@
         
         // Enviar pago
         async function submitPayment() {
-            if (!selectedFile) {
-                alert('Por favor, selecciona un archivo primero.');
-                return;
-            }
+    if (!selectedFile) {
+        alert('❌ DEBES SUBIR LA CAPTURA DE PANTALLA');
+        return;
+    }
             
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;

@@ -1,7 +1,7 @@
 {
-  "name": "vpn-cuba-backend",
+  "name": "vpn-cuba-simple",
   "version": "1.0.0",
-  "description": "Backend para WebApp de VPN Cuba con Supabase",
+  "description": "Backend simple para VPN Cuba",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -14,10 +14,8 @@
     "@supabase/supabase-js": "^2.39.0",
     "telegraf": "^4.15.0",
     "multer": "^1.4.5-lts.1",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "path": "^0.12.7",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

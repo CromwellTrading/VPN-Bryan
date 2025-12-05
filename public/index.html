@@ -4,18 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VPN Cuba - Aceptar Términos</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Líneas decorativas futuristas -->
-        <div class="connection-line top-left"></div>
-        <div class="connection-line top-right"></div>
-        <div class="connection-line bottom-left"></div>
-        <div class="connection-line bottom-right"></div>
-        <div class="pulse-dot center"></div>
-        
         <div class="header">
             <div class="logo-container">
                 <div class="logo-glow"></div>
@@ -92,22 +85,6 @@
                             <li><strong>Nota:</strong> Las velocidades o latencias que sean consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.</li>
                             <li><strong>Cumplimiento de Términos:</strong> El Cliente no debe haber violado nuestros Términos de Servicio (ej. no haber compartido la clave, no haber realizado abuso de ancho de banda o actividades ilegales).</li>
                         </ul>
-                        
-                        <h4>3. Exclusiones y No Elegibilidad</h4>
-                        <p>No se otorgará un reembolso bajo las siguientes circunstancias:</p>
-                        <ul>
-                            <li><strong>Expiración del Período:</strong> Solicitudes realizadas después del día 7 de la compra inicial.</li>
-                            <li><strong>Renovaciones:</strong> Los pagos por renovación automática o manual no son reembolsables.</li>
-                            <li><strong>Uso Abusivo:</strong> Si se comprueba el uso del servicio para actividades ilegales o la violación de nuestros Términos de Servicio.</li>
-                        </ul>
-                        
-                        <h4>4. Proceso de Solicitud de Reembolso</h4>
-                        <p>Para iniciar una solicitud de reembolso:</p>
-                        <ol>
-                            <li>Envía un correo electrónico a nuestro equipo de facturación: <a href="mailto:lolitogarcia0707@gmail.com">lolitogarcia0707@gmail.com</a></li>
-                            <li>Incluye: Tu ID de Cliente, la Fecha de Compra, y la Explicación Detallada del problema técnico no resuelto.</li>
-                            <li>Nuestro equipo de soporte revisará la solicitud y te responderá en un plazo máximo de 72 horas hábiles con el estado de tu reembolso.</li>
-                        </ol>
                     </div>
                 </div>
                 <div class="accordion-checkbox">
@@ -139,26 +116,6 @@
                             <li>Registros de tráfico (qué datos se envían o reciben).</li>
                             <li>Registros de DNS (solicitudes a sitios web).</li>
                             <li>Tu dirección IP real (externa) ni la dirección IP asignada por nuestra VPN.</li>
-                        </ul>
-                        <p>Esto significa que, incluso si se nos solicitara información, no tendríamos nada que compartir sobre tu actividad en línea.</p>
-                        
-                        <h4>2. Información Necesaria que Sí Recolectamos</h4>
-                        <p>Para operar y mantener el servicio, solo recopilamos la siguiente información mínima necesaria:</p>
-                        <ul>
-                            <li><strong>Información de la Cuenta:</strong> Tu nombre de usuario o ID de Cliente y la información de contacto (generalmente un correo electrónico o nombre de Telegram) que proporcionas para la creación y gestión de tu cuenta.</li>
-                            <li><strong>Información de Pago:</strong> Los datos necesarios para procesar tu compra (ej: confirmación de la transferencia, ID de transacción de PayPal o USDT). Nunca almacenamos números de tarjetas de crédito o información bancaria sensible.</li>
-                            <li><strong>Datos de Conexión Mínimos y Anónimos:</strong> Mantenemos un registro anónimo y agregado del total de ancho de banda consumido o el tiempo de conexión del usuario únicamente para fines de gestión de red (evitar abusos y optimizar la carga del servidor). Esta información no puede ser vinculada a tu actividad específica.</li>
-                        </ul>
-                        
-                        <h4>3. El Protocolo WireGuard®</h4>
-                        <p>Utilizamos el protocolo WireGuard por su seguridad y eficiencia superior. Entendemos las preocupaciones de privacidad de WireGuard y hemos implementado configuraciones personalizadas para eliminar cualquier potencial riesgo de privacidad de registros temporales de IP, adhiriéndonos estrictamente a nuestra política No-Logs.</p>
-                        
-                        <h4>4. Uso de la Información</h4>
-                        <p>La información que recolectamos (la mínima detallada en la Sección 2) se utiliza únicamente para:</p>
-                        <ul>
-                            <li>Crear, mantener y gestionar tu cuenta.</li>
-                            <li>Procesar pagos y facturación.</li>
-                            <li>Responder a solicitudes de soporte al cliente.</li>
                         </ul>
                     </div>
                 </div>
@@ -225,7 +182,7 @@
             
             try {
                 // Guardar aceptación en el backend
-                const response = await fetch(`${window.API_BASE_URL || ''}/api/accept-terms`, {
+                const response = await fetch('/api/accept-terms', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -237,7 +194,7 @@
                 
                 if (response.ok) {
                     // Redirigir a la página de planes
-                    window.location.href = `plans.html?userId=${userId}`;
+                    window.location.href = `/plans.html?userId=${userId}`;
                 } else {
                     throw new Error('Error al guardar la aceptación');
                 }

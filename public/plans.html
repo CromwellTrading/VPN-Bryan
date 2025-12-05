@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VPN Cuba - Planes</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -22,13 +22,23 @@
                     <p class="plan-period">(1 mes)</p>
                 </div>
                 <div class="plan-price">
-                    <span class="amount">$800</span>
-                    <span class="currency">CUP</span>
+                    <span class="currency">$</span>
+                    <span class="amount">800</span>
+                    <span class="currency-suffix">CUP</span>
                 </div>
                 <div class="plan-features">
-                    <div class="feature">✅ Baja Latencia</div>
-                    <div class="feature">✅ Ancho de Banda Ilimitado</div>
-                    <div class="feature">✅ Soporte Prioritario</div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Baja Latencia</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Ancho de Banda Ilimitado</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Soporte Prioritario</span>
+                    </div>
                 </div>
                 <button class="btn-plan" onclick="selectPlan('basico', 800)">
                     <span class="btn-icon">🛒</span>
@@ -38,23 +48,33 @@
 
             <!-- Plan Premium -->
             <div class="plan-card featured">
-                <div class="plan-badge">¡AHORRAS $300 CUP!</div>
+                <div class="plan-badge">¡Ahorras $300 CUP!</div>
                 <div class="plan-header">
                     <h3 class="plan-title">Premium</h3>
                     <p class="plan-period">(2 meses)</p>
                 </div>
                 <div class="plan-price">
-                    <span class="amount">$1,300</span>
-                    <span class="currency">CUP</span>
+                    <span class="currency">$</span>
+                    <span class="amount">1,300</span>
+                    <span class="currency-suffix">CUP</span>
                 </div>
                 <div class="plan-savings">
                     <span class="savings-icon">💰</span>
                     <span class="savings-text">¡Ahorras $300 CUP!</span>
                 </div>
                 <div class="plan-features">
-                    <div class="feature">✅ Todo lo del Básico</div>
-                    <div class="feature">✅ 2 meses de servicio</div>
-                    <div class="feature">✅ Soporte 24/7</div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Todo lo del Básico</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">2 meses de servicio</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Soporte 24/7</span>
+                    </div>
                 </div>
                 <button class="btn-plan featured" onclick="selectPlan('premium', 1300)">
                     <span class="btn-icon">🔥</span>
@@ -70,8 +90,9 @@
                     <p class="plan-period">(6 meses)</p>
                 </div>
                 <div class="plan-price">
-                    <span class="amount">$3,000</span>
-                    <span class="currency">CUP</span>
+                    <span class="currency">$</span>
+                    <span class="amount">3,000</span>
+                    <span class="currency-suffix">CUP</span>
                 </div>
                 <div class="plan-savings vip-savings">
                     <span class="savings-icon">👑</span>
@@ -81,10 +102,22 @@
                     <p>¡Solo $500 CUP/mes con el Plan VIP!</p>
                 </div>
                 <div class="plan-features">
-                    <div class="feature">✅ Todo lo del Premium</div>
-                    <div class="feature">✅ 6 meses de servicio</div>
-                    <div class="feature">✅ Configuración personalizada</div>
-                    <div class="feature">✅ Soporte dedicado</div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Todo lo del Premium</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">6 meses de servicio</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Configuración personalizada</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Soporte dedicado</span>
+                    </div>
                 </div>
                 <button class="btn-plan vip-btn" onclick="selectPlan('vip', 3000)">
                     <span class="btn-icon">👑</span>
@@ -130,7 +163,7 @@
                 userId: userId
             }));
             
-            window.location.href = `payment.html?userId=${userId}&plan=${planType}&price=${price}`;
+            window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}`;
         }
         
         // Verificar términos
@@ -140,7 +173,7 @@
                 const data = await response.json();
                 
                 if (!data.accepted) {
-                    window.location.href = `index.html?userId=${userId}`;
+                    window.location.href = `/index.html?userId=${userId}`;
                 }
             } catch (error) {
                 console.error('Error verificando términos:', error);

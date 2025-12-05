@@ -66,7 +66,9 @@ app.get('/api/check-terms/:telegramId', async (req, res) => {
   }
 });
 
-// 3. Procesar pago
+// ==================== CORRECCIÓN EN LA RUTA DE PAGO ====================
+
+// 3. Procesar pago (ACTUALIZADO)
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   try {
     const { telegramId, plan, price, notes } = req.body;
@@ -85,15 +87,48 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       created_at: new Date().toISOString()
     });
 
-    // Notificar al admin
-    await bot.telegram.sendMessage(
-      ADMIN_ID,
-      `💰 NUEVO PAGO RECIBIDO\n\n` +
-      `👤 Usuario: ${telegramId}\n` +
-      `📋 Plan: ${plan}\n` +
-      `💰 Precio: $${price} CUP\n` +
-      `⏰ Fecha: ${new Date().toLocaleString()}`
-    );
+    // 🔥 CORRECCIÓN: Enviar al canal en lugar de al admin individual
+    const CHANNEL_ID = '-1002309005022'; // Tu canal
+    
+    try {
+      // Primero, obtener información del usuario
+      const user = await db.getUser(telegramId);
+      const username = user?.username ? `@${user.username}` : 'Sin usuario';
+      const firstName = user?.first_name || 'Usuario';
+      
+      // Enviar mensaje al canal con la foto
+      await bot.telegram.sendPhoto(
+        CHANNEL_ID,
+        { source: req.file.path },
+        {
+          caption: `💰 *NUEVO PAGO RECIBIDO* 🚀\n\n` +
+                   `👤 *Usuario:* ${firstName}\n` +
+                   `📱 *Telegram:* ${username}\n` +
+                   `🆔 *ID:* ${telegramId}\n` +
+                   `📋 *Plan:* ${getPlanName(plan)}\n` +
+                   `💰 *Monto:* $${price} CUP\n` +
+                   `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
+                   `📝 *Estado:* ⏳ Pendiente\n\n` +
+                   `#Pago_${telegramId.slice(-4)}`,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Aprobar', callback_data: `approve_${payment.id}` },
+              { text: '❌ Rechazar', callback_data: `reject_${payment.id}` }
+            ]]
+          }
+        }
+      );
+    } catch (channelError) {
+      console.error('Error enviando al canal:', channelError);
+      // Si falla, enviar al admin como backup
+      await bot.telegram.sendMessage(
+        ADMIN_ID,
+        `⚠️ *Error al enviar al canal, pero se recibió pago:*\n\n` +
+        `Usuario: ${telegramId}\nPlan: ${plan}\nMonto: $${price} CUP`,
+        { parse_mode: 'Markdown' }
+      );
+    }
 
     res.json({ 
       success: true, 
@@ -102,9 +137,104 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error procesando pago:', error);
+    
+    // Eliminar archivo si hubo error
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error al eliminar archivo:', err);
+      });
+    }
+    
     res.status(500).json({ error: 'Error procesando pago' });
   }
 });
+
+// 🔥 AGREGAR ESTA FUNCIÓN PARA LOS BOTONES DEL CANAL
+bot.on('callback_query', async (ctx) => {
+  const data = ctx.callbackQuery.data;
+  
+  // Verificar si el usuario que hace clic es el admin
+  if (ctx.from.id.toString() !== ADMIN_ID) {
+    return ctx.answerCbQuery('❌ Solo el administrador puede hacer esto');
+  }
+  
+  if (data.startsWith('approve_')) {
+    const paymentId = data.split('_')[1];
+    
+    try {
+      const payment = await db.approvePayment(paymentId);
+      
+      if (payment) {
+        // Notificar al usuario
+        await bot.telegram.sendMessage(
+          payment.telegram_id,
+          '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
+          'Ahora eres usuario VIP de VPN Cuba.\n' +
+          'En breve recibirás tu archivo de configuración.',
+          { parse_mode: 'Markdown' }
+        );
+        
+        // Actualizar mensaje en el canal
+        await ctx.editMessageCaption({
+          caption: `✅ *PAGO APROBADO* 🎉\n\n` +
+                   `👤 Usuario: ${payment.telegram_id}\n` +
+                   `📋 Plan: ${getPlanName(payment.plan)}\n` +
+                   `💰 Monto: $${payment.price} CUP\n` +
+                   `⏰ Fecha: ${new Date(payment.created_at).toLocaleString('es-ES')}\n` +
+                   `📝 Estado: ✅ Aprobado\n\n` +
+                   `Aprobado por: @${ctx.from.username || 'admin'}`,
+          reply_markup: { inline_keyboard: [] }
+        });
+        
+        ctx.answerCbQuery('✅ Pago aprobado');
+      }
+    } catch (error) {
+      console.error('Error aprobando pago desde canal:', error);
+      ctx.answerCbQuery('❌ Error al aprobar');
+    }
+  }
+  
+  if (data.startsWith('reject_')) {
+    const paymentId = data.split('_')[1];
+    const reason = prompt('Motivo del rechazo:');
+    
+    if (!reason) {
+      return ctx.answerCbQuery('❌ Se requiere motivo');
+    }
+    
+    try {
+      const payment = await db.rejectPayment(paymentId, reason);
+      
+      // Actualizar mensaje en el canal
+      await ctx.editMessageCaption({
+        caption: `❌ *PAGO RECHAZADO*\n\n` +
+                 `👤 Usuario: ${payment.telegram_id}\n` +
+                 `📋 Plan: ${getPlanName(payment.plan)}\n` +
+                 `💰 Monto: $${payment.price} CUP\n` +
+                 `⏰ Fecha: ${new Date(payment.created_at).toLocaleString('es-ES')}\n` +
+                 `📝 Estado: ❌ Rechazado\n` +
+                 `📄 Motivo: ${reason}\n\n` +
+                 `Rechazado por: @${ctx.from.username || 'admin'}`,
+        reply_markup: { inline_keyboard: [] }
+      });
+      
+      ctx.answerCbQuery('✅ Pago rechazado');
+    } catch (error) {
+      console.error('Error rechazando pago desde canal:', error);
+      ctx.answerCbQuery('❌ Error al rechazar');
+    }
+  }
+});
+
+// Agregar esta función auxiliar
+function getPlanName(planType) {
+  const plans = {
+    'basico': 'Básico (1 mes)',
+    'premium': 'Premium (2 meses)',
+    'vip': 'VIP (6 meses)'
+  };
+  return plans[planType] || planType;
+}
 
 // 4. Obtener pagos pendientes (para admin)
 app.get('/api/payments/pending', async (req, res) => {

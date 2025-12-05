@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Cuba - Planes</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Líneas decorativas futuristas -->
+        <div class="connection-line top-left"></div>
+        <div class="connection-line top-right"></div>
+        <div class="connection-line bottom-left"></div>
+        <div class="connection-line bottom-right"></div>
+        <div class="pulse-dot center"></div>
+        
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <h1>VPN CUBA</h1>
+            </div>
+            <p class="subtitle">Elige el plan perfecto para tu conexión</p>
+        </div>
+        
+        <div class="plans-container">
+            <!-- Plan Mensual -->
+            <div class="plan-card">
+                <div class="plan-header">
+                    <h3 class="plan-title">Plan Mensual</h3>
+                    <div class="plan-price">
+                        <span class="currency">$</span>
+                        <span class="amount">10</span>
+                        <span class="period">/mes</span>
+                    </div>
+                </div>
+                <div class="plan-features">
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Conexión de baja latencia</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Ancho de banda ilimitado</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Servidores optimizados para gaming</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Soporte técnico prioritario</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Garantía de 7 días</span>
+                    </div>
+                </div>
+                <button class="btn-plan" onclick="selectPlan('mensual', 10)">
+                    <span class="btn-icon">⚡</span>
+                    <span class="btn-text">Seleccionar Plan</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+            
+            <!-- Plan Trimestral (Recomendado) -->
+            <div class="plan-card featured">
+                <div class="plan-badge">RECOMENDADO</div>
+                <div class="plan-header">
+                    <h3 class="plan-title">Plan Trimestral</h3>
+                    <div class="plan-price">
+                        <span class="currency">$</span>
+                        <span class="amount">27</span>
+                        <span class="period">/3 meses</span>
+                    </div>
+                    <div class="plan-savings">
+                        <span class="savings-icon">💰</span>
+                        <span class="savings-text">Ahorras $3</span>
+                    </div>
+                </div>
+                <div class="plan-features">
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Todo lo del plan mensual</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Precio con descuento especial</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Renovación automática</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Prioridad en nuevos servidores</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Soporte 24/7</span>
+                    </div>
+                </div>
+                <button class="btn-plan featured" onclick="selectPlan('trimestral', 27)">
+                    <span class="btn-icon">🔥</span>
+                    <span class="btn-text">Seleccionar Plan</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+            
+            <!-- Plan Anual -->
+            <div class="plan-card">
+                <div class="plan-header">
+                    <h3 class="plan-title">Plan Anual</h3>
+                    <div class="plan-price">
+                        <span class="currency">$</span>
+                        <span class="amount">90</span>
+                        <span class="period">/año</span>
+                    </div>
+                    <div class="plan-savings">
+                        <span class="savings-icon">💰</span>
+                        <span class="savings-text">Ahorras $30</span>
+                    </div>
+                </div>
+                <div class="plan-features">
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Todo lo del plan trimestral</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Máximo ahorro</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Configuración personalizada</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Soporte dedicado 24/7</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span class="feature-text">Acceso anticipado a nuevas funciones</span>
+                    </div>
+                </div>
+                <button class="btn-plan" onclick="selectPlan('anual', 90)">
+                    <span class="btn-icon">👑</span>
+                    <span class="btn-text">Seleccionar Plan</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+        </div>
+        
+        <div class="payment-methods">
+            <h3 class="methods-title">Métodos de Pago</h3>
+            <div class="methods-icons">
+                <span class="method-icon">💳</span>
+                <span class="method-icon">🏦</span>
+                <span class="method-icon">📱</span>
+                <span class="method-icon">₿</span>
+            </div>
+            <p class="methods-text">Transferencias bancarias, Tarjetas, USDT y más</p>
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">© 2025 VPN Cuba. Todos los derechos reservados.</p>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.hide();
+        
+        // Obtener parámetros de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
+        
+        // Función para seleccionar plan
+        function selectPlan(planType, price) {
+            // Guardar selección en localStorage temporalmente
+            localStorage.setItem('selectedPlan', JSON.stringify({
+                type: planType,
+                price: price,
+                userId: userId
+            }));
+            
+            // Redirigir a la página de pago
+            window.location.href = `payment.html?userId=${userId}&plan=${planType}&price=${price}`;
+        }
+        
+        // Verificar si el usuario aceptó los términos
+        async function checkTermsAccepted() {
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/check-terms/${userId}`);
+                const data = await response.json();
+                
+                if (!data.accepted) {
+                    // Si no ha aceptado los términos, redirigir a la página de términos
+                    window.location.href = `index.html?userId=${userId}`;
+                }
+            } catch (error) {
+                console.error('Error verificando términos:', error);
+            }
+        }
+        
+        // Verificar al cargar la página
+        if (userId) {
+            checkTermsAccepted();
+        }
+    </script>
+</body>
+</html>

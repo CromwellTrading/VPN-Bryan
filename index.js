@@ -32,7 +32,7 @@ const upload = multer({
 
 // Crear carpetas necesarias
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
-if (!fs.existsSync('public')) fs.mkdirSync('frontend');
+if (!fs.existsSync('public')) fs.mkdirSync('public');
 
 // ==================== RUTAS DE LA API ====================
 
@@ -174,27 +174,27 @@ app.use('/uploads', express.static('uploads'));
 
 // Ruta principal
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/index.html'));
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // Ruta para planes
 app.get('/plans.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/plans.html'));
+  res.sendFile(path.join(__dirname, 'public/plans.html'));
 });
 
 // Ruta para pago
 app.get('/payment.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/payment.html'));
+  res.sendFile(path.join(__dirname, 'public/payment.html'));
 });
 
 // Ruta para admin
 app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/admin.html'));
+  res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
 // Ruta para CSS
 app.get('/css/style.css', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/css/style.css'));
+  res.sendFile(path.join(__dirname, 'public/css/style.css'));
 });
 
 // ==================== BOT DE TELEGRAM ====================

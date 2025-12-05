@@ -4,18 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VPN Cuba - Pago</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Líneas decorativas futuristas -->
-        <div class="connection-line top-left"></div>
-        <div class="connection-line top-right"></div>
-        <div class="connection-line bottom-left"></div>
-        <div class="connection-line bottom-right"></div>
-        <div class="pulse-dot center"></div>
-        
         <div class="header">
             <div class="logo-container">
                 <div class="logo-glow"></div>
@@ -31,11 +24,11 @@
                 <div class="summary-details">
                     <div class="detail-row">
                         <span class="detail-label">Plan seleccionado:</span>
-                        <span class="detail-value" id="planName">Plan Mensual</span>
+                        <span class="detail-value" id="planName">Plan Básico</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Precio:</span>
-                        <span class="detail-value" id="planPrice">$10</span>
+                        <span class="detail-value" id="planPrice">$800 CUP</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">ID de Usuario:</span>
@@ -44,62 +37,75 @@
                 </div>
             </div>
             
-    <!-- En la sección de instrucciones de pago, actualizar con: -->
-
-<div class="payment-instructions">
-    <h3 class="instructions-title">Instrucciones de Pago</h3>
-    <div class="instructions-steps">
-        <div class="step">
-            <div class="step-number">1</div>
-            <div class="step-content">
-                <h4>Realiza la transferencia a:</h4>
-                <div class="payment-details">
-                    <div class="bank-info">
-                        <span class="info-label">Tarjeta:</span>
-                        <span class="info-value">9248-1299-7027-1730</span>
-                        <button class="copy-btn" onclick="copyToClipboard('9248129970271730')">📋</button>
+            <!-- Instrucciones de Pago -->
+            <div class="payment-instructions">
+                <h3 class="instructions-title">Instrucciones de Pago</h3>
+                <div class="instructions-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Realiza la transferencia a:</h4>
+                            <div class="payment-details">
+                                <div class="bank-info">
+                                    <span class="info-label">Tarjeta:</span>
+                                    <span class="info-value">9248-1299-7027-1730</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('9248129970271730')">📋</button>
+                                </div>
+                                <div class="bank-info">
+                                    <span class="info-label"># a confirmar:</span>
+                                    <span class="info-value">63806513</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('63806513')">📋</button>
+                                </div>
+                                <div class="payment-note">
+                                    <p><strong>IMPORTANTE:</strong> Incluye el número de confirmación en la transferencia.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bank-info">
-                        <span class="info-label"># a confirmar:</span>
-                        <span class="info-value">63806513</span>
-                        <button class="copy-btn" onclick="copyToClipboard('63806513')">📋</button>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Toma una captura de pantalla</h4>
+                            <p><strong>ES OBLIGATORIO enviar la captura</strong></p>
+                            <ul class="screenshot-tips">
+                                <li>✅ Monto transferido</li>
+                                <li>✅ Número de confirmación (63806513)</li>
+                                <li>✅ Fecha y hora</li>
+                                <li>✅ Destinatario</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="payment-note">
-                        <p><strong>IMPORTANTE:</strong> Incluye el número de confirmación en la transferencia.</p>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Sube la captura aquí</h4>
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">📤</div>
+                                <div class="upload-text">Haz clic para subir la captura</div>
+                                <div class="upload-subtext">Formatos: JPG, PNG (Máx. 5MB)</div>
+                                <input type="file" id="screenshotInput" accept="image/*" hidden>
+                            </div>
+                            <p class="upload-warning">❌ No podrás completar la compra sin la captura</p>
+                            
+                            <div class="preview-container" id="previewContainer" style="display: none;">
+                                <div class="preview-header">
+                                    <span>Vista previa:</span>
+                                    <button class="remove-btn" onclick="removeImage()">✕</button>
+                                </div>
+                                <img id="imagePreview" class="preview-image">
+                            </div>
+                            
+                            <div class="notes-container">
+                                <label for="paymentNotes" class="notes-label">Notas adicionales (opcional):</label>
+                                <textarea id="paymentNotes" class="notes-textarea" 
+                                          placeholder="Ej: Hora exacta de la transferencia, referencia, etc."></textarea>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-number">2</div>
-            <div class="step-content">
-                <h4>Toma una captura de pantalla</h4>
-                <p><strong>ES OBLIGATORIO enviar la captura</strong></p>
-                <ul class="screenshot-tips">
-                    <li>✅ Monto transferido</li>
-                    <li>✅ Número de confirmación (63806513)</li>
-                    <li>✅ Fecha y hora</li>
-                    <li>✅ Destinatario</li>
-                </ul>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-content">
-                <h4>Sube la captura aquí</h4>
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📤</div>
-                    <div class="upload-text">Haz clic para subir la captura</div>
-                    <div class="upload-subtext">Formatos: JPG, PNG (Máx. 5MB)</div>
-                    <input type="file" id="screenshotInput" accept="image/*" hidden>
-                </div>
-                <p class="upload-warning">❌ No podrás completar la compra sin la captura</p>
-            </div>
-        </div>
-    </div>
-</div>
             
             <!-- Botón de enviar -->
             <button id="submitBtn" class="btn-primary" onclick="submitPayment()" disabled>
@@ -130,8 +136,8 @@
         // Obtener parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
-        const planType = urlParams.get('plan') || 'mensual';
-        const price = urlParams.get('price') || '10';
+        const planType = urlParams.get('plan') || 'basico';
+        const price = urlParams.get('price') || '800';
         
         // Variables globales
         let selectedFile = null;
@@ -140,13 +146,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Mostrar información del plan
             const planNames = {
-                'mensual': 'Plan Mensual',
-                'trimestral': 'Plan Trimestral',
-                'anual': 'Plan Anual'
+                'basico': 'Básico (1 mes)',
+                'premium': 'Premium (2 meses)',
+                'vip': 'VIP (6 meses)'
             };
             
-            document.getElementById('planName').textContent = planNames[planType] || 'Plan Mensual';
-            document.getElementById('planPrice').textContent = `$${price}`;
+            document.getElementById('planName').textContent = planNames[planType] || 'Plan Básico';
+            document.getElementById('planPrice').textContent = `$${price} CUP`;
             document.getElementById('userId').textContent = userId || 'No disponible';
             
             // Configurar área de upload
@@ -197,29 +203,22 @@
             }
             
             // Validar tipo
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
             if (!validTypes.includes(file.type)) {
-                alert('Formato no válido. Solo JPG, PNG, GIF o PDF.');
+                alert('Formato no válido. Solo JPG, PNG o GIF.');
                 return;
             }
             
             selectedFile = file;
             
-            // Mostrar vista previa si es imagen
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('imagePreview');
-                    preview.src = e.target.result;
-                    document.getElementById('previewContainer').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                // Para PDF, mostrar nombre del archivo
+            // Mostrar vista previa
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
                 document.getElementById('previewContainer').style.display = 'block';
-                document.getElementById('imagePreview').src = '';
-                document.getElementById('imagePreview').alt = `PDF: ${file.name}`;
-            }
+            };
+            reader.readAsDataURL(file);
             
             // Habilitar botón de enviar
             document.getElementById('submitBtn').disabled = false;
@@ -246,10 +245,10 @@
         
         // Enviar pago
         async function submitPayment() {
-    if (!selectedFile) {
-        alert('❌ DEBES SUBIR LA CAPTURA DE PANTALLA');
-        return;
-    }
+            if (!selectedFile) {
+                alert('❌ DEBES SUBIR LA CAPTURA DE PANTALLA');
+                return;
+            }
             
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
@@ -263,7 +262,7 @@
             formData.append('notes', document.getElementById('paymentNotes').value);
             
             try {
-                const response = await fetch(`${window.API_BASE_URL || ''}/api/payment`, {
+                const response = await fetch('/api/payment', {
                     method: 'POST',
                     body: formData
                 });
@@ -277,10 +276,11 @@
                     // Cerrar WebApp o redirigir
                     tg.close();
                 } else {
-                    throw new Error('Error al enviar el comprobante');
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error al enviar el comprobante');
                 }
             } catch (error) {
-                alert('❌ Error al enviar el comprobante. Por favor, intenta de nuevo.');
+                alert('❌ Error al enviar el comprobante: ' + error.message);
                 btn.disabled = false;
                 btn.innerHTML = '<span class="btn-icon">📨</span><span class="btn-text">Enviar comprobante de pago</span>';
             }
@@ -289,12 +289,12 @@
         // Verificar si el usuario aceptó los términos
         async function checkTermsAccepted() {
             try {
-                const response = await fetch(`${window.API_BASE_URL || ''}/api/check-terms/${userId}`);
+                const response = await fetch(`/api/check-terms/${userId}`);
                 const data = await response.json();
                 
                 if (!data.accepted) {
                     // Si no ha aceptado los términos, redirigir a la página de términos
-                    window.location.href = `index.html?userId=${userId}`;
+                    window.location.href = `/index.html?userId=${userId}`;
                 }
             } catch (error) {
                 console.error('Error verificando términos:', error);

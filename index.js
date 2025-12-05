@@ -32,7 +32,7 @@ const upload = multer({
 
 // Crear carpetas necesarias
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
-if (!fs.existsSync('public')) fs.mkdirSync('public');
+if (!fs.existsSync('public')) fs.mkdirSync('frontend');
 
 // ==================== RUTAS DE LA API ====================
 
@@ -169,6 +169,33 @@ app.get('/api/vip-users', async (req, res) => {
 
 // 9. Servir archivos subidos
 app.use('/uploads', express.static('uploads'));
+
+// ==================== SERVIR ARCHIVOS HTML ====================
+
+// Ruta principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/index.html'));
+});
+
+// Ruta para planes
+app.get('/plans.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/plans.html'));
+});
+
+// Ruta para pago
+app.get('/payment.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/payment.html'));
+});
+
+// Ruta para admin
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/admin.html'));
+});
+
+// Ruta para CSS
+app.get('/css/style.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/css/style.css'));
+});
 
 // ==================== BOT DE TELEGRAM ====================
 

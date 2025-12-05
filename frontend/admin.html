@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Cuba - Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Líneas decorativas futuristas -->
+        <div class="connection-line top-left"></div>
+        <div class="connection-line top-right"></div>
+        <div class="connection-line bottom-left"></div>
+        <div class="connection-line bottom-right"></div>
+        <div class="pulse-dot center"></div>
+        
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <h1>VPN CUBA - ADMIN</h1>
+            </div>
+            <p class="subtitle">Panel de administración</p>
+            <div class="admin-actions">
+                <button class="btn-secondary" onclick="refreshData()">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Actualizar</span>
+                </button>
+                <button class="btn-secondary" onclick="logout()">
+                    <span class="btn-icon">🚪</span>
+                    <span class="btn-text">Salir</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Sección de Pagos Pendientes -->
+        <div class="admin-section">
+            <h2 class="section-title">
+                <span class="section-icon">⏳</span>
+                Pagos Pendientes
+                <span class="badge" id="pendingCount">0</span>
+            </h2>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="search-input" placeholder="Buscar por ID, usuario o plan...">
+                <button class="search-btn" onclick="searchPayments()">🔍</button>
+            </div>
+            
+            <div class="payments-grid" id="pendingPayments">
+                <!-- Los pagos se cargarán dinámicamente -->
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <div class="empty-text">No hay pagos pendientes</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sección de Enviar Configuración -->
+        <div class="admin-section">
+            <h2 class="section-title">
+                <span class="section-icon">📤</span>
+                Enviar Configuración
+            </h2>
+            
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="userSearch">Buscar usuario:</label>
+                    <div class="search-combo">
+                        <input type="text" id="userSearch" class="form-input" 
+                               placeholder="ID de Telegram o @username">
+                        <button class="btn-secondary" onclick="searchUser()">Buscar</button>
+                    </div>
+                    <div id="userResult" class="user-result" style="display: none;">
+                        <div class="user-info">
+                            <span class="user-label">Usuario encontrado:</span>
+                            <span class="user-value" id="foundUserName"></span>
+                            <input type="hidden" id="foundUserId">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="configFile">Archivo de configuración (.conf):</label>
+                    <div class="file-upload">
+                        <input type="file" id="configFile" class="file-input" accept=".conf">
+                        <label for="configFile" class="file-label">
+                            <span class="file-icon">📎</span>
+                            <span class="file-text">Seleccionar archivo .conf</span>
+                        </label>
+                        <span id="fileName" class="file-name">Ningún archivo seleccionado</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminNotes">Notas (opcional):</label>
+                    <textarea id="adminNotes" class="form-textarea" 
+                              placeholder="Notas para el usuario..."></textarea>
+                </div>
+                
+                <button id="sendConfigBtn" class="btn-primary" onclick="sendConfigFile()" disabled>
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">Enviar configuración</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Sección de Usuarios VIP -->
+        <div class="admin-section">
+            <h2 class="section-title">
+                <span class="section-icon">👑</span>
+                Usuarios VIP
+                <span class="badge" id="vipCount">0</span>
+            </h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalRevenue">$0</div>
+                        <div class="stat-label">Ingresos totales</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalUsers">0</div>
+                        <div class="stat-label">Usuarios totales</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="approvedToday">0</div>
+                        <div class="stat-label">Aprobados hoy</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="vip-list" id="vipUsers">
+                <!-- Los usuarios VIP se cargarán dinámicamente -->
+                <div class="empty-state">
+                    <div class="empty-icon">👑</div>
+                    <div class="empty-text">No hay usuarios VIP aún</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">© 2025 VPN Cuba - Panel de Administración</p>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.hide();
+        
+        // Variables globales
+        let authToken = localStorage.getItem('adminToken');
+        let currentUser = null;
+        
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadPayments();
+            loadStats();
+            loadVIPUsers();
+            
+            // Configurar input de archivo
+            document.getElementById('configFile').addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'Ningún archivo seleccionado';
+                document.getElementById('fileName').textContent = fileName;
+                updateSendButton();
+            });
+            
+            // Configurar búsqueda en tiempo real
+            document.getElementById('searchInput').addEventListener('input', debounce(searchPayments, 300));
+            document.getElementById('userSearch').addEventListener('input', debounce(searchUser, 300));
+        });
+        
+        // Verificar autenticación
+        async function checkAuth() {
+            if (!authToken) {
+                // Redirigir a login
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/verify`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('No autorizado');
+                }
+            } catch (error) {
+                localStorage.removeItem('adminToken');
+                window.location.href = 'admin-login.html';
+            }
+        }
+        
+        // Cargar pagos pendientes
+        async function loadPayments() {
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/payments/pending`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const payments = await response.json();
+                    displayPayments(payments);
+                }
+            } catch (error) {
+                console.error('Error cargando pagos:', error);
+            }
+        }
+        
+        // Mostrar pagos en la interfaz
+        function displayPayments(payments) {
+            const container = document.getElementById('pendingPayments');
+            const countElement = document.getElementById('pendingCount');
+            
+            countElement.textContent = payments.length;
+            
+            if (payments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-text">No hay pagos pendientes</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            payments.forEach(payment => {
+                const paymentElement = document.createElement('div');
+                paymentElement.className = 'payment-card';
+                paymentElement.innerHTML = `
+                    <div class="payment-header">
+                        <div class="payment-id">#${payment.id.substring(0, 8)}</div>
+                        <div class="payment-date">${new Date(payment.created_at).toLocaleDateString()}</div>
+                    </div>
+                    
+                    <div class="payment-body">
+                        <div class="payment-user">
+                            <div class="user-icon">👤</div>
+                            <div class="user-info">
+                                <div class="user-id">ID: ${payment.telegram_id}</div>
+                                <div class="user-plan">Plan: ${getPlanName(payment.plan)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="payment-amount">
+                            <div class="amount-icon">💰</div>
+                            <div class="amount-value">$${payment.price}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-screenshot">
+                        <div class="screenshot-label">Comprobante:</div>
+                        <img src="${payment.screenshot_url}" 
+                             alt="Comprobante" 
+                             class="screenshot-img"
+                             onclick="viewScreenshot('${payment.screenshot_url}')">
+                    </div>
+                    
+                    ${payment.notes ? `
+                        <div class="payment-notes">
+                            <div class="notes-label">Notas:</div>
+                            <div class="notes-text">${payment.notes}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="payment-actions">
+                        <button class="btn-approve" onclick="approvePayment('${payment.id}')">
+                            <span class="action-icon">✅</span>
+                            <span class="action-text">Aprobar</span>
+                        </button>
+                        <button class="btn-reject" onclick="rejectPayment('${payment.id}')">
+                            <span class="action-icon">❌</span>
+                            <span class="action-text">Rechazar</span>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(paymentElement);
+            });
+        }
+        
+        // Aprobar pago
+        async function approvePayment(paymentId) {
+            if (!confirm('¿Estás seguro de aprobar este pago?')) return;
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/payments/${paymentId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('✅ Pago aprobado exitosamente');
+                    loadPayments();
+                    loadStats();
+                    loadVIPUsers();
+                }
+            } catch (error) {
+                alert('❌ Error al aprobar el pago');
+            }
+        }
+        
+        // Rechazar pago
+        async function rejectPayment(paymentId) {
+            const reason = prompt('Motivo del rechazo:');
+            if (!reason) return;
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/payments/${paymentId}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Pago rechazado');
+                    loadPayments();
+                }
+            } catch (error) {
+                alert('❌ Error al rechazar el pago');
+            }
+        }
+        
+        // Verificar captura de pantalla
+        function viewScreenshot(url) {
+            window.open(url, '_blank');
+        }
+        
+        // Buscar usuario
+        async function searchUser() {
+            const query = document.getElementById('userSearch').value.trim();
+            if (!query) {
+                document.getElementById('userResult').style.display = 'none';
+                currentUser = null;
+                updateSendButton();
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/users/search?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    
+                    if (user) {
+                        currentUser = user;
+                        document.getElementById('foundUserName').textContent = 
+                            `@${user.username || 'Sin usuario'} (ID: ${user.telegram_id})`;
+                        document.getElementById('foundUserId').value = user.telegram_id;
+                        document.getElementById('userResult').style.display = 'block';
+                        updateSendButton();
+                    } else {
+                        alert('Usuario no encontrado');
+                        document.getElementById('userResult').style.display = 'none';
+                        currentUser = null;
+                        updateSendButton();
+                    }
+                }
+            } catch (error) {
+                console.error('Error buscando usuario:', error);
+            }
+        }
+        
+        // Enviar archivo de configuración
+        async function sendConfigFile() {
+            if (!currentUser) {
+                alert('Primero busca un usuario');
+                return;
+            }
+            
+            const fileInput = document.getElementById('configFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Selecciona un archivo de configuración');
+                return;
+            }
+            
+            const notes = document.getElementById('adminNotes').value;
+            
+            const formData = new FormData();
+            formData.append('telegramId', currentUser.telegram_id);
+            formData.append('configFile', file);
+            formData.append('notes', notes);
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/send-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('✅ Configuración enviada exitosamente');
+                    // Limpiar formulario
+                    fileInput.value = '';
+                    document.getElementById('fileName').textContent = 'Ningún archivo seleccionado';
+                    document.getElementById('adminNotes').value = '';
+                    document.getElementById('userSearch').value = '';
+                    document.getElementById('userResult').style.display = 'none';
+                    currentUser = null;
+                    updateSendButton();
+                }
+            } catch (error) {
+                alert('❌ Error al enviar la configuración');
+            }
+        }
+        
+        // Actualizar botón de enviar
+        function updateSendButton() {
+            const btn = document.getElementById('sendConfigBtn');
+            const file = document.getElementById('configFile').files[0];
+            btn.disabled = !(currentUser && file);
+        }
+        
+        // Cargar estadísticas
+        async function loadStats() {
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalRevenue').textContent = `$${stats.total_revenue || 0}`;
+                    document.getElementById('totalUsers').textContent = stats.total_users || 0;
+                    document.getElementById('approvedToday').textContent = stats.approved_today || 0;
+                }
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+            }
+        }
+        
+        // Cargar usuarios VIP
+        async function loadVIPUsers() {
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/vip-users`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    displayVIPUsers(users);
+                }
+            } catch (error) {
+                console.error('Error cargando usuarios VIP:', error);
+            }
+        }
+        
+        // Mostrar usuarios VIP
+        function displayVIPUsers(users) {
+            const container = document.getElementById('vipUsers');
+            const countElement = document.getElementById('vipCount');
+            
+            countElement.textContent = users.length;
+            
+            if (users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👑</div>
+                        <div class="empty-text">No hay usuarios VIP aún</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            users.forEach(user => {
+                const userElement = document.createElement('div');
+                userElement.className = 'vip-card';
+                userElement.innerHTML = `
+                    <div class="vip-header">
+                        <div class="vip-badge">VIP</div>
+                        <div class="vip-since">Desde: ${new Date(user.vip_since).toLocaleDateString()}</div>
+                    </div>
+                    
+                    <div class="vip-body">
+                        <div class="vip-user">
+                            <div class="user-avatar">👤</div>
+                            <div class="user-details">
+                                <div class="user-name">${user.first_name || ''} ${user.last_name || ''}</div>
+                                <div class="user-username">@${user.username || 'Sin usuario'}</div>
+                                <div class="user-id">ID: ${user.telegram_id}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="vip-plan">
+                            <div class="plan-icon">📋</div>
+                            <div class="plan-details">
+                                <div class="plan-name">${getPlanName(user.plan)}</div>
+                                <div class="plan-price">$${user.plan_price}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="vip-actions">
+                        <button class="btn-secondary" onclick="sendConfigToUser('${user.telegram_id}')">
+                            <span class="action-icon">📤</span>
+                            <span class="action-text">Enviar Config</span>
+                        </button>
+                        <button class="btn-secondary" onclick="removeVIP('${user.telegram_id}')">
+                            <span class="action-icon">👋</span>
+                            <span class="action-text">Remover VIP</span>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(userElement);
+            });
+        }
+        
+        // Enviar configuración a usuario específico
+        function sendConfigToUser(telegramId) {
+            document.getElementById('userSearch').value = telegramId;
+            searchUser();
+            
+            // Scroll a la sección de envío
+            document.querySelector('.config-form').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Remover usuario VIP
+        async function removeVIP(telegramId) {
+            if (!confirm('¿Estás seguro de remover el estado VIP de este usuario?')) return;
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/users/${telegramId}/remove-vip`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('✅ Usuario removido de VIP');
+                    loadVIPUsers();
+                    loadStats();
+                }
+            } catch (error) {
+                alert('❌ Error al remover usuario VIP');
+            }
+        }
+        
+        // Buscar pagos
+        async function searchPayments() {
+            const query = document.getElementById('searchInput').value.trim();
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/admin/payments/search?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const payments = await response.json();
+                    displayPayments(payments);
+                }
+            } catch (error) {
+                console.error('Error buscando pagos:', error);
+            }
+        }
+        
+        // Refrescar datos
+        function refreshData() {
+            loadPayments();
+            loadStats();
+            loadVIPUsers();
+        }
+        
+        // Cerrar sesión
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = 'admin-login.html';
+        }
+        
+        // Helper: Obtener nombre del plan
+        function getPlanName(planType) {
+            const plans = {
+                'mensual': 'Plan Mensual',
+                'trimestral': 'Plan Trimestral',
+                'anual': 'Plan Anual'
+            };
+            return plans[planType] || planType;
+        }
+        
+        // Helper: Debounce para búsqueda
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>

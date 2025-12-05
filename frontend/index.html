@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Cuba - Aceptar Términos</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Líneas decorativas futuristas -->
+        <div class="connection-line top-left"></div>
+        <div class="connection-line top-right"></div>
+        <div class="connection-line bottom-left"></div>
+        <div class="connection-line bottom-right"></div>
+        <div class="pulse-dot center"></div>
+        
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <h1>VPN CUBA</h1>
+            </div>
+            <p class="subtitle">Para continuar, acepta nuestros términos</p>
+        </div>
+        
+        <div class="terms-container">
+            <!-- Términos de Uso -->
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(1)">
+                    <div class="accordion-icon">📄</div>
+                    <div class="accordion-title">Términos de Uso</div>
+                    <div class="accordion-arrow" id="arrow1">▼</div>
+                </div>
+                <div class="accordion-content" id="content1">
+                    <div class="terms-content">
+                        <h3>Última actualización: Noviembre de 2025</h3>
+                        <p>Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.</p>
+                        
+                        <h4>1. Responsabilidad del Cliente</h4>
+                        <p><strong>1.1. Cumplimiento Legal:</strong> El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.</p>
+                        <p><strong>1.2. Uso Legal:</strong> El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.</p>
+                        <p><strong>1.3. Datos de Cuenta:</strong> El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.</p>
+                        
+                        <h4>2. Uso Aceptable del Servicio (Prohibiciones)</h4>
+                        <p>Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:</p>
+                        <ul>
+                            <li><strong>Actividades Ilegales:</strong> Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.</li>
+                            <li><strong>Ataques a la Red:</strong> Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).</li>
+                            <li><strong>Abuso de Ancho de Banda:</strong> Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).</li>
+                            <li><strong>Compartición No Autorizada:</strong> Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.</li>
+                        </ul>
+                        
+                        <h4>3. Exclusión de Garantías y Limitación de Responsabilidad</h4>
+                        <p><strong>3.1. Rendimiento:</strong> Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.</p>
+                        <p><strong>3.2. Interrupción de Servicio:</strong> VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.</p>
+                        
+                        <h4>4. Suspensión y Terminación</h4>
+                        <p><strong>4.1. Violación:</strong> VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.</p>
+                    </div>
+                </div>
+                <div class="accordion-checkbox">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check1" onchange="checkAll()">
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-text">He leído y acepto los Términos de Uso</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Política de Reembolso -->
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(2)">
+                    <div class="accordion-icon">💰</div>
+                    <div class="accordion-title">Política de Reembolso</div>
+                    <div class="accordion-arrow" id="arrow2">▼</div>
+                </div>
+                <div class="accordion-content" id="content2">
+                    <div class="terms-content">
+                        <h3>Última actualización: Noviembre de 2025</h3>
+                        <p>En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una garantía clara:</p>
+                        
+                        <h4>1. Garantía de Devolución de Dinero (7 Días)</h4>
+                        <p>Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la fecha de la compra inicial del plan.</p>
+                        <p>Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este periodo de 7 días, puedes solicitar un reembolso completo.</p>
+                        <p>Esta garantía solo aplica a la primera compra de un cliente. Las renovaciones o compras posteriores no son elegibles.</p>
+                        
+                        <h4>2. Condiciones Específicas para el Reembolso</h4>
+                        <p>Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con las siguientes condiciones:</p>
+                        <ul>
+                            <li><strong>Motivo Técnico:</strong> La solicitud debe estar basada en un problema técnico no resuelto relacionado con la incapacidad de conectar o una latencia (ping) inusualmente alta que el equipo de soporte no pudo solucionar.</li>
+                            <li><strong>Nota:</strong> Las velocidades o latencias que sean consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.</li>
+                            <li><strong>Cumplimiento de Términos:</strong> El Cliente no debe haber violado nuestros Términos de Servicio (ej. no haber compartido la clave, no haber realizado abuso de ancho de banda o actividades ilegales).</li>
+                        </ul>
+                        
+                        <h4>3. Exclusiones y No Elegibilidad</h4>
+                        <p>No se otorgará un reembolso bajo las siguientes circunstancias:</p>
+                        <ul>
+                            <li><strong>Expiración del Período:</strong> Solicitudes realizadas después del día 7 de la compra inicial.</li>
+                            <li><strong>Renovaciones:</strong> Los pagos por renovación automática o manual no son reembolsables.</li>
+                            <li><strong>Uso Abusivo:</strong> Si se comprueba el uso del servicio para actividades ilegales o la violación de nuestros Términos de Servicio.</li>
+                        </ul>
+                        
+                        <h4>4. Proceso de Solicitud de Reembolso</h4>
+                        <p>Para iniciar una solicitud de reembolso:</p>
+                        <ol>
+                            <li>Envía un correo electrónico a nuestro equipo de facturación: <a href="mailto:lolitogarcia0707@gmail.com">lolitogarcia0707@gmail.com</a></li>
+                            <li>Incluye: Tu ID de Cliente, la Fecha de Compra, y la Explicación Detallada del problema técnico no resuelto.</li>
+                            <li>Nuestro equipo de soporte revisará la solicitud y te responderá en un plazo máximo de 72 horas hábiles con el estado de tu reembolso.</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="accordion-checkbox">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check2" onchange="checkAll()">
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-text">He leído y acepto la Política de Reembolso</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Política de Privacidad -->
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(3)">
+                    <div class="accordion-icon">🔒</div>
+                    <div class="accordion-title">Política de Privacidad</div>
+                    <div class="accordion-arrow" id="arrow3">▼</div>
+                </div>
+                <div class="accordion-content" id="content3">
+                    <div class="terms-content">
+                        <h3>Última actualización: Noviembre de 2025</h3>
+                        <p>En VPN Cuba, tu privacidad y seguridad son nuestra máxima prioridad. Operamos bajo una estricta política de Cero Registros (No-Logs Policy) diseñada para asegurar que tu actividad en línea permanezca completamente privada.</p>
+                        
+                        <h4>1. Nuestro Compromiso: Cero Registros de Actividad</h4>
+                        <p>VPN Cuba NO registra, almacena ni monitorea la actividad de nuestros usuarios.</p>
+                        <p>No registramos:</p>
+                        <ul>
+                            <li>Tu actividad de navegación, historial de sitios web visitados o el contenido de tus comunicaciones.</li>
+                            <li>Registros de tráfico (qué datos se envían o reciben).</li>
+                            <li>Registros de DNS (solicitudes a sitios web).</li>
+                            <li>Tu dirección IP real (externa) ni la dirección IP asignada por nuestra VPN.</li>
+                        </ul>
+                        <p>Esto significa que, incluso si se nos solicitara información, no tendríamos nada que compartir sobre tu actividad en línea.</p>
+                        
+                        <h4>2. Información Necesaria que Sí Recolectamos</h4>
+                        <p>Para operar y mantener el servicio, solo recopilamos la siguiente información mínima necesaria:</p>
+                        <ul>
+                            <li><strong>Información de la Cuenta:</strong> Tu nombre de usuario o ID de Cliente y la información de contacto (generalmente un correo electrónico o nombre de Telegram) que proporcionas para la creación y gestión de tu cuenta.</li>
+                            <li><strong>Información de Pago:</strong> Los datos necesarios para procesar tu compra (ej: confirmación de la transferencia, ID de transacción de PayPal o USDT). Nunca almacenamos números de tarjetas de crédito o información bancaria sensible.</li>
+                            <li><strong>Datos de Conexión Mínimos y Anónimos:</strong> Mantenemos un registro anónimo y agregado del total de ancho de banda consumido o el tiempo de conexión del usuario únicamente para fines de gestión de red (evitar abusos y optimizar la carga del servidor). Esta información no puede ser vinculada a tu actividad específica.</li>
+                        </ul>
+                        
+                        <h4>3. El Protocolo WireGuard®</h4>
+                        <p>Utilizamos el protocolo WireGuard por su seguridad y eficiencia superior. Entendemos las preocupaciones de privacidad de WireGuard y hemos implementado configuraciones personalizadas para eliminar cualquier potencial riesgo de privacidad de registros temporales de IP, adhiriéndonos estrictamente a nuestra política No-Logs.</p>
+                        
+                        <h4>4. Uso de la Información</h4>
+                        <p>La información que recolectamos (la mínima detallada en la Sección 2) se utiliza únicamente para:</p>
+                        <ul>
+                            <li>Crear, mantener y gestionar tu cuenta.</li>
+                            <li>Procesar pagos y facturación.</li>
+                            <li>Responder a solicitudes de soporte al cliente.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="accordion-checkbox">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check3" onchange="checkAll()">
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-text">He leído y acepto la Política de Privacidad</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <button id="continueBtn" class="btn-primary" disabled onclick="acceptTerms()">
+            <span class="btn-icon">🚀</span>
+            <span class="btn-text">Continuar a los Planes</span>
+            <div class="btn-glow"></div>
+        </button>
+        
+        <div class="footer">
+            <p class="footer-text">© 2025 VPN Cuba. Todos los derechos reservados.</p>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.hide();
+        
+        // Obtener parámetros de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
+        
+        // Acordeón para términos
+        function toggleAccordion(num) {
+            const content = document.getElementById(`content${num}`);
+            const arrow = document.getElementById(`arrow${num}`);
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                arrow.textContent = '▼';
+            } else {
+                content.classList.add('expanded');
+                arrow.textContent = '▲';
+            }
+        }
+        
+        // Verificar si todos los checkboxes están marcados
+        function checkAll() {
+            const check1 = document.getElementById('check1').checked;
+            const check2 = document.getElementById('check2').checked;
+            const check3 = document.getElementById('check3').checked;
+            const btn = document.getElementById('continueBtn');
+            
+            btn.disabled = !(check1 && check2 && check3);
+        }
+        
+        // Función para aceptar términos y redirigir a planes
+        async function acceptTerms() {
+            const btn = document.getElementById('continueBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Procesando...</span>';
+            
+            try {
+                // Guardar aceptación en el backend
+                const response = await fetch(`${window.API_BASE_URL || ''}/api/accept-terms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        telegramId: userId,
+                        username: tg.initDataUnsafe.user?.username,
+                        firstName: tg.initDataUnsafe.user?.first_name
+                    })
+                });
+                
+                if (response.ok) {
+                    // Redirigir a la página de planes
+                    window.location.href = `plans.html?userId=${userId}`;
+                } else {
+                    throw new Error('Error al guardar la aceptación');
+                }
+            } catch (error) {
+                alert('Error al guardar la aceptación. Por favor, intenta de nuevo.');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">🚀</span><span class="btn-text">Continuar a los Planes</span>';
+            }
+        }
+        
+        // Si no hay userId, intentar obtenerlo de Telegram
+        if (!userId && tg.initDataUnsafe.user) {
+            const url = new URL(window.location);
+            url.searchParams.set('userId', tg.initDataUnsafe.user.id);
+            window.history.replaceState({}, '', url);
+        }
+    </script>
+</body>
+</html>

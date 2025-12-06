@@ -42,11 +42,11 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'screenshot') {
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Solo se permiten imágenes JPG, PNG o GIF'));
+        cb(new Error('Solo se permiten imágenes JPG, PNG, GIF o WebP'));
       }
     } else if (file.fieldname === 'configFile') {
       if (file.mimetype === 'text/plain' || file.originalname.endsWith('.conf')) {
@@ -61,8 +61,9 @@ const upload = multer({
 });
 
 // Crear carpetas necesarias
-if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
-if (!fs.existsSync('public')) fs.mkdirSync('public');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 
 // Función auxiliar para nombres de planes
 function getPlanName(planType) {
@@ -116,7 +117,7 @@ app.get('/api/check-terms/:telegramId', async (req, res) => {
   }
 });
 
-// 4. Procesar pago
+// 4. Procesar pago (CON SUPABASE STORAGE)
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   try {
     const { telegramId, plan, price, notes } = req.body;
@@ -125,23 +126,45 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       return res.status(400).json({ error: 'Captura de pantalla requerida' });
     }
 
-    // Obtener información del usuario
+    // 1. Subir imagen a Supabase Storage
+    let screenshotUrl = '';
+    try {
+      screenshotUrl = await db.uploadImage(req.file.path, telegramId);
+      console.log('✅ Imagen subida a Supabase Storage:', screenshotUrl);
+      
+      // Eliminar archivo local después de subir exitosamente
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error eliminando archivo local:', err);
+      });
+    } catch (uploadError) {
+      console.error('Error subiendo imagen:', uploadError);
+      
+      // Si falla el upload, usar ruta local como fallback
+      screenshotUrl = `/uploads/${req.file.filename}`;
+      console.log('⚠️ Usando ruta local como fallback:', screenshotUrl);
+    }
+
+    // 2. Obtener información del usuario
     const user = await db.getUser(telegramId);
     const username = user?.username ? `@${user.username}` : 'Sin usuario';
     const firstName = user?.first_name || 'Usuario';
 
-    // Guardar pago en base de datos
+    // 3. Guardar pago en base de datos
     const payment = await db.createPayment({
       telegram_id: telegramId,
       plan: plan,
       price: parseFloat(price),
-      screenshot_url: `/uploads/${req.file.filename}`,
+      screenshot_url: screenshotUrl,
       notes: notes || '',
       status: 'pending',
       created_at: new Date().toISOString()
     });
 
-    // 🔥 ENVIAR NOTIFICACIÓN A TODOS LOS ADMINS
+    if (!payment) {
+      throw new Error('No se pudo crear el pago en la base de datos');
+    }
+
+    // 4. 🔥 ENVIAR NOTIFICACIÓN A TODOS LOS ADMINS
     try {
       const adminMessage = `💰 *NUEVO PAGO RECIBIDO*\n\n` +
         `👤 *Usuario:* ${firstName}\n` +
@@ -426,6 +449,11 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         });
       }
       
+      // Eliminar archivo local después de enviar
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error al eliminar archivo después de enviar:', err);
+      });
+      
       res.json({ 
         success: true, 
         message: 'Configuración enviada correctamente',
@@ -455,8 +483,8 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   }
 });
 
-// 14. Servir archivos subidos
-app.use('/uploads', express.static('uploads'));
+// 14. Servir archivos subidos (para fallback si no usa Supabase Storage)
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // 15. Ruta para obtener información del usuario actual
 app.get('/api/user-info/:telegramId', async (req, res) => {
@@ -540,8 +568,27 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    admins: ADMIN_IDS,
+    port: PORT
   });
+});
+
+// 19. Ruta para obtener imagen directa (si está guardada localmente)
+app.get('/api/image/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(UPLOADS_DIR, filename);
+    
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).json({ error: 'Imagen no encontrada' });
+    }
+  } catch (error) {
+    console.error('Error sirviendo imagen:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // ==================== SERVIR ARCHIVOS HTML ====================
@@ -872,6 +919,9 @@ bot.command('help', async (ctx) => {
 // Iniciar servidor
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor en http://localhost:${PORT}`);
+  console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
+  console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
+  console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
   console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
   
   // Iniciar bot

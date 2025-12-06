@@ -6,110 +6,127 @@
     <title>VPN Cuba - Planes</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* RESET Y BASE */
+        /* RESET PROFESIONAL */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a18 0%, #1a1a2e 100%);
-            color: white;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            color: #ffffff;
             min-height: 100vh;
             padding: 20px;
+            line-height: 1.6;
             position: relative;
             overflow-x: hidden;
         }
         
-        /* EFECTO DE RED NEÓN */
-        .network-lines {
+        /* EFECTO DE RED PROFESIONAL */
+        .network-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 1;
+            z-index: 0;
+            opacity: 0.1;
         }
         
-        .network-line {
+        .grid-line {
             position: absolute;
             background: linear-gradient(90deg, transparent, #00c6ff, transparent);
-            opacity: 0.1;
-            animation: pulse 4s infinite;
         }
         
-        @keyframes pulse {
-            0%, 100% { opacity: 0.1; }
-            50% { opacity: 0.3; }
+        .grid-line.horizontal {
+            width: 100%;
+            height: 1px;
+            left: 0;
+        }
+        
+        .grid-line.vertical {
+            height: 100%;
+            width: 1px;
+            top: 0;
         }
         
         /* CONTAINER PRINCIPAL */
-        .container {
+        .main-container {
             max-width: 1400px;
             margin: 0 auto;
             position: relative;
-            z-index: 2;
+            z-index: 1;
         }
         
-        /* HEADER */
+        /* HEADER ELEGANTE */
         .header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 60px;
             position: relative;
         }
         
         .title {
-            font-size: 3.5rem;
+            font-size: 3.2rem;
             font-weight: 900;
-            background: linear-gradient(90deg, #0072ff, #00c6ff, #7c4dff);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             background-clip: text;
-            color: transparent;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            text-shadow: 0 0 30px rgba(0, 114, 255, 0.3);
-            animation: glow 3s ease-in-out infinite alternate;
+            letter-spacing: -0.5px;
+            margin-bottom: 15px;
+            position: relative;
+            display: inline-block;
         }
         
-        @keyframes glow {
-            from { text-shadow: 0 0 20px rgba(0, 114, 255, 0.3); }
-            to { text-shadow: 0 0 30px rgba(0, 114, 255, 0.5), 0 0 40px rgba(0, 114, 255, 0.2); }
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
         }
         
         .subtitle {
-            font-size: 1.3rem;
-            color: #aaa;
+            font-size: 1.4rem;
+            color: #a0a0c0;
+            font-weight: 400;
             letter-spacing: 1px;
+            margin-top: 25px;
         }
         
-        /* CONTAINER DE PLANES (HORIZONTAL) */
-        .plans-container {
+        /* CONTENEDOR DE PLANES EN HORIZONTAL */
+        .plans-grid {
             display: flex;
             justify-content: center;
             align-items: stretch;
             gap: 30px;
+            margin-bottom: 80px;
             flex-wrap: wrap;
-            margin-bottom: 60px;
-            perspective: 1000px;
         }
         
-        /* TARJETA DE PLAN */
+        /* TARJETA DE PLAN PROFESIONAL */
         .plan-card {
             flex: 1;
-            min-width: 350px;
+            min-width: 320px;
             max-width: 380px;
-            background: rgba(25, 25, 40, 0.85);
-            border-radius: 25px;
-            padding: 40px 30px;
+            background: rgba(25, 25, 40, 0.9);
+            border-radius: 20px;
+            padding: 35px 30px;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(0, 114, 255, 0.2);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            display: flex;
+            flex-direction: column;
             backdrop-filter: blur(10px);
         }
         
@@ -119,362 +136,347 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, #0072ff, #00c6ff);
-            border-radius: 25px 25px 0 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 20px 20px 0 0;
         }
         
         .plan-card:hover {
-            transform: translateY(-20px) scale(1.02);
-            box-shadow: 0 30px 70px rgba(0, 114, 255, 0.25),
-                        0 0 100px rgba(0, 114, 255, 0.1);
-            border-color: rgba(0, 114, 255, 0.4);
+            transform: translateY(-15px);
+            border-color: rgba(102, 126, 234, 0.4);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15),
+                        0 0 100px rgba(102, 126, 234, 0.05);
         }
         
         .plan-card.featured {
-            border: 2px solid #0072ff;
-            box-shadow: 0 25px 60px rgba(0, 114, 255, 0.3),
-                        0 0 120px rgba(0, 114, 255, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.15);
         }
         
         .plan-card.vip {
-            border: 2px solid gold;
-            box-shadow: 0 25px 60px rgba(255, 215, 0, 0.2),
-                        0 0 120px rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            box-shadow: 0 15px 50px rgba(255, 193, 7, 0.1);
         }
         
         .plan-card.vip::before {
-            background: linear-gradient(90deg, gold, orange);
+            background: linear-gradient(90deg, #ffc107, #ff9800);
         }
         
-        /* BADGE */
+        /* BADGE ELEGANTE */
         .plan-badge {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             padding: 8px 20px;
             border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 700;
+            font-size: 0.85rem;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 5px 15px rgba(0, 114, 255, 0.3);
-            animation: float 3s ease-in-out infinite;
+            letter-spacing: 0.5px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
         
         .plan-card.vip .plan-badge {
-            background: linear-gradient(90deg, gold, orange);
-            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
             color: #000;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
         }
         
         /* HEADER DEL PLAN */
         .plan-header {
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 30px;
         }
         
-        .plan-name {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, white, #aaa);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+        .plan-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
         }
         
         .plan-period {
-            font-size: 1.1rem;
-            color: #888;
-            font-weight: 500;
+            font-size: 1rem;
+            color: #a0a0c0;
+            font-weight: 400;
         }
         
-        /* PRECIO */
+        /* PRECIO ELEGANTE */
         .plan-price {
             text-align: center;
-            margin-bottom: 30px;
+            margin: 30px 0;
+        }
+        
+        .price-container {
+            display: inline-block;
             position: relative;
         }
         
         .price-amount {
-            font-size: 5rem;
-            font-weight: 900;
+            font-size: 4.5rem;
+            font-weight: 800;
             line-height: 1;
-            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             background-clip: text;
-            color: transparent;
-            text-shadow: 0 5px 20px rgba(0, 114, 255, 0.2);
         }
         
         .plan-card.vip .price-amount {
-            background: linear-gradient(90deg, gold, orange);
+            background: linear-gradient(135deg, #ffc107, #ff9800);
             -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         
         .price-currency {
             font-size: 1.8rem;
-            color: #aaa;
+            color: #a0a0c0;
             font-weight: 600;
+            vertical-align: top;
             margin-left: 5px;
         }
         
-        /* AHORRO */
-        .plan-savings {
+        /* SECCIÓN DE AHORRO */
+        .savings-section {
             text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(0, 200, 83, 0.1);
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
             border-radius: 15px;
-            border: 1px solid rgba(0, 200, 83, 0.3);
-            animation: pulse-green 2s infinite;
+            border: 1px solid rgba(102, 126, 234, 0.2);
         }
         
-        .plan-card.vip .plan-savings {
-            background: rgba(255, 215, 0, 0.1);
-            border-color: rgba(255, 215, 0, 0.3);
-            animation: pulse-gold 2s infinite;
-        }
-        
-        @keyframes pulse-green {
-            0%, 100% { box-shadow: 0 0 20px rgba(0, 200, 83, 0.1); }
-            50% { box-shadow: 0 0 30px rgba(0, 200, 83, 0.2); }
-        }
-        
-        @keyframes pulse-gold {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.1); }
-            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
-        }
-        
-        .savings-icon {
-            font-size: 1.5rem;
-            margin-right: 10px;
-            vertical-align: middle;
+        .plan-card.vip .savings-section {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1));
+            border-color: rgba(255, 193, 7, 0.2);
         }
         
         .savings-text {
             font-size: 1.3rem;
-            font-weight: 700;
-            color: #4CAF50;
+            font-weight: 600;
+            color: #4caf50;
         }
         
         .plan-card.vip .savings-text {
-            color: gold;
+            color: #ffc107;
         }
         
         /* SUBTÍTULO VIP */
-        .plan-subtitle {
+        .vip-subtitle {
             text-align: center;
-            font-size: 1.4rem;
-            font-weight: 700;
+            font-size: 1.2rem;
+            font-weight: 600;
             color: #ffcc80;
             margin: 20px 0;
             padding: 15px;
-            background: rgba(255, 152, 0, 0.1);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 152, 0, 0.3);
-            animation: glow-orange 2s infinite;
-        }
-        
-        @keyframes glow-orange {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 152, 0, 0.1); }
-            50% { box-shadow: 0 0 30px rgba(255, 152, 0, 0.3); }
-        }
-        
-        /* FEATURES */
-        .plan-features {
-            margin: 35px 0;
-        }
-        
-        .feature {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 193, 7, 0.1);
             border-radius: 12px;
-            border-left: 4px solid #0072ff;
-            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 193, 7, 0.2);
         }
         
-        .feature:hover {
-            background: rgba(255, 255, 255, 0.1);
+        /* LISTA DE CARACTERÍSTICAS */
+        .features-list {
+            flex-grow: 1;
+            margin: 30px 0;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 18px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border-left: 3px solid #667eea;
+        }
+        
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.06);
             transform: translateX(5px);
         }
         
-        .feature-icon {
-            font-size: 1.8rem;
-            min-width: 40px;
-            text-align: center;
+        .plan-card.vip .feature-item {
+            border-left-color: #ffc107;
         }
         
-        .plan-card.vip .feature {
-            border-left-color: gold;
+        .feature-icon {
+            font-size: 1.5rem;
+            min-width: 30px;
+            text-align: center;
+            margin-top: 2px;
         }
         
         .feature-text {
-            font-size: 1.1rem;
-            color: #ddd;
-            line-height: 1.4;
+            font-size: 1rem;
+            color: #d0d0e0;
+            line-height: 1.5;
         }
         
-        /* BOTÓN DE COMPRA */
-        .buy-button {
+        /* BOTÓN DE COMPRA PROFESIONAL */
+        .purchase-button {
             width: 100%;
-            padding: 22px;
+            padding: 20px;
             border: none;
             border-radius: 15px;
-            font-size: 1.4rem;
-            font-weight: 800;
+            font-size: 1.2rem;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 12px;
             position: relative;
             overflow: hidden;
-            margin-top: 30px;
+            margin-top: 20px;
+            font-family: 'Inter', sans-serif;
         }
         
-        .buy-button::before {
+        .purchase-button::before {
             content: '';
             position: absolute;
             top: 0;
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
             transition: left 0.6s ease;
         }
         
-        .buy-button:hover::before {
+        .purchase-button:hover::before {
             left: 100%;
         }
         
-        .buy-button.basic {
-            background: linear-gradient(90deg, #0072ff, #00c6ff);
+        .purchase-button.standard {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            box-shadow: 0 10px 30px rgba(0, 114, 255, 0.3);
         }
         
-        .buy-button.basic:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 114, 255, 0.5);
+        .purchase-button.standard:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
         }
         
-        .buy-button.featured {
-            background: linear-gradient(90deg, #7c4dff, #00c6ff);
+        .purchase-button.featured {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
             color: white;
-            box-shadow: 0 10px 30px rgba(124, 77, 255, 0.3);
         }
         
-        .buy-button.featured:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(124, 77, 255, 0.5);
+        .purchase-button.featured:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
         }
         
-        .buy-button.vip {
-            background: linear-gradient(90deg, gold, orange);
+        .purchase-button.vip {
+            background: linear-gradient(135deg, #ffc107, #ff9800);
             color: #000;
-            font-weight: 900;
-            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+            font-weight: 700;
         }
         
-        .buy-button.vip:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.5);
+        .purchase-button.vip:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 193, 7, 0.3);
         }
         
         .button-icon {
-            font-size: 1.6rem;
+            font-size: 1.4rem;
         }
         
-        /* FEATURES GLOBALES */
+        /* CARACTERÍSTICAS GLOBALES */
         .global-features {
-            max-width: 1000px;
-            margin: 70px auto;
-            text-align: center;
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 40px;
+            background: rgba(25, 25, 40, 0.8);
+            border-radius: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.15);
         }
         
         .global-title {
-            font-size: 2.2rem;
+            font-size: 2rem;
+            text-align: center;
             margin-bottom: 40px;
-            background: linear-gradient(90deg, #0072ff, #00c6ff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-weight: 800;
+            color: #ffffff;
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
         }
         
-        .features-grid {
+        .global-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+        
+        .features-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
+            gap: 25px;
         }
         
         .feature-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
+            text-align: center;
         }
         
         .feature-card:hover {
-            transform: translateY(-10px);
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #0072ff;
-            box-shadow: 0 20px 40px rgba(0, 114, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-5px);
         }
         
         .feature-card-icon {
-            font-size: 3.5rem;
+            font-size: 2.5rem;
             margin-bottom: 20px;
             display: block;
-            background: linear-gradient(90deg, #0072ff, #00c6ff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+            color: #667eea;
         }
         
         .feature-card-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #ffffff;
         }
         
         .feature-card-desc {
-            color: #aaa;
-            line-height: 1.6;
+            color: #a0a0c0;
+            font-size: 0.95rem;
+            line-height: 1.5;
         }
         
-        /* FOOTER */
+        /* FOOTER ELEGANTE */
         .footer {
             text-align: center;
             margin-top: 60px;
             padding-top: 30px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #888;
-            font-size: 1rem;
+            color: #a0a0c0;
+            font-size: 0.9rem;
         }
         
         /* RESPONSIVE */
         @media (max-width: 1200px) {
-            .plans-container {
+            .plans-grid {
                 flex-direction: column;
                 align-items: center;
             }
@@ -490,195 +492,212 @@
                 font-size: 2.5rem;
             }
             
-            .plan-name {
-                font-size: 2rem;
-            }
-            
-            .price-amount {
-                font-size: 4rem;
+            .subtitle {
+                font-size: 1.1rem;
             }
             
             .plan-card {
-                min-width: 300px;
+                min-width: 100%;
+                padding: 25px 20px;
+            }
+            
+            .price-amount {
+                font-size: 3.5rem;
             }
         }
+        
+        /* ANIMACIONES SUTILES */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .plan-card {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+        }
+        
+        .plan-card:nth-child(1) { animation-delay: 0.1s; }
+        .plan-card:nth-child(2) { animation-delay: 0.2s; }
+        .plan-card:nth-child(3) { animation-delay: 0.3s; }
     </style>
 </head>
 <body>
-    <!-- Líneas de red futuristas -->
-    <div class="network-lines">
-        <div class="network-line" style="top: 20%; left: 0; width: 100%; height: 1px;"></div>
-        <div class="network-line" style="top: 40%; left: 0; width: 100%; height: 1px;"></div>
-        <div class="network-line" style="top: 60%; left: 0; width: 100%; height: 1px;"></div>
-        <div class="network-line" style="top: 80%; left: 0; width: 100%; height: 1px;"></div>
-        <div class="network-line" style="top: 0; left: 20%; width: 1px; height: 100%;"></div>
-        <div class="network-line" style="top: 0; left: 40%; width: 1px; height: 100%;"></div>
-        <div class="network-line" style="top: 0; left: 60%; width: 1px; height: 100%;"></div>
-        <div class="network-line" style="top: 0; left: 80%; width: 1px; height: 100%;"></div>
-    </div>
+    <!-- Overlay de red -->
+    <div class="network-overlay" id="networkOverlay"></div>
     
-    <div class="container">
+    <div class="main-container">
         <!-- HEADER -->
-        <div class="header">
+        <header class="header">
             <h1 class="title">VPN CUBA</h1>
             <p class="subtitle">NUESTROS PLANES OPTIMIZADOS</p>
-        </div>
+        </header>
         
         <!-- PLANES EN HORIZONTAL -->
-        <div class="plans-container">
+        <div class="plans-grid">
             <!-- PLAN BÁSICO -->
             <div class="plan-card">
-                <div class="plan-badge">🔥 POPULAR</div>
+                <div class="plan-badge">Popular</div>
                 
                 <div class="plan-header">
-                    <h2 class="plan-name">Básico</h2>
+                    <h2 class="plan-title">Básico</h2>
                     <p class="plan-period">(1 mes)</p>
                 </div>
                 
                 <div class="plan-price">
-                    <span class="price-amount">800</span>
-                    <span class="price-currency">CUP</span>
+                    <div class="price-container">
+                        <span class="price-amount">800</span>
+                        <span class="price-currency">CUP</span>
+                    </div>
                 </div>
                 
-                <div class="plan-features">
-                    <div class="feature">
+                <div class="features-list">
+                    <div class="feature-item">
                         <span class="feature-icon">⚡</span>
                         <span class="feature-text">Conexión de Baja Latencia</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">📶</span>
                         <span class="feature-text">Ancho de Banda Ilimitado</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">🛡️</span>
                         <span class="feature-text">Soporte Prioritario</span>
                     </div>
                 </div>
                 
-                <button class="buy-button basic" onclick="selectPlan('basico', 800)">
-                    <span class="button-icon">🛒</span>
+                <button class="purchase-button standard" onclick="selectPlan('basico', 800)">
+                    <span class="button-icon">→</span>
                     <span>COMPRAR</span>
                 </button>
             </div>
             
             <!-- PLAN PREMIUM -->
             <div class="plan-card featured">
-                <div class="plan-badge">💰 AHORRO</div>
+                <div class="plan-badge">Ahorro</div>
                 
                 <div class="plan-header">
-                    <h2 class="plan-name">Premium</h2>
+                    <h2 class="plan-title">Premium</h2>
                     <p class="plan-period">(2 meses)</p>
                 </div>
                 
                 <div class="plan-price">
-                    <span class="price-amount">1,300</span>
-                    <span class="price-currency">CUP</span>
+                    <div class="price-container">
+                        <span class="price-amount">1,300</span>
+                        <span class="price-currency">CUP</span>
+                    </div>
                 </div>
                 
-                <div class="plan-savings">
-                    <span class="savings-icon">💰</span>
-                    <span class="savings-text">¡Ahorras $300 CUP!</span>
+                <div class="savings-section">
+                    <div class="savings-text">¡Ahorras $300 CUP!</div>
                 </div>
                 
-                <div class="plan-features">
-                    <div class="feature">
-                        <span class="feature-icon">✅</span>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
                         <span class="feature-text">Todo lo del Básico</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">⏱️</span>
                         <span class="feature-text">2 meses de servicio</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">📞</span>
                         <span class="feature-text">Soporte 24/7</span>
                     </div>
                 </div>
                 
-                <button class="buy-button featured" onclick="selectPlan('premium', 1300)">
-                    <span class="button-icon">🔥</span>
+                <button class="purchase-button featured" onclick="selectPlan('premium', 1300)">
+                    <span class="button-icon">→</span>
                     <span>COMPRAR</span>
                 </button>
             </div>
             
             <!-- PLAN VIP -->
             <div class="plan-card vip">
-                <div class="plan-badge">👑 MEJOR OFERTA</div>
+                <div class="plan-badge">Mejor Oferta</div>
                 
                 <div class="plan-header">
-                    <h2 class="plan-name">VIP</h2>
+                    <h2 class="plan-title">VIP</h2>
                     <p class="plan-period">(6 meses)</p>
                 </div>
                 
                 <div class="plan-price">
-                    <span class="price-amount">3,000</span>
-                    <span class="price-currency">CUP</span>
+                    <div class="price-container">
+                        <span class="price-amount">3,000</span>
+                        <span class="price-currency">CUP</span>
+                    </div>
                 </div>
                 
-                <div class="plan-savings">
-                    <span class="savings-icon">👑</span>
-                    <span class="savings-text">¡Ahorras $1,800 CUP!</span>
+                <div class="savings-section">
+                    <div class="savings-text">¡Ahorras $1,800 CUP!</div>
                 </div>
                 
-                <div class="plan-subtitle">
+                <div class="vip-subtitle">
                     ¡Solo $500 CUP/mes con el Plan VIP!
                 </div>
                 
-                <div class="plan-features">
-                    <div class="feature">
-                        <span class="feature-icon">👑</span>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
                         <span class="feature-text">Todo lo del Premium</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">📅</span>
                         <span class="feature-text">6 meses de servicio</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">⚙️</span>
                         <span class="feature-text">Configuración personalizada</span>
                     </div>
-                    <div class="feature">
+                    <div class="feature-item">
                         <span class="feature-icon">👨‍💻</span>
                         <span class="feature-text">Soporte dedicado</span>
                     </div>
                 </div>
                 
-                <button class="buy-button vip" onclick="selectPlan('vip', 3000)">
-                    <span class="button-icon">👑</span>
+                <button class="purchase-button vip" onclick="selectPlan('vip', 3000)">
+                    <span class="button-icon">→</span>
                     <span>COMPRAR</span>
                 </button>
             </div>
         </div>
         
-        <!-- FEATURES GLOBALES -->
-        <div class="global-features">
-            <h2 class="global-title">✅ Todos los planes incluyen:</h2>
+        <!-- CARACTERÍSTICAS GLOBALES -->
+        <section class="global-features">
+            <h2 class="global-title">Todos los planes incluyen</h2>
             
-            <div class="features-grid">
+            <div class="features-container">
                 <div class="feature-card">
                     <span class="feature-card-icon">⚡</span>
                     <h3 class="feature-card-title">Baja Latencia</h3>
-                    <p class="feature-card-desc">Conexión optimizada para gaming y streaming</p>
+                    <p class="feature-card-desc">Conexión optimizada para gaming y streaming sin delays</p>
                 </div>
                 
                 <div class="feature-card">
                     <span class="feature-card-icon">📶</span>
-                    <h3 class="feature-card-title">Ancho de Banda Ilimitado</h3>
-                    <p class="feature-card-desc">Navega sin restricciones ni límites</p>
+                    <h3 class="feature-card-title">Ancho Ilimitado</h3>
+                    <p class="feature-card-desc">Navega, descarga y transmite sin restricciones de datos</p>
                 </div>
                 
                 <div class="feature-card">
                     <span class="feature-card-icon">🛡️</span>
                     <h3 class="feature-card-title">Soporte Prioritario</h3>
-                    <p class="feature-card-desc">Atención rápida y personalizada</p>
+                    <p class="feature-card-desc">Asistencia técnica rápida y especializada</p>
                 </div>
             </div>
-        </div>
+        </section>
         
         <!-- FOOTER -->
-        <div class="footer">
+        <footer class="footer">
             <p>Para comprar, selecciona un plan y completa el pago</p>
-        </div>
+        </footer>
     </div>
 
     <script>
@@ -693,7 +712,7 @@
         
         // Función para seleccionar plan
         function selectPlan(planType, price) {
-            // Guardar selección en localStorage
+            // Guardar selección
             localStorage.setItem('selectedPlan', JSON.stringify({
                 type: planType,
                 price: price,
@@ -711,7 +730,6 @@
                 const data = await response.json();
                 
                 if (!data.accepted) {
-                    // Redirigir a términos si no ha aceptado
                     window.location.href = `/index.html?userId=${userId}`;
                 }
             } catch (error) {
@@ -719,39 +737,37 @@
             }
         }
         
-        // Ejecutar verificación si hay userId
+        // Ejecutar verificación
         if (userId) {
             checkTermsAccepted();
         }
         
-        // Agregar efectos de red aleatorios
-        function createNetworkLines() {
-            const linesContainer = document.querySelector('.network-lines');
+        // Crear efecto de red
+        function createNetworkGrid() {
+            const overlay = document.getElementById('networkOverlay');
+            overlay.innerHTML = '';
             
-            // Crear líneas diagonales
-            for (let i = 0; i < 8; i++) {
+            // Líneas horizontales
+            for (let i = 0; i <= 100; i += 10) {
                 const line = document.createElement('div');
-                line.className = 'network-line';
-                
-                const randomTop = Math.random() * 100;
-                const randomLeft = Math.random() * 100;
-                const randomWidth = Math.random() * 100 + 50;
-                const randomHeight = 1;
-                const randomAngle = Math.random() * 360;
-                
-                line.style.top = `${randomTop}%`;
-                line.style.left = `${randomLeft}%`;
-                line.style.width = `${randomWidth}px`;
-                line.style.height = `${randomHeight}px`;
-                line.style.transform = `rotate(${randomAngle}deg)`;
-                line.style.opacity = `${0.05 + Math.random() * 0.1}`;
-                
-                linesContainer.appendChild(line);
+                line.className = 'grid-line horizontal';
+                line.style.top = `${i}%`;
+                overlay.appendChild(line);
+            }
+            
+            // Líneas verticales
+            for (let i = 0; i <= 100; i += 10) {
+                const line = document.createElement('div');
+                line.className = 'grid-line vertical';
+                line.style.left = `${i}%`;
+                overlay.appendChild(line);
             }
         }
         
-        // Ejecutar efectos
-        setTimeout(createNetworkLines, 500);
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            createNetworkGrid();
+        });
     </script>
 </body>
 </html>

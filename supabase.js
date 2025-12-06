@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs').promises; // Necesitamos esto para leer archivos
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -13,57 +14,37 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const db = {
   // ========== STORAGE (IMÁGENES) ==========
-  async uploadImage(fileBuffer, fileName, contentType) {
+  async uploadImage(filePath, telegramId) {
     try {
+      // Leer el archivo como buffer
+      const fileBuffer = await fs.readFile(filePath);
+      const fileName = `screenshot_${telegramId}_${Date.now()}.jpg`;
+      
+      // Subir a Supabase Storage
       const { data, error } = await supabase.storage
         .from('payments-screenshots')
         .upload(fileName, fileBuffer, {
-          contentType: contentType,
+          contentType: 'image/jpeg',
           cacheControl: '3600',
           upsert: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error subiendo imagen a Supabase Storage:', error);
+        throw error;
+      }
 
       // Obtener URL pública
-      const { data: urlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('payments-screenshots')
         .getPublicUrl(fileName);
 
-      return {
-        path: data.path,
-        url: urlData.publicUrl
-      };
+      console.log('✅ Imagen subida a Supabase Storage:', publicUrl);
+      return publicUrl;
+
     } catch (error) {
-      console.error('Error subiendo imagen:', error);
+      console.error('Error en uploadImage:', error);
       throw error;
-    }
-  },
-
-  async getImageUrl(fileName) {
-    try {
-      const { data } = supabase.storage
-        .from('payments-screenshots')
-        .getPublicUrl(fileName);
-      
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error obteniendo URL de imagen:', error);
-      return null;
-    }
-  },
-
-  async deleteImage(fileName) {
-    try {
-      const { error } = await supabase.storage
-        .from('payments-screenshots')
-        .remove([fileName]);
-      
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error eliminando imagen:', error);
-      return false;
     }
   },
 
@@ -77,19 +58,24 @@ const db = {
         .single();
       
       if (error && error.code === 'PGRST116') return null;
-      if (error) throw error;
+      if (error) {
+        console.error('Error obteniendo usuario:', error.message);
+        return null;
+      }
       return data;
     } catch (error) {
-      console.error('Error obteniendo usuario:', error);
+      console.error('Error en getUser:', error);
       return null;
     }
   },
 
   async saveUser(telegramId, userData) {
     try {
+      // Verificar si el usuario ya existe
       const existingUser = await this.getUser(telegramId);
       
       if (existingUser) {
+        // Actualizar usuario existente
         const { data, error } = await supabase
           .from('users')
           .update({
@@ -103,6 +89,7 @@ const db = {
         if (error) throw error;
         return data;
       } else {
+        // Crear nuevo usuario
         const { data, error } = await supabase
           .from('users')
           .insert([{
@@ -121,6 +108,13 @@ const db = {
       console.error('Error guardando usuario:', error);
       throw error;
     }
+  },
+
+  async acceptTerms(telegramId) {
+    return await this.saveUser(telegramId, {
+      accepted_terms: true,
+      terms_date: new Date().toISOString()
+    });
   },
 
   async makeUserVIP(telegramId, vipData = {}) {
@@ -285,6 +279,7 @@ const db = {
       
       if (error) throw error;
       
+      // Hacer usuario VIP
       if (data) {
         await this.makeUserVIP(data.telegram_id, {
           plan: data.plan,
@@ -381,12 +376,14 @@ const db = {
   // ========== ESTADÍSTICAS ==========
   async getStats() {
     try {
+      // Total de usuarios
       const { count: totalUsers, error: usersError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
       
       if (usersError) throw usersError;
       
+      // Usuarios VIP
       const { count: vipUsers, error: vipError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
@@ -394,6 +391,7 @@ const db = {
       
       if (vipError) throw vipError;
       
+      // Pagos pendientes
       const { count: pendingPayments, error: pendingError } = await supabase
         .from('payments')
         .select('*', { count: 'exact', head: true })
@@ -401,6 +399,7 @@ const db = {
       
       if (pendingError) throw pendingError;
       
+      // Total de ingresos (suma de pagos aprobados)
       const { data: approvedPayments, error: paymentsError } = await supabase
         .from('payments')
         .select('price')

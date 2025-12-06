@@ -80,13 +80,16 @@ function getPlanName(planType) {
 // 1. Verificar si es administrador
 app.get('/api/check-admin/:telegramId', (req, res) => {
   const isAdminUser = isAdmin(req.params.telegramId);
+  console.log(`🔍 Verificando admin para ${req.params.telegramId}: ${isAdminUser}`);
   res.json({ isAdmin: isAdminUser });
 });
 
-// 2. Aceptar términos
+// 2. Aceptar términos (usamos localStorage, pero mantenemos para compatibilidad)
 app.post('/api/accept-terms', async (req, res) => {
   try {
     const { telegramId, username, firstName } = req.body;
+    
+    console.log(`✅ Usuario ${telegramId} acepta términos`);
     
     const user = await db.saveUser(telegramId, {
       telegram_id: telegramId,
@@ -98,21 +101,22 @@ app.post('/api/accept-terms', async (req, res) => {
 
     res.json({ success: true, user });
   } catch (error) {
-    console.error('Error aceptando términos:', error);
+    console.error('❌ Error aceptando términos:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// 3. Verificar términos aceptados
+// 3. Verificar términos aceptados (usamos localStorage, pero mantenemos API)
 app.get('/api/check-terms/:telegramId', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
+    console.log(`🔍 Verificando términos para ${req.params.telegramId}: ${user?.accepted_terms || false}`);
     res.json({ 
       accepted: user?.accepted_terms || false,
       user: user
     });
   } catch (error) {
-    console.error('Error verificando términos:', error);
+    console.error('❌ Error verificando términos:', error);
     res.json({ accepted: false });
   }
 });
@@ -120,9 +124,22 @@ app.get('/api/check-terms/:telegramId', async (req, res) => {
 // 4. Procesar pago (CON SUPABASE STORAGE)
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   try {
+    console.log('📥 Pago recibido - Datos recibidos:', {
+      telegramId: req.body.telegramId,
+      plan: req.body.plan,
+      price: req.body.price,
+      file: req.file ? req.file.filename : 'No file'
+    });
+    
     const { telegramId, plan, price, notes } = req.body;
     
+    if (!telegramId || !plan || !price) {
+      console.log('❌ Datos incompletos:', { telegramId, plan, price });
+      return res.status(400).json({ error: 'Datos incompletos' });
+    }
+
     if (!req.file) {
+      console.log('❌ No se recibió captura de pantalla');
       return res.status(400).json({ error: 'Captura de pantalla requerida' });
     }
 
@@ -134,10 +151,10 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       
       // Eliminar archivo local después de subir exitosamente
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error eliminando archivo local:', err);
+        if (err) console.error('❌ Error eliminando archivo local:', err);
       });
     } catch (uploadError) {
-      console.error('Error subiendo imagen:', uploadError);
+      console.error('❌ Error subiendo imagen:', uploadError);
       
       // Si falla el upload, usar ruta local como fallback
       screenshotUrl = `/uploads/${req.file.filename}`;
@@ -164,6 +181,12 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       throw new Error('No se pudo crear el pago en la base de datos');
     }
 
+    console.log('✅ Pago guardado exitosamente:', {
+      paymentId: payment?.id,
+      telegramId: telegramId,
+      plan: plan
+    });
+
     // 4. 🔥 ENVIAR NOTIFICACIÓN A TODOS LOS ADMINS
     try {
       const adminMessage = `💰 *NUEVO PAGO RECIBIDO*\n\n` +
@@ -180,12 +203,13 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       for (const adminId of ADMIN_IDS) {
         try {
           await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
+          console.log(`✅ Notificación enviada al admin ${adminId}`);
         } catch (adminError) {
-          console.log(`No se pudo notificar al admin ${adminId}:`, adminError.message);
+          console.log(`❌ No se pudo notificar al admin ${adminId}:`, adminError.message);
         }
       }
     } catch (adminError) {
-      console.log('Error al notificar a los admins:', adminError.message);
+      console.log('❌ Error al notificar a los admins:', adminError.message);
     }
 
     res.json({ 
@@ -194,12 +218,12 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       payment 
     });
   } catch (error) {
-    console.error('Error procesando pago:', error);
+    console.error('❌ Error procesando pago:', error);
     
     // Eliminar archivo si hubo error
     if (req.file && req.file.path) {
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
+        if (err) console.error('❌ Error al eliminar archivo:', err);
       });
     }
     
@@ -210,7 +234,10 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
 // 5. Obtener pagos pendientes
 app.get('/api/payments/pending', async (req, res) => {
   try {
+    console.log('🔍 Buscando pagos pendientes...');
     const payments = await db.getPendingPayments();
+    
+    console.log(`📊 Encontrados ${payments.length} pagos pendientes`);
     
     // Obtener información de usuarios para cada pago
     const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
@@ -223,7 +250,7 @@ app.get('/api/payments/pending', async (req, res) => {
     
     res.json(paymentsWithUsers);
   } catch (error) {
-    console.error('Error obteniendo pagos pendientes:', error);
+    console.error('❌ Error obteniendo pagos pendientes:', error);
     res.status(500).json({ error: 'Error obteniendo pagos pendientes' });
   }
 });
@@ -231,7 +258,10 @@ app.get('/api/payments/pending', async (req, res) => {
 // 6. Obtener pagos aprobados
 app.get('/api/payments/approved', async (req, res) => {
   try {
+    console.log('🔍 Buscando pagos aprobados...');
     const payments = await db.getApprovedPayments();
+    
+    console.log(`📊 Encontrados ${payments.length} pagos aprobados`);
     
     // Obtener información de usuarios para cada pago
     const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
@@ -244,7 +274,7 @@ app.get('/api/payments/approved', async (req, res) => {
     
     res.json(paymentsWithUsers);
   } catch (error) {
-    console.error('Error obteniendo pagos aprobados:', error);
+    console.error('❌ Error obteniendo pagos aprobados:', error);
     res.status(500).json({ error: 'Error obteniendo pagos aprobados' });
   }
 });
@@ -252,9 +282,12 @@ app.get('/api/payments/approved', async (req, res) => {
 // 7. Aprobar pago
 app.post('/api/payments/:id/approve', async (req, res) => {
   try {
+    console.log(`✅ Aprobando pago ${req.params.id}...`);
+    
     const payment = await db.approvePayment(req.params.id);
     
     if (!payment) {
+      console.log(`❌ Pago ${req.params.id} no encontrado`);
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
 
@@ -270,13 +303,14 @@ app.post('/api/payments/:id/approve', async (req, res) => {
         'En breve recibirás tu archivo de configuración por este mismo chat.',
         { parse_mode: 'Markdown' }
       );
+      console.log(`✅ Usuario ${payment.telegram_id} notificado de aprobación`);
     } catch (botError) {
-      console.log('No se pudo notificar al usuario:', botError.message);
+      console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
 
     res.json({ success: true, payment, user });
   } catch (error) {
-    console.error('Error aprobando pago:', error);
+    console.error('❌ Error aprobando pago:', error);
     res.status(500).json({ error: 'Error aprobando pago' });
   }
 });
@@ -290,6 +324,8 @@ app.post('/api/payments/:id/reject', async (req, res) => {
       return res.status(400).json({ error: 'Se requiere un motivo de rechazo' });
     }
 
+    console.log(`❌ Rechazando pago ${req.params.id} con motivo: ${reason}`);
+    
     const payment = await db.rejectPayment(req.params.id, reason);
     
     if (!payment) {
@@ -305,13 +341,14 @@ app.post('/api/payments/:id/reject', async (req, res) => {
         `Por favor, contacta con soporte si necesitas más información.`,
         { parse_mode: 'Markdown' }
       );
+      console.log(`✅ Usuario ${payment.telegram_id} notificado del rechazo`);
     } catch (botError) {
-      console.log('No se pudo notificar al usuario:', botError.message);
+      console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
 
     res.json({ success: true, payment });
   } catch (error) {
-    console.error('Error rechazando pago:', error);
+    console.error('❌ Error rechazando pago:', error);
     res.status(500).json({ error: 'Error rechazando pago' });
   }
 });
@@ -319,10 +356,11 @@ app.post('/api/payments/:id/reject', async (req, res) => {
 // 9. Obtener estadísticas
 app.get('/api/stats', async (req, res) => {
   try {
+    console.log('📊 Obteniendo estadísticas...');
     const stats = await db.getStats();
     res.json(stats);
   } catch (error) {
-    console.error('Error obteniendo estadísticas:', error);
+    console.error('❌ Error obteniendo estadísticas:', error);
     res.status(500).json({ error: 'Error obteniendo estadísticas' });
   }
 });
@@ -330,10 +368,11 @@ app.get('/api/stats', async (req, res) => {
 // 10. Obtener usuarios VIP
 app.get('/api/vip-users', async (req, res) => {
   try {
+    console.log('👑 Obteniendo usuarios VIP...');
     const users = await db.getVIPUsers();
     res.json(users);
   } catch (error) {
-    console.error('Error obteniendo usuarios VIP:', error);
+    console.error('❌ Error obteniendo usuarios VIP:', error);
     res.status(500).json({ error: 'Error obteniendo usuarios VIP' });
   }
 });
@@ -341,10 +380,11 @@ app.get('/api/vip-users', async (req, res) => {
 // 11. Obtener todos los usuarios
 app.get('/api/all-users', async (req, res) => {
   try {
+    console.log('👥 Obteniendo todos los usuarios...');
     const users = await db.getAllUsers();
     res.json(users);
   } catch (error) {
-    console.error('Error obteniendo usuarios:', error);
+    console.error('❌ Error obteniendo usuarios:', error);
     res.status(500).json({ error: 'Error obteniendo usuarios' });
   }
 });
@@ -352,9 +392,11 @@ app.get('/api/all-users', async (req, res) => {
 // 12. Obtener información de un pago específico
 app.get('/api/payments/:id', async (req, res) => {
   try {
+    console.log(`🔍 Buscando pago ${req.params.id}...`);
     const payment = await db.getPayment(req.params.id);
     
     if (!payment) {
+      console.log(`❌ Pago ${req.params.id} no encontrado`);
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
     
@@ -365,7 +407,7 @@ app.get('/api/payments/:id', async (req, res) => {
       user: user || null
     });
   } catch (error) {
-    console.error('Error obteniendo pago:', error);
+    console.error('❌ Error obteniendo pago:', error);
     res.status(500).json({ error: 'Error obteniendo pago' });
   }
 });
@@ -377,6 +419,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     
     // Verificar permisos de administrador
     if (!isAdmin(adminId)) {
+      console.log(`❌ Intento no autorizado de enviar configuración por ${adminId}`);
       return res.status(403).json({ error: 'No autorizado' });
     }
     
@@ -388,7 +431,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     if (!req.file.originalname.endsWith('.conf')) {
       // Eliminar archivo subido
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
+        if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf' });
     }
@@ -399,7 +442,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     if (!payment) {
       // Eliminar archivo subido
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
+        if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
@@ -408,12 +451,14 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     if (payment.status !== 'approved') {
       // Eliminar archivo subido
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
+        if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       return res.status(400).json({ error: 'El pago no está aprobado' });
     }
     
     try {
+      console.log(`📤 Enviando configuración a ${telegramId} (Pago: ${paymentId})`);
+      
       // Enviar archivo por Telegram
       await bot.telegram.sendDocument(
         telegramId,
@@ -447,12 +492,15 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
           plan_price: payment.price,
           vip_since: new Date().toISOString()
         });
+        console.log(`👑 Usuario ${telegramId} marcado como VIP`);
       }
       
       // Eliminar archivo local después de enviar
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo después de enviar:', err);
+        if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
       });
+      
+      console.log(`✅ Configuración enviada a ${telegramId}`);
       
       res.json({ 
         success: true, 
@@ -461,21 +509,21 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       });
       
     } catch (telegramError) {
-      console.error('Error enviando archivo por Telegram:', telegramError);
+      console.error('❌ Error enviando archivo por Telegram:', telegramError);
       // Eliminar archivo subido
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
+        if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       res.status(500).json({ error: 'Error enviando archivo por Telegram' });
     }
     
   } catch (error) {
-    console.error('Error en send-config:', error);
+    console.error('❌ Error en send-config:', error);
     
     // Eliminar archivo si hubo error
     if (req.file && req.file.path) {
       fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
+        if (err) console.error('❌ Error al eliminar archivo:', err);
       });
     }
     
@@ -492,6 +540,7 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     const user = await db.getUser(req.params.telegramId);
     
     if (!user) {
+      console.log(`❌ Usuario ${req.params.telegramId} no encontrado`);
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     
@@ -503,7 +552,7 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
       isAdmin: admin
     });
   } catch (error) {
-    console.error('Error obteniendo información del usuario:', error);
+    console.error('❌ Error obteniendo información del usuario:', error);
     res.status(500).json({ error: 'Error obteniendo información del usuario' });
   }
 });
@@ -515,17 +564,22 @@ app.post('/api/send-message', async (req, res) => {
     
     // Verificar permisos de administrador
     if (!isAdmin(adminId)) {
+      console.log(`❌ Intento no autorizado de enviar mensaje por ${adminId}`);
       return res.status(403).json({ error: 'No autorizado' });
     }
+    
+    console.log(`📨 Enviando mensaje a ${telegramId}: ${message.substring(0, 50)}...`);
     
     // Enviar mensaje por Telegram
     await bot.telegram.sendMessage(telegramId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
       parse_mode: 'Markdown' 
     });
     
+    console.log(`✅ Mensaje enviado a ${telegramId}`);
+    
     res.json({ success: true, message: 'Mensaje enviado' });
   } catch (error) {
-    console.error('Error enviando mensaje:', error);
+    console.error('❌ Error enviando mensaje:', error);
     res.status(500).json({ error: 'Error enviando mensaje: ' + error.message });
   }
 });
@@ -537,8 +591,11 @@ app.post('/api/remove-vip', async (req, res) => {
     
     // Verificar permisos de administrador
     if (!isAdmin(adminId)) {
+      console.log(`❌ Intento no autorizado de remover VIP por ${adminId}`);
       return res.status(403).json({ error: 'No autorizado' });
     }
+    
+    console.log(`👑 Removiendo VIP de ${telegramId}...`);
     
     // Remover VIP
     const user = await db.removeVIP(telegramId);
@@ -552,13 +609,16 @@ app.post('/api/remove-vip', async (req, res) => {
         'Si crees que es un error, contacta con soporte.',
         { parse_mode: 'Markdown' }
       );
+      console.log(`✅ Usuario ${telegramId} notificado de remoción de VIP`);
     } catch (botError) {
-      console.log('No se pudo notificar al usuario:', botError.message);
+      console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
+    
+    console.log(`✅ VIP removido de ${telegramId}`);
     
     res.json({ success: true, message: 'VIP removido', user });
   } catch (error) {
-    console.error('Error removiendo VIP:', error);
+    console.error('❌ Error removiendo VIP:', error);
     res.status(500).json({ error: 'Error removiendo VIP' });
   }
 });
@@ -570,7 +630,9 @@ app.get('/api/health', (req, res) => {
     message: 'Servidor funcionando correctamente',
     timestamp: new Date().toISOString(),
     admins: ADMIN_IDS,
-    port: PORT
+    port: PORT,
+    bot_token: process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado',
+    supabase_url: process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'
   });
 });
 
@@ -586,8 +648,32 @@ app.get('/api/image/:filename', (req, res) => {
       res.status(404).json({ error: 'Imagen no encontrada' });
     }
   } catch (error) {
-    console.error('Error sirviendo imagen:', error);
+    console.error('❌ Error sirviendo imagen:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// 20. Ruta de prueba para crear pago
+app.post('/api/test-payment', async (req, res) => {
+  try {
+    console.log('🧪 Test payment recibido:', req.body);
+    
+    const testPayment = {
+      telegram_id: req.body.telegramId || '12345',
+      plan: req.body.plan || 'basico',
+      price: req.body.price || 800,
+      screenshot_url: 'https://via.placeholder.com/300',
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    
+    const payment = await db.createPayment(testPayment);
+    
+    console.log('🧪 Test payment creado:', payment);
+    res.json({ success: true, message: 'Test payment creado', payment });
+  } catch (error) {
+    console.error('❌ Error en test payment:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -620,6 +706,8 @@ bot.start(async (ctx) => {
   const userId = ctx.from.id;
   const isAdminUser = isAdmin(userId);
   
+  console.log(`🤖 Comando /start de ${userId} (Admin: ${isAdminUser})`);
+  
   // Guardar/actualizar usuario en la base de datos
   try {
     await db.saveUser(userId.toString(), {
@@ -629,8 +717,9 @@ bot.start(async (ctx) => {
       last_name: ctx.from.last_name,
       created_at: new Date().toISOString()
     });
+    console.log(`✅ Usuario ${userId} guardado/actualizado`);
   } catch (error) {
-    console.error('Error guardando usuario:', error);
+    console.error('❌ Error guardando usuario:', error);
   }
   
   const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}?userId=${userId}`;
@@ -677,6 +766,8 @@ bot.start(async (ctx) => {
 
 // Botón: Ver planes (dentro del bot)
 bot.action('view_plans', async (ctx) => {
+  console.log(`📋 Usuario ${ctx.from.id} solicita ver planes`);
+  
   const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${ctx.from.id}`;
   
   await ctx.editMessageText(
@@ -708,6 +799,8 @@ bot.action('view_plans', async (ctx) => {
 
 // Botón: Ver estado VIP
 bot.action('check_status', async (ctx) => {
+  console.log(`👑 Usuario ${ctx.from.id} verifica estado VIP`);
+  
   const user = await db.getUser(ctx.from.id.toString());
   
   if (user?.vip) {
@@ -740,6 +833,8 @@ bot.action('check_status', async (ctx) => {
 
 // Comando /comprar
 bot.command('comprar', async (ctx) => {
+  console.log(`🛒 Usuario ${ctx.from.id} usa /comprar`);
+  
   const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${ctx.from.id}`;
   
   await ctx.reply(
@@ -759,9 +854,12 @@ bot.command('comprar', async (ctx) => {
 // Comando /admin solo para admins
 bot.command('admin', async (ctx) => {
   if (!isAdmin(ctx.from.id.toString())) {
+    console.log(`❌ Usuario ${ctx.from.id} intentó usar /admin sin permisos`);
     return ctx.reply('❌ Solo el administrador puede usar este comando.');
   }
 
+  console.log(`🔧 Admin ${ctx.from.id} usa /admin`);
+  
   const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${ctx.from.id}&admin=true`;
   
   await ctx.reply(
@@ -793,6 +891,8 @@ bot.command('enviar', async (ctx) => {
   }
 
   const target = args[1];
+  
+  console.log(`📤 Admin ${ctx.from.id} intenta enviar configuración a ${target}`);
   
   // Verificar si es un ID de pago o de usuario
   let paymentId, telegramId;
@@ -832,6 +932,8 @@ bot.on('document', async (ctx) => {
     const { target, paymentId } = ctx.session.waitingForFile;
     const fileId = ctx.message.document.file_id;
     const fileName = ctx.message.document.file_name;
+
+    console.log(`📁 Admin ${ctx.from.id} envía archivo ${fileName} a ${target}`);
 
     try {
       // Verificar que sea un archivo .conf
@@ -877,7 +979,7 @@ bot.on('document', async (ctx) => {
 
       await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
     } catch (error) {
-      console.error('Error enviando archivo:', error);
+      console.error('❌ Error enviando archivo:', error);
       await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
     }
 
@@ -887,6 +989,8 @@ bot.on('document', async (ctx) => {
 
 // Comando /help
 bot.command('help', async (ctx) => {
+  console.log(`🆘 Usuario ${ctx.from.id} solicita ayuda`);
+  
   const keyboard = [[
     { text: '📋 Ver Planes', callback_data: 'view_plans' },
     { text: '👑 Mi Estado', callback_data: 'check_status' }
@@ -923,6 +1027,7 @@ app.listen(PORT, async () => {
   console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
   console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
   console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
+  console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
   
   // Iniciar bot
   try {
@@ -940,9 +1045,10 @@ app.listen(PORT, async () => {
     
     // Solo mostrar comandos de admin a los admins (no es posible diferenciar)
     await bot.telegram.setMyCommands(commands);
+    console.log('📝 Comandos del bot configurados');
     
   } catch (error) {
-    console.error('Error iniciando bot:', error);
+    console.error('❌ Error iniciando bot:', error);
   }
 });
 

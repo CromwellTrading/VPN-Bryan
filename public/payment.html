@@ -829,7 +829,7 @@
                 
                 <div class="summary-item">
                     <div class="item-label">ID de usuario</div>
-                    <div class="item-value" id="userId">---</div>
+                    <div class="item-value" id="userIdDisplay">---</div>
                 </div>
                 
                 <div class="summary-item">
@@ -972,17 +972,64 @@
         tg.expand();
         tg.MainButton.hide();
         
-        // Obtener parámetros
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
-        const planType = urlParams.get('plan') || 'basico';
-        const price = urlParams.get('price') || '800';
-        
         // Variables
         let selectedFile = null;
+        let currentUserId = null;
+        let planType = null;
+        let price = null;
         
-        // Inicializar página
-        document.addEventListener('DOMContentLoaded', function() {
+        // Función para verificar si los términos fueron aceptados
+        function checkTermsAccepted(userId) {
+            const accepted = localStorage.getItem(`termsAccepted_${userId}`);
+            const termsVersion = localStorage.getItem(`termsVersion_${userId}`);
+            const currentVersion = '2025-11';
+            
+            if (accepted === 'true' && termsVersion === currentVersion) {
+                return true;
+            }
+            return false;
+        }
+        
+        // Función para obtener parámetros de la URL
+        function getUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('userId');
+            const plan = urlParams.get('plan');
+            const price = urlParams.get('price');
+            
+            return { userId, plan, price };
+        }
+        
+        // Verificar términos y cargar información
+        function initializePage() {
+            // Obtener parámetros
+            const params = getUrlParameters();
+            currentUserId = params.userId;
+            planType = params.plan;
+            price = params.price;
+            
+            // Si no hay userId en URL, intentar obtener de Telegram
+            if (!currentUserId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                currentUserId = tg.initDataUnsafe.user.id.toString();
+                // Actualizar URL
+                const newUrl = `${window.location.pathname}?userId=${currentUserId}&plan=${planType}&price=${price}`;
+                window.history.replaceState({}, '', newUrl);
+            }
+            
+            // Verificar términos
+            if (!currentUserId || !checkTermsAccepted(currentUserId)) {
+                // Redirigir a index.html para aceptar términos
+                window.location.href = `/index.html${currentUserId ? `?userId=${currentUserId}` : ''}`;
+                return false;
+            }
+            
+            // Si los términos están aceptados, cargar la página
+            loadPageContent();
+            return true;
+        }
+        
+        // Cargar contenido de la página
+        function loadPageContent() {
             // Mostrar información del plan
             const planNames = {
                 'basico': 'Básico',
@@ -996,10 +1043,10 @@
                 'vip': '6 MESES'
             };
             
-            document.getElementById('planName').textContent = planNames[planType];
-            document.getElementById('planBadge').textContent = planPeriods[planType];
-            document.getElementById('planPrice').textContent = `$${price} CUP`;
-            document.getElementById('userId').textContent = userId || 'No disponible';
+            document.getElementById('planName').textContent = planNames[planType] || 'Básico';
+            document.getElementById('planBadge').textContent = planPeriods[planType] || '1 MES';
+            document.getElementById('planPrice').textContent = `$${price || '800'} CUP`;
+            document.getElementById('userIdDisplay').textContent = currentUserId || 'No disponible';
             document.getElementById('requestDate').textContent = new Date().toLocaleDateString('es-ES', {
                 day: '2-digit',
                 month: '2-digit',
@@ -1012,9 +1059,11 @@
             // Configurar botones de copiar
             setupCopyButtons();
             
-            // Verificar términos
-            checkTermsAccepted();
-        });
+            // Mostrar animaciones
+            document.querySelectorAll('.fade-in').forEach(el => {
+                el.style.animationPlayState = 'running';
+            });
+        }
         
         // Configurar área de upload
         function setupUploadArea() {
@@ -1150,7 +1199,7 @@
                     // En producción, descomentar esto:
                     /*
                     const formData = new FormData();
-                    formData.append('telegramId', userId);
+                    formData.append('telegramId', currentUserId);
                     formData.append('plan', planType);
                     formData.append('price', price);
                     formData.append('screenshot', selectedFile);
@@ -1184,20 +1233,6 @@
                     showNotification('❌ Error al enviar el comprobante. Intenta nuevamente.', 'error');
                 }
             }, 1500);
-        }
-        
-        // Verificar términos
-        async function checkTermsAccepted() {
-            try {
-                const response = await fetch(`/api/check-terms/${userId}`);
-                const data = await response.json();
-                
-                if (!data.accepted) {
-                    window.location.href = `/index.html?userId=${userId}`;
-                }
-            } catch (error) {
-                console.log('Error verificando términos:', error);
-            }
         }
         
         // Mostrar notificación
@@ -1265,6 +1300,11 @@
             }
         `;
         document.head.appendChild(style);
+        
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
     </script>
 </body>
 </html>

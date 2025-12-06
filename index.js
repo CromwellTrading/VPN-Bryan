@@ -11,7 +11,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 const db = require('./supabase');
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_ID = process.env.ADMIN_ID || '6373481979';
+const ADMIN_ID = process.env.ADMIN_ID || '6373481979, 5376388604';
 
 // Middleware
 app.use(cors());

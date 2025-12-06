@@ -7,14 +7,14 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* VARIABLES Y RESET */
+        /* VARIABLES Y RESET - COMPACTO */
         :root {
             --primary: #0a0a1f;
             --secondary: #121230;
             --accent: #4f46e5;
             --accent-light: #6366f1;
             --accent-dark: #3730a3;
-            --accent-glow: rgba(79, 70, 229, 0.4);
+            --accent-glow: rgba(79, 70, 229, 0.3);
             --text: #ffffff;
             --text-secondary: #a5b4fc;
             --card-bg: rgba(18, 18, 48, 0.9);
@@ -24,8 +24,8 @@
             --success: #10b981;
             --featured: #f59e0b;
             --vip: #fbbf24;
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.4);
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.3);
         }
 
         * {
@@ -40,12 +40,11 @@
             background-color: var(--primary);
             color: var(--text);
             min-height: 100vh;
-            overflow-x: auto;
-            line-height: 1.6;
+            line-height: 1.4;
             position: relative;
         }
 
-        /* FONDO FUTURISTA */
+        /* FONDO FUTURISTA - SIMPLIFICADO */
         .background-effect {
             position: fixed;
             top: 0;
@@ -54,6 +53,7 @@
             height: 100%;
             z-index: -1;
             overflow: hidden;
+            opacity: 0.6;
         }
 
         .grid-lines {
@@ -61,73 +61,25 @@
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(to right, rgba(79, 70, 229, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: 0.4;
+                linear-gradient(to right, rgba(79, 70, 229, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(79, 70, 229, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
         }
 
-        .floating-orbs {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-        }
-
-        .orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(40px);
-            opacity: 0.1;
-        }
-
-        .orb-1 {
-            width: 300px;
-            height: 300px;
-            background: var(--accent-dark);
-            top: 10%;
-            left: 5%;
-            animation: float 20s infinite ease-in-out;
-        }
-
-        .orb-2 {
-            width: 200px;
-            height: 200px;
-            background: #3730a3;
-            bottom: 15%;
-            right: 10%;
-            animation: float 25s infinite ease-in-out reverse;
-        }
-
-        .orb-3 {
-            width: 150px;
-            height: 150px;
-            background: #1e1b4b;
-            top: 50%;
-            left: 80%;
-            animation: float 30s infinite ease-in-out;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(20px, -30px) scale(1.05); }
-            50% { transform: translate(-15px, 20px) scale(0.95); }
-            75% { transform: translate(10px, 15px) scale(1.02); }
-        }
-
-        /* CONTAINER PRINCIPAL */
+        /* CONTAINER PRINCIPAL COMPACTO */
         .main-container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
             position: relative;
             z-index: 1;
         }
 
-        /* HEADER */
+        /* HEADER COMPACTO */
         .header {
             text-align: center;
-            padding: 40px 20px;
-            margin-bottom: 60px;
+            padding: 20px 15px;
+            margin-bottom: 30px;
             position: relative;
         }
 
@@ -135,85 +87,64 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .logo-icon {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             color: var(--accent);
-            margin-right: 15px;
-            filter: drop-shadow(0 0 10px var(--accent-glow));
+            margin-right: 10px;
+            filter: drop-shadow(0 0 8px var(--accent-glow));
         }
 
         .title {
-            font-size: 3.2rem;
+            font-size: 2.2rem;
             font-weight: 800;
             background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -0.5px;
-            margin-bottom: 10px;
+            letter-spacing: -0.3px;
         }
 
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: var(--text-secondary);
             font-weight: 400;
             max-width: 600px;
             margin: 0 auto;
-            line-height: 1.6;
+            line-height: 1.4;
         }
 
-        /* PLANES HORIZONTALES - SIEMPRE EN FILA */
+        /* PLANES HORIZONTALES - COMPACTOS */
         .plans-container {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            margin-bottom: 80px;
-            padding: 20px;
-            overflow-x: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent) transparent;
-            position: relative;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
         }
 
-        /* Ocultar scrollbar en algunos navegadores pero mantener funcionalidad */
-        .plans-container::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .plans-container::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-        }
-
-        .plans-container::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 4px;
-        }
-
-        .plans-container::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-light);
-        }
-
-        /* TARJETAS DE PLANES - FORZAR HORIZONTAL */
+        /* TARJETAS DE PLANES COMPACTAS */
         .plan-card {
-            flex: 0 0 auto;
-            width: 320px;
+            flex: 1;
+            min-width: 250px;
+            max-width: 320px;
             background: var(--card-bg);
-            border-radius: 24px;
-            padding: 35px 30px;
+            border-radius: 16px;
+            padding: 20px;
             position: relative;
             overflow: hidden;
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
             backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
-            animation: fadeInUp 0.6s ease forwards;
+            animation: fadeInUp 0.4s ease forwards;
             opacity: 0;
+            height: auto;
+            max-height: 500px;
         }
 
         .plan-card:nth-child(1) { animation-delay: 0.1s; }
@@ -223,7 +154,7 @@
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
@@ -237,9 +168,9 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 5px;
+            height: 4px;
             background: linear-gradient(90deg, var(--accent), #8b5cf6);
-            border-radius: 24px 24px 0 0;
+            border-radius: 16px 16px 0 0;
         }
 
         .plan-card.featured::before {
@@ -250,40 +181,28 @@
             background: linear-gradient(90deg, var(--vip), #fbbf24);
         }
 
-        /* EFECTO HOVER MEJORADO - MÁS OSCURO */
+        /* EFECTO HOVER COMPACTO */
         .plan-card:hover {
-            transform: translateY(-15px);
+            transform: translateY(-8px);
             background: var(--card-hover);
             box-shadow: var(--shadow-hover);
             border-color: var(--border-hover);
         }
 
-        .plan-card:hover .plan-title {
-            color: var(--accent-light);
-        }
-
-        .plan-card.featured:hover .plan-title {
-            color: var(--featured);
-        }
-
-        .plan-card.vip:hover .plan-title {
-            color: var(--vip);
-        }
-
-        /* BADGE DE PLAN */
+        /* BADGE DE PLAN COMPACTO */
         .plan-badge {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 15px;
             background: linear-gradient(135deg, var(--accent), #8b5cf6);
             color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+            letter-spacing: 0.5px;
+            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
             z-index: 2;
         }
 
@@ -298,33 +217,33 @@
             font-weight: 700;
         }
 
-        /* ENCABEZADO DEL PLAN */
+        /* ENCABEZADO DEL PLAN COMPACTO */
         .plan-header {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .plan-title {
-            font-size: 2.2rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--text);
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             transition: color 0.3s ease;
         }
 
         .plan-period {
-            font-size: 1rem;
+            font-size: 0.85rem;
             color: var(--text-secondary);
             font-weight: 400;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
-        /* PRECIO */
+        /* PRECIO COMPACTO */
         .plan-price {
             text-align: center;
-            margin: 25px 0;
+            margin: 15px 0;
         }
 
         .price-container {
@@ -333,7 +252,7 @@
         }
 
         .price-amount {
-            font-size: 4rem;
+            font-size: 2.8rem;
             font-weight: 800;
             line-height: 1;
             background: linear-gradient(135deg, var(--accent-light), var(--accent));
@@ -345,32 +264,30 @@
         .plan-card.featured .price-amount {
             background: linear-gradient(135deg, #f59e0b, #d97706);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .plan-card.vip .price-amount {
             background: linear-gradient(135deg, var(--vip), #f59e0b);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .price-currency {
-            font-size: 1.6rem;
+            font-size: 1.2rem;
             color: var(--text-secondary);
             font-weight: 600;
             vertical-align: top;
-            margin-left: 5px;
+            margin-left: 2px;
         }
 
-        /* SECCIÓN DE AHORRO */
+        /* SECCIÓN DE AHORRO COMPACTA */
         .savings-section {
             text-align: center;
-            margin: 20px 0;
-            padding: 18px;
+            margin: 12px 0;
+            padding: 12px;
             background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid rgba(79, 70, 229, 0.2);
             position: relative;
             overflow: hidden;
@@ -387,7 +304,7 @@
         }
 
         .savings-text {
-            font-size: 1.2rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: var(--success);
         }
@@ -400,42 +317,59 @@
             color: var(--vip);
         }
 
-        /* SUBTÍTULO VIP */
+        /* SUBTÍTULO VIP COMPACTO */
         .vip-subtitle {
             text-align: center;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--vip);
-            margin: 15px 0;
-            padding: 15px;
+            margin: 12px 0;
+            padding: 10px;
             background: rgba(251, 191, 36, 0.1);
-            border-radius: 12px;
+            border-radius: 10px;
             border: 1px solid rgba(251, 191, 36, 0.2);
             position: relative;
             overflow: hidden;
         }
 
-        /* LISTA DE CARACTERÍSTICAS */
+        /* LISTA DE CARACTERÍSTICAS COMPACTA */
         .features-list {
             flex-grow: 1;
-            margin: 25px 0;
+            margin: 15px 0;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .features-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .features-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .features-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 2px;
         }
 
         .feature-item {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 18px;
-            padding: 16px;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 10px;
             background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            border-left: 3px solid var(--accent);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            border-left: 2px solid var(--accent);
         }
 
         .feature-item:hover {
             background: rgba(255, 255, 255, 0.05);
-            transform: translateX(5px);
+            transform: translateX(3px);
         }
 
         .plan-card.featured .feature-item {
@@ -447,8 +381,8 @@
         }
 
         .feature-icon {
-            font-size: 1.2rem;
-            min-width: 24px;
+            font-size: 0.9rem;
+            min-width: 20px;
             text-align: center;
             color: var(--accent);
         }
@@ -462,30 +396,30 @@
         }
 
         .feature-text {
-            font-size: 1rem;
+            font-size: 0.85rem;
             color: var(--text-secondary);
-            line-height: 1.5;
+            line-height: 1.3;
         }
 
-        /* BOTÓN DE COMPRA */
+        /* BOTÓN DE COMPRA COMPACTO */
         .purchase-button {
             width: 100%;
-            padding: 18px;
+            padding: 14px;
             border: none;
-            border-radius: 16px;
-            font-size: 1.2rem;
+            border-radius: 12px;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 8px;
             position: relative;
             overflow: hidden;
-            margin-top: auto;
+            margin-top: 10px;
             font-family: 'Inter', sans-serif;
         }
 
@@ -497,7 +431,7 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.7s ease;
+            transition: left 0.5s ease;
         }
 
         .purchase-button:hover::before {
@@ -510,8 +444,8 @@
         }
 
         .purchase-button.standard:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.3);
         }
 
         .purchase-button.featured {
@@ -520,8 +454,8 @@
         }
 
         .purchase-button.featured:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.3);
         }
 
         .purchase-button.vip {
@@ -531,31 +465,21 @@
         }
 
         .purchase-button.vip:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(251, 191, 36, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(251, 191, 36, 0.3);
         }
 
         .button-icon {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
         }
 
-        /* EFECTO DE CLICK MEJORADO - MÁS OSCURO */
-        .purchase-button:active {
-            transform: translateY(1px);
-            filter: brightness(0.9);
-        }
-
-        .plan-card:active {
-            transform: translateY(-10px);
-        }
-
-        /* CARACTERÍSTICAS GLOBALES */
+        /* CARACTERÍSTICAS GLOBALES COMPACTAS */
         .global-features {
-            max-width: 1000px;
-            margin: 60px auto;
-            padding: 50px;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 25px;
             background: var(--card-bg);
-            border-radius: 24px;
+            border-radius: 16px;
             border: 1px solid var(--border);
             backdrop-filter: blur(10px);
             box-shadow: var(--shadow);
@@ -569,14 +493,14 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 5px;
+            height: 4px;
             background: linear-gradient(90deg, var(--accent), #8b5cf6);
         }
 
         .global-title {
-            font-size: 2.2rem;
+            font-size: 1.5rem;
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 25px;
             color: var(--text);
             font-weight: 700;
             position: relative;
@@ -588,27 +512,27 @@
         .global-title::after {
             content: '';
             position: absolute;
-            bottom: -15px;
+            bottom: -8px;
             left: 50%;
             transform: translateX(-50%);
-            width: 80px;
-            height: 4px;
+            width: 50px;
+            height: 3px;
             background: linear-gradient(90deg, var(--accent), #8b5cf6);
             border-radius: 2px;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
         }
 
         .feature-card {
-            padding: 30px;
+            padding: 20px;
             background: rgba(255, 255, 255, 0.03);
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -617,153 +541,168 @@
         .feature-card:hover {
             background: rgba(255, 255, 255, 0.05);
             border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-8px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
 
         .feature-card-icon {
-            font-size: 2.8rem;
-            margin-bottom: 25px;
+            font-size: 2rem;
+            margin-bottom: 15px;
             display: block;
             color: var(--accent);
         }
 
         .feature-card-title {
-            font-size: 1.4rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: var(--text);
         }
 
         .feature-card-desc {
             color: var(--text-secondary);
-            font-size: 1rem;
-            line-height: 1.6;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
 
-        /* FOOTER */
+        /* FOOTER COMPACTO */
         .footer {
             text-align: center;
-            margin-top: 60px;
-            padding-top: 30px;
+            margin-top: 40px;
+            padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
-        /* EFECTO DE CLICK EN TARJETAS - MÁS OSCURO */
-        .plan-card {
-            position: relative;
-        }
-
-        .plan-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            border-radius: 24px;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .plan-card:active::after {
-            opacity: 1;
-        }
-
-        /* MEDIA QUERIES - FORZAR HORIZONTAL SIEMPRE */
-        @media (max-width: 1200px) {
+        /* MEDIA QUERIES PARA RESPONSIVE */
+        @media (max-width: 1100px) {
             .plans-container {
-                justify-content: flex-start;
-                padding-left: 20px;
-                padding-right: 20px;
+                gap: 12px;
             }
             
             .plan-card {
-                width: 300px;
+                min-width: 230px;
+                padding: 18px;
+            }
+            
+            .price-amount {
+                font-size: 2.4rem;
             }
         }
         
         @media (max-width: 768px) {
             .plans-container {
-                justify-content: flex-start;
-                padding-left: 10px;
-                padding-right: 10px;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
             }
             
             .plan-card {
-                width: 280px;
-                padding: 30px 25px;
-            }
-            
-            .price-amount {
-                font-size: 3.2rem;
+                width: 100%;
+                max-width: 350px;
+                min-width: unset;
             }
             
             .title {
-                font-size: 2.5rem;
+                font-size: 1.8rem;
             }
             
             .subtitle {
-                font-size: 1.1rem;
+                font-size: 0.9rem;
             }
             
             .global-features {
-                padding: 30px 20px;
+                padding: 20px 15px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
             }
         }
 
         @media (max-width: 480px) {
-            .plans-container {
-                gap: 20px;
-            }
-            
-            .plan-card {
-                width: 260px;
-                padding: 25px 20px;
-            }
-            
-            .price-amount {
-                font-size: 2.8rem;
-            }
-            
-            .title {
-                font-size: 2rem;
+            .main-container {
+                padding: 10px;
             }
             
             .header {
-                padding: 30px 15px;
+                padding: 15px 10px;
+            }
+            
+            .title {
+                font-size: 1.6rem;
+            }
+            
+            .plan-card {
+                padding: 15px;
+            }
+            
+            .price-amount {
+                font-size: 2.2rem;
+            }
+            
+            .feature-item {
+                padding: 8px;
+                margin-bottom: 8px;
             }
         }
 
-        /* EFECTO DE SCROLL SUAVE */
-        html {
-            scroll-behavior: smooth;
+        /* EFECTO DE CLICK MEJORADO */
+        .plan-card:active {
+            transform: translateY(-4px);
+        }
+
+        .purchase-button:active {
+            transform: translateY(0);
+            filter: brightness(0.9);
+        }
+
+        /* BOTÓN DE DESLIZAR (PARA MÓVILES) */
+        .scroll-hint {
+            text-align: center;
+            margin: 15px 0;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        .scroll-hint i {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-5px);}
+            60% {transform: translateY(-3px);}
+        }
+
+        /* EFECTO DE SCROLL EN CARACTERÍSTICAS */
+        .features-list {
+            scrollbar-width: thin;
         }
 
         /* NOTIFICACIÓN */
         .notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: var(--card-hover);
+            top: 15px;
+            right: 15px;
+            padding: 12px 20px;
+            background: var(--card-bg);
             border: 1px solid var(--accent);
-            border-radius: 12px;
+            border-radius: 10px;
             color: var(--text);
             font-weight: 500;
             z-index: 1000;
             display: flex;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
             transform: translateX(150%);
             transition: transform 0.3s ease;
-            max-width: 350px;
+            max-width: 300px;
+            font-size: 0.9rem;
         }
 
         .notification.show {
@@ -771,16 +710,20 @@
         }
 
         .notification-icon {
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: var(--accent);
         }
 
-        /* CONTADOR DE PLANES */
-        .plans-counter {
-            text-align: center;
-            margin-bottom: 20px;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+        /* ESTILOS PARA BOTONES DE COMPRA VISIBLES */
+        .plan-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 450px;
+        }
+
+        .purchase-button {
+            margin-top: auto;
         }
     </style>
 </head>
@@ -788,11 +731,6 @@
     <!-- Fondo futurista -->
     <div class="background-effect">
         <div class="grid-lines"></div>
-        <div class="floating-orbs">
-            <div class="orb orb-1"></div>
-            <div class="orb orb-2"></div>
-            <div class="orb orb-3"></div>
-        </div>
     </div>
     
     <div class="main-container">
@@ -802,14 +740,10 @@
                 <i class="fas fa-shield-alt logo-icon"></i>
                 <h1 class="title">VPN CUBA</h1>
             </div>
-            <p class="subtitle">Planes optimizados para máxima velocidad y seguridad. Conexión estable y ancho de banda ilimitado para todas tus necesidades.</p>
-            
-            <div class="plans-counter">
-                <i class="fas fa-arrow-left"></i> Desliza para ver todos los planes <i class="fas fa-arrow-right"></i>
-            </div>
+            <p class="subtitle">Planes optimizados para máxima velocidad y seguridad. Conexión estable y ancho de banda ilimitado.</p>
         </header>
         
-        <!-- PLANES HORIZONTALES (SIEMPRE EN FILA) -->
+        <!-- PLANES HORIZONTALES COMPACTOS -->
         <div class="plans-container">
             <!-- PLAN BÁSICO -->
             <div class="plan-card">
@@ -918,7 +852,7 @@
                 </div>
                 
                 <div class="vip-subtitle">
-                    <i class="fas fa-star"></i> Solo 500 CUP/mes <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i> Solo 500 CUP/mes
                 </div>
                 
                 <div class="features-list">
@@ -938,10 +872,6 @@
                         <i class="fas fa-user-shield feature-icon"></i>
                         <span class="feature-text">Soporte dedicado VIP</span>
                     </div>
-                    <div class="feature-item">
-                        <i class="fas fa-tachometer-alt feature-icon"></i>
-                        <span class="feature-text">Velocidad máxima garantizada</span>
-                    </div>
                 </div>
                 
                 <button class="purchase-button vip" onclick="selectPlan('vip', 3000)">
@@ -951,33 +881,33 @@
             </div>
         </div>
         
-        <!-- CARACTERÍSTICAS GLOBALES -->
+        <!-- CARACTERÍSTICAS GLOBALES COMPACTAS -->
         <section class="global-features">
-            <h2 class="global-title">Características Incluidas en Todos los Planes</h2>
+            <h2 class="global-title">Características Incluidas</h2>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <i class="fas fa-tachometer-alt feature-card-icon"></i>
                     <h3 class="feature-card-title">Máxima Velocidad</h3>
-                    <p class="feature-card-desc">Conexión optimizada para streaming, gaming y videollamadas sin interrupciones.</p>
+                    <p class="feature-card-desc">Conexión optimizada para streaming, gaming y videollamadas.</p>
                 </div>
                 
                 <div class="feature-card">
                     <i class="fas fa-lock feature-card-icon"></i>
                     <h3 class="feature-card-title">Seguridad Total</h3>
-                    <p class="feature-card-desc">Encriptación de grado militar para proteger tus datos y actividad en línea.</p>
+                    <p class="feature-card-desc">Encriptación de grado militar para proteger tus datos.</p>
                 </div>
                 
                 <div class="feature-card">
                     <i class="fas fa-globe-americas feature-card-icon"></i>
                     <h3 class="feature-card-title">Sin Restricciones</h3>
-                    <p class="feature-card-desc">Acceso a contenido global sin límites de ancho de banda ni velocidad.</p>
+                    <p class="feature-card-desc">Acceso a contenido global sin límites de ancho de banda.</p>
                 </div>
                 
                 <div class="feature-card">
                     <i class="fas fa-user-check feature-card-icon"></i>
                     <h3 class="feature-card-title">Soporte Experto</h3>
-                    <p class="feature-card-desc">Asistencia técnica especializada para resolver cualquier inconveniente rápidamente.</p>
+                    <p class="feature-card-desc">Asistencia técnica especializada para resolver problemas.</p>
                 </div>
             </div>
         </section>
@@ -992,7 +922,7 @@
     <!-- NOTIFICACIÓN -->
     <div id="notification" class="notification">
         <i class="fas fa-info-circle notification-icon"></i>
-        <span id="notification-text">Redirigiendo al proceso de pago...</span>
+        <span id="notification-text">Redirigiendo...</span>
     </div>
 
     <script>
@@ -1024,11 +954,10 @@
                 timestamp: new Date().toISOString()
             }));
             
-            // Simular procesamiento antes de redirigir
+            // Redirigir a página de pago
             setTimeout(() => {
-                // Redirigir a página de pago
                 window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}`;
-            }, 1000);
+            }, 800);
         }
         
         // Verificar si el usuario aceptó términos
@@ -1043,7 +972,8 @@
                     window.location.href = `/index.html?userId=${userId}`;
                 }
             } catch (error) {
-                console.log('Usuario nuevo o error en verificación, continuando...');
+                console.log('Error verificando términos:', error);
+                // Si hay error, igual dejar continuar (por si acaso)
             }
         }
         
@@ -1062,14 +992,27 @@
             
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 3000);
+            }, 2000);
         }
         
-        // Efectos interactivos para las tarjetas
+        // Inicializar efectos visuales
         document.addEventListener('DOMContentLoaded', function() {
-            // Añadir efecto de hover mejorado a las tarjetas
+            // Ajustar altura máxima de las tarjetas
             const cards = document.querySelectorAll('.plan-card');
+            let maxHeight = 0;
             
+            // Encontrar la altura máxima
+            cards.forEach(card => {
+                const height = card.offsetHeight;
+                if (height > maxHeight) maxHeight = height;
+            });
+            
+            // Aplicar altura uniforme
+            cards.forEach(card => {
+                card.style.minHeight = maxHeight + 'px';
+            });
+            
+            // Efectos de hover para tarjetas
             cards.forEach(card => {
                 card.addEventListener('mouseenter', function() {
                     this.style.zIndex = '10';
@@ -1078,87 +1021,64 @@
                 card.addEventListener('mouseleave', function() {
                     this.style.zIndex = '1';
                 });
-                
-                // Efecto de click mejorado
-                card.addEventListener('mousedown', function() {
-                    this.style.transform = 'translateY(-10px) scale(0.98)';
-                });
-                
-                card.addEventListener('mouseup', function() {
-                    this.style.transform = 'translateY(-15px)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                });
             });
             
-            // Configurar scroll horizontal suave
-            const plansContainer = document.querySelector('.plans-container');
-            let isDown = false;
-            let startX;
-            let scrollLeft;
-            
-            plansContainer.addEventListener('mousedown', (e) => {
-                isDown = true;
-                plansContainer.classList.add('active');
-                startX = e.pageX - plansContainer.offsetLeft;
-                scrollLeft = plansContainer.scrollLeft;
-            });
-            
-            plansContainer.addEventListener('mouseleave', () => {
-                isDown = false;
-                plansContainer.classList.remove('active');
-            });
-            
-            plansContainer.addEventListener('mouseup', () => {
-                isDown = false;
-                plansContainer.classList.remove('active');
-            });
-            
-            plansContainer.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.pageX - plansContainer.offsetLeft;
-                const walk = (x - startX) * 2;
-                plansContainer.scrollLeft = scrollLeft - walk;
-            });
-            
-            // Efecto de scroll con rueda del mouse
-            plansContainer.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                plansContainer.scrollLeft += e.deltaY;
-            });
+            // Verificar si estamos en móvil
+            if (window.innerWidth <= 768) {
+                const scrollHint = document.createElement('div');
+                scrollHint.className = 'scroll-hint';
+                scrollHint.innerHTML = '<i class="fas fa-chevron-down"></i> Desliza para ver más características <i class="fas fa-chevron-down"></i>';
+                document.querySelector('.plans-container').insertAdjacentElement('afterend', scrollHint);
+            }
         });
         
-        // Añadir estilos para mejor scroll
+        // Añadir estilos CSS para mejor visualización
         const style = document.createElement('style');
         style.textContent = `
-            .plans-container.active {
-                cursor: grabbing;
-                cursor: -webkit-grabbing;
+            /* Asegurar que el botón sea visible */
+            .plan-card {
+                display: flex !important;
+                flex-direction: column !important;
             }
             
-            .plans-container {
-                cursor: grab;
+            .purchase-button {
+                margin-top: auto !important;
             }
             
-            .plans-container:active {
-                cursor: grabbing;
+            /* Mejorar visibilidad en pantallas pequeñas */
+            @media (max-height: 700px) {
+                .global-features {
+                    margin: 20px auto !important;
+                    padding: 20px !important;
+                }
+                
+                .feature-card {
+                    padding: 15px !important;
+                }
+                
+                .footer {
+                    margin-top: 20px !important;
+                }
             }
             
-            /* Mejorar visibilidad del texto durante hover */
-            .plan-card:hover .feature-text {
-                color: #e0e0ff;
-            }
-            
-            .plan-card:hover .plan-period {
-                color: #b8c2ff;
-            }
-            
-            /* Efecto de brillo reducido en hover */
-            .plan-card:hover::before {
-                filter: brightness(0.8);
+            /* Optimizar para pantallas muy pequeñas */
+            @media (max-height: 600px) {
+                .header {
+                    padding: 10px 15px !important;
+                    margin-bottom: 20px !important;
+                }
+                
+                .title {
+                    font-size: 1.8rem !important;
+                }
+                
+                .plan-card {
+                    padding: 12px !important;
+                }
+                
+                .features-list {
+                    max-height: 120px !important;
+                }
             }
         `;
         document.head.appendChild(style);

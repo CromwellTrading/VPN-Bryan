@@ -228,9 +228,281 @@
             border: 1px solid rgba(239, 68, 68, 0.3);
             margin-bottom: 20px;
         }
+
+        /* Modal de Términos y Condiciones */
+        .terms-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 31, 0.98);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .terms-content {
+            background: rgba(18, 18, 48, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid var(--accent);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .terms-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .terms-header h2 {
+            font-size: 1.8rem;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .terms-header p {
+            color: var(--text-secondary);
+        }
+
+        .terms-documents {
+            margin-bottom: 25px;
+        }
+
+        .doc-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .doc-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .doc-title i {
+            color: var(--accent);
+        }
+
+        .doc-summary {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .doc-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 8px 15px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .doc-link:hover {
+            background: rgba(79, 70, 229, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .terms-agreement {
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .agreement-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .agreement-checkbox input[type="checkbox"] {
+            margin-top: 3px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .agreement-label {
+            color: var(--text);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .agreement-label strong {
+            color: var(--success);
+        }
+
+        .terms-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn-accept {
+            flex: 1;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-accept:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-accept:not(:disabled):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 16px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-3px);
+        }
+
+        /* Scrollbar para términos */
+        .terms-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terms-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .terms-content::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
+    <!-- Modal de Términos y Condiciones -->
+    <div id="termsModal" class="terms-modal">
+        <div class="terms-content">
+            <div class="terms-header">
+                <h2>Términos y Condiciones</h2>
+                <p>Para continuar utilizando VPN Cuba, debes aceptar nuestros términos</p>
+            </div>
+            
+            <div class="terms-documents">
+                <div class="doc-section">
+                    <div class="doc-title">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Política de Privacidad</h3>
+                    </div>
+                    <p class="doc-summary">
+                        Operamos bajo una estricta política de Cero Registros (No-Logs Policy). 
+                        No registramos tu actividad de navegación, historial, tráfico, DNS o IP real.
+                    </p>
+                    <a href="/POLITICA%20DE%20PRIVACIDAD%20VPN%20CUBA.pdf" target="_blank" class="doc-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        Ver documento completo
+                    </a>
+                </div>
+                
+                <div class="doc-section">
+                    <div class="doc-title">
+                        <i class="fas fa-file-contract"></i>
+                        <h3>Términos de Uso</h3>
+                    </div>
+                    <p class="doc-summary">
+                        El servicio debe usarse exclusivamente con fines lícitos. 
+                        Prohibido uso para actividades ilegales, fraudulentes o abusivas.
+                    </p>
+                    <a href="/TERMINOS%20DE%20USO%20VPN%20CUBA.pdf" target="_blank" class="doc-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        Ver documento completo
+                    </a>
+                </div>
+                
+                <div class="doc-section">
+                    <div class="doc-title">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <h3>Política de Reembolso</h3>
+                    </div>
+                    <p class="doc-summary">
+                        Garantía de devolución de dinero de 7 días para la primera compra, 
+                        sujeto a condiciones técnicas específicas.
+                    </p>
+                    <a href="/POLITICA%20DE%20REEMBOLSO.pdf" target="_blank" class="doc-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        Ver documento completo
+                    </a>
+                </div>
+            </div>
+            
+            <div class="terms-agreement">
+                <label class="agreement-checkbox">
+                    <input type="checkbox" id="acceptTermsCheckbox">
+                    <span class="agreement-label">
+                        <strong>He leído y acepto</strong> los Términos y Condiciones, 
+                        Política de Privacidad y Política de Reembolso de VPN Cuba. 
+                        Entiendo que mi información se manejará según la política de privacidad.
+                    </span>
+                </label>
+            </div>
+            
+            <div class="terms-buttons">
+                <button id="acceptTermsBtn" class="btn-accept" disabled>
+                    <i class="fas fa-check-circle"></i>
+                    Aceptar y Continuar
+                </button>
+                <button id="cancelTermsBtn" class="btn-cancel">
+                    <i class="fas fa-times"></i>
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <!-- LOGO -->
         <div class="logo">
@@ -293,6 +565,7 @@
         let userName = 'Usuario';
         let isAdminUser = false;
         let initialized = false;
+        let termsAccepted = false;
 
         // Inicializar Telegram WebApp
         const tg = window.Telegram && window.Telegram.WebApp;
@@ -301,6 +574,72 @@
         function getUrlParameter(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
+        }
+
+        // Función para verificar si los términos fueron aceptados
+        function checkTermsAccepted(userId) {
+            const accepted = localStorage.getItem(`termsAccepted_${userId}`);
+            const termsVersion = localStorage.getItem(`termsVersion_${userId}`);
+            
+            // Verificar versión (actualizar si cambian los términos)
+            const currentVersion = '2025-11';
+            
+            if (accepted === 'true' && termsVersion === currentVersion) {
+                return true;
+            }
+            return false;
+        }
+
+        // Función para guardar aceptación de términos
+        function saveTermsAccepted(userId) {
+            localStorage.setItem(`termsAccepted_${userId}`, 'true');
+            localStorage.setItem(`termsVersion_${userId}`, '2025-11');
+            localStorage.setItem(`termsAcceptedDate_${userId}`, new Date().toISOString());
+        }
+
+        // Función para mostrar modal de términos
+        function showTermsModal() {
+            const modal = document.getElementById('termsModal');
+            modal.style.display = 'flex';
+            
+            // Configurar checkbox
+            const checkbox = document.getElementById('acceptTermsCheckbox');
+            const acceptBtn = document.getElementById('acceptTermsBtn');
+            
+            checkbox.addEventListener('change', function() {
+                acceptBtn.disabled = !this.checked;
+            });
+            
+            // Configurar botón de aceptar
+            acceptBtn.addEventListener('click', function() {
+                if (checkbox.checked && telegramUserId) {
+                    saveTermsAccepted(telegramUserId);
+                    modal.style.display = 'none';
+                    // Continuar con la inicialización normal
+                    proceedAfterTermsAcceptance();
+                }
+            });
+            
+            // Configurar botón de cancelar
+            document.getElementById('cancelTermsBtn').addEventListener('click', function() {
+                modal.style.display = 'none';
+                showError('Debes aceptar los términos para usar el servicio.');
+            });
+        }
+
+        // Función para continuar después de aceptar términos
+        async function proceedAfterTermsAcceptance() {
+            try {
+                const userInfo = await getUserInfo(telegramUserId);
+                
+                if (!userInfo) {
+                    throw new Error('No se pudo obtener información del usuario');
+                }
+
+                showUserUI(telegramUserId, userInfo);
+            } catch (error) {
+                showError(error.message || 'Ocurrió un error inesperado');
+            }
         }
 
         // Función para verificar si es administrador
@@ -364,6 +703,29 @@
             document.getElementById('userInfo').style.display = 'block';
             document.getElementById('buttons').style.display = 'flex';
             
+            // Guardar userInfo globalmente para uso posterior
+            window.userInfo = userInfo;
+            
+            // Configurar botones con userId
+            const plansUrl = `/plans.html?userId=${userId}`;
+            const adminUrl = `/admin.html?userId=${userId}&admin=true`;
+            
+            document.getElementById('plansBtn').href = plansUrl;
+            document.getElementById('adminBtn').href = adminUrl;
+
+            // Configurar evento para botón de estado
+            document.getElementById('statusBtn').onclick = async function(e) {
+                e.preventDefault();
+                const isVIP = await checkVIPStatus(userId);
+                
+                if (isVIP) {
+                    alert('✅ ¡Eres usuario VIP! Tu acceso está activo.');
+                } else {
+                    alert('❌ No eres usuario VIP aún. Selecciona un plan para convertirte en VIP.');
+                    window.location.href = plansUrl;
+                }
+            };
+            
             initialized = true;
         }
 
@@ -410,35 +772,25 @@
                     return;
                 }
 
-                // 3. Obtener información del usuario
+                // 3. Verificar si ya aceptó los términos
+                termsAccepted = checkTermsAccepted(telegramUserId);
+                
+                if (!termsAccepted) {
+                    // Mostrar modal de términos
+                    document.getElementById('loading').style.display = 'none';
+                    showTermsModal();
+                    return;
+                }
+
+                // 4. Si ya aceptó los términos, proceder normalmente
                 const userInfo = await getUserInfo(telegramUserId);
                 
                 if (!userInfo) {
                     throw new Error('No se pudo obtener información del usuario');
                 }
 
-                // 4. Mostrar UI
+                // 5. Mostrar UI
                 showUserUI(telegramUserId, userInfo);
-
-                // 5. Configurar botones
-                const plansUrl = `/plans.html?userId=${telegramUserId}`;
-                const adminUrl = `/admin.html?userId=${telegramUserId}&admin=true`;
-                
-                document.getElementById('plansBtn').href = plansUrl;
-                document.getElementById('adminBtn').href = adminUrl;
-
-                // 6. Configurar evento para botón de estado
-                document.getElementById('statusBtn').onclick = async function(e) {
-                    e.preventDefault();
-                    const isVIP = await checkVIPStatus(telegramUserId);
-                    
-                    if (isVIP) {
-                        alert('✅ ¡Eres usuario VIP! Tu acceso está activo.');
-                    } else {
-                        alert('❌ No eres usuario VIP aún. Selecciona un plan para convertirte en VIP.');
-                        window.location.href = plansUrl;
-                    }
-                };
 
             } catch (error) {
                 showError(error.message || 'Ocurrió un error inesperado');

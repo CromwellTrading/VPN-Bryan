@@ -52,6 +52,103 @@ function getPlanName(planType) {
   };
   return plans[planType] || planType;
 }
+// Ruta para verificar si es administrador
+app.get('/api/check-admin/:telegramId', (req, res) => {
+    const isAdmin = ADMIN_IDS.includes(req.params.telegramId);
+    res.json({ isAdmin });
+});
+
+// Ruta para obtener pagos aprobados
+app.get('/api/payments/approved', async (req, res) => {
+    try {
+        const payments = await db.getApprovedPayments();
+        res.json(payments);
+    } catch (error) {
+        res.status(500).json({ error: 'Error obteniendo pagos aprobados' });
+    }
+});
+
+// Ruta para enviar configuración
+app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
+    try {
+        const { paymentId, adminId } = req.body;
+        
+        if (!ADMIN_IDS.includes(adminId)) {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'Archivo de configuración requerido' });
+        }
+        
+        // Obtener información del pago
+        const payment = await db.getPayment(paymentId);
+        
+        if (!payment) {
+            return res.status(404).json({ error: 'Pago no encontrado' });
+        }
+        
+        // Enviar archivo por Telegram
+        await bot.telegram.sendDocument(
+            payment.telegram_id,
+            req.file.path,
+            {
+                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                        `📁 *Archivo:* ${req.file.originalname}\n\n` +
+                        `*Instrucciones de instalación:*\n` +
+                        `1. Descarga este archivo\n` +
+                        `2. Importa en tu cliente WireGuard\n` +
+                        `3. Activa la conexión\n` +
+                        `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                        `*Soporte:* Contacta con soporte si tienes problemas.`,
+                parse_mode: 'Markdown'
+            }
+        );
+        
+        // Actualizar pago
+        await db.updatePayment(paymentId, {
+            config_sent: true,
+            config_sent_at: new Date().toISOString(),
+            config_file: req.file.filename
+        });
+        
+        // Marcar usuario como VIP
+        await db.makeUserVIP(payment.telegram_id, {
+            plan: payment.plan,
+            plan_price: payment.price,
+            vip_since: new Date().toISOString()
+        });
+        
+        res.json({ success: true, message: 'Configuración enviada' });
+        
+    } catch (error) {
+        console.error('Error enviando configuración:', error);
+        res.status(500).json({ error: 'Error enviando configuración' });
+    }
+});
+
+// Ruta para enviar mensaje a usuario
+app.post('/api/send-message', async (req, res) => {
+    try {
+        const { telegramId, message, adminId } = req.body;
+        
+        if (!ADMIN_IDS.includes(adminId)) {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+        
+        await bot.telegram.sendMessage(
+            telegramId,
+            `📨 *Mensaje del administrador*\n\n${message}`,
+            { parse_mode: 'Markdown' }
+        );
+        
+        res.json({ success: true });
+        
+    } catch (error) {
+        console.error('Error enviando mensaje:', error);
+        res.status(500).json({ error: 'Error enviando mensaje' });
+    }
+});
 
 // ==================== RUTAS DE LA API ====================
 

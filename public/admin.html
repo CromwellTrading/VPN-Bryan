@@ -771,7 +771,10 @@
 
         // Verificar permisos de administrador
         async function checkAdminAccess() {
+            console.log('🔍 Verificando acceso de administrador...');
+            
             if (!admin) {
+                console.log('❌ Parámetro admin=false o no presente');
                 showNotification('❌ No tienes permisos de administrador', 'error');
                 setTimeout(() => {
                     window.location.href = '/plans.html?userId=' + userId;
@@ -780,10 +783,14 @@
             }
 
             try {
+                console.log(`👤 Verificando admin para ${userId}`);
                 const response = await fetch(`/api/check-admin/${userId}`);
                 const data = await response.json();
                 
+                console.log('📊 Respuesta de verificación admin:', data);
+                
                 if (!data.isAdmin) {
+                    console.log('❌ Usuario no es administrador');
                     showNotification('❌ No eres administrador', 'error');
                     setTimeout(() => {
                         window.location.href = '/plans.html?userId=' + userId;
@@ -793,10 +800,11 @@
 
                 isAdminUser = true;
                 currentUserId = userId;
+                console.log('✅ Usuario es administrador');
                 loadStats();
                 loadPendingPayments();
             } catch (error) {
-                console.error('Error verificando admin:', error);
+                console.error('❌ Error verificando admin:', error);
                 showNotification('❌ Error verificando permisos', 'error');
             }
         }
@@ -804,15 +812,18 @@
         // Cargar estadísticas
         async function loadStats() {
             try {
+                console.log('📊 Cargando estadísticas...');
                 const response = await fetch('/api/stats');
                 const stats = await response.json();
+                
+                console.log('📈 Estadísticas recibidas:', stats);
                 
                 document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
                 document.getElementById('vipUsers').textContent = stats.vipUsers || 0;
                 document.getElementById('pendingPaymentsCount').textContent = stats.pendingPayments || 0;
                 document.getElementById('totalRevenue').textContent = stats.totalRevenue || 0;
             } catch (error) {
-                console.error('Error cargando estadísticas:', error);
+                console.error('❌ Error cargando estadísticas:', error);
             }
         }
 
@@ -823,12 +834,16 @@
                 document.getElementById('pendingTable').style.display = 'none';
                 document.getElementById('pendingNoData').style.display = 'none';
                 
+                console.log('🔍 Cargando pagos pendientes...');
                 const response = await fetch('/api/payments/pending');
                 const payments = await response.json();
                 
+                console.log(`📊 Pagos pendientes recibidos (${payments.length}):`, payments);
+                
                 document.getElementById('pendingLoading').style.display = 'none';
                 
-                if (payments.length === 0) {
+                if (!payments || payments.length === 0) {
+                    console.log('📭 No hay pagos pendientes');
                     document.getElementById('pendingNoData').style.display = 'block';
                     return;
                 }
@@ -839,15 +854,15 @@
                 payments.forEach(payment => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${payment.id}</td>
+                        <td>${payment.id || 'N/A'}</td>
                         <td>
-                            <strong>${payment.user?.first_name || 'Usuario'}</strong><br>
+                            <strong>${payment.user?.first_name || payment.user?.username || 'Usuario'}</strong><br>
                             <small>@${payment.user?.username || 'sin_usuario'}</small><br>
-                            <small>ID: ${payment.telegram_id}</small>
+                            <small>ID: ${payment.telegram_id || 'N/A'}</small>
                         </td>
                         <td>${getPlanName(payment.plan)}</td>
-                        <td>$${payment.price} CUP</td>
-                        <td>${new Date(payment.created_at).toLocaleDateString('es-ES')}</td>
+                        <td>$${payment.price || 0} CUP</td>
+                        <td>${payment.created_at ? new Date(payment.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td><span class="badge pending">Pendiente</span></td>
                         <td>
                             <button class="action-btn approve" onclick="viewScreenshot('${payment.id}', '${payment.telegram_id}', '${payment.plan}', '${payment.price}', '${payment.created_at}', '${payment.screenshot_url}')">
@@ -861,9 +876,9 @@
                 document.getElementById('pendingTable').style.display = 'table';
                 
             } catch (error) {
-                console.error('Error cargando pagos pendientes:', error);
+                console.error('❌ Error cargando pagos pendientes:', error);
                 document.getElementById('pendingLoading').style.display = 'none';
-                showNotification('❌ Error cargando pagos pendientes', 'error');
+                showNotification('❌ Error cargando pagos pendientes: ' + error.message, 'error');
             }
         }
 
@@ -874,12 +889,16 @@
                 document.getElementById('approvedTable').style.display = 'none';
                 document.getElementById('approvedNoData').style.display = 'none';
                 
+                console.log('🔍 Cargando pagos aprobados...');
                 const response = await fetch('/api/payments/approved');
                 const payments = await response.json();
                 
+                console.log(`📊 Pagos aprobados recibidos (${payments.length}):`, payments);
+                
                 document.getElementById('approvedLoading').style.display = 'none';
                 
-                if (payments.length === 0) {
+                if (!payments || payments.length === 0) {
+                    console.log('📭 No hay pagos aprobados');
                     document.getElementById('approvedNoData').style.display = 'block';
                     return;
                 }
@@ -890,14 +909,14 @@
                 payments.forEach(payment => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${payment.id}</td>
+                        <td>${payment.id || 'N/A'}</td>
                         <td>
-                            <strong>${payment.user?.first_name || 'Usuario'}</strong><br>
+                            <strong>${payment.user?.first_name || payment.user?.username || 'Usuario'}</strong><br>
                             <small>@${payment.user?.username || 'sin_usuario'}</small>
                         </td>
                         <td>${getPlanName(payment.plan)}</td>
-                        <td>$${payment.price} CUP</td>
-                        <td>${new Date(payment.approved_at).toLocaleDateString('es-ES')}</td>
+                        <td>$${payment.price || 0} CUP</td>
+                        <td>${payment.approved_at ? new Date(payment.approved_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             ${payment.config_sent ? 
                                 '<span class="badge approved">Enviada</span>' : 
@@ -919,9 +938,9 @@
                 document.getElementById('approvedTable').style.display = 'table';
                 
             } catch (error) {
-                console.error('Error cargando pagos aprobados:', error);
+                console.error('❌ Error cargando pagos aprobados:', error);
                 document.getElementById('approvedLoading').style.display = 'none';
-                showNotification('❌ Error cargando pagos aprobados', 'error');
+                showNotification('❌ Error cargando pagos aprobados: ' + error.message, 'error');
             }
         }
 
@@ -932,12 +951,16 @@
                 document.getElementById('usersTable').style.display = 'none';
                 document.getElementById('usersNoData').style.display = 'none';
                 
+                console.log('🔍 Cargando usuarios...');
                 const response = await fetch('/api/all-users');
                 const users = await response.json();
                 
+                console.log(`📊 Usuarios recibidos (${users.length}):`, users);
+                
                 document.getElementById('usersLoading').style.display = 'none';
                 
-                if (users.length === 0) {
+                if (!users || users.length === 0) {
+                    console.log('📭 No hay usuarios registrados');
                     document.getElementById('usersNoData').style.display = 'block';
                     return;
                 }
@@ -948,7 +971,7 @@
                 users.forEach(user => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${user.telegram_id}</td>
+                        <td>${user.telegram_id || 'N/A'}</td>
                         <td>${user.first_name || 'Usuario'}</td>
                         <td>@${user.username || 'sin_usuario'}</td>
                         <td>
@@ -959,7 +982,7 @@
                             }
                         </td>
                         <td>${user.plan ? getPlanName(user.plan) : 'N/A'}</td>
-                        <td>${new Date(user.created_at).toLocaleDateString('es-ES')}</td>
+                        <td>${user.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             <button class="action-btn message" onclick="sendMessageToUser('${user.telegram_id}')">
                                 <i class="fas fa-comment"></i> Mensaje
@@ -978,15 +1001,17 @@
                 document.getElementById('usersTable').style.display = 'table';
                 
             } catch (error) {
-                console.error('Error cargando usuarios:', error);
+                console.error('❌ Error cargando usuarios:', error);
                 document.getElementById('usersLoading').style.display = 'none';
-                showNotification('❌ Error cargando usuarios', 'error');
+                showNotification('❌ Error cargando usuarios: ' + error.message, 'error');
             }
         }
 
         // Ver captura de pantalla
         function viewScreenshot(paymentId, telegramId, plan, amount, date, screenshotUrl) {
             currentPaymentId = paymentId;
+            
+            console.log(`👁️ Viendo captura de pago ${paymentId}`);
             
             document.getElementById('screenshotImage').src = screenshotUrl;
             document.getElementById('modalUserId').textContent = telegramId;
@@ -1001,6 +1026,8 @@
         function openConfigModal(paymentId, telegramId, plan) {
             currentPaymentId = paymentId;
             
+            console.log(`📤 Abriendo modal para enviar configuración a ${telegramId}`);
+            
             document.getElementById('configPaymentId').textContent = paymentId;
             document.getElementById('configUserId').textContent = telegramId;
             document.getElementById('configPlan').textContent = getPlanName(plan);
@@ -1010,10 +1037,12 @@
 
         // Cerrar modales
         function closeModal() {
+            console.log('❌ Cerrando modal de captura');
             document.getElementById('screenshotModal').classList.remove('active');
         }
 
         function closeConfigModal() {
+            console.log('❌ Cerrando modal de configuración');
             document.getElementById('configModal').classList.remove('active');
             document.getElementById('configFile').value = '';
         }
@@ -1022,6 +1051,8 @@
         async function approvePayment(paymentId) {
             if (!confirm('¿Estás seguro de aprobar este pago?')) return;
             
+            console.log(`✅ Aprobando pago ${paymentId}...`);
+            
             try {
                 const response = await fetch(`/api/payments/${paymentId}/approve`, {
                     method: 'POST'
@@ -1029,6 +1060,7 @@
                 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('✅ Pago aprobado:', data);
                     showNotification('✅ Pago aprobado correctamente', 'success');
                     closeModal();
                     loadPendingPayments();
@@ -1041,10 +1073,11 @@
                             data.payment?.plan || '');
                     }, 1000);
                 } else {
+                    console.error('❌ Error aprobando pago:', response.status);
                     throw new Error('Error aprobando pago');
                 }
             } catch (error) {
-                console.error('Error aprobando pago:', error);
+                console.error('❌ Error aprobando pago:', error);
                 showNotification('❌ Error aprobando pago', 'error');
             }
         }
@@ -1053,6 +1086,8 @@
         async function rejectPayment(paymentId) {
             const reason = prompt('Ingresa el motivo del rechazo:');
             if (!reason) return;
+            
+            console.log(`❌ Rechazando pago ${paymentId} con motivo: ${reason}`);
             
             try {
                 const response = await fetch(`/api/payments/${paymentId}/reject`, {
@@ -1064,15 +1099,17 @@
                 });
                 
                 if (response.ok) {
+                    console.log('✅ Pago rechazado');
                     showNotification('✅ Pago rechazado correctamente', 'success');
                     closeModal();
                     loadPendingPayments();
                     loadStats();
                 } else {
+                    console.error('❌ Error rechazando pago:', response.status);
                     throw new Error('Error rechazando pago');
                 }
             } catch (error) {
-                console.error('Error rechazando pago:', error);
+                console.error('❌ Error rechazando pago:', error);
                 showNotification('❌ Error rechazando pago', 'error');
             }
         }
@@ -1092,6 +1129,8 @@
                 return;
             }
             
+            console.log(`📤 Enviando archivo ${file.name} a usuario...`);
+            
             const formData = new FormData();
             formData.append('configFile', file);
             formData.append('paymentId', currentPaymentId);
@@ -1105,16 +1144,18 @@
                 });
                 
                 if (response.ok) {
+                    console.log('✅ Configuración enviada');
                     showNotification('✅ Configuración enviada correctamente', 'success');
                     closeConfigModal();
                     loadApprovedPayments();
                     loadStats();
                 } else {
                     const errorData = await response.json();
+                    console.error('❌ Error enviando configuración:', errorData);
                     throw new Error(errorData.error || 'Error enviando configuración');
                 }
             } catch (error) {
-                console.error('Error enviando configuración:', error);
+                console.error('❌ Error enviando configuración:', error);
                 showNotification('❌ ' + error.message, 'error');
             }
         }
@@ -1123,6 +1164,8 @@
         async function sendMessageToUser(telegramId) {
             const message = prompt('Ingresa el mensaje a enviar:');
             if (!message) return;
+            
+            console.log(`📨 Enviando mensaje a ${telegramId}: ${message.substring(0, 50)}...`);
             
             try {
                 const response = await fetch('/api/send-message', {
@@ -1138,12 +1181,14 @@
                 });
                 
                 if (response.ok) {
+                    console.log('✅ Mensaje enviado');
                     showNotification('✅ Mensaje enviado correctamente', 'success');
                 } else {
+                    console.error('❌ Error enviando mensaje:', response.status);
                     throw new Error('Error enviando mensaje');
                 }
             } catch (error) {
-                console.error('Error enviando mensaje:', error);
+                console.error('❌ Error enviando mensaje:', error);
                 showNotification('❌ Error enviando mensaje', 'error');
             }
         }
@@ -1151,6 +1196,8 @@
         // Remover VIP de usuario
         async function removeVIP(telegramId) {
             if (!confirm('¿Estás seguro de quitar el VIP a este usuario?')) return;
+            
+            console.log(`👑 Removiendo VIP de ${telegramId}...`);
             
             try {
                 const response = await fetch('/api/remove-vip', {
@@ -1165,20 +1212,24 @@
                 });
                 
                 if (response.ok) {
+                    console.log('✅ VIP removido');
                     showNotification('✅ VIP removido correctamente', 'success');
                     loadUsers();
                     loadStats();
                 } else {
+                    console.error('❌ Error removiendo VIP:', response.status);
                     throw new Error('Error removiendo VIP');
                 }
             } catch (error) {
-                console.error('Error removiendo VIP:', error);
+                console.error('❌ Error removiendo VIP:', error);
                 showNotification('❌ Error removiendo VIP', 'error');
             }
         }
 
         // Mostrar notificación
         function showNotification(message, type = 'info') {
+            console.log(`📢 Notificación (${type}): ${message}`);
+            
             const notification = document.getElementById('notification');
             const notificationText = document.getElementById('notificationText');
             
@@ -1193,6 +1244,8 @@
 
         // Cambiar pestañas
         function switchTab(tabName) {
+            console.log(`📂 Cambiando a pestaña: ${tabName}`);
+            
             // Ocultar todas las pestañas
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.style.display = 'none';
@@ -1238,6 +1291,8 @@
 
         // Inicializar página
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Panel de administración cargado');
+            
             // Verificar acceso de administrador
             checkAdminAccess();
             

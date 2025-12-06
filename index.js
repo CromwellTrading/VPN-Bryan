@@ -334,13 +334,15 @@ app.post('/api/payments/:id/reject', async function(req, res) {
 
     // Notificar al usuario
     try {
-      await bot.telegram.sendMessage(
-        payment.telegram_id,
-        `❌ *Tu pago ha sido rechazado*\n\n` +
-        `Motivo: ${reason}\n\n` +
-        `Por favor, contacta con soporte si necesitas más información.`,
-        { parse_mode: 'Markdown' }
-      );
+  await bot.telegram.sendMessage(
+    payment.telegram_id,
+    `❌ *Tu pago ha sido rechazado*\n\nMotivo: ${reason}\n\nPor favor, contacta con soporte si necesitas más información.`,
+    { parse_mode: 'Markdown' }
+  );
+  console.log(`✅ Usuario ${payment.telegram_id} notificado del rechazo`);
+} catch (botError) {
+  console.log('❌ No se pudo notificar al usuario:', botError.message);
+}
       console.log(`✅ Usuario ${payment.telegram_id} notificado del rechazo`);
     } catch (botError) {
       console.log('❌ No se pudo notificar al usuario:', botError.message);

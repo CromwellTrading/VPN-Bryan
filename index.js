@@ -34,6 +34,16 @@ const upload = multer({
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 if (!fs.existsSync('public')) fs.mkdirSync('public');
 
+// Función auxiliar para nombres de planes
+function getPlanName(planType) {
+  const plans = {
+    'basico': 'Básico (1 mes)',
+    'premium': 'Premium (2 meses)',
+    'vip': 'VIP (6 meses)'
+  };
+  return plans[planType] || planType;
+}
+
 // ==================== RUTAS DE LA API ====================
 
 // 1. Aceptar términos
@@ -65,93 +75,6 @@ app.get('/api/check-terms/:telegramId', async (req, res) => {
     res.json({ accepted: false });
   }
 });
-
-`📱 *Telegram:* ${username}\n` +
-                   `🆔 *ID:* ${telegramId}\n` +
-                   `📋 *Plan:* ${getPlanName(plan)}\n` +
-                   `💰 *Monto:* $${price} CUP\n` +
-                   `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
-                   `📝 *Estado:* ⏳ Pendiente\n\n` +
-                   `#Pago_${telegramId.slice(-4)}`,
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[
-              { text: '✅ Aprobar', callback_data: `approve_${payment.id}` },
-              { text: '❌ Rechazar', callback_data: `reject_${payment.id}` }
-            ]]
-          }
-        }
-      );
-    } catch (channelError) {
-      console.error('Error enviando al canal:', channelError);
-      // Si falla, enviar al admin como backup
-      await bot.telegram.sendMessage(
-        ADMIN_ID,
-        `⚠️ *Error al enviar al canal, pero se recibió pago:*\n\n` +
-        `Usuario: ${telegramId}\nPlan: ${plan}\nMonto: $${price} CUP`,
-        { parse_mode: 'Markdown' }
-      );
-    }
-
-    res.json({ 
-      success: true, 
-      message: 'Pago recibido. Te notificaremos cuando sea aprobado.',
-      payment 
-    });
-  } catch (error) {
-    console.error('Error procesando pago:', error);
-    
-    // Eliminar archivo si hubo error
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error al eliminar archivo:', err);
-      });
-    }
-    
-    res.status(500).json({ error: 'Error procesando pago' });
-  }
-});
-
-// 🔥 AGREGAR ESTA FUNCIÓN PARA LOS BOTONES DEL CANAL
-bot.on('callback_query', async (ctx) => {
-  const data = ctx.callbackQuery.data;
-  
-  // Verificar si el usuario que hace clic es el admin
-  if (ctx.from.id.toString() !== ADMIN_ID) {
-    return ctx.answerCbQuery('❌ Solo el administrador puede hacer esto');
-  }
-  
-  if (data.startsWith('approve_')) {
-    const paymentId = data.split('_')[1];
-    
-    try {
-      const payment = await db.approvePayment(paymentId);
-      
-      if (payment) {
-        // Notificar al usuario
-        await bot.telegram.sendMessage(
-          payment.telegram_id,
-          '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
-          'Ahora eres usuario VIP de VPN Cuba.\n' +
-          'En breve recibirás tu archivo de configuración.',
-          { parse_mode: 'Markdown' }
-        );
-        
-        // Actualizar mensaje en el canal
-        await ctx.editMessageCaption({
-          caption: `✅ *PAGO APROBADO* 🎉\n\n` +
-                   `👤 Usuario: ${payment.telegram_id}\n` +
-                   `📋 Plan: ${getPlanName(payment.plan)}\n` +
-                   `💰 Monto: $${payment.price} CUP\n` +
-                   `⏰ Fecha: ${new Date(payment.created_at).toLocaleString('es-ES')}\n` +
-                   `📝 Estado: ✅ Aprobado\n\n` +
-                   `Aprobado por: @${ctx.from.username || 'admin'}`,
-          reply_markup: { inline_keyboard: [] }
-        });
-        
-        ctx.answerCbQuery('✅ Pago aprobado');
-      }
-// ==================== RUTA DE PAGO CORREGIDA ====================
 
 // 3. Procesar pago (SIN ENVIAR AL CANAL)
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
@@ -216,15 +139,89 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   }
 });
 
-// Función auxiliar para nombres de planes
-function getPlanName(planType) {
-  const plans = {
-    'basico': 'Básico (1 mes)',
-    'premium': 'Premium (2 meses)',
-    'vip': 'VIP (6 meses)'
-  };
-  return plans[planType] || planType;
-}
+// 🔥 AGREGAR ESTA FUNCIÓN PARA LOS BOTONES DEL CANAL
+bot.on('callback_query', async (ctx) => {
+  const data = ctx.callbackQuery.data;
+  
+  // Verificar si el usuario que hace clic es el admin
+  if (ctx.from.id.toString() !== ADMIN_ID) {
+    return ctx.answerCbQuery('❌ Solo el administrador puede hacer esto');
+  }
+  
+  if (data.startsWith('approve_')) {
+    const paymentId = data.split('_')[1];
+    
+    try {
+      const payment = await db.approvePayment(paymentId);
+      
+      if (payment) {
+        // Notificar al usuario
+        await bot.telegram.sendMessage(
+          payment.telegram_id,
+          '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
+          'Ahora eres usuario VIP de VPN Cuba.\n' +
+          'En breve recibirás tu archivo de configuración.',
+          { parse_mode: 'Markdown' }
+        );
+        
+        // Actualizar mensaje en el canal
+        if (ctx.callbackQuery.message) {
+          await ctx.editMessageCaption({
+            caption: `✅ *PAGO APROBADO* 🎉\n\n` +
+                     `👤 Usuario: ${payment.telegram_id}\n` +
+                     `📋 Plan: ${getPlanName(payment.plan)}\n` +
+                     `💰 Monto: $${payment.price} CUP\n` +
+                     `⏰ Fecha: ${new Date(payment.created_at).toLocaleString('es-ES')}\n` +
+                     `📝 Estado: ✅ Aprobado\n\n` +
+                     `Aprobado por: @${ctx.from.username || 'admin'}`,
+            reply_markup: { inline_keyboard: [] }
+          });
+        }
+        
+        ctx.answerCbQuery('✅ Pago aprobado');
+      }
+    } catch (error) {
+      console.error('Error aprobando pago:', error);
+      ctx.answerCbQuery('❌ Error al aprobar pago');
+    }
+  } else if (data.startsWith('reject_')) {
+    const paymentId = data.split('_')[1];
+    
+    try {
+      const payment = await db.rejectPayment(paymentId, 'Rechazado por administrador');
+      
+      if (payment) {
+        // Notificar al usuario
+        await bot.telegram.sendMessage(
+          payment.telegram_id,
+          '❌ *Tu pago ha sido rechazado*\n\n' +
+          'Por favor, contacta con soporte para más información: @vpncuba_support',
+          { parse_mode: 'Markdown' }
+        );
+        
+        // Actualizar mensaje en el canal
+        if (ctx.callbackQuery.message) {
+          await ctx.editMessageCaption({
+            caption: `❌ *PAGO RECHAZADO*\n\n` +
+                     `👤 Usuario: ${payment.telegram_id}\n` +
+                     `📋 Plan: ${getPlanName(payment.plan)}\n` +
+                     `💰 Monto: $${payment.price} CUP\n` +
+                     `⏰ Fecha: ${new Date(payment.created_at).toLocaleString('es-ES')}\n` +
+                     `📝 Estado: ❌ Rechazado\n\n` +
+                     `Rechazado por: @${ctx.from.username || 'admin'}`,
+            reply_markup: { inline_keyboard: [] }
+          });
+        }
+        
+        ctx.answerCbQuery('✅ Pago rechazado');
+      }
+    } catch (error) {
+      console.error('Error rechazando pago:', error);
+      ctx.answerCbQuery('❌ Error al rechazar pago');
+    }
+  }
+});
+
 // 4. Obtener pagos pendientes (para admin)
 app.get('/api/payments/pending', async (req, res) => {
   try {

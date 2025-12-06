@@ -2,35 +2,17 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Error: Faltan variables de entorno SUPABASE_URL o SUPABASE_KEY/SUPABASE_ANON_KEY');
+  process.exit(1);
+}
 
-// Funciones simplificadas
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 const db = {
-  // Usuarios
-  async saveUser(telegramId, userData) {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .upsert({
-          telegram_id: telegramId,
-          ...userData,
-          created_at: new Date().toISOString()
-        }, {
-          onConflict: 'telegram_id'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error guardando usuario:', error);
-      return null;
-    }
-  },
-
+  // ========== USUARIOS ==========
   async getUser(telegramId) {
     try {
       const { data, error } = await supabase
@@ -38,12 +20,58 @@ const db = {
         .select('*')
         .eq('telegram_id', telegramId)
         .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (error) {
+        // Si no se encuentra el usuario, no es un error crítico
+        if (error.code === 'PGRST116') return null;
+        console.error('Error obteniendo usuario:', error.message);
+        return null;
+      }
       return data;
     } catch (error) {
-      console.error('Error obteniendo usuario:', error);
+      console.error('Error en getUser:', error);
       return null;
+    }
+  },
+
+  async saveUser(telegramId, userData) {
+    try {
+      // Verificar si el usuario ya existe
+      const existingUser = await this.getUser(telegramId);
+      
+      if (existingUser) {
+        // Actualizar usuario existente
+        const { data, error } = await supabase
+          .from('users')
+          .update({
+            ...userData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('telegram_id', telegramId)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } else {
+        // Crear nuevo usuario
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{
+            telegram_id: telegramId,
+            ...userData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
+    } catch (error) {
+      console.error('Error guardando usuario:', error);
+      throw error;
     }
   },
 
@@ -54,25 +82,64 @@ const db = {
     });
   },
 
-  async setVIP(telegramId, plan, price) {
+  async makeUserVIP(telegramId, vipData = {}) {
     try {
       const { data, error } = await supabase
         .from('users')
         .update({
           vip: true,
-          vip_since: new Date().toISOString(),
-          plan: plan,
-          plan_price: price
+          plan: vipData.plan || 'vip',
+          plan_price: vipData.plan_price || 0,
+          vip_since: vipData.vip_since || new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('telegram_id', telegramId)
         .select()
         .single();
-
+      
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error estableciendo VIP:', error);
-      return null;
+      console.error('Error haciendo usuario VIP:', error);
+      throw error;
+    }
+  },
+
+  async removeVIP(telegramId) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          vip: false,
+          plan: null,
+          plan_price: null,
+          vip_since: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('telegram_id', telegramId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error removiendo VIP:', error);
+      throw error;
+    }
+  },
+
+  async getAllUsers() {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error obteniendo todos los usuarios:', error);
+      return [];
     }
   },
 
@@ -83,28 +150,51 @@ const db = {
         .select('*')
         .eq('vip', true)
         .order('vip_since', { ascending: false });
-
+      
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error obteniendo VIP:', error);
+      console.error('Error obteniendo usuarios VIP:', error);
       return [];
     }
   },
 
-  // Pagos
+  // ========== PAGOS ==========
   async createPayment(paymentData) {
     try {
       const { data, error } = await supabase
         .from('payments')
-        .insert(paymentData)
+        .insert([{
+          ...paymentData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
         .select()
         .single();
-
+      
       if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error creando pago:', error);
+      throw error;
+    }
+  },
+
+  async getPayment(paymentId) {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('id', paymentId)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo pago:', error);
       return null;
     }
   },
@@ -116,7 +206,7 @@ const db = {
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
-
+      
       if (error) throw error;
       return data || [];
     } catch (error) {
@@ -125,39 +215,50 @@ const db = {
     }
   },
 
-  async approvePayment(paymentId) {
+  async getApprovedPayments() {
     try {
-      // Obtener el pago primero
-      const { data: payment, error: paymentError } = await supabase
+      const { data, error } = await supabase
         .from('payments')
         .select('*')
-        .eq('id', paymentId)
-        .single();
+        .eq('status', 'approved')
+        .order('approved_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos aprobados:', error);
+      return [];
+    }
+  },
 
-      if (paymentError) throw paymentError;
-
-      // Actualizar estado del pago
+  async approvePayment(paymentId) {
+    try {
       const { data, error } = await supabase
         .from('payments')
         .update({
           status: 'approved',
-          admin_notes: 'Aprobado por admin'
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('id', paymentId)
         .select()
         .single();
-
+      
       if (error) throw error;
-
-      // Establecer usuario como VIP
-      if (payment) {
-        await this.setVIP(payment.telegram_id, payment.plan, payment.price);
+      
+      // Hacer usuario VIP
+      if (data) {
+        await this.makeUserVIP(data.telegram_id, {
+          plan: data.plan,
+          plan_price: data.price,
+          vip_since: new Date().toISOString()
+        });
       }
-
+      
       return data;
     } catch (error) {
       console.error('Error aprobando pago:', error);
-      return null;
+      throw error;
     }
   },
 
@@ -167,78 +268,129 @@ const db = {
         .from('payments')
         .update({
           status: 'rejected',
-          admin_notes: reason || 'Rechazado por admin'
+          rejected_at: new Date().toISOString(),
+          rejection_reason: reason,
+          updated_at: new Date().toISOString()
         })
         .eq('id', paymentId)
         .select()
         .single();
-
+      
       if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error rechazando pago:', error);
-      return null;
+      throw error;
     }
   },
 
-  // Config files
+  async updatePayment(paymentId, updateData) {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error actualizando pago:', error);
+      throw error;
+    }
+  },
+
+  async getUserPayments(telegramId) {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos del usuario:', error);
+      return [];
+    }
+  },
+
+  // ========== ARCHIVOS DE CONFIGURACIÓN ==========
   async saveConfigFile(fileData) {
     try {
       const { data, error } = await supabase
         .from('config_files')
-        .insert(fileData)
+        .insert([{
+          ...fileData,
+          sent_at: new Date().toISOString()
+        }])
         .select()
         .single();
-
+      
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error guardando archivo:', error);
-      return null;
+      console.error('Error guardando archivo de configuración:', error);
+      throw error;
     }
   },
 
-  // Estadísticas
+  // ========== ESTADÍSTICAS ==========
   async getStats() {
     try {
-      // Total usuarios
-      const { count: totalUsers } = await supabase
+      // Total de usuarios
+      const { count: totalUsers, error: usersError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
-
-      // Total pagos aprobados
-      const { count: totalPayments } = await supabase
-        .from('payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'approved');
-
-      // Total ingresos
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('price')
-        .eq('status', 'approved');
-
-      const totalRevenue = payments?.reduce((sum, p) => sum + parseFloat(p.price || 0), 0) || 0;
-
-      // Total VIP
-      const { count: vipUsers } = await supabase
+      
+      if (usersError) throw usersError;
+      
+      // Usuarios VIP
+      const { count: vipUsers, error: vipError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('vip', true);
-
+      
+      if (vipError) throw vipError;
+      
+      // Pagos pendientes
+      const { count: pendingPayments, error: pendingError } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      if (pendingError) throw pendingError;
+      
+      // Total de ingresos (suma de pagos aprobados)
+      const { data: approvedPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('price')
+        .eq('status', 'approved');
+      
+      if (paymentsError) throw paymentsError;
+      
+      const totalRevenue = approvedPayments?.reduce((sum, payment) => {
+        return sum + (parseFloat(payment.price) || 0);
+      }, 0) || 0;
+      
       return {
-        total_users: totalUsers || 0,
-        total_payments: totalPayments || 0,
-        total_revenue: totalRevenue,
-        vip_users: vipUsers || 0
+        totalUsers: totalUsers || 0,
+        vipUsers: vipUsers || 0,
+        pendingPayments: pendingPayments || 0,
+        totalRevenue: totalRevenue
       };
     } catch (error) {
       console.error('Error obteniendo estadísticas:', error);
       return {
-        total_users: 0,
-        total_payments: 0,
-        total_revenue: 0,
-        vip_users: 0
+        totalUsers: 0,
+        vipUsers: 0,
+        pendingPayments: 0,
+        totalRevenue: 0
       };
     }
   }

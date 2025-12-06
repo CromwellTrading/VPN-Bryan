@@ -3,326 +3,431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPN Cuba - Planes</title>
+    <title>VPN Cuba - Planes Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* RESET PROFESIONAL */
+        /* RESET Y VARIABLES */
+        :root {
+            --primary: #0a0a1f;
+            --secondary: #121230;
+            --accent: #4f46e5;
+            --accent-light: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.4);
+            --text: #ffffff;
+            --text-secondary: #a5b4fc;
+            --card-bg: rgba(18, 18, 48, 0.7);
+            --border: rgba(99, 102, 241, 0.2);
+            --success: #10b981;
+            --featured: #f59e0b;
+            --vip: #fbbf24;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-        
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--primary);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
+            overflow-x: hidden;
             line-height: 1.6;
             position: relative;
-            overflow-x: hidden;
         }
-        
-        /* EFECTO DE RED PROFESIONAL */
-        .network-overlay {
+
+        /* FONDO FUTURISTA */
+        .background-effect {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.1;
+            z-index: -1;
+            overflow: hidden;
         }
-        
-        .grid-line {
+
+        .grid-lines {
             position: absolute;
-            background: linear-gradient(90deg, transparent, #00c6ff, transparent);
-        }
-        
-        .grid-line.horizontal {
             width: 100%;
-            height: 1px;
-            left: 0;
-        }
-        
-        .grid-line.vertical {
             height: 100%;
-            width: 1px;
-            top: 0;
+            background-image: 
+                linear-gradient(to right, rgba(79, 70, 229, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.5;
         }
-        
+
+        .floating-orbs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.15;
+        }
+
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--accent);
+            top: 10%;
+            left: 5%;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-2 {
+            width: 200px;
+            height: 200px;
+            background: #8b5cf6;
+            bottom: 15%;
+            right: 10%;
+            animation: float 25s infinite ease-in-out reverse;
+        }
+
+        .orb-3 {
+            width: 150px;
+            height: 150px;
+            background: #3b82f6;
+            top: 50%;
+            left: 80%;
+            animation: float 30s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(20px, -30px) scale(1.05); }
+            50% { transform: translate(-15px, 20px) scale(0.95); }
+            75% { transform: translate(10px, 15px) scale(1.02); }
+        }
+
         /* CONTAINER PRINCIPAL */
         .main-container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
             position: relative;
             z-index: 1;
         }
-        
-        /* HEADER ELEGANTE */
+
+        /* HEADER */
         .header {
             text-align: center;
-            margin-bottom: 60px;
+            padding: 40px 20px;
+            margin-bottom: 40px;
             position: relative;
         }
-        
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-right: 15px;
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+        }
+
         .title {
             font-size: 3.2rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             letter-spacing: -0.5px;
-            margin-bottom: 15px;
-            position: relative;
-            display: inline-block;
+            margin-bottom: 10px;
         }
-        
-        .title::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 2px;
-        }
-        
+
         .subtitle {
-            font-size: 1.4rem;
-            color: #a0a0c0;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
             font-weight: 400;
-            letter-spacing: 1px;
-            margin-top: 25px;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
         }
-        
-        /* CONTENEDOR DE PLANES EN HORIZONTAL */
-        .plans-grid {
+
+        /* PLANES HORIZONTALES */
+        .plans-container {
             display: flex;
             justify-content: center;
-            align-items: stretch;
             gap: 30px;
             margin-bottom: 80px;
             flex-wrap: wrap;
         }
-        
-        /* TARJETA DE PLAN PROFESIONAL */
+
+        /* TARJETAS DE PLANES */
         .plan-card {
             flex: 1;
             min-width: 320px;
             max-width: 380px;
-            background: rgba(25, 25, 40, 0.9);
-            border-radius: 20px;
-            padding: 35px 30px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px 30px;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(102, 126, 234, 0.15);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
-            backdrop-filter: blur(10px);
         }
-        
+
         .plan-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 20px 20px 0 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+            border-radius: 24px 24px 0 0;
         }
-        
+
+        .plan-card.featured::before {
+            background: linear-gradient(90deg, var(--featured), #f59e0b);
+        }
+
+        .plan-card.vip::before {
+            background: linear-gradient(90deg, var(--vip), #fbbf24);
+        }
+
         .plan-card:hover {
             transform: translateY(-15px);
-            border-color: rgba(102, 126, 234, 0.4);
-            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15),
-                        0 0 100px rgba(102, 126, 234, 0.05);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                0 0 60px var(--accent-glow);
+            border-color: rgba(99, 102, 241, 0.4);
         }
-        
-        .plan-card.featured {
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.15);
+
+        .plan-card.featured:hover {
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                0 0 60px rgba(245, 158, 11, 0.3);
         }
-        
-        .plan-card.vip {
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            box-shadow: 0 15px 50px rgba(255, 193, 7, 0.1);
+
+        .plan-card.vip:hover {
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                0 0 60px rgba(251, 191, 36, 0.3);
         }
-        
-        .plan-card.vip::before {
-            background: linear-gradient(90deg, #ffc107, #ff9800);
-        }
-        
-        /* BADGE ELEGANTE */
+
+        /* BADGE DE PLAN */
         .plan-badge {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
             color: white;
             padding: 8px 20px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
         }
-        
-        .plan-card.vip .plan-badge {
-            background: linear-gradient(135deg, #ffc107, #ff9800);
-            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+
+        .plan-card.featured .plan-badge {
+            background: linear-gradient(135deg, var(--featured), #f59e0b);
             color: #000;
         }
-        
-        /* HEADER DEL PLAN */
+
+        .plan-card.vip .plan-badge {
+            background: linear-gradient(135deg, var(--vip), #fbbf24);
+            color: #000;
+            font-weight: 700;
+        }
+
+        /* ENCABEZADO DEL PLAN */
         .plan-header {
             text-align: center;
             margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
+
         .plan-title {
             font-size: 2.2rem;
             font-weight: 700;
-            color: #ffffff;
+            color: var(--text);
             margin-bottom: 8px;
         }
-        
+
         .plan-period {
             font-size: 1rem;
-            color: #a0a0c0;
+            color: var(--text-secondary);
             font-weight: 400;
+            letter-spacing: 1px;
         }
-        
-        /* PRECIO ELEGANTE */
+
+        /* PRECIO */
         .plan-price {
             text-align: center;
             margin: 30px 0;
         }
-        
+
         .price-container {
             display: inline-block;
             position: relative;
         }
-        
+
         .price-amount {
             font-size: 4.5rem;
             font-weight: 800;
             line-height: 1;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--accent-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .plan-card.featured .price-amount {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .plan-card.vip .price-amount {
-            background: linear-gradient(135deg, #ffc107, #ff9800);
+            background: linear-gradient(135deg, var(--vip), #f59e0b);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .price-currency {
             font-size: 1.8rem;
-            color: #a0a0c0;
+            color: var(--text-secondary);
             font-weight: 600;
             vertical-align: top;
             margin-left: 5px;
         }
-        
+
         /* SECCIÓN DE AHORRO */
         .savings-section {
             text-align: center;
             margin: 25px 0;
             padding: 20px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-            border-radius: 15px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
+            border-radius: 16px;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .plan-card.featured .savings-section {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
         .plan-card.vip .savings-section {
-            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1));
-            border-color: rgba(255, 193, 7, 0.2);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+            border-color: rgba(251, 191, 36, 0.2);
         }
-        
+
         .savings-text {
             font-size: 1.3rem;
             font-weight: 600;
-            color: #4caf50;
+            color: var(--success);
         }
-        
+
+        .plan-card.featured .savings-text {
+            color: var(--featured);
+        }
+
         .plan-card.vip .savings-text {
-            color: #ffc107;
+            color: var(--vip);
         }
-        
+
         /* SUBTÍTULO VIP */
         .vip-subtitle {
             text-align: center;
             font-size: 1.2rem;
             font-weight: 600;
-            color: #ffcc80;
+            color: var(--vip);
             margin: 20px 0;
             padding: 15px;
-            background: rgba(255, 193, 7, 0.1);
+            background: rgba(251, 191, 36, 0.1);
             border-radius: 12px;
-            border: 1px solid rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            position: relative;
+            overflow: hidden;
         }
-        
+
         /* LISTA DE CARACTERÍSTICAS */
         .features-list {
             flex-grow: 1;
             margin: 30px 0;
         }
-        
+
         .feature-item {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 15px;
-            margin-bottom: 18px;
-            padding: 15px;
+            margin-bottom: 20px;
+            padding: 16px;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
             transition: all 0.3s ease;
-            border-left: 3px solid #667eea;
+            border-left: 3px solid var(--accent);
         }
-        
+
         .feature-item:hover {
             background: rgba(255, 255, 255, 0.06);
             transform: translateX(5px);
         }
-        
+
+        .plan-card.featured .feature-item {
+            border-left-color: var(--featured);
+        }
+
         .plan-card.vip .feature-item {
-            border-left-color: #ffc107;
+            border-left-color: var(--vip);
         }
-        
+
         .feature-icon {
-            font-size: 1.5rem;
-            min-width: 30px;
+            font-size: 1.2rem;
+            min-width: 24px;
             text-align: center;
-            margin-top: 2px;
+            color: var(--accent);
         }
-        
+
+        .plan-card.featured .feature-icon {
+            color: var(--featured);
+        }
+
+        .plan-card.vip .feature-icon {
+            color: var(--vip);
+        }
+
         .feature-text {
             font-size: 1rem;
-            color: #d0d0e0;
+            color: var(--text-secondary);
             line-height: 1.5;
         }
-        
-        /* BOTÓN DE COMPRA PROFESIONAL */
+
+        /* BOTÓN DE COMPRA */
         .purchase-button {
             width: 100%;
             padding: 20px;
             border: none;
-            border-radius: 15px;
+            border-radius: 16px;
             font-size: 1.2rem;
             font-weight: 600;
             cursor: pointer;
@@ -335,10 +440,10 @@
             gap: 12px;
             position: relative;
             overflow: hidden;
-            margin-top: 20px;
+            margin-top: auto;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .purchase-button::before {
             content: '';
             position: absolute;
@@ -346,137 +451,165 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-            transition: left 0.6s ease;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.7s ease;
         }
-        
+
         .purchase-button:hover::before {
             left: 100%;
         }
-        
+
         .purchase-button.standard {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
             color: white;
         }
-        
+
         .purchase-button.standard:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
         }
-        
+
         .purchase-button.featured {
-            background: linear-gradient(135deg, #4caf50, #2e7d32);
-            color: white;
+            background: linear-gradient(135deg, var(--featured), #f59e0b);
+            color: #000;
         }
-        
+
         .purchase-button.featured:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
         }
-        
+
         .purchase-button.vip {
-            background: linear-gradient(135deg, #ffc107, #ff9800);
+            background: linear-gradient(135deg, var(--vip), #fbbf24);
             color: #000;
             font-weight: 700;
         }
-        
+
         .purchase-button.vip:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(255, 193, 7, 0.3);
+            box-shadow: 0 10px 25px rgba(251, 191, 36, 0.4);
         }
-        
+
         .button-icon {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
         }
-        
+
         /* CARACTERÍSTICAS GLOBALES */
         .global-features {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 60px auto;
-            padding: 40px;
-            background: rgba(25, 25, 40, 0.8);
-            border-radius: 20px;
-            border: 1px solid rgba(102, 126, 234, 0.15);
+            padding: 50px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .global-features::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+        }
+
         .global-title {
-            font-size: 2rem;
+            font-size: 2.2rem;
             text-align: center;
-            margin-bottom: 40px;
-            color: #ffffff;
-            font-weight: 600;
+            margin-bottom: 50px;
+            color: var(--text);
+            font-weight: 700;
             position: relative;
             display: inline-block;
             left: 50%;
             transform: translateX(-50%);
         }
-        
+
         .global-title::after {
             content: '';
             position: absolute;
-            bottom: -10px;
+            bottom: -15px;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
             border-radius: 2px;
         }
-        
-        .features-container {
+
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
         }
-        
+
         .feature-card {
-            padding: 25px;
+            padding: 30px;
             background: rgba(255, 255, 255, 0.03);
-            border-radius: 15px;
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        
+
         .feature-card:hover {
             background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(102, 126, 234, 0.3);
-            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
-        
+
         .feature-card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
+            font-size: 2.8rem;
+            margin-bottom: 25px;
             display: block;
-            color: #667eea;
+            color: var(--accent);
+            filter: drop-shadow(0 0 10px var(--accent-glow));
         }
-        
+
         .feature-card-title {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 600;
-            margin-bottom: 10px;
-            color: #ffffff;
+            margin-bottom: 15px;
+            color: var(--text);
         }
-        
+
         .feature-card-desc {
-            color: #a0a0c0;
-            font-size: 0.95rem;
-            line-height: 1.5;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
         }
-        
-        /* FOOTER ELEGANTE */
+
+        /* FOOTER */
         .footer {
             text-align: center;
             margin-top: 60px;
             padding-top: 30px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #a0a0c0;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
-        
+
         /* RESPONSIVE */
         @media (max-width: 1200px) {
-            .plans-grid {
+            .plans-container {
+                gap: 20px;
+            }
+            
+            .plan-card {
+                min-width: 300px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .plans-container {
                 flex-direction: column;
                 align-items: center;
             }
@@ -498,15 +631,19 @@
             
             .plan-card {
                 min-width: 100%;
-                padding: 25px 20px;
+                padding: 30px 25px;
             }
             
             .price-amount {
                 font-size: 3.5rem;
             }
+            
+            .global-features {
+                padding: 30px 20px;
+            }
         }
-        
-        /* ANIMACIONES SUTILES */
+
+        /* ANIMACIONES */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -517,37 +654,70 @@
                 transform: translateY(0);
             }
         }
-        
+
         .plan-card {
             animation: fadeInUp 0.6s ease forwards;
             opacity: 0;
         }
-        
+
         .plan-card:nth-child(1) { animation-delay: 0.1s; }
         .plan-card:nth-child(2) { animation-delay: 0.2s; }
         .plan-card:nth-child(3) { animation-delay: 0.3s; }
+
+        /* EFECTO DE BRILLO EN BORDES */
+        .glow-border {
+            position: relative;
+        }
+
+        .glow-border::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--accent), #8b5cf6, var(--accent));
+            border-radius: 26px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .glow-border:hover::after {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
-    <!-- Overlay de red -->
-    <div class="network-overlay" id="networkOverlay"></div>
+    <!-- Fondo futurista -->
+    <div class="background-effect">
+        <div class="grid-lines"></div>
+        <div class="floating-orbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+    </div>
     
     <div class="main-container">
         <!-- HEADER -->
         <header class="header">
-            <h1 class="title">VPN CUBA</h1>
-            <p class="subtitle">NUESTROS PLANES OPTIMIZADOS</p>
+            <div class="logo-container">
+                <i class="fas fa-shield-alt logo-icon"></i>
+                <h1 class="title">VPN CUBA</h1>
+            </div>
+            <p class="subtitle">Planes optimizados para máxima velocidad y seguridad. Conexión estable y ancho de banda ilimitado para todas tus necesidades.</p>
         </header>
         
-        <!-- PLANES EN HORIZONTAL -->
-        <div class="plans-grid">
+        <!-- PLANES HORIZONTALES -->
+        <div class="plans-container">
             <!-- PLAN BÁSICO -->
-            <div class="plan-card">
+            <div class="plan-card glow-border">
                 <div class="plan-badge">Popular</div>
                 
                 <div class="plan-header">
                     <h2 class="plan-title">Básico</h2>
-                    <p class="plan-period">(1 mes)</p>
+                    <p class="plan-period">Acceso por 1 mes</p>
                 </div>
                 
                 <div class="plan-price">
@@ -559,32 +729,36 @@
                 
                 <div class="features-list">
                     <div class="feature-item">
-                        <span class="feature-icon">⚡</span>
-                        <span class="feature-text">Conexión de Baja Latencia</span>
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <span class="feature-text">Conexión de baja latencia</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">📶</span>
-                        <span class="feature-text">Ancho de Banda Ilimitado</span>
+                        <i class="fas fa-infinity feature-icon"></i>
+                        <span class="feature-text">Ancho de banda ilimitado</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">🛡️</span>
-                        <span class="feature-text">Soporte Prioritario</span>
+                        <i class="fas fa-headset feature-icon"></i>
+                        <span class="feature-text">Soporte prioritario</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-server feature-icon"></i>
+                        <span class="feature-text">10 servidores disponibles</span>
                     </div>
                 </div>
                 
                 <button class="purchase-button standard" onclick="selectPlan('basico', 800)">
-                    <span class="button-icon">→</span>
-                    <span>COMPRAR</span>
+                    <i class="fas fa-shopping-cart button-icon"></i>
+                    <span>Seleccionar Plan</span>
                 </button>
             </div>
             
             <!-- PLAN PREMIUM -->
-            <div class="plan-card featured">
-                <div class="plan-badge">Ahorro</div>
+            <div class="plan-card featured glow-border">
+                <div class="plan-badge">Recomendado</div>
                 
                 <div class="plan-header">
                     <h2 class="plan-title">Premium</h2>
-                    <p class="plan-period">(2 meses)</p>
+                    <p class="plan-period">Acceso por 2 meses</p>
                 </div>
                 
                 <div class="plan-price">
@@ -595,37 +769,41 @@
                 </div>
                 
                 <div class="savings-section">
-                    <div class="savings-text">¡Ahorras $300 CUP!</div>
+                    <div class="savings-text">¡Ahorras 300 CUP!</div>
                 </div>
                 
                 <div class="features-list">
                     <div class="feature-item">
-                        <span class="feature-icon">✓</span>
-                        <span class="feature-text">Todo lo del Básico</span>
+                        <i class="fas fa-check-circle feature-icon"></i>
+                        <span class="feature-text">Todo lo del plan Básico</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">⏱️</span>
-                        <span class="feature-text">2 meses de servicio</span>
+                        <i class="fas fa-clock feature-icon"></i>
+                        <span class="feature-text">2 meses de servicio completo</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">📞</span>
-                        <span class="feature-text">Soporte 24/7</span>
+                        <i class="fas fa-life-ring feature-icon"></i>
+                        <span class="feature-text">Soporte técnico 24/7</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <span class="feature-text">Protección de datos avanzada</span>
                     </div>
                 </div>
                 
                 <button class="purchase-button featured" onclick="selectPlan('premium', 1300)">
-                    <span class="button-icon">→</span>
-                    <span>COMPRAR</span>
+                    <i class="fas fa-crown button-icon"></i>
+                    <span>Seleccionar Plan</span>
                 </button>
             </div>
             
             <!-- PLAN VIP -->
-            <div class="plan-card vip">
-                <div class="plan-badge">Mejor Oferta</div>
+            <div class="plan-card vip glow-border">
+                <div class="plan-badge">Mejor Valor</div>
                 
                 <div class="plan-header">
                     <h2 class="plan-title">VIP</h2>
-                    <p class="plan-period">(6 meses)</p>
+                    <p class="plan-period">Acceso por 6 meses</p>
                 </div>
                 
                 <div class="plan-price">
@@ -636,67 +814,78 @@
                 </div>
                 
                 <div class="savings-section">
-                    <div class="savings-text">¡Ahorras $1,800 CUP!</div>
+                    <div class="savings-text">¡Ahorras 1,800 CUP!</div>
                 </div>
                 
                 <div class="vip-subtitle">
-                    ¡Solo $500 CUP/mes con el Plan VIP!
+                    <i class="fas fa-star"></i> Solo 500 CUP/mes <i class="fas fa-star"></i>
                 </div>
                 
                 <div class="features-list">
                     <div class="feature-item">
-                        <span class="feature-icon">✓</span>
-                        <span class="feature-text">Todo lo del Premium</span>
+                        <i class="fas fa-check-double feature-icon"></i>
+                        <span class="feature-text">Todo lo del plan Premium</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">📅</span>
-                        <span class="feature-text">6 meses de servicio</span>
+                        <i class="fas fa-calendar-alt feature-icon"></i>
+                        <span class="feature-text">6 meses de servicio completo</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">⚙️</span>
+                        <i class="fas fa-sliders-h feature-icon"></i>
                         <span class="feature-text">Configuración personalizada</span>
                     </div>
                     <div class="feature-item">
-                        <span class="feature-icon">👨‍💻</span>
-                        <span class="feature-text">Soporte dedicado</span>
+                        <i class="fas fa-user-shield feature-icon"></i>
+                        <span class="feature-text">Soporte dedicado VIP</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-tachometer-alt feature-icon"></i>
+                        <span class="feature-text">Velocidad máxima garantizada</span>
                     </div>
                 </div>
                 
                 <button class="purchase-button vip" onclick="selectPlan('vip', 3000)">
-                    <span class="button-icon">→</span>
-                    <span>COMPRAR</span>
+                    <i class="fas fa-gem button-icon"></i>
+                    <span>Seleccionar VIP</span>
                 </button>
             </div>
         </div>
         
         <!-- CARACTERÍSTICAS GLOBALES -->
         <section class="global-features">
-            <h2 class="global-title">Todos los planes incluyen</h2>
+            <h2 class="global-title">Características Incluidas en Todos los Planes</h2>
             
-            <div class="features-container">
+            <div class="features-grid">
                 <div class="feature-card">
-                    <span class="feature-card-icon">⚡</span>
-                    <h3 class="feature-card-title">Baja Latencia</h3>
-                    <p class="feature-card-desc">Conexión optimizada para gaming y streaming sin delays</p>
+                    <i class="fas fa-tachometer-alt feature-card-icon"></i>
+                    <h3 class="feature-card-title">Máxima Velocidad</h3>
+                    <p class="feature-card-desc">Conexión optimizada para streaming, gaming y videollamadas sin interrupciones.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-card-icon">📶</span>
-                    <h3 class="feature-card-title">Ancho Ilimitado</h3>
-                    <p class="feature-card-desc">Navega, descarga y transmite sin restricciones de datos</p>
+                    <i class="fas fa-lock feature-card-icon"></i>
+                    <h3 class="feature-card-title">Seguridad Total</h3>
+                    <p class="feature-card-desc">Encriptación de grado militar para proteger tus datos y actividad en línea.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-card-icon">🛡️</span>
-                    <h3 class="feature-card-title">Soporte Prioritario</h3>
-                    <p class="feature-card-desc">Asistencia técnica rápida y especializada</p>
+                    <i class="fas fa-globe-americas feature-card-icon"></i>
+                    <h3 class="feature-card-title">Sin Restricciones</h3>
+                    <p class="feature-card-desc">Acceso a contenido global sin límites de ancho de banda ni velocidad.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <i class="fas fa-user-check feature-card-icon"></i>
+                    <h3 class="feature-card-title">Soporte Experto</h3>
+                    <p class="feature-card-desc">Asistencia técnica especializada para resolver cualquier inconveniente rápidamente.</p>
                 </div>
             </div>
         </section>
         
         <!-- FOOTER -->
         <footer class="footer">
-            <p>Para comprar, selecciona un plan y completa el pago</p>
+            <p>© 2023 VPN Cuba. Todos los derechos reservados.</p>
+            <p>Selecciona un plan para continuar con el proceso de pago seguro.</p>
         </footer>
     </div>
 
@@ -712,19 +901,31 @@
         
         // Función para seleccionar plan
         function selectPlan(planType, price) {
+            // Efecto visual en el botón
+            const button = event.currentTarget;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            button.disabled = true;
+            
             // Guardar selección
             localStorage.setItem('selectedPlan', JSON.stringify({
                 type: planType,
                 price: price,
-                userId: userId
+                userId: userId,
+                timestamp: new Date().toISOString()
             }));
             
-            // Redirigir a página de pago
-            window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}`;
+            // Simular procesamiento antes de redirigir
+            setTimeout(() => {
+                // Redirigir a página de pago
+                window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}`;
+            }, 800);
         }
         
         // Verificar si el usuario aceptó términos
         async function checkTermsAccepted() {
+            if (!userId) return;
+            
             try {
                 const response = await fetch(`/api/check-terms/${userId}`);
                 const data = await response.json();
@@ -733,7 +934,7 @@
                     window.location.href = `/index.html?userId=${userId}`;
                 }
             } catch (error) {
-                console.error('Error verificando términos:', error);
+                console.log('Usuario nuevo o error en verificación, continuando...');
             }
         }
         
@@ -742,32 +943,62 @@
             checkTermsAccepted();
         }
         
-        // Crear efecto de red
-        function createNetworkGrid() {
-            const overlay = document.getElementById('networkOverlay');
-            overlay.innerHTML = '';
+        // Efectos interactivos para las tarjetas
+        document.addEventListener('DOMContentLoaded', function() {
+            // Añadir efecto de hover mejorado a las tarjetas
+            const cards = document.querySelectorAll('.plan-card');
             
-            // Líneas horizontales
-            for (let i = 0; i <= 100; i += 10) {
-                const line = document.createElement('div');
-                line.className = 'grid-line horizontal';
-                line.style.top = `${i}%`;
-                overlay.appendChild(line);
-            }
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.zIndex = '10';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.zIndex = '1';
+                });
+            });
             
-            // Líneas verticales
-            for (let i = 0; i <= 100; i += 10) {
-                const line = document.createElement('div');
-                line.className = 'grid-line vertical';
-                line.style.left = `${i}%`;
-                overlay.appendChild(line);
+            // Crear efecto de partículas en el fondo (simplificado)
+            createBackgroundParticles();
+        });
+        
+        // Efecto de partículas simples
+        function createBackgroundParticles() {
+            const particlesContainer = document.querySelector('.floating-orbs');
+            
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.position = 'absolute';
+                particle.style.width = Math.random() * 4 + 1 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.background = 'rgba(99, 102, 241, 0.6)';
+                particle.style.borderRadius = '50%';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.boxShadow = '0 0 10px rgba(99, 102, 241, 0.5)';
+                particle.style.animation = `float ${Math.random() * 20 + 10}s infinite ease-in-out`;
+                
+                particlesContainer.appendChild(particle);
             }
         }
         
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', function() {
-            createNetworkGrid();
-        });
+        // Añadir estilos para partículas
+        const style = document.createElement('style');
+        style.textContent = `
+            .particle {
+                position: absolute;
+                opacity: 0.7;
+            }
+            
+            @keyframes float {
+                0%, 100% { transform: translate(0, 0); }
+                25% { transform: translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px); }
+                50% { transform: translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px); }
+                75% { transform: translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

@@ -4,127 +4,517 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VPN Cuba - Pago</title>
-    <link rel="stylesheet" href="/css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* ESTILOS PROFESIONALES */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* HEADER */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #a0a0c0;
+            font-size: 1.1rem;
+        }
+        
+        /* RESUMEN DEL PLAN */
+        .summary-card {
+            background: rgba(25, 25, 40, 0.9);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(102, 126, 234, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .summary-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .summary-title::before {
+            content: '📋';
+            font-size: 1.2rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .summary-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .item-label {
+            color: #a0a0c0;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .item-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        /* INSTRUCCIONES */
+        .instructions-card {
+            background: rgba(25, 25, 40, 0.9);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+        
+        .instructions-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions-title::before {
+            content: '📝';
+            font-size: 1.2rem;
+        }
+        
+        /* PASOS */
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .step {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .step-description {
+            color: #d0d0e0;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        /* INFORMACIÓN DE PAGO */
+        .payment-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #a0a0c0;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.1rem;
+            color: #ffffff;
+            font-weight: 500;
+        }
+        
+        .copy-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .copy-button::before {
+            content: '📋';
+        }
+        
+        /* SUBIDA DE ARCHIVO */
+        .upload-section {
+            margin-top: 25px;
+        }
+        
+        .upload-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+        
+        .upload-area {
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .upload-area:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .upload-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+        
+        .upload-note {
+            color: #ff6b6b;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        .preview-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .preview-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .remove-button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .remove-button::before {
+            content: '🗑️';
+        }
+        
+        /* BOTÓN DE ENVÍO */
+        .submit-section {
+            margin-top: 30px;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .submit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .submit-button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-button::before {
+            content: '📤';
+        }
+        
+        /* MENSAJE DE PROCESAMIENTO */
+        .processing-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .processing-icon {
+            font-size: 1.5rem;
+        }
+        
+        .processing-text {
+            color: #ffcc80;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a0a0c0;
+            font-size: 0.9rem;
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .step {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .step-number {
+                align-self: flex-start;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .copy-button {
+                align-self: flex-start;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <div class="logo-container">
-                <div class="logo-glow"></div>
-                <h1>VPN CUBA</h1>
-            </div>
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo">VPN CUBA</div>
             <p class="subtitle">Completa tu compra</p>
+        </header>
+        
+        <!-- RESUMEN DEL PLAN -->
+        <div class="summary-card">
+            <h2 class="summary-title">Resumen de compra</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="item-label">Plan seleccionado</div>
+                    <div class="item-value" id="planName">Básico (1 mes)</div>
+                </div>
+                <div class="summary-item">
+                    <div class="item-label">Precio</div>
+                    <div class="item-value" id="planPrice">$800 CUP</div>
+                </div>
+                <div class="summary-item">
+                    <div class="item-label">ID de usuario</div>
+                    <div class="item-value" id="userId">---</div>
+                </div>
+            </div>
         </div>
         
-        <div class="payment-container">
-            <!-- Resumen del Plan -->
-            <div class="plan-summary">
-                <h3 class="summary-title">Resumen de tu compra</h3>
-                <div class="summary-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Plan seleccionado:</span>
-                        <span class="detail-value" id="planName">Plan Básico</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Precio:</span>
-                        <span class="detail-value" id="planPrice">$800 CUP</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">ID de Usuario:</span>
-                        <span class="detail-value" id="userId">---</span>
-                    </div>
-                </div>
-            </div>
+        <!-- INSTRUCCIONES -->
+        <div class="instructions-card">
+            <h2 class="instructions-title">Instrucciones de pago</h2>
             
-            <!-- Instrucciones de Pago -->
-            <div class="payment-instructions">
-                <h3 class="instructions-title">Instrucciones de Pago</h3>
-                <div class="instructions-steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h4>Realiza la transferencia a:</h4>
-                            <div class="payment-details">
-                                <div class="bank-info">
-                                    <span class="info-label">Tarjeta:</span>
-                                    <span class="info-value">9248-1299-7027-1730</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('9248129970271730')">📋</button>
-                                </div>
-                                <div class="bank-info">
-                                    <span class="info-label"># a confirmar:</span>
-                                    <span class="info-value">63806513</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('63806513')">📋</button>
-                                </div>
-                                <div class="payment-note">
-                                    <p><strong>IMPORTANTE:</strong> Incluye el número de confirmación en la transferencia.</p>
-                                </div>
+            <div class="steps-container">
+                <!-- PASO 1 -->
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Realiza la transferencia</h3>
+                        <p class="step-description">
+                            Transfiere el monto exacto a la siguiente cuenta bancaria:
+                        </p>
+                        <div class="payment-info">
+                            <div class="info-row">
+                                <div class="info-label">Tarjeta</div>
+                                <div class="info-value">9248-1299-7027-1730</div>
+                                <button class="copy-button" onclick="copyToClipboard('9248129970271730')">Copiar</button>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Número de confirmación</div>
+                                <div class="info-value">63806513</div>
+                                <button class="copy-button" onclick="copyToClipboard('63806513')">Copiar</button>
                             </div>
                         </div>
+                        <p class="step-description" style="margin-top: 10px; font-size: 0.95rem; color: #ffcc80;">
+                            * Incluye el número de confirmación en la transferencia
+                        </p>
                     </div>
-                    
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h4>Toma una captura de pantalla</h4>
-                            <p><strong>ES OBLIGATORIO enviar la captura</strong></p>
-                            <ul class="screenshot-tips">
-                                <li>✅ Monto transferido</li>
-                                <li>✅ Número de confirmación (63806513)</li>
-                                <li>✅ Fecha y hora</li>
-                                <li>✅ Destinatario</li>
-                            </ul>
-                        </div>
+                </div>
+                
+                <!-- PASO 2 -->
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Captura del comprobante</h3>
+                        <p class="step-description">
+                            Toma una captura de pantalla del comprobante de transferencia. Asegúrate de que se vea claramente:
+                        </p>
+                        <ul style="color: #d0d0e0; margin-left: 20px; margin-top: 10px;">
+                            <li>Monto transferido</li>
+                            <li>Número de confirmación (63806513)</li>
+                            <li>Fecha y hora</li>
+                            <li>Destinatario</li>
+                        </ul>
+                        <p class="upload-note">
+                            * La captura es obligatoria para procesar tu pago
+                        </p>
                     </div>
-                    
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h4>Sube la captura aquí</h4>
+                </div>
+                
+                <!-- PASO 3 -->
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Sube la captura</h3>
+                        <p class="step-description">
+                            Sube la imagen del comprobante aquí:
+                        </p>
+                        
+                        <div class="upload-section">
                             <div class="upload-area" id="uploadArea">
-                                <div class="upload-icon">📤</div>
-                                <div class="upload-text">Haz clic para subir la captura</div>
-                                <div class="upload-subtext">Formatos: JPG, PNG (Máx. 5MB)</div>
+                                <div class="upload-icon">⬆️</div>
+                                <div class="upload-text">Haz clic para seleccionar la captura</div>
+                                <div style="color: #a0a0c0; font-size: 0.9rem; margin-top: 5px;">
+                                    Formatos: JPG, PNG (Máximo 5MB)
+                                </div>
                                 <input type="file" id="screenshotInput" accept="image/*" hidden>
                             </div>
-                            <p class="upload-warning">❌ No podrás completar la compra sin la captura</p>
                             
-                            <div class="preview-container" id="previewContainer" style="display: none;">
-                                <div class="preview-header">
-                                    <span>Vista previa:</span>
-                                    <button class="remove-btn" onclick="removeImage()">✕</button>
-                                </div>
+                            <div class="preview-container" id="previewContainer">
                                 <img id="imagePreview" class="preview-image">
-                            </div>
-                            
-                            <div class="notes-container">
-                                <label for="paymentNotes" class="notes-label">Notas adicionales (opcional):</label>
-                                <textarea id="paymentNotes" class="notes-textarea" 
-                                          placeholder="Ej: Hora exacta de la transferencia, referencia, etc."></textarea>
+                                <button class="remove-button" onclick="removeImage()">Eliminar imagen</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Botón de enviar -->
-            <button id="submitBtn" class="btn-primary" onclick="submitPayment()" disabled>
-                <span class="btn-icon">📨</span>
-                <span class="btn-text">Enviar comprobante de pago</span>
-                <div class="btn-glow"></div>
+        </div>
+        
+        <!-- BOTÓN DE ENVÍO -->
+        <div class="submit-section">
+            <button id="submitButton" class="submit-button" disabled onclick="submitPayment()">
+                Enviar comprobante
             </button>
             
             <div class="processing-info">
-                <div class="info-icon">⏳</div>
-                <div class="info-text">
-                    <strong>Proceso de verificación:</strong> Tu pago será verificado manualmente en un plazo de 1-12 horas. Recibirás una notificación cuando sea aprobado.
+                <div class="processing-icon">⏳</div>
+                <div class="processing-text">
+                    <strong>Proceso de verificación:</strong> Tu pago será revisado manualmente en un plazo de 1-12 horas. Recibirás una notificación cuando sea aprobado.
                 </div>
             </div>
         </div>
         
-        <div class="footer">
-            <p class="footer-text">© 2025 VPN Cuba. Todos los derechos reservados.</p>
-        </div>
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>© 2025 VPN Cuba. Todos los derechos reservados.</p>
+        </footer>
     </div>
 
     <script>
@@ -133,13 +523,13 @@
         tg.expand();
         tg.MainButton.hide();
         
-        // Obtener parámetros de la URL
+        // Obtener parámetros
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
         const planType = urlParams.get('plan') || 'basico';
         const price = urlParams.get('price') || '800';
         
-        // Variables globales
+        // Variables
         let selectedFile = null;
         
         // Inicializar página
@@ -151,14 +541,14 @@
                 'vip': 'VIP (6 meses)'
             };
             
-            document.getElementById('planName').textContent = planNames[planType] || 'Plan Básico';
+            document.getElementById('planName').textContent = planNames[planType];
             document.getElementById('planPrice').textContent = `$${price} CUP`;
             document.getElementById('userId').textContent = userId || 'No disponible';
             
-            // Configurar área de upload
+            // Configurar upload
             setupUploadArea();
             
-            // Verificar si el usuario aceptó los términos
+            // Verificar términos
             checkTermsAccepted();
         });
         
@@ -171,16 +561,19 @@
             
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                uploadArea.classList.add('dragover');
+                uploadArea.style.borderColor = '#667eea';
+                uploadArea.style.backgroundColor = 'rgba(102, 126, 234, 0.05)';
             });
             
             uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
+                uploadArea.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                uploadArea.style.backgroundColor = '';
             });
             
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
-                uploadArea.classList.remove('dragover');
+                uploadArea.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                uploadArea.style.backgroundColor = '';
                 
                 if (e.dataTransfer.files.length) {
                     handleFile(e.dataTransfer.files[0]);
@@ -194,9 +587,9 @@
             });
         }
         
-        // Manejar archivo seleccionado
+        // Manejar archivo
         function handleFile(file) {
-            // Validar tamaño (5MB máximo)
+            // Validar tamaño
             if (file.size > 5 * 1024 * 1024) {
                 alert('El archivo es demasiado grande. Máximo 5MB.');
                 return;
@@ -205,7 +598,7 @@
             // Validar tipo
             const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
             if (!validTypes.includes(file.type)) {
-                alert('Formato no válido. Solo JPG, PNG o GIF.');
+                alert('Formato no válido. Solo se permiten imágenes JPG, PNG o GIF.');
                 return;
             }
             
@@ -220,8 +613,8 @@
             };
             reader.readAsDataURL(file);
             
-            // Habilitar botón de enviar
-            document.getElementById('submitBtn').disabled = false;
+            // Habilitar botón
+            document.getElementById('submitButton').disabled = false;
         }
         
         // Eliminar imagen
@@ -229,16 +622,17 @@
             selectedFile = null;
             document.getElementById('previewContainer').style.display = 'none';
             document.getElementById('screenshotInput').value = '';
-            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitButton').disabled = true;
         }
         
         // Copiar al portapapeles
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                const originalText = event.target.textContent;
-                event.target.textContent = '✓';
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copiado';
                 setTimeout(() => {
-                    event.target.textContent = originalText;
+                    button.textContent = originalText;
                 }, 2000);
             });
         }
@@ -246,20 +640,19 @@
         // Enviar pago
         async function submitPayment() {
             if (!selectedFile) {
-                alert('❌ DEBES SUBIR LA CAPTURA DE PANTALLA');
+                alert('Debes subir la captura del comprobante para continuar.');
                 return;
             }
             
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Enviando...</span>';
+            const button = document.getElementById('submitButton');
+            button.disabled = true;
+            button.textContent = 'Enviando...';
             
             const formData = new FormData();
             formData.append('telegramId', userId);
             formData.append('plan', planType);
             formData.append('price', price);
             formData.append('screenshot', selectedFile);
-            formData.append('notes', document.getElementById('paymentNotes').value);
             
             try {
                 const response = await fetch('/api/payment', {
@@ -269,31 +662,26 @@
                 
                 if (response.ok) {
                     const result = await response.json();
-                    
-                    // Mostrar mensaje de éxito
-                    alert('✅ Comprobante enviado correctamente. Tu pago será verificado en 1-12 horas. Recibirás una notificación cuando sea aprobado.');
-                    
-                    // Cerrar WebApp o redirigir
+                    alert('✅ Comprobante enviado correctamente. Te notificaremos cuando tu pago sea aprobado.');
                     tg.close();
                 } else {
                     const error = await response.json();
                     throw new Error(error.error || 'Error al enviar el comprobante');
                 }
             } catch (error) {
-                alert('❌ Error al enviar el comprobante: ' + error.message);
-                btn.disabled = false;
-                btn.innerHTML = '<span class="btn-icon">📨</span><span class="btn-text">Enviar comprobante de pago</span>';
+                alert('❌ Error: ' + error.message);
+                button.disabled = false;
+                button.textContent = 'Enviar comprobante';
             }
         }
         
-        // Verificar si el usuario aceptó los términos
+        // Verificar términos
         async function checkTermsAccepted() {
             try {
                 const response = await fetch(`/api/check-terms/${userId}`);
                 const data = await response.json();
                 
                 if (!data.accepted) {
-                    // Si no ha aceptado los términos, redirigir a la página de términos
                     window.location.href = `/index.html?userId=${userId}`;
                 }
             } catch (error) {

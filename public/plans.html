@@ -933,10 +933,31 @@
         
         // Obtener ID de usuario
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
+        let userId = urlParams.get('userId');
+        
+        // Función para verificar si los términos fueron aceptados
+        function checkTermsAccepted(userId) {
+            if (!userId) return false;
+            
+            const accepted = localStorage.getItem(`termsAccepted_${userId}`);
+            const termsVersion = localStorage.getItem(`termsVersion_${userId}`);
+            const currentVersion = '2025-11';
+            
+            if (accepted === 'true' && termsVersion === currentVersion) {
+                return true;
+            }
+            return false;
+        }
         
         // Función para seleccionar plan
         function selectPlan(planType, price) {
+            // Verificar términos primero
+            if (!userId || !checkTermsAccepted(userId)) {
+                alert('Por favor, acepta los términos y condiciones primero.');
+                window.location.href = `/index.html?userId=${userId}`;
+                return;
+            }
+            
             // Efecto visual en el botón
             const button = event.currentTarget;
             const originalText = button.innerHTML;
@@ -961,42 +982,33 @@
         }
         
         // Verificar si el usuario aceptó términos
-        async function checkTermsAccepted() {
-            if (!userId) return;
-            
-            try {
-                const response = await fetch(`/api/check-terms/${userId}`);
-                const data = await response.json();
-                
-                if (!data.accepted) {
-                    window.location.href = `/index.html?userId=${userId}`;
+        function verifyTermsAccepted() {
+            if (!userId) {
+                // Intentar obtener userId de Telegram
+                if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    userId = tg.initDataUnsafe.user.id.toString();
+                    // Actualizar URL
+                    const newUrl = `${window.location.pathname}?userId=${userId}`;
+                    window.history.replaceState({}, '', newUrl);
                 }
-            } catch (error) {
-                console.log('Error verificando términos:', error);
-                // Si hay error, igual dejar continuar (por si acaso)
             }
-        }
-        
-        // Ejecutar verificación
-        if (userId) {
-            checkTermsAccepted();
-        }
-        
-        // Mostrar notificación
-        function showNotification(message) {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notification-text');
             
-            notificationText.textContent = message;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 2000);
+            if (userId && !checkTermsAccepted(userId)) {
+                // Redirigir a index para aceptar términos
+                window.location.href = `/index.html?userId=${userId}`;
+                return false;
+            }
+            return true;
         }
         
-        // Inicializar efectos visuales
+        // Ejecutar verificación al cargar
         document.addEventListener('DOMContentLoaded', function() {
+            // Verificar términos primero
+            if (!verifyTermsAccepted()) {
+                return;
+            }
+            
+            // Si llegamos aquí, los términos están aceptados
             // Ajustar altura máxima de las tarjetas
             const cards = document.querySelectorAll('.plan-card');
             let maxHeight = 0;
@@ -1031,6 +1043,19 @@
                 document.querySelector('.plans-container').insertAdjacentElement('afterend', scrollHint);
             }
         });
+        
+        // Mostrar notificación
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
         
         // Añadir estilos CSS para mejor visualización
         const style = document.createElement('style');

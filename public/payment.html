@@ -1002,6 +1002,8 @@
         
         // Verificar términos y cargar información
         function initializePage() {
+            console.log('🔄 Inicializando página de pago...');
+            
             // Obtener parámetros
             const params = getUrlParameters();
             currentUserId = params.userId;
@@ -1011,6 +1013,7 @@
             // Si no hay userId en URL, intentar obtener de Telegram
             if (!currentUserId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 currentUserId = tg.initDataUnsafe.user.id.toString();
+                console.log(`👤 Usuario obtenido de Telegram: ${currentUserId}`);
                 // Actualizar URL
                 const newUrl = `${window.location.pathname}?userId=${currentUserId}&plan=${planType}&price=${price}`;
                 window.history.replaceState({}, '', newUrl);
@@ -1018,10 +1021,13 @@
             
             // Verificar términos
             if (!currentUserId || !checkTermsAccepted(currentUserId)) {
+                console.log(`❌ Usuario ${currentUserId} no aceptó términos. Redirigiendo...`);
                 // Redirigir a index.html para aceptar términos
                 window.location.href = `/index.html${currentUserId ? `?userId=${currentUserId}` : ''}`;
                 return false;
             }
+            
+            console.log(`✅ Usuario ${currentUserId} tiene términos aceptados. Cargando página...`);
             
             // Si los términos están aceptados, cargar la página
             loadPageContent();
@@ -1030,6 +1036,8 @@
         
         // Cargar contenido de la página
         function loadPageContent() {
+            console.log(`📄 Cargando contenido para usuario ${currentUserId}`);
+            
             // Mostrar información del plan
             const planNames = {
                 'basico': 'Básico',
@@ -1052,6 +1060,8 @@
                 month: '2-digit',
                 year: 'numeric'
             });
+            
+            console.log(`📋 Plan: ${planType}, Precio: ${price}`);
             
             // Configurar upload
             setupUploadArea();
@@ -1104,6 +1114,8 @@
         
         // Manejar archivo
         function handleFile(file) {
+            console.log(`📁 Archivo recibido: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+            
             // Validar tamaño
             if (file.size > 5 * 1024 * 1024) {
                 showNotification('El archivo es demasiado grande. Máximo 5MB.', 'error');
@@ -1176,6 +1188,7 @@
                 
                 showNotification('Texto copiado al portapapeles', 'success');
             }).catch(err => {
+                console.error('❌ Error copiando al portapapeles:', err);
                 showNotification('Error al copiar el texto', 'error');
             });
         }
@@ -1193,50 +1206,76 @@
             button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando...</span>';
             
-            // Simular envío (en producción, aquí iría la llamada real al servidor)
-            setTimeout(async () => {
-                try {
-                    // En producción, descomentar esto:
-                    /*
-                    const formData = new FormData();
-                    formData.append('telegramId', currentUserId);
-                    formData.append('plan', planType);
-                    formData.append('price', price);
-                    formData.append('screenshot', selectedFile);
-                    
-                    const response = await fetch('/api/payment', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) throw new Error('Error en el servidor');
-                    */
-                    
-                    // Simulación exitosa
-                    document.getElementById('progressBar').style.width = '100%';
-                    document.querySelectorAll('.step')[2].classList.add('active');
-                    
-                    showNotification('✅ Comprobante enviado correctamente. Revisaremos tu pago y te notificaremos por Telegram.', 'success');
-                    
-                    // Redirigir o cerrar después de un tiempo
-                    setTimeout(() => {
-                        if (tg.platform !== 'unknown') {
-                            tg.close();
-                        } else {
-                            window.location.href = 'https://t.me/vpncubabot';
-                        }
-                    }, 3000);
-                    
-                } catch (error) {
-                    button.disabled = false;
-                    button.innerHTML = originalContent;
-                    showNotification('❌ Error al enviar el comprobante. Intenta nuevamente.', 'error');
+            console.log(`🔄 Enviando pago para usuario ${currentUserId}`);
+            console.log(`📋 Plan: ${planType}, Precio: ${price}`);
+            console.log(`📁 Archivo: ${selectedFile.name} (${selectedFile.type})`);
+            
+            try {
+                // Crear FormData para enviar archivo y datos
+                const formData = new FormData();
+                formData.append('telegramId', currentUserId);
+                formData.append('plan', planType);
+                formData.append('price', price);
+                formData.append('screenshot', selectedFile);
+                
+                // Enviar a la API
+                console.log(`📤 Enviando a /api/payment...`);
+                const response = await fetch('/api/payment', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('❌ Error en respuesta del servidor:', errorData);
+                    throw new Error(errorData.error || `Error en el servidor (${response.status})`);
                 }
-            }, 1500);
+                
+                const data = await response.json();
+                console.log('✅ Respuesta del servidor:', data);
+                
+                // Si la API responde con éxito
+                document.getElementById('progressBar').style.width = '100%';
+                document.querySelectorAll('.step')[2].classList.add('active');
+                
+                showNotification(data.message || '✅ Comprobante enviado correctamente. Revisaremos tu pago y te notificaremos por Telegram.', 'success');
+                
+                // Redirigir o cerrar después de un tiempo
+                setTimeout(() => {
+                    // Notificar al usuario vía Telegram (la API ya lo hace, pero por si acaso)
+                    if (tg && currentUserId) {
+                        try {
+                            tg.sendData(JSON.stringify({
+                                action: 'payment_sent',
+                                userId: currentUserId,
+                                success: true
+                            }));
+                        } catch (e) {
+                            console.log('⚠️ Error enviando data a Telegram:', e);
+                        }
+                    }
+                    
+                    // Cerrar la WebApp o redirigir
+                    if (tg.platform !== 'unknown') {
+                        tg.close();
+                    } else {
+                        // Redirigir al bot de Telegram
+                        window.location.href = 'https://t.me/vpncubabot';
+                    }
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Error enviando pago:', error);
+                button.disabled = false;
+                button.innerHTML = originalContent;
+                showNotification('❌ Error al enviar el comprobante: ' + error.message, 'error');
+            }
         }
         
         // Mostrar notificación
         function showNotification(message, type) {
+            console.log(`📢 Notificación (${type}): ${message}`);
+            
             // Crear notificación
             const notification = document.createElement('div');
             notification.style.cssText = `
@@ -1303,6 +1342,7 @@
         
         // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Página de pago cargada');
             initializePage();
         });
     </script>

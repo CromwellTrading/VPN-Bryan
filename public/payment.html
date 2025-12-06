@@ -1083,18 +1083,20 @@
             const removeBtn = document.getElementById('removeBtn');
             const submitBtn = document.getElementById('submitBtn');
             
-            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
             
-            uploadArea.addEventListener('dragover', (e) => {
+            uploadArea.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
             });
             
-            uploadArea.addEventListener('dragleave', () => {
+            uploadArea.addEventListener('dragleave', function() {
                 uploadArea.classList.remove('dragover');
             });
             
-            uploadArea.addEventListener('drop', (e) => {
+            uploadArea.addEventListener('drop', function(e) {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
                 
@@ -1103,7 +1105,7 @@
                 }
             });
             
-            fileInput.addEventListener('change', (e) => {
+            fileInput.addEventListener('change', function(e) {
                 if (e.target.files.length) {
                     handleFile(e.target.files[0]);
                 }
@@ -1174,20 +1176,20 @@
         
         // Copiar al portapapeles
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
+            navigator.clipboard.writeText(text).then(function() {
                 const button = event.currentTarget;
                 const originalText = button.innerHTML;
                 
                 button.classList.add('copied');
                 button.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>';
                 
-                setTimeout(() => {
+                setTimeout(function() {
                     button.classList.remove('copied');
                     button.innerHTML = originalText;
                 }, 2000);
                 
                 showNotification('Texto copiado al portapapeles', 'success');
-            }).catch(err => {
+            }).catch(function(err) {
                 console.error('❌ Error copiando al portapapeles:', err);
                 showNotification('Error al copiar el texto', 'error');
             });
@@ -1241,7 +1243,7 @@
                 showNotification(data.message || '✅ Comprobante enviado correctamente. Revisaremos tu pago y te notificaremos por Telegram.', 'success');
                 
                 // Redirigir o cerrar después de un tiempo
-                setTimeout(() => {
+                setTimeout(function() {
                     // Notificar al usuario vía Telegram (la API ya lo hace, pero por si acaso)
                     if (tg && currentUserId) {
                         try {
@@ -1318,7 +1320,7 @@
             document.body.appendChild(notification);
             
             // Remover después de 3.5 segundos
-            setTimeout(() => {
+            setTimeout(function() {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }

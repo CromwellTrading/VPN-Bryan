@@ -7,20 +7,25 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* RESET Y VARIABLES */
+        /* VARIABLES Y RESET */
         :root {
             --primary: #0a0a1f;
             --secondary: #121230;
             --accent: #4f46e5;
             --accent-light: #6366f1;
+            --accent-dark: #3730a3;
             --accent-glow: rgba(79, 70, 229, 0.4);
             --text: #ffffff;
             --text-secondary: #a5b4fc;
-            --card-bg: rgba(18, 18, 48, 0.7);
+            --card-bg: rgba(18, 18, 48, 0.9);
+            --card-hover: rgba(25, 25, 60, 0.95);
             --border: rgba(99, 102, 241, 0.2);
+            --border-hover: rgba(99, 102, 241, 0.4);
             --success: #10b981;
             --featured: #f59e0b;
             --vip: #fbbf24;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.4);
         }
 
         * {
@@ -35,7 +40,7 @@
             background-color: var(--primary);
             color: var(--text);
             min-height: 100vh;
-            overflow-x: hidden;
+            overflow-x: auto;
             line-height: 1.6;
             position: relative;
         }
@@ -59,7 +64,7 @@
                 linear-gradient(to right, rgba(79, 70, 229, 0.05) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
             background-size: 40px 40px;
-            opacity: 0.5;
+            opacity: 0.4;
         }
 
         .floating-orbs {
@@ -72,13 +77,13 @@
             position: absolute;
             border-radius: 50%;
             filter: blur(40px);
-            opacity: 0.15;
+            opacity: 0.1;
         }
 
         .orb-1 {
             width: 300px;
             height: 300px;
-            background: var(--accent);
+            background: var(--accent-dark);
             top: 10%;
             left: 5%;
             animation: float 20s infinite ease-in-out;
@@ -87,7 +92,7 @@
         .orb-2 {
             width: 200px;
             height: 200px;
-            background: #8b5cf6;
+            background: #3730a3;
             bottom: 15%;
             right: 10%;
             animation: float 25s infinite ease-in-out reverse;
@@ -96,7 +101,7 @@
         .orb-3 {
             width: 150px;
             height: 150px;
-            background: #3b82f6;
+            background: #1e1b4b;
             top: 50%;
             left: 80%;
             animation: float 30s infinite ease-in-out;
@@ -122,7 +127,7 @@
         .header {
             text-align: center;
             padding: 40px 20px;
-            margin-bottom: 40px;
+            margin-bottom: 60px;
             position: relative;
         }
 
@@ -160,31 +165,70 @@
             line-height: 1.6;
         }
 
-        /* PLANES HORIZONTALES */
+        /* PLANES HORIZONTALES - SIEMPRE EN FILA */
         .plans-container {
             display: flex;
             justify-content: center;
             gap: 30px;
             margin-bottom: 80px;
-            flex-wrap: wrap;
+            padding: 20px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) transparent;
+            position: relative;
         }
 
-        /* TARJETAS DE PLANES */
+        /* Ocultar scrollbar en algunos navegadores pero mantener funcionalidad */
+        .plans-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .plans-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .plans-container::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        .plans-container::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-light);
+        }
+
+        /* TARJETAS DE PLANES - FORZAR HORIZONTAL */
         .plan-card {
-            flex: 1;
-            min-width: 320px;
-            max-width: 380px;
+            flex: 0 0 auto;
+            width: 320px;
             background: var(--card-bg);
             border-radius: 24px;
-            padding: 40px 30px;
+            padding: 35px 30px;
             position: relative;
             overflow: hidden;
             border: 1px solid var(--border);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
             backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+        }
+
+        .plan-card:nth-child(1) { animation-delay: 0.1s; }
+        .plan-card:nth-child(2) { animation-delay: 0.2s; }
+        .plan-card:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .plan-card::before {
@@ -206,24 +250,24 @@
             background: linear-gradient(90deg, var(--vip), #fbbf24);
         }
 
+        /* EFECTO HOVER MEJORADO - MÁS OSCURO */
         .plan-card:hover {
             transform: translateY(-15px);
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.4),
-                0 0 60px var(--accent-glow);
-            border-color: rgba(99, 102, 241, 0.4);
+            background: var(--card-hover);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--border-hover);
         }
 
-        .plan-card.featured:hover {
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.4),
-                0 0 60px rgba(245, 158, 11, 0.3);
+        .plan-card:hover .plan-title {
+            color: var(--accent-light);
         }
 
-        .plan-card.vip:hover {
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.4),
-                0 0 60px rgba(251, 191, 36, 0.3);
+        .plan-card.featured:hover .plan-title {
+            color: var(--featured);
+        }
+
+        .plan-card.vip:hover .plan-title {
+            color: var(--vip);
         }
 
         /* BADGE DE PLAN */
@@ -240,6 +284,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+            z-index: 2;
         }
 
         .plan-card.featured .plan-badge {
@@ -256,7 +301,7 @@
         /* ENCABEZADO DEL PLAN */
         .plan-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             padding-bottom: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
@@ -266,6 +311,7 @@
             font-weight: 700;
             color: var(--text);
             margin-bottom: 8px;
+            transition: color 0.3s ease;
         }
 
         .plan-period {
@@ -278,7 +324,7 @@
         /* PRECIO */
         .plan-price {
             text-align: center;
-            margin: 30px 0;
+            margin: 25px 0;
         }
 
         .price-container {
@@ -287,14 +333,13 @@
         }
 
         .price-amount {
-            font-size: 4.5rem;
+            font-size: 4rem;
             font-weight: 800;
             line-height: 1;
             background: linear-gradient(135deg, var(--accent-light), var(--accent));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 0 30px var(--accent-glow);
         }
 
         .plan-card.featured .price-amount {
@@ -312,7 +357,7 @@
         }
 
         .price-currency {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             color: var(--text-secondary);
             font-weight: 600;
             vertical-align: top;
@@ -322,8 +367,8 @@
         /* SECCIÓN DE AHORRO */
         .savings-section {
             text-align: center;
-            margin: 25px 0;
-            padding: 20px;
+            margin: 20px 0;
+            padding: 18px;
             background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
             border-radius: 16px;
             border: 1px solid rgba(79, 70, 229, 0.2);
@@ -342,7 +387,7 @@
         }
 
         .savings-text {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 600;
             color: var(--success);
         }
@@ -358,10 +403,10 @@
         /* SUBTÍTULO VIP */
         .vip-subtitle {
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--vip);
-            margin: 20px 0;
+            margin: 15px 0;
             padding: 15px;
             background: rgba(251, 191, 36, 0.1);
             border-radius: 12px;
@@ -373,14 +418,14 @@
         /* LISTA DE CARACTERÍSTICAS */
         .features-list {
             flex-grow: 1;
-            margin: 30px 0;
+            margin: 25px 0;
         }
 
         .feature-item {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             padding: 16px;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
@@ -389,7 +434,7 @@
         }
 
         .feature-item:hover {
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.05);
             transform: translateX(5px);
         }
 
@@ -425,7 +470,7 @@
         /* BOTÓN DE COMPRA */
         .purchase-button {
             width: 100%;
-            padding: 20px;
+            padding: 18px;
             border: none;
             border-radius: 16px;
             font-size: 1.2rem;
@@ -494,6 +539,16 @@
             font-size: 1.2rem;
         }
 
+        /* EFECTO DE CLICK MEJORADO - MÁS OSCURO */
+        .purchase-button:active {
+            transform: translateY(1px);
+            filter: brightness(0.9);
+        }
+
+        .plan-card:active {
+            transform: translateY(-10px);
+        }
+
         /* CARACTERÍSTICAS GLOBALES */
         .global-features {
             max-width: 1000px;
@@ -503,7 +558,7 @@
             border-radius: 24px;
             border: 1px solid var(--border);
             backdrop-filter: blur(10px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow);
             position: relative;
             overflow: hidden;
         }
@@ -571,7 +626,6 @@
             margin-bottom: 25px;
             display: block;
             color: var(--accent);
-            filter: drop-shadow(0 0 10px var(--accent-glow));
         }
 
         .feature-card-title {
@@ -597,30 +651,59 @@
             font-size: 0.9rem;
         }
 
-        /* RESPONSIVE */
+        /* EFECTO DE CLICK EN TARJETAS - MÁS OSCURO */
+        .plan-card {
+            position: relative;
+        }
+
+        .plan-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            border-radius: 24px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .plan-card:active::after {
+            opacity: 1;
+        }
+
+        /* MEDIA QUERIES - FORZAR HORIZONTAL SIEMPRE */
         @media (max-width: 1200px) {
             .plans-container {
-                gap: 20px;
+                justify-content: flex-start;
+                padding-left: 20px;
+                padding-right: 20px;
             }
             
             .plan-card {
-                min-width: 300px;
-            }
-        }
-        
-        @media (max-width: 992px) {
-            .plans-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .plan-card {
-                width: 100%;
-                max-width: 500px;
+                width: 300px;
             }
         }
         
         @media (max-width: 768px) {
+            .plans-container {
+                justify-content: flex-start;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            .plan-card {
+                width: 280px;
+                padding: 30px 25px;
+            }
+            
+            .price-amount {
+                font-size: 3.2rem;
+            }
+            
             .title {
                 font-size: 2.5rem;
             }
@@ -629,62 +712,75 @@
                 font-size: 1.1rem;
             }
             
-            .plan-card {
-                min-width: 100%;
-                padding: 30px 25px;
-            }
-            
-            .price-amount {
-                font-size: 3.5rem;
-            }
-            
             .global-features {
                 padding: 30px 20px;
             }
         }
 
-        /* ANIMACIONES */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
+        @media (max-width: 480px) {
+            .plans-container {
+                gap: 20px;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            
+            .plan-card {
+                width: 260px;
+                padding: 25px 20px;
+            }
+            
+            .price-amount {
+                font-size: 2.8rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .header {
+                padding: 30px 15px;
             }
         }
 
-        .plan-card {
-            animation: fadeInUp 0.6s ease forwards;
-            opacity: 0;
+        /* EFECTO DE SCROLL SUAVE */
+        html {
+            scroll-behavior: smooth;
         }
 
-        .plan-card:nth-child(1) { animation-delay: 0.1s; }
-        .plan-card:nth-child(2) { animation-delay: 0.2s; }
-        .plan-card:nth-child(3) { animation-delay: 0.3s; }
-
-        /* EFECTO DE BRILLO EN BORDES */
-        .glow-border {
-            position: relative;
+        /* NOTIFICACIÓN */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--card-hover);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            color: var(--text);
+            font-weight: 500;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
         }
 
-        .glow-border::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--accent), #8b5cf6, var(--accent));
-            border-radius: 26px;
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+        .notification.show {
+            transform: translateX(0);
         }
 
-        .glow-border:hover::after {
-            opacity: 1;
+        .notification-icon {
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        /* CONTADOR DE PLANES */
+        .plans-counter {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -707,12 +803,16 @@
                 <h1 class="title">VPN CUBA</h1>
             </div>
             <p class="subtitle">Planes optimizados para máxima velocidad y seguridad. Conexión estable y ancho de banda ilimitado para todas tus necesidades.</p>
+            
+            <div class="plans-counter">
+                <i class="fas fa-arrow-left"></i> Desliza para ver todos los planes <i class="fas fa-arrow-right"></i>
+            </div>
         </header>
         
-        <!-- PLANES HORIZONTALES -->
+        <!-- PLANES HORIZONTALES (SIEMPRE EN FILA) -->
         <div class="plans-container">
             <!-- PLAN BÁSICO -->
-            <div class="plan-card glow-border">
+            <div class="plan-card">
                 <div class="plan-badge">Popular</div>
                 
                 <div class="plan-header">
@@ -753,7 +853,7 @@
             </div>
             
             <!-- PLAN PREMIUM -->
-            <div class="plan-card featured glow-border">
+            <div class="plan-card featured">
                 <div class="plan-badge">Recomendado</div>
                 
                 <div class="plan-header">
@@ -798,7 +898,7 @@
             </div>
             
             <!-- PLAN VIP -->
-            <div class="plan-card vip glow-border">
+            <div class="plan-card vip">
                 <div class="plan-badge">Mejor Valor</div>
                 
                 <div class="plan-header">
@@ -884,9 +984,15 @@
         
         <!-- FOOTER -->
         <footer class="footer">
-            <p>© 2023 VPN Cuba. Todos los derechos reservados.</p>
+            <p>© 2025 VPN Cuba. Todos los derechos reservados.</p>
             <p>Selecciona un plan para continuar con el proceso de pago seguro.</p>
         </footer>
+    </div>
+
+    <!-- NOTIFICACIÓN -->
+    <div id="notification" class="notification">
+        <i class="fas fa-info-circle notification-icon"></i>
+        <span id="notification-text">Redirigiendo al proceso de pago...</span>
     </div>
 
     <script>
@@ -907,6 +1013,9 @@
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
             button.disabled = true;
             
+            // Mostrar notificación
+            showNotification('Redirigiendo al proceso de pago...');
+            
             // Guardar selección
             localStorage.setItem('selectedPlan', JSON.stringify({
                 type: planType,
@@ -919,7 +1028,7 @@
             setTimeout(() => {
                 // Redirigir a página de pago
                 window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}`;
-            }, 800);
+            }, 1000);
         }
         
         // Verificar si el usuario aceptó términos
@@ -943,6 +1052,19 @@
             checkTermsAccepted();
         }
         
+        // Mostrar notificación
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
         // Efectos interactivos para las tarjetas
         document.addEventListener('DOMContentLoaded', function() {
             // Añadir efecto de hover mejorado a las tarjetas
@@ -956,46 +1078,87 @@
                 card.addEventListener('mouseleave', function() {
                     this.style.zIndex = '1';
                 });
+                
+                // Efecto de click mejorado
+                card.addEventListener('mousedown', function() {
+                    this.style.transform = 'translateY(-10px) scale(0.98)';
+                });
+                
+                card.addEventListener('mouseup', function() {
+                    this.style.transform = 'translateY(-15px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
             });
             
-            // Crear efecto de partículas en el fondo (simplificado)
-            createBackgroundParticles();
+            // Configurar scroll horizontal suave
+            const plansContainer = document.querySelector('.plans-container');
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            
+            plansContainer.addEventListener('mousedown', (e) => {
+                isDown = true;
+                plansContainer.classList.add('active');
+                startX = e.pageX - plansContainer.offsetLeft;
+                scrollLeft = plansContainer.scrollLeft;
+            });
+            
+            plansContainer.addEventListener('mouseleave', () => {
+                isDown = false;
+                plansContainer.classList.remove('active');
+            });
+            
+            plansContainer.addEventListener('mouseup', () => {
+                isDown = false;
+                plansContainer.classList.remove('active');
+            });
+            
+            plansContainer.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - plansContainer.offsetLeft;
+                const walk = (x - startX) * 2;
+                plansContainer.scrollLeft = scrollLeft - walk;
+            });
+            
+            // Efecto de scroll con rueda del mouse
+            plansContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                plansContainer.scrollLeft += e.deltaY;
+            });
         });
         
-        // Efecto de partículas simples
-        function createBackgroundParticles() {
-            const particlesContainer = document.querySelector('.floating-orbs');
-            
-            for (let i = 0; i < 15; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.position = 'absolute';
-                particle.style.width = Math.random() * 4 + 1 + 'px';
-                particle.style.height = particle.style.width;
-                particle.style.background = 'rgba(99, 102, 241, 0.6)';
-                particle.style.borderRadius = '50%';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.boxShadow = '0 0 10px rgba(99, 102, 241, 0.5)';
-                particle.style.animation = `float ${Math.random() * 20 + 10}s infinite ease-in-out`;
-                
-                particlesContainer.appendChild(particle);
-            }
-        }
-        
-        // Añadir estilos para partículas
+        // Añadir estilos para mejor scroll
         const style = document.createElement('style');
         style.textContent = `
-            .particle {
-                position: absolute;
-                opacity: 0.7;
+            .plans-container.active {
+                cursor: grabbing;
+                cursor: -webkit-grabbing;
             }
             
-            @keyframes float {
-                0%, 100% { transform: translate(0, 0); }
-                25% { transform: translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px); }
-                50% { transform: translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px); }
-                75% { transform: translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px); }
+            .plans-container {
+                cursor: grab;
+            }
+            
+            .plans-container:active {
+                cursor: grabbing;
+            }
+            
+            /* Mejorar visibilidad del texto durante hover */
+            .plan-card:hover .feature-text {
+                color: #e0e0ff;
+            }
+            
+            .plan-card:hover .plan-period {
+                color: #b8c2ff;
+            }
+            
+            /* Efecto de brillo reducido en hover */
+            .plan-card:hover::before {
+                filter: brightness(0.8);
             }
         `;
         document.head.appendChild(style);

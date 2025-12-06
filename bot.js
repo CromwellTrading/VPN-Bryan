@@ -1,5 +1,5 @@
 const { Telegraf } = require('telegraf');
-const { userService, configFileService } = require('./supabase');
+const { userService, configFileService, paymentService } = require('./supabase');
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -7,7 +7,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 // IDs de administradores (separados por comas)
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    [];
+    ['6373481979', '5376388604'];
 
 // Verificar si es administrador
 function isAdmin(userId) {
@@ -42,7 +42,7 @@ bot.start(async (ctx) => {
         if (isAdmin(userId)) {
             keyboard.push([{ 
                 text: '🔧 Panel Admin', 
-                callback_data: 'admin_panel' 
+                web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true` }
             }]);
         }
 
@@ -121,7 +121,7 @@ bot.command('status', async (ctx) => {
                 `✅ *¡Eres usuario VIP!*\n\n` +
                 `📅 Desde: ${vipSince}\n` +
                 `📋 Plan: ${user.plan || 'No especificado'}\n` +
-                `💰 Precio: $${user.plan_price || '0'}\n\n` +
+                `💰 Precio: $${user.plan_price || '0'} CUP\n\n` +
                 `Tu acceso está activo. Si necesitas ayuda, contacta con soporte.`,
                 { parse_mode: 'Markdown' }
             );
@@ -151,119 +151,6 @@ bot.command('status', async (ctx) => {
     }
 });
 
-// Comando /enviar para administradores
-bot.command('enviar', async (ctx) => {
-    const currentUserId = ctx.from.id.toString();
-    
-    // Verificar si es administrador
-    if (!isAdmin(currentUserId)) {
-        await ctx.reply('❌ No tienes permisos para usar este comando.');
-        return;
-    }
-    
-    const args = ctx.message.text.split(' ');
-    const target = args[1]; // ID o @usuario
-    
-    if (!target) {
-        await ctx.reply('Uso: /enviar <ID o @usuario>\n\nEjemplo:\n/enviar 123456789\n/enviar @usuario');
-        return;
-    }
-    
-    // Guardar en sesión que estamos esperando un archivo
-    ctx.session = ctx.session || {};
-    ctx.session.waitingForFile = {
-        target: target,
-        command: 'enviar'
-    };
-    
-    await ctx.reply(
-        `📤 *Enviar configuración a:* ${target}\n\n` +
-        `Por favor, envía el archivo de configuración (.conf) ahora:`,
-        { parse_mode: 'Markdown' }
-    );
-});
-
-// Manejar archivos enviados por administrador
-bot.on('document', async (ctx) => {
-    const currentUserId = ctx.from.id.toString();
-    
-    // Verificar si es administrador
-    if (!isAdmin(currentUserId)) {
-        return; // Solo administradores pueden enviar archivos
-    }
-    
-    if (ctx.session?.waitingForFile) {
-        const { target, command } = ctx.session.waitingForFile;
-        const fileId = ctx.message.document.file_id;
-        const fileName = ctx.message.document.file_name;
-        
-        try {
-            // Registrar envío en la base de datos
-            await configFileService.saveConfigFile({
-                telegram_id: target.replace('@', ''),
-                file_id: fileId,
-                file_name: fileName,
-                sent_by: ctx.from.username || 'admin',
-                sent_at: new Date().toISOString()
-            });
-            
-            // Enviar archivo al usuario objetivo
-            await ctx.telegram.sendDocument(target, fileId, {
-                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
-                        `📁 *Archivo:* ${fileName}\n\n` +
-                        `*Instrucciones de instalación:*\n` +
-                        `1. Descarga este archivo\n` +
-                        `2. Importa en tu cliente WireGuard\n` +
-                        `3. Activa la conexión\n` +
-                        `4. ¡Disfruta de baja latencia! 🚀\n\n` +
-                        `*Soporte:* Contacta con @${ctx.from.username || 'admin'} si tienes problemas.`,
-                parse_mode: 'Markdown'
-            });
-            
-            await ctx.reply(`✅ Archivo enviado exitosamente a ${target}`);
-            
-        } catch (error) {
-            console.error('Error al enviar archivo:', error);
-            await ctx.reply(`❌ Error al enviar archivo: ${error.message}`);
-        }
-        
-        // Limpiar sesión
-        delete ctx.session.waitingForFile;
-    }
-});
-
-// Comando /admin para panel de administración
-bot.command('admin', async (ctx) => {
-    const currentUserId = ctx.from.id.toString();
-    
-    if (!isAdmin(currentUserId)) {
-        await ctx.reply('❌ No tienes permisos para acceder al panel de administración.');
-        return;
-    }
-    
-    const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html`;
-    
-    await ctx.reply(
-        `🔧 *Panel de Administración*\n\n` +
-        `Accede al panel completo desde:`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: [[
-                    { 
-                        text: '🔧 Abrir Panel Admin', 
-                        web_app: { url: adminUrl }
-                    },
-                    {
-                        text: '📊 Ver Detalles Aquí',
-                        callback_data: 'admin_dashboard'
-                    }
-                ]]
-            }
-        }
-    );
-});
-
 // Callback Query Handler
 bot.on('callback_query', async (ctx) => {
     const data = ctx.callbackQuery.data;
@@ -278,13 +165,15 @@ bot.on('callback_query', async (ctx) => {
                     `• Precio: $800 CUP\n` +
                     `• Conexión de baja latencia\n` +
                     `• Ancho de banda ilimitado\n` +
-                    `• Soporte prioritario\n\n` +
+                    `• Soporte prioritario\n` +
+                    `• 10 servidores disponibles\n\n` +
                     `*Plan Premium (2 meses)*\n` +
                     `• Precio: $1,300 CUP\n` +
                     `• ¡Ahorras $300 CUP!\n` +
                     `• Todo lo del Básico\n` +
                     `• 2 meses de servicio\n` +
-                    `• Soporte 24/7\n\n` +
+                    `• Soporte 24/7\n` +
+                    `• Protección de datos avanzada\n\n` +
                     `*Plan VIP (6 meses)*\n` +
                     `• Precio: $3,000 CUP\n` +
                     `• ¡Ahorras $1,800 CUP!\n` +
@@ -292,7 +181,8 @@ bot.on('callback_query', async (ctx) => {
                     `• Todo lo del Premium\n` +
                     `• 6 meses de servicio\n` +
                     `• Configuración personalizada\n` +
-                    `• Soporte dedicado VIP\n\n` +
+                    `• Soporte dedicado VIP\n` +
+                    `• Velocidad máxima garantizada\n\n` +
                     `Haz clic en Comprar Ahora para seleccionar tu plan:`,
                     {
                         parse_mode: 'Markdown',
@@ -314,7 +204,7 @@ bot.on('callback_query', async (ctx) => {
                     return;
                 }
                 
-                const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html`;
+                const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true`;
                 await ctx.editMessageText(
                     `🔧 *Panel de Administración*\n\n` +
                     `Selecciona una opción:`,
@@ -322,154 +212,11 @@ bot.on('callback_query', async (ctx) => {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '🔧 Abrir Panel Web', web_app: { url: adminUrl } }],
-                                [{ text: '📊 Ver Estadísticas', callback_data: 'view_stats' }],
-                                [{ text: '👑 Ver Usuarios VIP', callback_data: 'view_vip_users' }],
-                                [{ text: '⏳ Ver Pagos Pendientes', callback_data: 'view_pending_payments' }]
-                            ]
-                        }
-                    }
-                );
-                break;
-                
-            case 'admin_dashboard':
-                if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
-                    return;
-                }
-                
-                await ctx.editMessageText(
-                    `🔧 *Dashboard de Administración*\n\n` +
-                    `Comandos disponibles:\n` +
-                    `/admin - Panel de administración\n` +
-                    `/enviar <id> - Enviar configuración\n` +
-                    `/stats - Ver estadísticas\n\n` +
-                    `También puedes usar la WebApp para más funciones.`,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [[
-                                { 
+                                [{ 
                                     text: '🔧 Abrir Panel Web', 
-                                    web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html` }
-                                }
-                            ]]
-                        }
-                    }
-                );
-                break;
-                
-            case 'view_stats':
-                if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
-                    return;
-                }
-                
-                // Aquí deberías obtener estadísticas reales de tu base de datos
-                const stats = await userService.getStats();
-                
-                await ctx.editMessageText(
-                    `📊 *Estadísticas*\n\n` +
-                    `👥 Total usuarios: ${stats.totalUsers || 0}\n` +
-                    `👑 Usuarios VIP: ${stats.vipUsers || 0}\n` +
-                    `💰 Ingresos totales: $${stats.totalRevenue || 0} CUP\n` +
-                    `📅 Usuarios hoy: ${stats.todayUsers || 0}`,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [[
-                                { text: '« Volver', callback_data: 'admin_dashboard' }
-                            ]]
-                        }
-                    }
-                );
-                break;
-                
-            case 'view_vip_users':
-                if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
-                    return;
-                }
-                
-                const vipUsers = await userService.getVIPUsers();
-                
-                if (vipUsers.length === 0) {
-                    await ctx.editMessageText(
-                        `👑 *Usuarios VIP*\n\n` +
-                        `No hay usuarios VIP actualmente.`,
-                        {
-                            parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[
-                                    { text: '« Volver', callback_data: 'admin_dashboard' }
-                                ]]
-                            }
-                        }
-                    );
-                    return;
-                }
-                
-                let vipList = `👑 *Usuarios VIP (${vipUsers.length})*\n\n`;
-                vipUsers.forEach((user, index) => {
-                    vipList += `${index + 1}. ${user.first_name || 'Usuario'} (@${user.username || 'sin_usuario'})\n`;
-                    vipList += `   Plan: ${user.plan || 'VIP'}\n`;
-                    vipList += `   Desde: ${new Date(user.vip_since).toLocaleDateString('es-ES')}\n\n`;
-                });
-                
-                await ctx.editMessageText(
-                    vipList,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [[
-                                { text: '« Volver', callback_data: 'admin_dashboard' }
-                            ]]
-                        }
-                    }
-                );
-                break;
-                
-            case 'view_pending_payments':
-                if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
-                    return;
-                }
-                
-                // Aquí deberías obtener pagos pendientes reales
-                const pendingPayments = await userService.getPendingPayments();
-                
-                if (pendingPayments.length === 0) {
-                    await ctx.editMessageText(
-                        `⏳ *Pagos Pendientes*\n\n` +
-                        `No hay pagos pendientes actualmente.`,
-                        {
-                            parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[
-                                    { text: '« Volver', callback_data: 'admin_dashboard' }
-                                ]]
-                            }
-                        }
-                    );
-                    return;
-                }
-                
-                let paymentsList = `⏳ *Pagos Pendientes (${pendingPayments.length})*\n\n`;
-                pendingPayments.forEach((payment, index) => {
-                    paymentsList += `${index + 1}. Usuario: ${payment.telegram_id}\n`;
-                    paymentsList += `   Plan: ${payment.plan}\n`;
-                    paymentsList += `   Monto: $${payment.price} CUP\n`;
-                    paymentsList += `   Fecha: ${new Date(payment.created_at).toLocaleDateString('es-ES')}\n\n`;
-                });
-                
-                await ctx.editMessageText(
-                    paymentsList,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [[
-                                { text: '« Volver', callback_data: 'admin_dashboard' }
-                            ]]
+                                    web_app: { url: adminUrl }
+                                }]
+                            ]
                         }
                     }
                 );
@@ -483,32 +230,88 @@ bot.on('callback_query', async (ctx) => {
     }
 });
 
-// Comando /help
-bot.command('help', async (ctx) => {
-    const keyboard = [[
-        { text: '📋 Ver Planes', callback_data: 'view_detailed_plans' },
-        { text: '👑 Mi Estado', callback_data: 'check_status' }
-    ]];
+// Comando /admin para panel de administración
+bot.command('admin', async (ctx) => {
+    const currentUserId = ctx.from.id.toString();
     
-    if (isAdmin(ctx.from.id.toString())) {
-        keyboard.push([{ text: '🔧 Panel Admin', callback_data: 'admin_panel' }]);
+    if (!isAdmin(currentUserId)) {
+        await ctx.reply('❌ No tienes permisos para acceder al panel de administración.');
+        return;
     }
     
+    const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${currentUserId}&admin=true`;
+    
     await ctx.reply(
-        `🆘 *Ayuda - VPN Cuba*\n\n` +
-        `Comandos disponibles:\n` +
-        `/start - Iniciar el bot\n` +
-        `/plans - Ver planes disponibles\n` +
-        `/status - Verificar tu estado VIP\n` +
-        `/help - Mostrar esta ayuda\n\n` +
-        `También puedes usar los botones:`,
+        `🔧 *Panel de Administración*\n\n` +
+        `Accede al panel completo desde:`,
         {
             parse_mode: 'Markdown',
             reply_markup: {
-                inline_keyboard: keyboard
+                inline_keyboard: [[
+                    { 
+                        text: '🔧 Abrir Panel Admin', 
+                        web_app: { url: adminUrl }
+                    }
+                ]]
             }
         }
     );
+});
+
+// Manejar archivos enviados por administrador
+bot.on('document', async (ctx) => {
+    const currentUserId = ctx.from.id.toString();
+    
+    // Verificar si es administrador
+    if (!isAdmin(currentUserId)) {
+        return; // Solo administradores pueden enviar archivos
+    }
+    
+    if (ctx.session?.waitingForFile) {
+        const { target, paymentId } = ctx.session.waitingForFile;
+        const fileId = ctx.message.document.file_id;
+        const fileName = ctx.message.document.file_name;
+        
+        try {
+            // Registrar envío en la base de datos
+            await configFileService.saveConfigFile({
+                telegram_id: target,
+                file_id: fileId,
+                file_name: fileName,
+                sent_by: ctx.from.username || 'admin',
+                sent_at: new Date().toISOString(),
+                payment_id: paymentId
+            });
+            
+            // Actualizar pago como configurado
+            await paymentService.updatePayment(paymentId, {
+                config_sent: true,
+                config_sent_at: new Date().toISOString()
+            });
+            
+            // Enviar archivo al usuario objetivo
+            await ctx.telegram.sendDocument(target, fileId, {
+                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                        `📁 *Archivo:* ${fileName}\n\n` +
+                        `*Instrucciones de instalación:*\n` +
+                        `1. Descarga este archivo\n` +
+                        `2. Importa en tu cliente WireGuard\n` +
+                        `3. Activa la conexión\n` +
+                        `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                        `*Soporte:* Contacta con @${ctx.from.username || 'admin'} si tienes problemas.`,
+                parse_mode: 'Markdown'
+            });
+            
+            await ctx.reply(`✅ Archivo enviado exitosamente al usuario ${target}`);
+            
+        } catch (error) {
+            console.error('Error al enviar archivo:', error);
+            await ctx.reply(`❌ Error al enviar archivo: ${error.message}`);
+        }
+        
+        // Limpiar sesión
+        delete ctx.session.waitingForFile;
+    }
 });
 
 // Manejar errores del bot
@@ -526,6 +329,7 @@ async function startBot() {
     try {
         await bot.launch();
         console.log('🤖 Bot de Telegram iniciado correctamente');
+        console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
         
         // Configurar comandos del bot
         await bot.telegram.setMyCommands([
@@ -537,9 +341,7 @@ async function startBot() {
         
         // Si hay administradores, agregar comandos de admin
         if (ADMIN_IDS.length > 0) {
-            // No podemos tener comandos diferentes para diferentes usuarios,
-            // pero podemos mantener /admin y /enviar aunque solo funcionen para admins
-            console.log('Administradores configurados:', ADMIN_IDS);
+            console.log('✅ Comandos de admin disponibles para usuarios autorizados');
         }
         
     } catch (error) {
@@ -549,5 +351,7 @@ async function startBot() {
 
 module.exports = {
     bot,
-    startBot
+    startBot,
+    isAdmin,
+    ADMIN_IDS
 };

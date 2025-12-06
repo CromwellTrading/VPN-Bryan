@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPN Cuba - Aceptar Términos</title>
+    <title>VPN Cuba - Inicio</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -13,914 +13,446 @@
             --secondary: #121230;
             --accent: #4f46e5;
             --accent-light: #6366f1;
-            --accent-dark: #3730a3;
             --accent-glow: rgba(79, 70, 229, 0.4);
             --text: #ffffff;
             --text-secondary: #a5b4fc;
-            --card-bg: rgba(18, 18, 48, 0.9);
-            --border: rgba(99, 102, 241, 0.2);
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--primary);
             color: var(--text);
             min-height: 100vh;
-            line-height: 1.6;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* FONDO FUTURISTA */
-        .background-effect {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-
-        .grid-lines {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(to right, rgba(79, 70, 229, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.6;
-        }
-
-        .floating-elements {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-        }
-
-        .floating-element {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-            opacity: 0.1;
-        }
-
-        .element-1 {
-            top: 10%;
-            left: 5%;
-            animation: float 25s infinite ease-in-out;
-        }
-
-        .element-2 {
-            bottom: 15%;
-            right: 10%;
-            animation: float 30s infinite ease-in-out reverse;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(30px, -40px) scale(1.1); }
-            50% { transform: translate(-20px, 30px) scale(0.9); }
-            75% { transform: translate(15px, 25px) scale(1.05); }
-        }
-
-        /* CONTAINER PRINCIPAL */
-        .main-container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* HEADER */
-        .header {
-            text-align: center;
-            padding: 40px 20px;
-            margin-bottom: 40px;
-            position: relative;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 150px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--accent), transparent);
-        }
-
-        .logo-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 20px;
+            padding: 20px;
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* LOGO */
+        .logo {
+            margin-bottom: 30px;
         }
 
         .logo-icon {
-            font-size: 2.8rem;
+            font-size: 4rem;
             color: var(--accent);
-            margin-right: 15px;
-            filter: drop-shadow(0 0 15px var(--accent-glow));
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 20px var(--accent-glow));
         }
 
-        .title {
-            font-size: 2.8rem;
+        .logo-text {
+            font-size: 3rem;
             font-weight: 800;
             background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -0.5px;
+            margin-bottom: 10px;
         }
 
-        .subtitle {
-            font-size: 1.2rem;
+        .logo-subtitle {
+            font-size: 1.1rem;
             color: var(--text-secondary);
-            font-weight: 400;
-            max-width: 500px;
-            margin: 0 auto;
-            margin-top: 15px;
         }
 
-        /* PROGRESO */
-        .progress-container {
-            max-width: 700px;
-            margin: 0 auto 40px;
+        /* CARD */
+        .card {
+            background: rgba(18, 18, 48, 0.9);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
         }
 
-        .progress-steps {
+        /* USER INFO */
+        .user-info {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            border-radius: 50%;
+            margin: 0 auto 15px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 20px;
-            position: relative;
+            justify-content: center;
+            font-size: 2.5rem;
         }
 
-        .step {
+        .user-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .user-id {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .user-admin {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--warning), #f59e0b);
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* BUTTONS */
+        .buttons {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .step-circle {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: white;
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
-
-        .step-circle.active {
-            background: linear-gradient(135deg, var(--accent-light), var(--accent));
-        }
-
-        .step-circle.completed {
-            background: var(--success);
-        }
-
-        .step-label {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            text-align: center;
-        }
-
-        .step.active .step-label {
-            color: var(--accent-light);
-            font-weight: 600;
-        }
-
-        .progress-line {
-            flex: 1;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            position: relative;
-        }
-
-        .progress-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--accent-light));
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-
-        /* TÉRMINOS CONTAINER */
-        .terms-container {
-            max-width: 800px;
-            margin: 0 auto 50px;
-        }
-
-        /* ACORDEÓN */
-        .accordion {
-            background: var(--card-bg);
-            border-radius: 20px;
-            margin-bottom: 25px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .accordion::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-light));
-        }
-
-        .accordion-header {
-            padding: 25px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .accordion-header:hover {
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .accordion-icon {
-            font-size: 2rem;
-            color: var(--accent);
-            min-width: 40px;
-            text-align: center;
-        }
-
-        .accordion-title {
-            flex: 1;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .accordion-arrow {
-            font-size: 1.2rem;
-            color: var(--accent);
-            transition: transform 0.3s ease;
-        }
-
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease;
-        }
-
-        .accordion-content.expanded {
-            max-height: 1000px;
-        }
-
-        .terms-content {
-            padding: 0 25px 25px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .terms-content h3 {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .terms-content h4 {
-            font-size: 1.3rem;
-            color: var(--text);
-            margin: 25px 0 15px;
-            font-weight: 600;
-        }
-
-        .terms-content p {
-            color: var(--text-secondary);
-            margin-bottom: 15px;
-            line-height: 1.7;
-        }
-
-        .terms-content ul {
-            color: var(--text-secondary);
-            margin-left: 20px;
-            margin-bottom: 20px;
-        }
-
-        .terms-content li {
-            margin-bottom: 10px;
-            line-height: 1.6;
-        }
-
-        /* CHECKBOX */
-        .accordion-checkbox {
-            padding: 20px 25px;
-            background: rgba(255, 255, 255, 0.02);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
             gap: 15px;
-            cursor: pointer;
-            user-select: none;
         }
 
-        .checkbox-label input {
-            display: none;
-        }
-
-        .checkbox-custom {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border);
-            border-radius: 6px;
-            position: relative;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
-
-        .checkbox-label input:checked + .checkbox-custom {
-            background: var(--accent);
-            border-color: var(--accent-light);
-        }
-
-        .checkbox-label input:checked + .checkbox-custom::after {
-            content: '✓';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-weight: bold;
-        }
-
-        .checkbox-text {
-            font-size: 1.1rem;
-            color: var(--text);
-            font-weight: 500;
-        }
-
-        .checkbox-label:hover .checkbox-custom {
-            border-color: var(--accent-light);
-        }
-
-        /* BOTÓN DE CONTINUAR */
-        .continue-section {
-            text-align: center;
-            margin-top: 40px;
-        }
-
-        .continue-btn {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            padding: 22px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            color: white;
-            border: none;
-            border-radius: 16px;
-            font-size: 1.3rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
-            overflow: hidden;
-        }
-
-        .continue-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        .continue-btn:not(:disabled):hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(79, 70, 229, 0.4);
-        }
-
-        .continue-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.7s ease;
-        }
-
-        .continue-btn:not(:disabled):hover::before {
-            left: 100%;
-        }
-
-        .btn-icon {
-            font-size: 1.3rem;
-        }
-
-        /* FOOTER */
-        .footer {
-            text-align: center;
-            margin-top: 60px;
-            padding-top: 30px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        /* NOTIFICACIÓN */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: var(--card-bg);
-            border: 1px solid var(--accent);
+        .btn {
+            padding: 18px;
             border-radius: 12px;
-            color: var(--text);
-            font-weight: 500;
-            z-index: 1000;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            transform: translateX(150%);
-            transition: transform 0.3s ease;
-            max-width: 350px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
         }
 
-        .notification.show {
-            transform: translateX(0);
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
         }
 
-        .notification-icon {
-            font-size: 1.2rem;
-            color: var(--accent);
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, var(--warning), #f59e0b);
+            color: #000;
+        }
+
+        .btn-admin:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 15px;
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
             }
             
-            .title {
-                font-size: 2.2rem;
+            .card {
+                padding: 30px 20px;
             }
             
-            .subtitle {
-                font-size: 1rem;
+            .logo-text {
+                font-size: 2.5rem;
             }
             
-            .accordion-header {
-                padding: 20px;
-            }
-            
-            .accordion-title {
-                font-size: 1.3rem;
-            }
-            
-            .terms-content {
-                padding: 0 20px 20px;
-            }
-            
-            .continue-btn {
-                padding: 20px;
-                font-size: 1.2rem;
-            }
-            
-            .progress-steps {
-                gap: 10px;
-            }
-            
-            .step-circle {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
-            }
-            
-            .step-label {
-                font-size: 0.8rem;
+            .logo-icon {
+                font-size: 3rem;
             }
         }
 
-        /* ANIMACIONES */
-        .fade-in {
-            animation: fadeIn 0.8s ease forwards;
-            opacity: 0;
+        /* ERROR */
+        .error {
+            color: var(--error);
+            text-align: center;
+            padding: 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            margin-bottom: 20px;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.3s; }
     </style>
 </head>
 <body>
-    <!-- Fondo futurista -->
-    <div class="background-effect">
-        <div class="grid-lines"></div>
-        <div class="floating-elements">
-            <div class="floating-element element-1"></div>
-            <div class="floating-element element-2"></div>
+    <div class="container">
+        <!-- LOGO -->
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1 class="logo-text">VPN CUBA</h1>
+            <p class="logo-subtitle">Conexión de baja latencia para gaming</p>
         </div>
-    </div>
-    
-    <div class="main-container">
-        <!-- HEADER -->
-        <header class="header fade-in">
-            <div class="logo-container">
-                <i class="fas fa-shield-alt logo-icon"></i>
-                <h1 class="title">VPN CUBA</h1>
-            </div>
-            <p class="subtitle">Para continuar, por favor acepta nuestros términos y condiciones</p>
-        </header>
-        
-        <!-- PROGRESO -->
-        <div class="progress-container fade-in delay-1">
-            <div class="progress-steps">
-                <div class="step active">
-                    <div class="step-circle">1</div>
-                    <div class="step-label">Términos</div>
-                </div>
-                
-                <div class="progress-line">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-                
-                <div class="step">
-                    <div class="step-circle">2</div>
-                    <div class="step-label">Planes</div>
-                </div>
-                
-                <div class="progress-line">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-                
-                <div class="step">
-                    <div class="step-circle">3</div>
-                    <div class="step-label">Pago</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- TÉRMINOS -->
-        <div class="terms-container">
-            <!-- Términos de Uso -->
-            <div class="accordion fade-in delay-1">
-                <div class="accordion-header" onclick="toggleAccordion(1)">
-                    <div class="accordion-icon">
-                        <i class="fas fa-file-contract"></i>
-                    </div>
-                    <div class="accordion-title">Términos de Uso</div>
-                    <div class="accordion-arrow" id="arrow1">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-                <div class="accordion-content" id="content1">
-                    <div class="terms-content">
-                        <h3>Última actualización: Noviembre de 2025</h3>
-                        <p>Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.</p>
-                        
-                        <h4>1. Responsabilidad del Cliente</h4>
-                        <p><strong>1.1. Cumplimiento Legal:</strong> El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.</p>
-                        <p><strong>1.2. Uso Legal:</strong> El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.</p>
-                        <p><strong>1.3. Datos de Cuenta:</strong> El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.</p>
-                        
-                        <h4>2. Uso Aceptable del Servicio (Prohibiciones)</h4>
-                        <p>Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:</p>
-                        <ul>
-                            <li><strong>Actividades Ilegales:</strong> Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.</li>
-                            <li><strong>Ataques a la Red:</strong> Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).</li>
-                            <li><strong>Abuso de Ancho de Banda:</strong> Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).</li>
-                            <li><strong>Compartición No Autorizada:</strong> Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.</li>
-                        </ul>
-                        
-                        <h4>3. Exclusión de Garantías y Limitación de Responsabilidad</h4>
-                        <p><strong>3.1. Rendimiento:</strong> Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.</p>
-                        <p><strong>3.2. Interrupción de Servicio:</strong> VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.</p>
-                        
-                        <h4>4. Suspensión y Terminación</h4>
-                        <p><strong>4.1. Violación:</strong> VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.</p>
-                    </div>
-                </div>
-                <div class="accordion-checkbox">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="check1" onchange="checkAll()">
-                        <span class="checkbox-custom"></span>
-                        <span class="checkbox-text">He leído y acepto los Términos de Uso</span>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Política de Reembolso -->
-            <div class="accordion fade-in delay-2">
-                <div class="accordion-header" onclick="toggleAccordion(2)">
-                    <div class="accordion-icon">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </div>
-                    <div class="accordion-title">Política de Reembolso</div>
-                    <div class="accordion-arrow" id="arrow2">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-                <div class="accordion-content" id="content2">
-                    <div class="terms-content">
-                        <h3>Última actualización: Noviembre de 2025</h3>
-                        <p>En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una garantía clara:</p>
-                        
-                        <h4>1. Garantía de Devolución de Dinero (7 Días)</h4>
-                        <p>Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la fecha de la compra inicial del plan.</p>
-                        <p>Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este periodo de 7 días, puedes solicitar un reembolso completo.</p>
-                        <p>Esta garantía solo aplica a la primera compra de un cliente. Las renovaciones o compras posteriores no son elegibles.</p>
-                        
-                        <h4>2. Condiciones Específicas para el Reembolso</h4>
-                        <p>Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con las siguientes condiciones:</p>
-                        <ul>
-                            <li><strong>Motivo Técnico:</strong> La solicitud debe estar basada en un problema técnico no resuelto relacionado con la incapacidad de conectar o una latencia (ping) inusualmente alta que el equipo de soporte no pudo solucionar.</li>
-                            <li><strong>Nota:</strong> Las velocidades o latencias que sean consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.</li>
-                            <li><strong>Cumplimiento de Términos:</strong> El Cliente no debe haber violado nuestros Términos de Servicio (ej. no haber compartido la clave, no haber realizado abuso de ancho de banda o actividades ilegales).</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="accordion-checkbox">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="check2" onchange="checkAll()">
-                        <span class="checkbox-custom"></span>
-                        <span class="checkbox-text">He leído y acepto la Política de Reembolso</span>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Política de Privacidad -->
-            <div class="accordion fade-in delay-3">
-                <div class="accordion-header" onclick="toggleAccordion(3)">
-                    <div class="accordion-icon">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <div class="accordion-title">Política de Privacidad</div>
-                    <div class="accordion-arrow" id="arrow3">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-                <div class="accordion-content" id="content3">
-                    <div class="terms-content">
-                        <h3>Última actualización: Noviembre de 2025</h3>
-                        <p>En VPN Cuba, tu privacidad y seguridad son nuestra máxima prioridad. Operamos bajo una estricta política de Cero Registros (No-Logs Policy) diseñada para asegurar que tu actividad en línea permanezca completamente privada.</p>
-                        
-                        <h4>1. Nuestro Compromiso: Cero Registros de Actividad</h4>
-                        <p>VPN Cuba NO registra, almacena ni monitorea la actividad de nuestros usuarios.</p>
-                        <p>No registramos:</p>
-                        <ul>
-                            <li>Tu actividad de navegación, historial de sitios web visitados o el contenido de tus comunicaciones.</li>
-                            <li>Registros de tráfico (qué datos se envían o reciben).</li>
-                            <li>Registros de DNS (solicitudes a sitios web).</li>
-                            <li>Tu dirección IP real (externa) ni la dirección IP asignada por nuestra VPN.</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="accordion-checkbox">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="check3" onchange="checkAll()">
-                        <span class="checkbox-custom"></span>
-                        <span class="checkbox-text">He leído y acepto la Política de Privacidad</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        
-        <!-- BOTÓN DE CONTINUAR -->
-        <div class="continue-section fade-in delay-3">
-            <button id="continueBtn" class="continue-btn" disabled onclick="acceptTerms()">
-                <i class="fas fa-rocket btn-icon"></i>
-                <span>Continuar a los Planes</span>
-            </button>
-        </div>
-        
-        <!-- FOOTER -->
-        <footer class="footer">
-            <p>© 2025 VPN Cuba. Todos los derechos reservados.</p>
-            <p style="margin-top: 10px; font-size: 0.8rem;">Protegido con cifrado de extremo a extremo</p>
-        </footer>
-    </div>
 
-    <!-- NOTIFICACIÓN -->
-    <div id="notification" class="notification">
-        <i class="fas fa-info-circle notification-icon"></i>
-        <span id="notification-text">Redirigiendo...</span>
+        <!-- CARD -->
+        <div class="card">
+            <!-- LOADING -->
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Detectando usuario...</p>
+            </div>
+
+            <!-- USER INFO -->
+            <div id="userInfo" class="user-info" style="display: none;">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h2 id="userName" class="user-name"></h2>
+                <p id="userId" class="user-id"></p>
+                <div id="adminBadge" class="user-admin" style="display: none;">
+                    <i class="fas fa-crown"></i> Administrador
+                </div>
+            </div>
+
+            <!-- ERROR -->
+            <div id="error" class="error" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p id="errorText"></p>
+            </div>
+
+            <!-- BUTTONS -->
+            <div id="buttons" class="buttons" style="display: none;">
+                <a id="plansBtn" class="btn btn-primary" href="#">
+                    <i class="fas fa-rocket"></i>
+                    <span>Ver Planes</span>
+                </a>
+                
+                <a id="statusBtn" class="btn btn-secondary" href="#">
+                    <i class="fas fa-crown"></i>
+                    <span>Mi Estado VIP</span>
+                </a>
+                
+                <a id="adminBtn" class="btn btn-admin" href="#" style="display: none;">
+                    <i class="fas fa-cog"></i>
+                    <span>Panel de Administración</span>
+                </a>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Variables globales
+        let telegramUserId = null;
+        let userName = 'Usuario';
+        let isAdminUser = false;
+
         // Inicializar Telegram WebApp
         const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.MainButton.hide();
         
-        // Obtener ID de usuario
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
-        
-        // Verificar si ya aceptó términos (funcionalidad implementada)
-        async function checkTermsOnLoad() {
-            if (!userId) return;
-            
+        // Función para obtener parámetros de la URL
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Función para verificar si es administrador
+        async function checkAdminStatus(userId) {
+            try {
+                const response = await fetch(`/api/check-admin/${userId}`);
+                const data = await response.json();
+                return data.isAdmin || false;
+            } catch (error) {
+                console.error('Error verificando admin:', error);
+                return false;
+            }
+        }
+
+        // Función para verificar términos aceptados
+        async function checkTermsAccepted(userId) {
             try {
                 const response = await fetch(`/api/check-terms/${userId}`);
                 const data = await response.json();
-                
-                // Si ya aceptó los términos, redirigir directamente a planes
-                if (data.accepted) {
-                    showNotification('Ya aceptaste los términos. Redirigiendo...');
-                    setTimeout(() => {
-                        window.location.href = `/plans.html?userId=${userId}`;
-                    }, 1000);
-                }
+                return data.accepted || false;
             } catch (error) {
-                console.log('Error verificando términos:', error);
-                // Continuar normalmente si hay error
+                console.error('Error verificando términos:', error);
+                return false;
             }
         }
-        
-        // Acordeón para términos
-        function toggleAccordion(num) {
-            const content = document.getElementById(`content${num}`);
-            const arrow = document.getElementById(`arrow${num}`);
-            
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-                arrow.innerHTML = '<i class="fas fa-chevron-down"></i>';
-            } else {
-                content.classList.add('expanded');
-                arrow.innerHTML = '<i class="fas fa-chevron-up"></i>';
-                
-                // Actualizar progreso
-                const progressFill = document.querySelector('.progress-fill');
-                if (num === 3) {
-                    progressFill.style.width = '100%';
-                } else if (num === 2) {
-                    progressFill.style.width = '66%';
-                } else {
-                    progressFill.style.width = '33%';
-                }
-            }
-        }
-        
-        // Verificar si todos los checkboxes están marcados
-        function checkAll() {
-            const check1 = document.getElementById('check1').checked;
-            const check2 = document.getElementById('check2').checked;
-            const check3 = document.getElementById('check3').checked;
-            const btn = document.getElementById('continueBtn');
-            
-            btn.disabled = !(check1 && check2 && check3);
-            
-            // Si están todos marcados, actualizar progreso
-            if (check1 && check2 && check3) {
-                document.querySelector('.progress-fill').style.width = '100%';
-                document.querySelector('.step:nth-child(1) .step-circle').classList.add('completed');
-                document.querySelector('.step:nth-child(3) .step-circle').classList.add('active');
-            } else if (check1 && check2) {
-                document.querySelector('.progress-fill').style.width = '66%';
-                document.querySelector('.step:nth-child(1) .step-circle').classList.add('completed');
-            } else if (check1) {
-                document.querySelector('.progress-fill').style.width = '33%';
-            }
-        }
-        
-        // Función para aceptar términos y redirigir a planes
-        async function acceptTerms() {
-            if (!userId) {
-                showNotification('❌ Error: No se pudo identificar el usuario', 'error');
-                return;
-            }
-            
-            const btn = document.getElementById('continueBtn');
-            const originalContent = btn.innerHTML;
-            
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin btn-icon"></i><span>Procesando...</span>';
-            
+
+        // Función para verificar estado VIP
+        async function checkVIPStatus(userId) {
             try {
-                // Enviar aceptación al backend
-                const response = await fetch('/api/accept-terms', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify({ 
-                        telegramId: userId,
-                        username: tg.initDataUnsafe.user?.username || 'Usuario',
-                        firstName: tg.initDataUnsafe.user?.first_name || 'Usuario'
-                    })
-                });
-                
-                if (response.ok) {
-                    showNotification('✅ Términos aceptados correctamente');
-                    
-                    // Redirigir a planes después de un breve retraso
-                    setTimeout(() => {
-                        window.location.href = `/plans.html?userId=${userId}`;
-                    }, 1500);
-                    
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Error al guardar la aceptación');
-                }
+                const response = await fetch(`/api/user-info/${userId}`);
+                const data = await response.json();
+                return data.vip || false;
             } catch (error) {
-                console.error('Error aceptando términos:', error);
-                showNotification('❌ Error al guardar la aceptación. Intenta nuevamente.', 'error');
-                btn.disabled = false;
-                btn.innerHTML = originalContent;
+                console.error('Error verificando VIP:', error);
+                return false;
             }
         }
-        
-        // Mostrar notificación
-        function showNotification(message, type = 'info') {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notification-text');
-            
-            notificationText.textContent = message;
-            
-            // Cambiar color según tipo
-            if (type === 'error') {
-                notification.style.borderColor = '#ef4444';
-                notification.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-            } else if (type === 'success') {
-                notification.style.borderColor = '#10b981';
-                notification.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-            } else {
-                notification.style.borderColor = 'var(--accent)';
-                notification.style.backgroundColor = 'var(--card-bg)';
+
+        // Función para obtener información del usuario
+        async function getUserInfo(userId) {
+            try {
+                const response = await fetch(`/api/user-info/${userId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Error obteniendo información del usuario:', error);
+                return null;
             }
-            
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
         }
-        
-        // Inicializar página
-        document.addEventListener('DOMContentLoaded', function() {
-            // Verificar si ya aceptó términos
-            checkTermsOnLoad();
-            
-            // Configurar userId si viene de Telegram
-            if (!userId && tg.initDataUnsafe.user?.id) {
-                const url = new URL(window.location);
-                url.searchParams.set('userId', tg.initDataUnsafe.user.id);
-                window.history.replaceState({}, '', url);
+
+        // Función principal de inicialización
+        async function init() {
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('buttons').style.display = 'none';
+
+            try {
+                // 1. Obtener ID de usuario
+                telegramUserId = getUrlParameter('userId') || tg.initDataUnsafe.user?.id;
+                
+                if (!telegramUserId) {
+                    throw new Error('No se pudo detectar el ID de usuario. Asegúrate de abrir desde Telegram.');
+                }
+
+                // 2. Obtener información del usuario
+                const userInfo = await getUserInfo(telegramUserId);
+                
+                if (!userInfo) {
+                    throw new Error('No se pudo obtener información del usuario');
+                }
+
+                // 3. Configurar información del usuario
+                userName = userInfo.first_name || userInfo.username || 'Usuario';
+                isAdminUser = userInfo.isAdmin || false;
+
+                // 4. Actualizar UI
+                document.getElementById('userName').textContent = userName;
+                document.getElementById('userId').textContent = `ID: ${telegramUserId}`;
+                
+                if (isAdminUser) {
+                    document.getElementById('adminBadge').style.display = 'block';
+                    document.getElementById('adminBtn').style.display = 'flex';
+                }
+
+                // 5. Verificar términos
+                const termsAccepted = await checkTermsAccepted(telegramUserId);
+                
+                // 6. Configurar botones
+                const plansUrl = `/plans.html?userId=${telegramUserId}`;
+                const adminUrl = `/admin.html?userId=${telegramUserId}&admin=true`;
+                
+                document.getElementById('plansBtn').href = termsAccepted ? plansUrl : `/index.html?userId=${telegramUserId}`;
+                document.getElementById('statusBtn').href = `#`; // Se manejará con onclick
+                document.getElementById('adminBtn').href = adminUrl;
+
+                // 7. Configurar evento para botón de estado
+                document.getElementById('statusBtn').onclick = async function(e) {
+                    e.preventDefault();
+                    const isVIP = await checkVIPStatus(telegramUserId);
+                    
+                    if (isVIP) {
+                        alert('✅ ¡Eres usuario VIP! Tu acceso está activo.');
+                    } else {
+                        alert('❌ No eres usuario VIP aún. Selecciona un plan para convertirte en VIP.');
+                        window.location.href = plansUrl;
+                    }
+                };
+
+                // 8. Mostrar UI
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('buttons').style.display = 'flex';
+
+                // 9. Expandir WebApp de Telegram
+                tg.expand();
+                tg.MainButton.hide();
+
+                // 10. Si no aceptó términos, redirigir a términos
+                if (!termsAccepted) {
+                    window.location.href = `/index.html?userId=${telegramUserId}`;
+                }
+
+            } catch (error) {
+                console.error('Error en inicialización:', error);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('errorText').textContent = error.message;
+                
+                // Mostrar botones básicos incluso con error
+                document.getElementById('buttons').style.display = 'flex';
+                
+                // Configurar botón de planes con URL básica
+                if (telegramUserId) {
+                    document.getElementById('plansBtn').href = `/plans.html?userId=${telegramUserId}`;
+                }
             }
-            
-            // Efectos de animación para checkboxes
-            const checkboxes = document.querySelectorAll('.checkbox-label');
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('click', function() {
-                    const check = this.querySelector('input');
-                    check.checked = !check.checked;
-                    checkAll();
-                });
-            });
-        });
+        }
+
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', init);
+
+        // También escuchar mensajes de Telegram
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg.ready();
+        }
     </script>
 </body>
 </html>

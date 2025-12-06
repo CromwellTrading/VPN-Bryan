@@ -4,26 +4,617 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VPN Cuba - Aceptar Términos</title>
-    <link rel="stylesheet" href="/css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* VARIABLES Y RESET */
+        :root {
+            --primary: #0a0a1f;
+            --secondary: #121230;
+            --accent: #4f46e5;
+            --accent-light: #6366f1;
+            --accent-dark: #3730a3;
+            --accent-glow: rgba(79, 70, 229, 0.4);
+            --text: #ffffff;
+            --text-secondary: #a5b4fc;
+            --card-bg: rgba(18, 18, 48, 0.9);
+            --border: rgba(99, 102, 241, 0.2);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--primary);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* FONDO FUTURISTA */
+        .background-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .grid-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(to right, rgba(79, 70, 229, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.6;
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .floating-element {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            opacity: 0.1;
+        }
+
+        .element-1 {
+            top: 10%;
+            left: 5%;
+            animation: float 25s infinite ease-in-out;
+        }
+
+        .element-2 {
+            bottom: 15%;
+            right: 10%;
+            animation: float 30s infinite ease-in-out reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -40px) scale(1.1); }
+            50% { transform: translate(-20px, 30px) scale(0.9); }
+            75% { transform: translate(15px, 25px) scale(1.05); }
+        }
+
+        /* CONTAINER PRINCIPAL */
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* HEADER */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            font-size: 2.8rem;
+            color: var(--accent);
+            margin-right: 15px;
+            filter: drop-shadow(0 0 15px var(--accent-glow));
+        }
+
+        .title {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 500px;
+            margin: 0 auto;
+            margin-top: 15px;
+        }
+
+        /* PROGRESO */
+        .progress-container {
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: white;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .step-circle.active {
+            background: linear-gradient(135deg, var(--accent-light), var(--accent));
+        }
+
+        .step-circle.completed {
+            background: var(--success);
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .step.active .step-label {
+            color: var(--accent-light);
+            font-weight: 600;
+        }
+
+        .progress-line {
+            flex: 1;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* TÉRMINOS CONTAINER */
+        .terms-container {
+            max-width: 800px;
+            margin: 0 auto 50px;
+        }
+
+        /* ACORDEÓN */
+        .accordion {
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .accordion::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+        }
+
+        .accordion-header {
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .accordion-header:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .accordion-icon {
+            font-size: 2rem;
+            color: var(--accent);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .accordion-title {
+            flex: 1;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .accordion-arrow {
+            font-size: 1.2rem;
+            color: var(--accent);
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+
+        .accordion-content.expanded {
+            max-height: 1000px;
+        }
+
+        .terms-content {
+            padding: 0 25px 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .terms-content h3 {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .terms-content h4 {
+            font-size: 1.3rem;
+            color: var(--text);
+            margin: 25px 0 15px;
+            font-weight: 600;
+        }
+
+        .terms-content p {
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .terms-content ul {
+            color: var(--text-secondary);
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .terms-content li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        /* CHECKBOX */
+        .accordion-checkbox {
+            padding: 20px 25px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input {
+            display: none;
+        }
+
+        .checkbox-custom {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            position: relative;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .checkbox-label input:checked + .checkbox-custom {
+            background: var(--accent);
+            border-color: var(--accent-light);
+        }
+
+        .checkbox-label input:checked + .checkbox-custom::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .checkbox-text {
+            font-size: 1.1rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .checkbox-label:hover .checkbox-custom {
+            border-color: var(--accent-light);
+        }
+
+        /* BOTÓN DE CONTINUAR */
+        .continue-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .continue-btn {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            padding: 22px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
+            overflow: hidden;
+        }
+
+        .continue-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .continue-btn:not(:disabled):hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(79, 70, 229, 0.4);
+        }
+
+        .continue-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.7s ease;
+        }
+
+        .continue-btn:not(:disabled):hover::before {
+            left: 100%;
+        }
+
+        .btn-icon {
+            font-size: 1.3rem;
+        }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* NOTIFICACIÓN */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--card-bg);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            color: var(--text);
+            font-weight: 500;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 15px;
+            }
+            
+            .title {
+                font-size: 2.2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .accordion-header {
+                padding: 20px;
+            }
+            
+            .accordion-title {
+                font-size: 1.3rem;
+            }
+            
+            .terms-content {
+                padding: 0 20px 20px;
+            }
+            
+            .continue-btn {
+                padding: 20px;
+                font-size: 1.2rem;
+            }
+            
+            .progress-steps {
+                gap: 10px;
+            }
+            
+            .step-circle {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            .step-label {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* ANIMACIONES */
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <!-- Fondo futurista -->
+    <div class="background-effect">
+        <div class="grid-lines"></div>
+        <div class="floating-elements">
+            <div class="floating-element element-1"></div>
+            <div class="floating-element element-2"></div>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <!-- HEADER -->
+        <header class="header fade-in">
             <div class="logo-container">
-                <div class="logo-glow"></div>
-                <h1>VPN CUBA</h1>
+                <i class="fas fa-shield-alt logo-icon"></i>
+                <h1 class="title">VPN CUBA</h1>
             </div>
-            <p class="subtitle">Para continuar, acepta nuestros términos</p>
+            <p class="subtitle">Para continuar, por favor acepta nuestros términos y condiciones</p>
+        </header>
+        
+        <!-- PROGRESO -->
+        <div class="progress-container fade-in delay-1">
+            <div class="progress-steps">
+                <div class="step active">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Términos</div>
+                </div>
+                
+                <div class="progress-line">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Planes</div>
+                </div>
+                
+                <div class="progress-line">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Pago</div>
+                </div>
+            </div>
         </div>
         
+        <!-- TÉRMINOS -->
         <div class="terms-container">
             <!-- Términos de Uso -->
-            <div class="accordion">
+            <div class="accordion fade-in delay-1">
                 <div class="accordion-header" onclick="toggleAccordion(1)">
-                    <div class="accordion-icon">📄</div>
+                    <div class="accordion-icon">
+                        <i class="fas fa-file-contract"></i>
+                    </div>
                     <div class="accordion-title">Términos de Uso</div>
-                    <div class="accordion-arrow" id="arrow1">▼</div>
+                    <div class="accordion-arrow" id="arrow1">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
                 </div>
                 <div class="accordion-content" id="content1">
                     <div class="terms-content">
@@ -62,11 +653,15 @@
             </div>
             
             <!-- Política de Reembolso -->
-            <div class="accordion">
+            <div class="accordion fade-in delay-2">
                 <div class="accordion-header" onclick="toggleAccordion(2)">
-                    <div class="accordion-icon">💰</div>
+                    <div class="accordion-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
                     <div class="accordion-title">Política de Reembolso</div>
-                    <div class="accordion-arrow" id="arrow2">▼</div>
+                    <div class="accordion-arrow" id="arrow2">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
                 </div>
                 <div class="accordion-content" id="content2">
                     <div class="terms-content">
@@ -97,11 +692,15 @@
             </div>
             
             <!-- Política de Privacidad -->
-            <div class="accordion">
+            <div class="accordion fade-in delay-3">
                 <div class="accordion-header" onclick="toggleAccordion(3)">
-                    <div class="accordion-icon">🔒</div>
+                    <div class="accordion-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
                     <div class="accordion-title">Política de Privacidad</div>
-                    <div class="accordion-arrow" id="arrow3">▼</div>
+                    <div class="accordion-arrow" id="arrow3">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
                 </div>
                 <div class="accordion-content" id="content3">
                     <div class="terms-content">
@@ -129,15 +728,25 @@
             </div>
         </div>
         
-        <button id="continueBtn" class="btn-primary" disabled onclick="acceptTerms()">
-            <span class="btn-icon">🚀</span>
-            <span class="btn-text">Continuar a los Planes</span>
-            <div class="btn-glow"></div>
-        </button>
-        
-        <div class="footer">
-            <p class="footer-text">© 2025 VPN Cuba. Todos los derechos reservados.</p>
+        <!-- BOTÓN DE CONTINUAR -->
+        <div class="continue-section fade-in delay-3">
+            <button id="continueBtn" class="continue-btn" disabled onclick="acceptTerms()">
+                <i class="fas fa-rocket btn-icon"></i>
+                <span>Continuar a los Planes</span>
+            </button>
         </div>
+        
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>© 2025 VPN Cuba. Todos los derechos reservados.</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">Protegido con cifrado de extremo a extremo</p>
+        </footer>
+    </div>
+
+    <!-- NOTIFICACIÓN -->
+    <div id="notification" class="notification">
+        <i class="fas fa-info-circle notification-icon"></i>
+        <span id="notification-text">Redirigiendo...</span>
     </div>
 
     <script>
@@ -146,9 +755,30 @@
         tg.expand();
         tg.MainButton.hide();
         
-        // Obtener parámetros de la URL
+        // Obtener ID de usuario
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId') || tg.initDataUnsafe.user?.id;
+        
+        // Verificar si ya aceptó términos (funcionalidad implementada)
+        async function checkTermsOnLoad() {
+            if (!userId) return;
+            
+            try {
+                const response = await fetch(`/api/check-terms/${userId}`);
+                const data = await response.json();
+                
+                // Si ya aceptó los términos, redirigir directamente a planes
+                if (data.accepted) {
+                    showNotification('Ya aceptaste los términos. Redirigiendo...');
+                    setTimeout(() => {
+                        window.location.href = `/plans.html?userId=${userId}`;
+                    }, 1000);
+                }
+            } catch (error) {
+                console.log('Error verificando términos:', error);
+                // Continuar normalmente si hay error
+            }
+        }
         
         // Acordeón para términos
         function toggleAccordion(num) {
@@ -157,10 +787,20 @@
             
             if (content.classList.contains('expanded')) {
                 content.classList.remove('expanded');
-                arrow.textContent = '▼';
+                arrow.innerHTML = '<i class="fas fa-chevron-down"></i>';
             } else {
                 content.classList.add('expanded');
-                arrow.textContent = '▲';
+                arrow.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                
+                // Actualizar progreso
+                const progressFill = document.querySelector('.progress-fill');
+                if (num === 3) {
+                    progressFill.style.width = '100%';
+                } else if (num === 2) {
+                    progressFill.style.width = '66%';
+                } else {
+                    progressFill.style.width = '33%';
+                }
             }
         }
         
@@ -172,45 +812,115 @@
             const btn = document.getElementById('continueBtn');
             
             btn.disabled = !(check1 && check2 && check3);
+            
+            // Si están todos marcados, actualizar progreso
+            if (check1 && check2 && check3) {
+                document.querySelector('.progress-fill').style.width = '100%';
+                document.querySelector('.step:nth-child(1) .step-circle').classList.add('completed');
+                document.querySelector('.step:nth-child(3) .step-circle').classList.add('active');
+            } else if (check1 && check2) {
+                document.querySelector('.progress-fill').style.width = '66%';
+                document.querySelector('.step:nth-child(1) .step-circle').classList.add('completed');
+            } else if (check1) {
+                document.querySelector('.progress-fill').style.width = '33%';
+            }
         }
         
         // Función para aceptar términos y redirigir a planes
         async function acceptTerms() {
+            if (!userId) {
+                showNotification('❌ Error: No se pudo identificar el usuario', 'error');
+                return;
+            }
+            
             const btn = document.getElementById('continueBtn');
+            const originalContent = btn.innerHTML;
+            
             btn.disabled = true;
-            btn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Procesando...</span>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin btn-icon"></i><span>Procesando...</span>';
             
             try {
-                // Guardar aceptación en el backend
+                // Enviar aceptación al backend
                 const response = await fetch('/api/accept-terms', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify({ 
                         telegramId: userId,
-                        username: tg.initDataUnsafe.user?.username,
-                        firstName: tg.initDataUnsafe.user?.first_name
+                        username: tg.initDataUnsafe.user?.username || 'Usuario',
+                        firstName: tg.initDataUnsafe.user?.first_name || 'Usuario'
                     })
                 });
                 
                 if (response.ok) {
-                    // Redirigir a la página de planes
-                    window.location.href = `/plans.html?userId=${userId}`;
+                    showNotification('✅ Términos aceptados correctamente');
+                    
+                    // Redirigir a planes después de un breve retraso
+                    setTimeout(() => {
+                        window.location.href = `/plans.html?userId=${userId}`;
+                    }, 1500);
+                    
                 } else {
-                    throw new Error('Error al guardar la aceptación');
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error al guardar la aceptación');
                 }
             } catch (error) {
-                alert('Error al guardar la aceptación. Por favor, intenta de nuevo.');
+                console.error('Error aceptando términos:', error);
+                showNotification('❌ Error al guardar la aceptación. Intenta nuevamente.', 'error');
                 btn.disabled = false;
-                btn.innerHTML = '<span class="btn-icon">🚀</span><span class="btn-text">Continuar a los Planes</span>';
+                btn.innerHTML = originalContent;
             }
         }
         
-        // Si no hay userId, intentar obtenerlo de Telegram
-        if (!userId && tg.initDataUnsafe.user) {
-            const url = new URL(window.location);
-            url.searchParams.set('userId', tg.initDataUnsafe.user.id);
-            window.history.replaceState({}, '', url);
+        // Mostrar notificación
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            notificationText.textContent = message;
+            
+            // Cambiar color según tipo
+            if (type === 'error') {
+                notification.style.borderColor = '#ef4444';
+                notification.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            } else if (type === 'success') {
+                notification.style.borderColor = '#10b981';
+                notification.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            } else {
+                notification.style.borderColor = 'var(--accent)';
+                notification.style.backgroundColor = 'var(--card-bg)';
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
+        
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar si ya aceptó términos
+            checkTermsOnLoad();
+            
+            // Configurar userId si viene de Telegram
+            if (!userId && tg.initDataUnsafe.user?.id) {
+                const url = new URL(window.location);
+                url.searchParams.set('userId', tg.initDataUnsafe.user.id);
+                window.history.replaceState({}, '', url);
+            }
+            
+            // Efectos de animación para checkboxes
+            const checkboxes = document.querySelectorAll('.checkbox-label');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('click', function() {
+                    const check = this.querySelector('input');
+                    check.checked = !check.checked;
+                    checkAll();
+                });
+            });
+        });
     </script>
 </body>
 </html>

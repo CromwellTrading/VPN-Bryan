@@ -316,7 +316,7 @@ app.get('/api/vip-users', async (req, res) => {
 });
 
 // 11. Obtener todos los usuarios
-app.get('/api/users', async (req, res) => {
+app.get('/api/all-users', async (req, res) => {
   try {
     const users = await db.getAllUsers();
     res.json(users);
@@ -478,6 +478,70 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     console.error('Error obteniendo información del usuario:', error);
     res.status(500).json({ error: 'Error obteniendo información del usuario' });
   }
+});
+
+// 16. Enviar mensaje a usuario (admin)
+app.post('/api/send-message', async (req, res) => {
+  try {
+    const { telegramId, message, adminId } = req.body;
+    
+    // Verificar permisos de administrador
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    // Enviar mensaje por Telegram
+    await bot.telegram.sendMessage(telegramId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
+      parse_mode: 'Markdown' 
+    });
+    
+    res.json({ success: true, message: 'Mensaje enviado' });
+  } catch (error) {
+    console.error('Error enviando mensaje:', error);
+    res.status(500).json({ error: 'Error enviando mensaje: ' + error.message });
+  }
+});
+
+// 17. Remover VIP de usuario (admin)
+app.post('/api/remove-vip', async (req, res) => {
+  try {
+    const { telegramId, adminId } = req.body;
+    
+    // Verificar permisos de administrador
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    // Remover VIP
+    const user = await db.removeVIP(telegramId);
+    
+    // Notificar al usuario
+    try {
+      await bot.telegram.sendMessage(
+        telegramId,
+        '⚠️ *Tu acceso VIP ha sido removido*\n\n' +
+        'Tu suscripción VIP ha sido cancelada.\n' +
+        'Si crees que es un error, contacta con soporte.',
+        { parse_mode: 'Markdown' }
+      );
+    } catch (botError) {
+      console.log('No se pudo notificar al usuario:', botError.message);
+    }
+    
+    res.json({ success: true, message: 'VIP removido', user });
+  } catch (error) {
+    console.error('Error removiendo VIP:', error);
+    res.status(500).json({ error: 'Error removiendo VIP' });
+  }
+});
+
+// 18. Ruta de prueba para verificar que el servidor funciona
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Servidor funcionando correctamente',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ==================== SERVIR ARCHIVOS HTML ====================

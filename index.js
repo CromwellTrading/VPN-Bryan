@@ -334,16 +334,16 @@ app.post('/api/payments/:id/reject', async (req, res) => {
 
     // Notificar al usuario
     try {
-  await bot.telegram.sendMessage(
-    payment.telegram_id,
-    `❌ *Tu pago ha sido rechazado*\n\n` +
-    `Motivo: ${reason}\n\n` +
-    `Por favor, contacta con soporte si necesitas más información.`,
-    { parse_mode: 'Markdown' }
-  );
-  console.log(`✅ Usuario ${payment.telegram_id} notificado del rechazo`);
-} catch (botError) {
-  console.log('❌ No se pudo notificar al usuario:', botError.message);
+      await bot.telegram.sendMessage(
+        payment.telegram_id,
+        `❌ *Tu pago ha sido rechazado*\n\n` +
+        `Motivo: ${reason}\n\n` +
+        `Por favor, contacta con soporte si necesitas más información.`,
+        { parse_mode: 'Markdown' }
+      );
+      console.log(`✅ Usuario ${payment.telegram_id} notificado del rechazo`);
+    } catch (botError) {
+      console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
 
     res.json({ success: true, payment });
@@ -909,159 +909,4 @@ bot.command('enviar', async (ctx) => {
     // Es un ID de usuario de Telegram
     telegramId = target.replace('@', '');
     // Buscar el último pago aprobado del usuario
-    const payments = await db.getUserPayments(telegramId);
-    const approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
-    if (!approvedPayment) {
-      return ctx.reply(`❌ No se encontró un pago aprobado sin configuración para el usuario ${telegramId}`);
-    }
-    paymentId = approvedPayment.id;
-  }
-  
-  ctx.session = ctx.session || {};
-  ctx.session.waitingForFile = {
-    target: telegramId,
-    paymentId: paymentId
-  };
-
-  await ctx.reply(`📤 Esperando archivo .conf para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo .conf ahora:`);
-});
-
-// Manejar archivos enviados por admin
-bot.on('document', async (ctx) => {
-  if (ctx.session?.waitingForFile && isAdmin(ctx.from.id.toString())) {
-    const { target, paymentId } = ctx.session.waitingForFile;
-    const fileId = ctx.message.document.file_id;
-    const fileName = ctx.message.document.file_name;
-
-    console.log(`📁 Admin ${ctx.from.id} envía archivo ${fileName} a ${target}`);
-
-    try {
-      // Verificar que sea un archivo .conf
-      if (!fileName.endsWith('.conf')) {
-        await ctx.reply('❌ El archivo debe tener extensión .conf');
-        return;
-      }
-      
-      // Guardar registro en la base de datos
-      await db.saveConfigFile({
-        telegram_id: target,
-        file_id: fileId,
-        file_name: fileName,
-        sent_by: ctx.from.username || 'admin',
-        sent_at: new Date().toISOString(),
-        payment_id: paymentId
-      });
-
-      // Actualizar pago
-      await db.updatePayment(paymentId, {
-        config_sent: true,
-        config_sent_at: new Date().toISOString()
-      });
-      
-      // Marcar usuario como VIP
-      const user = await db.getUser(target);
-      if (user && !user.vip) {
-        const payment = await db.getPayment(paymentId);
-        await db.makeUserVIP(target, {
-          plan: payment.plan,
-          plan_price: payment.price,
-          vip_since: new Date().toISOString()
-        });
-      }
-
-      // Enviar al usuario
-      await ctx.telegram.sendDocument(target, fileId, {
-        caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
-                '📁 Importa este archivo en WireGuard\n' +
-                '🚀 ¡Disfruta de baja latencia!',
-        parse_mode: 'Markdown'
-      });
-
-      await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
-    } catch (error) {
-      console.error('❌ Error enviando archivo:', error);
-      await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
-    }
-
-    delete ctx.session.waitingForFile;
-  }
-});
-
-// Comando /help
-bot.command('help', async (ctx) => {
-  console.log(`🆘 Usuario ${ctx.from.id} solicita ayuda`);
-  
-  const keyboard = [[
-    { text: '📋 Ver Planes', callback_data: 'view_plans' },
-    { text: '👑 Mi Estado', callback_data: 'check_status' }
-  ]];
-  
-  if (isAdmin(ctx.from.id.toString())) {
-    keyboard.push([{ text: '🔧 Panel Admin', callback_data: 'admin_panel' }]);
-  }
-  
-  await ctx.reply(
-    `🆘 *Ayuda - VPN Cuba*\n\n` +
-    `Comandos disponibles:\n` +
-    `/start - Iniciar el bot\n` +
-    `/plans - Ver planes disponibles\n` +
-    `/comprar - Comprar un plan\n` +
-    `/status - Verificar tu estado VIP\n` +
-    `/help - Mostrar esta ayuda\n\n` +
-    `También puedes usar los botones:`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: keyboard
-      }
-    }
-  );
-});
-
-// ==================== SERVIDOR ====================
-
-// Iniciar servidor
-app.listen(PORT, async () => {
-  console.log(`🚀 Servidor en http://localhost:${PORT}`);
-  console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
-  console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
-  console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
-  console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
-  console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
-  
-  // Iniciar bot
-  try {
-    await bot.launch();
-    console.log('🤖 Bot de Telegram iniciado');
-    
-    // Configurar comandos del bot
-    const commands = [
-      { command: 'start', description: 'Iniciar el bot' },
-      { command: 'plans', description: 'Ver planes disponibles' },
-      { command: 'comprar', description: 'Comprar un plan' },
-      { command: 'status', description: 'Verificar estado VIP' },
-      { command: 'help', description: 'Mostrar ayuda' }
-    ];
-    
-    // Solo mostrar comandos de admin a los admins (no es posible diferenciar)
-    await bot.telegram.setMyCommands(commands);
-    console.log('📝 Comandos del bot configurados');
-    
-  } catch (error) {
-    console.error('❌ Error iniciando bot:', error);
-  }
-});
-
-// Manejar cierre
-process.on('SIGINT', () => {
-  console.log('\n👋 Cerrando aplicación...');
-  bot.stop();
-  process.exit(0);
-});
-
-// Exportar para pruebas
-module.exports = {
-  app,
-  isAdmin,
-  ADMIN_IDS
-};
+    const

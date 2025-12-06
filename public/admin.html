@@ -88,6 +88,7 @@
             margin-bottom: 30px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .tab {
@@ -223,6 +224,12 @@
             border: 1px solid rgba(251, 191, 36, 0.3);
         }
 
+        .badge.non-vip {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
         /* BOTONES DE ACCIÓN */
         .action-btn {
             padding: 8px 16px;
@@ -266,6 +273,26 @@
 
         .action-btn.send-config:hover {
             background: rgba(79, 70, 229, 0.3);
+        }
+
+        .action-btn.message {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .action-btn.message:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .action-btn.remove-vip {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .action-btn.remove-vip:hover {
+            background: rgba(245, 158, 11, 0.3);
         }
 
         .action-btn:disabled {
@@ -444,6 +471,12 @@
                 padding: 10px;
                 font-size: 0.9rem;
             }
+            
+            .action-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+                margin-right: 4px;
+            }
         }
 
         /* NOTIFICACIÓN */
@@ -507,7 +540,7 @@
         </div>
 
         <!-- ESTADÍSTICAS -->
-        <div id="statsContent" class="tab-content">
+        <div id="statsContent" class="tab-content" style="display: none;">
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="totalUsers">0</div>
@@ -647,7 +680,7 @@
                                 <th>VIP</th>
                                 <th>Plan</th>
                                 <th>Registro</th>
-                                <th>Acciones</div>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="usersTableBody">
@@ -899,7 +932,7 @@
                 document.getElementById('usersTable').style.display = 'none';
                 document.getElementById('usersNoData').style.display = 'none';
                 
-                const response = await fetch('/api/vip-users');
+                const response = await fetch('/api/all-users');
                 const users = await response.json();
                 
                 document.getElementById('usersLoading').style.display = 'none';
@@ -921,16 +954,22 @@
                         <td>
                             ${user.vip ? 
                                 `<span class="badge vip">VIP</span><br>
-                                <small>Desde: ${new Date(user.vip_since).toLocaleDateString('es-ES')}</small>` : 
-                                '<span class="badge pending">No VIP</span>'
+                                <small>Desde: ${user.vip_since ? new Date(user.vip_since).toLocaleDateString('es-ES') : 'N/A'}</small>` : 
+                                '<span class="badge non-vip">No VIP</span>'
                             }
                         </td>
-                        <td>${user.plan || 'N/A'}</td>
+                        <td>${user.plan ? getPlanName(user.plan) : 'N/A'}</td>
                         <td>${new Date(user.created_at).toLocaleDateString('es-ES')}</td>
                         <td>
-                            <button class="action-btn send-config" onclick="sendMessageToUser('${user.telegram_id}')">
+                            <button class="action-btn message" onclick="sendMessageToUser('${user.telegram_id}')">
                                 <i class="fas fa-comment"></i> Mensaje
                             </button>
+                            ${user.vip ? 
+                                `<button class="action-btn remove-vip" onclick="removeVIP('${user.telegram_id}')">
+                                    <i class="fas fa-crown"></i> Quitar VIP
+                                </button>` : 
+                                ''
+                            }
                         </td>
                     `;
                     tableBody.appendChild(row);
@@ -989,6 +1028,7 @@
                 });
                 
                 if (response.ok) {
+                    const data = await response.json();
                     showNotification('✅ Pago aprobado correctamente', 'success');
                     closeModal();
                     loadPendingPayments();
@@ -997,8 +1037,8 @@
                     
                     // Abrir modal para enviar configuración
                     setTimeout(() => {
-                        openConfigModal(paymentId, document.getElementById('modalUserId').textContent, 
-                            document.getElementById('modalPlan').textContent);
+                        openConfigModal(paymentId, data.payment?.telegram_id || '', 
+                            data.payment?.plan || '');
                     }, 1000);
                 } else {
                     throw new Error('Error aprobando pago');
@@ -1055,6 +1095,7 @@
             const formData = new FormData();
             formData.append('configFile', file);
             formData.append('paymentId', currentPaymentId);
+            formData.append('telegramId', document.getElementById('configUserId').textContent);
             formData.append('adminId', currentUserId);
             
             try {
@@ -1067,12 +1108,14 @@
                     showNotification('✅ Configuración enviada correctamente', 'success');
                     closeConfigModal();
                     loadApprovedPayments();
+                    loadStats();
                 } else {
-                    throw new Error('Error enviando configuración');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error enviando configuración');
                 }
             } catch (error) {
                 console.error('Error enviando configuración:', error);
-                showNotification('❌ Error enviando configuración', 'error');
+                showNotification('❌ ' + error.message, 'error');
             }
         }
 
@@ -1102,6 +1145,35 @@
             } catch (error) {
                 console.error('Error enviando mensaje:', error);
                 showNotification('❌ Error enviando mensaje', 'error');
+            }
+        }
+
+        // Remover VIP de usuario
+        async function removeVIP(telegramId) {
+            if (!confirm('¿Estás seguro de quitar el VIP a este usuario?')) return;
+            
+            try {
+                const response = await fetch('/api/remove-vip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        telegramId: telegramId,
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification('✅ VIP removido correctamente', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    throw new Error('Error removiendo VIP');
+                }
+            } catch (error) {
+                console.error('Error removiendo VIP:', error);
+                showNotification('❌ Error removiendo VIP', 'error');
             }
         }
 

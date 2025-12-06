@@ -12,6 +12,61 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const db = {
+  // ========== STORAGE (IMÁGENES) ==========
+  async uploadImage(fileBuffer, fileName, contentType) {
+    try {
+      const { data, error } = await supabase.storage
+        .from('payments-screenshots')
+        .upload(fileName, fileBuffer, {
+          contentType: contentType,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('payments-screenshots')
+        .getPublicUrl(fileName);
+
+      return {
+        path: data.path,
+        url: urlData.publicUrl
+      };
+    } catch (error) {
+      console.error('Error subiendo imagen:', error);
+      throw error;
+    }
+  },
+
+  async getImageUrl(fileName) {
+    try {
+      const { data } = supabase.storage
+        .from('payments-screenshots')
+        .getPublicUrl(fileName);
+      
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error obteniendo URL de imagen:', error);
+      return null;
+    }
+  },
+
+  async deleteImage(fileName) {
+    try {
+      const { error } = await supabase.storage
+        .from('payments-screenshots')
+        .remove([fileName]);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error eliminando imagen:', error);
+      return false;
+    }
+  },
+
   // ========== USUARIOS ==========
   async getUser(telegramId) {
     try {
@@ -21,26 +76,20 @@ const db = {
         .eq('telegram_id', telegramId)
         .single();
       
-      if (error) {
-        // Si no se encuentra el usuario, no es un error crítico
-        if (error.code === 'PGRST116') return null;
-        console.error('Error obteniendo usuario:', error.message);
-        return null;
-      }
+      if (error && error.code === 'PGRST116') return null;
+      if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error en getUser:', error);
+      console.error('Error obteniendo usuario:', error);
       return null;
     }
   },
 
   async saveUser(telegramId, userData) {
     try {
-      // Verificar si el usuario ya existe
       const existingUser = await this.getUser(telegramId);
       
       if (existingUser) {
-        // Actualizar usuario existente
         const { data, error } = await supabase
           .from('users')
           .update({
@@ -54,7 +103,6 @@ const db = {
         if (error) throw error;
         return data;
       } else {
-        // Crear nuevo usuario
         const { data, error } = await supabase
           .from('users')
           .insert([{
@@ -73,13 +121,6 @@ const db = {
       console.error('Error guardando usuario:', error);
       throw error;
     }
-  },
-
-  async acceptTerms(telegramId) {
-    return await this.saveUser(telegramId, {
-      accepted_terms: true,
-      terms_date: new Date().toISOString()
-    });
   },
 
   async makeUserVIP(telegramId, vipData = {}) {
@@ -188,10 +229,8 @@ const db = {
         .eq('id', paymentId)
         .single();
       
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        throw error;
-      }
+      if (error && error.code === 'PGRST116') return null;
+      if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error obteniendo pago:', error);
@@ -246,7 +285,6 @@ const db = {
       
       if (error) throw error;
       
-      // Hacer usuario VIP
       if (data) {
         await this.makeUserVIP(data.telegram_id, {
           plan: data.plan,
@@ -343,14 +381,12 @@ const db = {
   // ========== ESTADÍSTICAS ==========
   async getStats() {
     try {
-      // Total de usuarios
       const { count: totalUsers, error: usersError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
       
       if (usersError) throw usersError;
       
-      // Usuarios VIP
       const { count: vipUsers, error: vipError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
@@ -358,7 +394,6 @@ const db = {
       
       if (vipError) throw vipError;
       
-      // Pagos pendientes
       const { count: pendingPayments, error: pendingError } = await supabase
         .from('payments')
         .select('*', { count: 'exact', head: true })
@@ -366,7 +401,6 @@ const db = {
       
       if (pendingError) throw pendingError;
       
-      // Total de ingresos (suma de pagos aprobados)
       const { data: approvedPayments, error: paymentsError } = await supabase
         .from('payments')
         .select('price')

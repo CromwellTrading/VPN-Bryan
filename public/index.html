@@ -228,17 +228,6 @@
             border: 1px solid rgba(239, 68, 68, 0.3);
             margin-bottom: 20px;
         }
-
-        .retry-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            margin-top: 15px;
-            cursor: pointer;
-            font-weight: 600;
-        }
     </style>
 </head>
 <body>
@@ -276,14 +265,6 @@
             <div id="error" class="error" style="display: none;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p id="errorText">No se pudo detectar el usuario. Por favor, abre esta página desde el bot de Telegram.</p>
-                <button class="retry-btn" onclick="retryDetection()">Reintentar</button>
-            </div>
-
-            <!-- MANUAL USER INPUT (FALLBACK) -->
-            <div id="manualInput" class="manual-input" style="display: none; margin-bottom: 20px;">
-                <p style="margin-bottom: 10px; color: var(--text-secondary);">Si ya tienes tu ID de Telegram, ingrésalo:</p>
-                <input type="text" id="manualUserId" placeholder="Ej: 123456789" style="padding: 12px; border-radius: 8px; border: 1px solid var(--accent); width: 100%; background: rgba(255,255,255,0.1); color: white; margin-bottom: 10px;">
-                <button class="retry-btn" onclick="useManualUserId()" style="width: 100%;">Usar este ID</button>
             </div>
 
             <!-- BUTTONS -->
@@ -302,11 +283,6 @@
                     <i class="fas fa-cog"></i>
                     <span>Panel de Administración</span>
                 </a>
-
-                <button id="refreshBtn" class="btn btn-secondary" onclick="retryDetection()">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Actualizar</span>
-                </button>
             </div>
         </div>
     </div>
@@ -316,7 +292,7 @@
         let telegramUserId = null;
         let userName = 'Usuario';
         let isAdminUser = false;
-        let isTelegramApp = false;
+        let initialized = false;
 
         // Inicializar Telegram WebApp
         const tg = window.Telegram && window.Telegram.WebApp;
@@ -327,38 +303,6 @@
             return urlParams.get(name);
         }
 
-        // Función para verificar si estamos en Telegram WebApp
-        function checkTelegramEnvironment() {
-            return tg && tg.initData && tg.initData !== '';
-        }
-
-        // Función para obtener ID de Telegram
-        function getTelegramUserId() {
-            // 1. Intentar desde parámetro URL
-            let userId = getUrlParameter('userId');
-            
-            // 2. Si no está en URL y estamos en Telegram WebApp
-            if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                userId = tg.initDataUnsafe.user.id.toString();
-            }
-            
-            // 3. Si todavía no, intentar extraer de initData
-            if (!userId && tg && tg.initData) {
-                try {
-                    const initData = new URLSearchParams(tg.initData);
-                    const userData = initData.get('user');
-                    if (userData) {
-                        const userObj = JSON.parse(decodeURIComponent(userData));
-                        userId = userObj.id.toString();
-                    }
-                } catch (e) {
-                    console.log('No se pudo extraer ID de initData:', e);
-                }
-            }
-            
-            return userId;
-        }
-
         // Función para verificar si es administrador
         async function checkAdminStatus(userId) {
             try {
@@ -367,18 +311,6 @@
                 return data.isAdmin || false;
             } catch (error) {
                 console.error('Error verificando admin:', error);
-                return false;
-            }
-        }
-
-        // Función para verificar términos aceptados
-        async function checkTermsAccepted(userId) {
-            try {
-                const response = await fetch(`/api/check-terms/${userId}`);
-                const data = await response.json();
-                return data.accepted || false;
-            } catch (error) {
-                console.error('Error verificando términos:', error);
                 return false;
             }
         }
@@ -431,6 +363,8 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('userInfo').style.display = 'block';
             document.getElementById('buttons').style.display = 'flex';
+            
+            initialized = true;
         }
 
         // Función para manejar error
@@ -440,7 +374,6 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'block';
             document.getElementById('errorText').textContent = message;
-            document.getElementById('manualInput').style.display = 'block';
             
             // Mostrar botones básicos incluso con error
             if (telegramUserId) {
@@ -448,40 +381,29 @@
             }
         }
 
-        // Función para reintentar detección
-        function retryDetection() {
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('manualInput').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            
-            setTimeout(initializeApp, 500);
-        }
-
-        // Función para usar ID manual
-        function useManualUserId() {
-            const manualId = document.getElementById('manualUserId').value.trim();
-            if (manualId && /^\d+$/.test(manualId)) {
-                telegramUserId = manualId;
-                document.getElementById('manualInput').style.display = 'none';
-                initializeApp();
-            } else {
-                alert('Por favor ingresa un ID válido (solo números)');
-            }
-        }
-
         // Función principal de inicialización
         async function initializeApp() {
+            // Evitar inicialización múltiple
+            if (initialized) {
+                return;
+            }
+            
             try {
                 // 1. Verificar si estamos en Telegram WebApp
-                isTelegramApp = checkTelegramEnvironment();
-                
-                if (isTelegramApp && tg) {
+                if (tg) {
                     tg.expand();
                     tg.MainButton.hide();
                 }
 
                 // 2. Obtener ID de usuario
-                telegramUserId = getTelegramUserId();
+                telegramUserId = getUrlParameter('userId');
+                
+                if (!telegramUserId) {
+                    // Si no hay parámetro, intentar obtener del contexto de Telegram
+                    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                        telegramUserId = tg.initDataUnsafe.user.id.toString();
+                    }
+                }
                 
                 if (!telegramUserId) {
                     showError('No se pudo detectar tu ID de Telegram. Asegúrate de abrir esta página desde el bot de Telegram.');
@@ -492,38 +414,17 @@
                 const userInfo = await getUserInfo(telegramUserId);
                 
                 if (!userInfo) {
-                    // Crear usuario si no existe
-                    await fetch('/api/accept-terms', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            telegramId: telegramUserId,
-                            username: tg?.initDataUnsafe?.user?.username || '',
-                            firstName: tg?.initDataUnsafe?.user?.first_name || 'Usuario'
-                        })
-                    });
-                    
-                    // Intentar obtener información nuevamente
-                    const newUserInfo = await getUserInfo(telegramUserId);
-                    if (!newUserInfo) {
-                        throw new Error('No se pudo crear el usuario');
-                    }
-                    
-                    showUserUI(telegramUserId, newUserInfo);
-                } else {
-                    showUserUI(telegramUserId, userInfo);
+                    throw new Error('No se pudo obtener información del usuario');
                 }
 
-                // 4. Verificar términos
-                const termsAccepted = await checkTermsAccepted(telegramUserId);
-                
+                // 4. Mostrar UI
+                showUserUI(telegramUserId, userInfo);
+
                 // 5. Configurar botones
                 const plansUrl = `/plans.html?userId=${telegramUserId}`;
                 const adminUrl = `/admin.html?userId=${telegramUserId}&admin=true`;
                 
-                document.getElementById('plansBtn').href = termsAccepted ? plansUrl : `/index.html?userId=${telegramUserId}`;
+                document.getElementById('plansBtn').href = plansUrl;
                 document.getElementById('adminBtn').href = adminUrl;
 
                 // 6. Configurar evento para botón de estado
@@ -539,13 +440,6 @@
                     }
                 };
 
-                // 7. Si no aceptó términos, redirigir a términos
-                if (!termsAccepted) {
-                    setTimeout(() => {
-                        window.location.href = `/index.html?userId=${telegramUserId}`;
-                    }, 1000);
-                }
-
             } catch (error) {
                 showError(error.message || 'Ocurrió un error inesperado');
             }
@@ -553,7 +447,7 @@
 
         // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
-            // Esperar un momento para que Telegram WebApp se inicialice completamente
+            // Iniciar después de un breve retraso para asegurar que Telegram WebApp esté listo
             setTimeout(initializeApp, 100);
         });
 

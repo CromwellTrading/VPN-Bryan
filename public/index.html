@@ -316,6 +316,9 @@
             background: rgba(79, 70, 229, 0.1);
             border-radius: 8px;
             transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
         }
 
         .doc-link:hover {
@@ -407,17 +410,111 @@
             transform: translateY(-3px);
         }
 
+        /* Modal para documentos completos */
+        .document-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 31, 0.98);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .document-content {
+            background: rgba(18, 18, 48, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 2px solid var(--accent);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .document-header h2 {
+            font-size: 1.5rem;
+            color: var(--text);
+        }
+
+        .close-doc-btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .close-doc-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .document-body {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .document-body h3 {
+            color: var(--text);
+            margin: 20px 0 10px;
+            font-size: 1.2rem;
+        }
+
+        .document-body p {
+            margin-bottom: 15px;
+        }
+
+        .document-body ul, .document-body ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .document-body li {
+            margin-bottom: 8px;
+        }
+
+        .document-body strong {
+            color: var(--text);
+        }
+
         /* Scrollbar para términos */
-        .terms-content::-webkit-scrollbar {
+        .terms-content::-webkit-scrollbar,
+        .document-content::-webkit-scrollbar {
             width: 8px;
         }
 
-        .terms-content::-webkit-scrollbar-track {
+        .terms-content::-webkit-scrollbar-track,
+        .document-content::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
         }
 
-        .terms-content::-webkit-scrollbar-thumb {
+        .terms-content::-webkit-scrollbar-thumb,
+        .document-content::-webkit-scrollbar-thumb {
             background: var(--accent);
             border-radius: 4px;
         }
@@ -442,10 +539,10 @@
                         Operamos bajo una estricta política de Cero Registros (No-Logs Policy). 
                         No registramos tu actividad de navegación, historial, tráfico, DNS o IP real.
                     </p>
-                    <a href="/POLITICA%20DE%20PRIVACIDAD%20VPN%20CUBA.pdf" target="_blank" class="doc-link">
-                        <i class="fas fa-external-link-alt"></i>
+                    <button class="doc-link" onclick="openDocument('privacy')">
+                        <i class="fas fa-file-alt"></i>
                         Ver documento completo
-                    </a>
+                    </button>
                 </div>
                 
                 <div class="doc-section">
@@ -457,10 +554,10 @@
                         El servicio debe usarse exclusivamente con fines lícitos. 
                         Prohibido uso para actividades ilegales, fraudulentes o abusivas.
                     </p>
-                    <a href="/TERMINOS%20DE%20USO%20VPN%20CUBA.pdf" target="_blank" class="doc-link">
-                        <i class="fas fa-external-link-alt"></i>
+                    <button class="doc-link" onclick="openDocument('terms')">
+                        <i class="fas fa-file-alt"></i>
                         Ver documento completo
-                    </a>
+                    </button>
                 </div>
                 
                 <div class="doc-section">
@@ -472,10 +569,10 @@
                         Garantía de devolución de dinero de 7 días para la primera compra, 
                         sujeto a condiciones técnicas específicas.
                     </p>
-                    <a href="/POLITICA%20DE%20REEMBOLSO.pdf" target="_blank" class="doc-link">
-                        <i class="fas fa-external-link-alt"></i>
+                    <button class="doc-link" onclick="openDocument('refund')">
+                        <i class="fas fa-file-alt"></i>
                         Ver documento completo
-                    </a>
+                    </button>
                 </div>
             </div>
             
@@ -499,6 +596,21 @@
                     <i class="fas fa-times"></i>
                     Cancelar
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para documentos completos -->
+    <div id="documentModal" class="document-modal">
+        <div class="document-content">
+            <div class="document-header">
+                <h2 id="docTitle">Documento</h2>
+                <button class="close-doc-btn" onclick="closeDocument()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="docContent" class="document-body">
+                <!-- El contenido se insertará aquí -->
             </div>
         </div>
     </div>
@@ -570,6 +682,170 @@
         // Inicializar Telegram WebApp
         const tg = window.Telegram && window.Telegram.WebApp;
 
+        // Contenido de los documentos
+        const documents = {
+            privacy: `
+                <h3>POLÍTICA DE PRIVACIDAD VPN CUBA</h3>
+                <p><strong>Última actualización: Noviembre de 2025</strong></p>
+                
+                <p>En VPN Cuba, tu privacidad y seguridad son nuestra máxima prioridad. Operamos bajo una
+                estricta política de Cero Registros (No-Logs Policy) diseñada para asegurar que tu actividad en
+                línea permanezca completamente privada.</p>
+                
+                <h3>1. Nuestro Compromiso: Cero Registros de Actividad</h3>
+                <p>VPN Cuba NO registra, almacena ni monitorea la actividad de nuestros usuarios.</p>
+                
+                <p><strong>No registramos:</strong></p>
+                <ul>
+                    <li>Tu actividad de navegación, historial de sitios web visitados o el contenido de tus
+                    comunicaciones.</li>
+                    <li>Registros de tráfico (qué datos se envían o reciben).</li>
+                    <li>Registros de DNS (solicitudes a sitios web).</li>
+                    <li>Tu dirección IP real (externa) ni la dirección IP asignada por nuestra VPN.</li>
+                </ul>
+                
+                <p>Esto significa que, incluso si se nos solicitara información, no tendríamos nada que compartir
+                sobre tu actividad en línea.</p>
+                
+                <h3>2. Información Necesaria que Sí Recolectamos</h3>
+                <p>Para operar y mantener el servicio, solo recopilamos la siguiente información mínima necesaria:</p>
+                
+                <p><strong>Información de la Cuenta:</strong> Tu nombre de usuario o ID de Cliente y la información de contacto
+                (generalmente un correo electrónico o nombre de Telegram) que proporcionas para la creación y
+                gestión de tu cuenta.</p>
+                
+                <p><strong>Información de Pago:</strong> Los datos necesarios para procesar tu compra (ej: confirmación de la
+                transferencia, ID de transacción de PayPal o USDT). Nunca almacenamos números de tarjetas
+                de crédito o información bancaria sensible.</p>
+                
+                <p><strong>Datos de Conexión Mínimos y Anónimos:</strong> Mantenemos un registro anónimo y agregado del total
+                de ancho de banda consumido o el tiempo de conexión del usuario únicamente para fines de
+                gestión de red (evitar abusos y optimizar la carga del servidor). Esta información no puede ser
+                vinculada a tu actividad específica.</p>
+                
+                <h3>3. El Protocolo WireGuard®</h3>
+                <p>Utilizamos el protocolo WireGuard por su seguridad y eficiencia superior. Entendemos las
+                preocupaciones de privacidad de WireGuard y hemos implementado configuraciones
+                personalizadas para eliminar cualquier potencial riesgo de privacidad de registros temporales de
+                IP, adhiriéndonos estrictamente a nuestra política No-Logs.</p>
+                
+                <h3>4. Uso de la Información</h3>
+                <p>La información que recolectamos (la mínima detallada en la Sección 2) se utiliza únicamente
+                para:</p>
+                <ul>
+                    <li>Crear, mantener y gestionar tu cuenta.</li>
+                    <li>Procesar pagos y facturación.</li>
+                    <li>Responder a solicitudes de soporte al cliente.</li>
+                </ul>
+            `,
+            
+            terms: `
+                <h3>TÉRMINOS DE USO VPN CUBA</h3>
+                <p><strong>Última actualización: Noviembre de 2025</strong></p>
+                
+                <p>Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.</p>
+                
+                <h3>1. Responsabilidad del Cliente</h3>
+                <p><strong>1.1. Cumplimiento Legal:</strong> El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.</p>
+                
+                <p><strong>1.2. Uso Legal:</strong> El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.</p>
+                
+                <p><strong>1.3. Datos de Cuenta:</strong> El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.</p>
+                
+                <h3>2. Uso Aceptable del Servicio (Prohibiciones)</h3>
+                <p>Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:</p>
+                
+                <ul>
+                    <li><strong>Actividades Ilegales:</strong> Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.</li>
+                    <li><strong>Ataques a la Red:</strong> Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).</li>
+                    <li><strong>Abuso de Ancho de Banda:</strong> Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).</li>
+                    <li><strong>Compartición No Autorizada:</strong> Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.</li>
+                </ul>
+                
+                <h3>3. Exclusión de Garantías y Limitación de Responsabilidad</h3>
+                <p><strong>3.1. Rendimiento:</strong> Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.</p>
+                
+                <p><strong>3.2. Interrupción de Servicio:</strong> VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.</p>
+                
+                <h3>4. Suspensión y Terminación</h3>
+                <p><strong>4.1. Violación:</strong> VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.</p>
+            `,
+            
+            refund: `
+                <h3>POLÍTICA DE REEMBOLSO VPN CUBA</h3>
+                <p><strong>Última actualización: Noviembre de 2025</strong></p>
+                
+                <p>En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia
+                gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una
+                garantía clara:</p>
+                
+                <h3>1. Garantía de Devolución de Dinero (7 Días)</h3>
+                <p>Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la
+                fecha de la compra inicial del plan.</p>
+                
+                <p>Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este
+                periodo de 7 días, puedes solicitar un reembolso completo.</p>
+                
+                <p><strong>Esta garantía solo aplica a la primera compra de un cliente.</strong> Las renovaciones o compras
+                posteriores no son elegibles.</p>
+                
+                <h3>2. Condiciones Específicas para el Reembolso</h3>
+                <p>Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con las
+                siguientes condiciones:</p>
+                
+                <p><strong>Motivo Técnico:</strong> La solicitud debe estar basada en un problema técnico no resuelto relacionado
+                con la incapacidad de conectar o una latencia (ping) inusualmente alta que el equipo de soporte
+                no pudo solucionar.</p>
+                
+                <p><em>Nota:</em> Las velocidades o latencias que sean consistentes con las limitaciones de la conexión
+                local del cliente no son motivo de reembolso.</p>
+                
+                <p><strong>Cumplimiento de Términos:</strong> El Cliente no debe haber violado nuestros Términos de Servicio (ej.
+                no haber compartido la clave, no haber realizado abuso de ancho de banda o actividades
+                ilegales).</p>
+                
+                <h3>3. Exclusiones y No Elegibilidad</h3>
+                <p>No se otorgará un reembolso bajo las siguientes circunstancias:</p>
+                
+                <ul>
+                    <li><strong>Expiración del Período:</strong> Solicitudes realizadas después del día 7 de la compra inicial.</li>
+                    <li><strong>Renovaciones:</strong> Los pagos por renovación automática o manual no son reembolsables.</li>
+                    <li><strong>Uso Abusivo:</strong> Si se comprueba el uso del servicio para actividades ilegales o la violación de
+                    nuestros Términos de Servicio.</li>
+                </ul>
+                
+                <h3>4. Proceso de Solicitud de Reembolso</h3>
+                <p>Para iniciar una solicitud de reembolso:</p>
+                
+                <ol>
+                    <li>Envía un correo electrónico a nuestro equipo de facturación: <strong>lolitogarcia0707@gmail.com</strong></li>
+                    <li>Incluye: Tu ID de Cliente, la Fecha de Compra, y la Explicación Detallada del problema técnico no
+                    resuelto.</li>
+                </ol>
+                
+                <p>Nuestro equipo de soporte revisará la solicitud y te responderá en un plazo máximo de 72 horas
+                hábiles con el estado de tu reembolso.</p>
+            `
+        };
+
+        // Función para abrir documento
+        function openDocument(type) {
+            const titles = {
+                'privacy': 'Política de Privacidad',
+                'terms': 'Términos de Uso', 
+                'refund': 'Política de Reembolso'
+            };
+            
+            document.getElementById('docTitle').textContent = titles[type] || 'Documento';
+            document.getElementById('docContent').innerHTML = documents[type] || 'Contenido no disponible';
+            document.getElementById('documentModal').style.display = 'flex';
+        }
+
+        // Función para cerrar documento
+        function closeDocument() {
+            document.getElementById('documentModal').style.display = 'none';
+        }
+
         // Función para obtener parámetros de la URL
         function getUrlParameter(name) {
             const urlParams = new URLSearchParams(window.location.search);
@@ -581,7 +857,6 @@
             const accepted = localStorage.getItem(`termsAccepted_${userId}`);
             const termsVersion = localStorage.getItem(`termsVersion_${userId}`);
             
-            // Verificar versión (actualizar si cambian los términos)
             const currentVersion = '2025-11';
             
             if (accepted === 'true' && termsVersion === currentVersion) {
@@ -602,7 +877,6 @@
             const modal = document.getElementById('termsModal');
             modal.style.display = 'flex';
             
-            // Configurar checkbox
             const checkbox = document.getElementById('acceptTermsCheckbox');
             const acceptBtn = document.getElementById('acceptTermsBtn');
             
@@ -610,17 +884,14 @@
                 acceptBtn.disabled = !this.checked;
             });
             
-            // Configurar botón de aceptar
             acceptBtn.addEventListener('click', function() {
                 if (checkbox.checked && telegramUserId) {
                     saveTermsAccepted(telegramUserId);
                     modal.style.display = 'none';
-                    // Continuar con la inicialización normal
                     proceedAfterTermsAcceptance();
                 }
             });
             
-            // Configurar botón de cancelar
             document.getElementById('cancelTermsBtn').addEventListener('click', function() {
                 modal.style.display = 'none';
                 showError('Debes aceptar los términos para usar el servicio.');
@@ -703,17 +974,12 @@
             document.getElementById('userInfo').style.display = 'block';
             document.getElementById('buttons').style.display = 'flex';
             
-            // Guardar userInfo globalmente para uso posterior
-            window.userInfo = userInfo;
-            
-            // Configurar botones con userId
             const plansUrl = `/plans.html?userId=${userId}`;
             const adminUrl = `/admin.html?userId=${userId}&admin=true`;
             
             document.getElementById('plansBtn').href = plansUrl;
             document.getElementById('adminBtn').href = adminUrl;
 
-            // Configurar evento para botón de estado
             document.getElementById('statusBtn').onclick = async function(e) {
                 e.preventDefault();
                 const isVIP = await checkVIPStatus(userId);
@@ -737,7 +1003,6 @@
             document.getElementById('error').style.display = 'block';
             document.getElementById('errorText').textContent = message;
             
-            // Mostrar botones básicos incluso con error
             if (telegramUserId) {
                 document.getElementById('buttons').style.display = 'flex';
             }
@@ -745,23 +1010,17 @@
 
         // Función principal de inicialización
         async function initializeApp() {
-            // Evitar inicialización múltiple
-            if (initialized) {
-                return;
-            }
+            if (initialized) return;
             
             try {
-                // 1. Verificar si estamos en Telegram WebApp
                 if (tg) {
                     tg.expand();
                     tg.MainButton.hide();
                 }
 
-                // 2. Obtener ID de usuario
                 telegramUserId = getUrlParameter('userId');
                 
                 if (!telegramUserId) {
-                    // Si no hay parámetro, intentar obtener del contexto de Telegram
                     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
                         telegramUserId = tg.initDataUnsafe.user.id.toString();
                     }
@@ -772,24 +1031,20 @@
                     return;
                 }
 
-                // 3. Verificar si ya aceptó los términos
                 termsAccepted = checkTermsAccepted(telegramUserId);
                 
                 if (!termsAccepted) {
-                    // Mostrar modal de términos
                     document.getElementById('loading').style.display = 'none';
                     showTermsModal();
                     return;
                 }
 
-                // 4. Si ya aceptó los términos, proceder normalmente
                 const userInfo = await getUserInfo(telegramUserId);
                 
                 if (!userInfo) {
                     throw new Error('No se pudo obtener información del usuario');
                 }
 
-                // 5. Mostrar UI
                 showUserUI(telegramUserId, userInfo);
 
             } catch (error) {
@@ -799,11 +1054,9 @@
 
         // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
-            // Iniciar después de un breve retraso para asegurar que Telegram WebApp esté listo
             setTimeout(initializeApp, 100);
         });
 
-        // También escuchar mensajes de Telegram
         if (tg) {
             tg.ready();
         }

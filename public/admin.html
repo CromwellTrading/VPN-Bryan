@@ -21,6 +21,7 @@
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
+            --trial: #10b981;
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
@@ -157,6 +158,61 @@
             background: rgba(255, 255, 255, 0.15);
         }
 
+        /* ESTADÍSTICAS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+
+        .stat-card.users .stat-value { color: var(--accent); }
+        .stat-card.users .stat-icon { color: var(--accent); }
+        
+        .stat-card.vip .stat-value { color: var(--warning); }
+        .stat-card.vip .stat-icon { color: var(--warning); }
+        
+        .stat-card.trial .stat-value { color: var(--trial); }
+        .stat-card.trial .stat-icon { color: var(--trial); }
+        
+        .stat-card.revenue .stat-value { color: var(--success); }
+        .stat-card.revenue .stat-icon { color: var(--success); }
+        
+        .stat-card.pending .stat-value { color: var(--warning); }
+        .stat-card.pending .stat-icon { color: var(--warning); }
+
         /* TABLAS */
         .table-container {
             overflow-x: auto;
@@ -222,6 +278,12 @@
             background: rgba(251, 191, 36, 0.2);
             color: #fbbf24;
             border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .badge.trial {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
         .badge.non-vip {
@@ -389,34 +451,6 @@
             background: var(--accent-light);
         }
 
-        /* ESTADÍSTICAS */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--accent);
-            margin-bottom: 10px;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
         /* LOADING */
         .loading {
             text-align: center;
@@ -518,6 +552,38 @@
             border-color: var(--warning);
             background: rgba(245, 158, 11, 0.1);
         }
+        
+        /* SECCIÓN DE PRUEBAS */
+        .trial-stats {
+            margin-bottom: 30px;
+        }
+        
+        .trial-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .trial-stat {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .trial-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--trial);
+            margin-bottom: 5px;
+        }
+        
+        .trial-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -533,36 +599,85 @@
 
         <!-- TABS -->
         <div class="tabs">
-            <div class="tab active" data-tab="pending">⏳ Pendientes</div>
+            <div class="tab active" data-tab="stats">📊 Estadísticas</div>
+            <div class="tab" data-tab="pending">⏳ Pendientes</div>
             <div class="tab" data-tab="approved">✅ Aprobados</div>
             <div class="tab" data-tab="users">👥 Usuarios</div>
-            <div class="tab" data-tab="stats">📊 Estadísticas</div>
         </div>
 
         <!-- ESTADÍSTICAS -->
-        <div id="statsContent" class="tab-content" style="display: none;">
+        <div id="statsContent" class="tab-content">
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card users">
+                    <i class="fas fa-users stat-icon"></i>
                     <div class="stat-value" id="totalUsers">0</div>
                     <div class="stat-label">Usuarios Totales</div>
                 </div>
-                <div class="stat-card">
+                
+                <div class="stat-card vip">
+                    <i class="fas fa-crown stat-icon"></i>
                     <div class="stat-value" id="vipUsers">0</div>
                     <div class="stat-label">Usuarios VIP</div>
                 </div>
-                <div class="stat-card">
+                
+                <div class="stat-card trial">
+                    <i class="fas fa-gift stat-icon"></i>
+                    <div class="stat-value" id="trialRequests">0</div>
+                    <div class="stat-label">Solicitudes de Prueba</div>
+                </div>
+                
+                <div class="stat-card pending">
+                    <i class="fas fa-clock stat-icon"></i>
                     <div class="stat-value" id="pendingPaymentsCount">0</div>
                     <div class="stat-label">Pagos Pendientes</div>
                 </div>
-                <div class="stat-card">
+                
+                <div class="stat-card revenue">
+                    <i class="fas fa-money-bill-wave stat-icon"></i>
                     <div class="stat-value" id="totalRevenue">0</div>
                     <div class="stat-label">Ingresos Totales (CUP)</div>
+                </div>
+            </div>
+            
+            <!-- ESTADÍSTICAS DE PRUEBAS -->
+            <div class="card trial-stats">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-gift"></i>
+                        Estadísticas de Pruebas Gratuitas
+                    </h2>
+                    <button class="refresh-btn" onclick="loadTrialStats()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+                
+                <div class="trial-stats-grid">
+                    <div class="trial-stat">
+                        <div class="trial-stat-value" id="totalTrialRequests">0</div>
+                        <div class="trial-stat-label">Total Solicitudes</div>
+                    </div>
+                    
+                    <div class="trial-stat">
+                        <div class="trial-stat-value" id="completedTrials">0</div>
+                        <div class="trial-stat-label">Pruebas Completadas</div>
+                    </div>
+                    
+                    <div class="trial-stat">
+                        <div class="trial-stat-value" id="pendingTrials">0</div>
+                        <div class="trial-stat-label">Pendientes</div>
+                    </div>
+                    
+                    <div class="trial-stat">
+                        <div class="trial-stat-value" id="todayTrialRequests">0</div>
+                        <div class="trial-stat-label">Hoy</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- PAGOS PENDIENTES -->
-        <div id="pendingContent" class="tab-content">
+        <div id="pendingContent" class="tab-content" style="display: none;">
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title">
@@ -678,7 +793,7 @@
                                 <th>Nombre</th>
                                 <th>Usuario</th>
                                 <th>VIP</th>
-                                <th>Plan</th>
+                                <th>Prueba</th>
                                 <th>Registro</th>
                                 <th>Acciones</th>
                             </tr>
@@ -762,7 +877,7 @@
     <script>
         // Variables globales
         let currentPaymentId = null;
-        let currentTab = 'pending';
+        let currentTab = 'stats';
         let currentUserId = null;
         let isAdminUser = false;
 
@@ -809,14 +924,14 @@
                 currentUserId = userId;
                 console.log('✅ Usuario es administrador');
                 loadStats();
-                loadPendingPayments();
+                loadTrialStats();
             } catch (error) {
                 console.error('❌ Error verificando admin:', error);
                 showNotification('❌ Error verificando permisos', 'error');
             }
         }
 
-        // Cargar estadísticas
+        // Cargar estadísticas generales
         async function loadStats() {
             try {
                 console.log('📊 Cargando estadísticas...');
@@ -825,12 +940,31 @@
                 
                 console.log('📈 Estadísticas recibidas:', stats);
                 
-                document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
-                document.getElementById('vipUsers').textContent = stats.vipUsers || 0;
-                document.getElementById('pendingPaymentsCount').textContent = stats.pendingPayments || 0;
-                document.getElementById('totalRevenue').textContent = stats.totalRevenue || 0;
+                document.getElementById('totalUsers').textContent = stats.users?.total || 0;
+                document.getElementById('vipUsers').textContent = stats.users?.vip || 0;
+                document.getElementById('trialRequests').textContent = stats.users?.trial_requests || 0;
+                document.getElementById('pendingPaymentsCount').textContent = stats.payments?.pending || 0;
+                document.getElementById('totalRevenue').textContent = stats.revenue?.total || 0;
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
+            }
+        }
+
+        // Cargar estadísticas de pruebas
+        async function loadTrialStats() {
+            try {
+                console.log('🎯 Cargando estadísticas de pruebas...');
+                const response = await fetch('/api/trial-stats');
+                const stats = await response.json();
+                
+                console.log('📈 Estadísticas de prueba recibidas:', stats);
+                
+                document.getElementById('totalTrialRequests').textContent = stats.total_requests || 0;
+                document.getElementById('completedTrials').textContent = stats.completed || 0;
+                document.getElementById('pendingTrials').textContent = stats.pending || 0;
+                document.getElementById('todayTrialRequests').textContent = stats.today_requests || 0;
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas de prueba:', error);
             }
         }
 
@@ -976,6 +1110,12 @@
                 tableBody.innerHTML = '';
                 
                 users.forEach(user => {
+                    const trialBadge = user.trial_requested ? 
+                        (user.trial_received ? 
+                            '<span class="badge trial">Prueba Enviada</span>' : 
+                            '<span class="badge pending">Prueba Pendiente</span>') : 
+                        '';
+                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${user.telegram_id || 'N/A'}</td>
@@ -988,7 +1128,7 @@
                                 '<span class="badge non-vip">No VIP</span>'
                             }
                         </td>
-                        <td>${user.plan ? getPlanName(user.plan) : 'N/A'}</td>
+                        <td>${trialBadge}</td>
                         <td>${user.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             <button class="action-btn message" onclick="sendMessageToUser('${user.telegram_id}')">
@@ -1301,6 +1441,7 @@
                     break;
                 case 'stats':
                     loadStats();
+                    loadTrialStats();
                     break;
             }
         }

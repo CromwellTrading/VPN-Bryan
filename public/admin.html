@@ -736,7 +736,14 @@
                 <p><strong>Plan:</strong> <span id="configPlan"></span></p>
                 <p><strong>Pago ID:</strong> <span id="configPaymentId"></span></p>
                 
-                <input type="file" id="configFile" class="file-input" accept=".conf,.txt,.zip,.rar">
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <p style="color: #a5b4fc; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i>
+                        Selecciona un archivo comprimido (.zip o .rar) con la configuración
+                    </p>
+                </div>
+                
+                <input type="file" id="configFile" class="file-input" accept=".zip,.rar,application/zip,application/x-rar-compressed">
                 
                 <button class="submit-config" onclick="sendConfigFile()">
                     <i class="fas fa-paper-plane"></i>
@@ -1114,7 +1121,7 @@
             }
         }
 
-        // Enviar archivo de configuración
+        // Enviar archivo de configuración (ZIP/RAR)
         async function sendConfigFile() {
             const fileInput = document.getElementById('configFile');
             const file = fileInput.files[0];
@@ -1124,8 +1131,12 @@
                 return;
             }
             
-            if (!file.name.endsWith('.conf')) {
-                showNotification('❌ El archivo debe tener extensión .conf', 'warning');
+            // Validar que sea ZIP o RAR
+            const fileName = file.name.toLowerCase();
+            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar');
+            
+            if (!isValidFile) {
+                showNotification('❌ Solo se permiten archivos .zip o .rar', 'warning');
                 return;
             }
             

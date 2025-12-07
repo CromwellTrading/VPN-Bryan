@@ -1067,6 +1067,9 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.error('❌ Error iniciando bot:', error);
   }
+
+  // Iniciar keep-alive
+  startKeepAlive();
 });
 
 // Manejar cierre
@@ -1075,6 +1078,54 @@ process.on('SIGINT', () => {
   bot.stop();
   process.exit(0);
 });
+
+// ==================== KEEP ALIVE ====================
+
+// Función para hacer ping a la propia aplicación cada 5 minutos
+function startKeepAlive() {
+  const keepAliveInterval = 5 * 60 * 1000; // 5 minutos en milisegundos
+  const healthCheckUrl = `http://localhost:${PORT}/api/health`;
+
+  setInterval(async () => {
+    try {
+      const response = await fetch(healthCheckUrl);
+      if (response.ok) {
+        console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
+      } else {
+        console.error(`❌ Keep-alive ping falló con estado ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error en keep-alive ping:', error.message);
+    }
+  }, keepAliveInterval);
+
+  console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
+}
+
+// Si usas una versión de Node.js anterior a la 18 (que no tiene fetch nativo), usa esta versión:
+// function startKeepAlive() {
+//   const keepAliveInterval = 5 * 60 * 1000; // 5 minutos en milisegundos
+//   const http = require('http');
+//   const healthCheckUrl = `http://localhost:${PORT}/api/health`;
+
+//   setInterval(() => {
+//     const req = http.request(healthCheckUrl, (res) => {
+//       if (res.statusCode === 200) {
+//         console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
+//       } else {
+//         console.error(`❌ Keep-alive ping falló con estado ${res.statusCode}`);
+//       }
+//     });
+
+//     req.on('error', (error) => {
+//       console.error('❌ Error en keep-alive ping:', error.message);
+//     });
+
+//     req.end();
+//   }, keepAliveInterval);
+
+//   console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
+// }
 
 // Exportar para pruebas
 module.exports = {

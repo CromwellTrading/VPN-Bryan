@@ -87,63 +87,9 @@ function startBotKeepAlive() {
   console.log(`🔄 Keep-alive del bot iniciado. Verificación cada 5 minutos`);
 }
 
-// ==================== BROADCAST FUNCIONALIDAD ====================
+// ==================== MENSAJES Y BOTONES PRINCIPALES ====================
 
-// Comando para enviar mensaje a todos los usuarios (solo admin)
-bot.command('broadcast', async (ctx) => {
-    const currentUserId = ctx.from.id.toString();
-    
-    if (!isAdmin(currentUserId)) {
-        await ctx.reply('❌ No tienes permisos para usar este comando.');
-        return;
-    }
-    
-    ctx.session = ctx.session || {};
-    ctx.session.waitingForBroadcastMessage = true;
-    
-    await ctx.reply(
-        `📢 *ENVIAR MENSAJE A TODOS LOS CLIENTES*\n\n` +
-        `Por favor, escribe el mensaje que quieres enviar a todos los usuarios registrados.\n\n` +
-        `*Formato:* Puedes usar Markdown para formato\n` +
-        `*Ejemplo:*\n` +
-        `¡Hola a todos! 🎉\n` +
-        `Tenemos nuevas actualizaciones disponibles...`,
-        { parse_mode: 'Markdown' }
-    );
-});
-
-// Manejar mensaje de broadcast
-bot.on('text', async (ctx) => {
-    const currentUserId = ctx.from.id.toString();
-    const message = ctx.message.text;
-    
-    // Verificar si es admin y está esperando mensaje de broadcast
-    if (isAdmin(currentUserId) && ctx.session?.waitingForBroadcastMessage) {
-        ctx.session.waitingForBroadcastMessage = false;
-        ctx.session.pendingBroadcast = message;
-        
-        await ctx.reply(
-            `📢 *CONFIRMAR ENVÍO DE BROADCAST*\n\n` +
-            `*Mensaje a enviar:*\n${message}\n\n` +
-            `Este mensaje será enviado a *todos los usuarios registrados*.\n\n` +
-            `¿Estás seguro de que quieres continuar?`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: '✅ Sí, enviar a todos', callback_data: 'confirm_broadcast' },
-                            { text: '❌ Cancelar', callback_data: 'cancel_broadcast' }
-                        ]
-                    ]
-                }
-            }
-        );
-    }
-});
-
-// ==================== COMANDO /START ====================
-
+// Comando /start - Pantalla principal con todos los botones
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const username = ctx.from.username;
@@ -159,41 +105,53 @@ bot.start(async (ctx) => {
             created_at: new Date().toISOString()
         });
 
-        // Crear teclado dinámico según si es admin o no
-        const keyboard = [[
-            { 
-                text: '📋 Ver Planes', 
-                web_app: { url: plansUrl }
-            }
-        ]];
+        // Crear teclado principal
+        const keyboard = [
+            [
+                { 
+                    text: '📋 VER PLANES', 
+                    web_app: { url: plansUrl }
+                },
+                {
+                    text: '👑 MI ESTADO',
+                    callback_data: 'check_status'
+                }
+            ],
+            [
+                {
+                    text: '🆘 SOPORTE',
+                    url: 'https://t.me/L0quen2'
+                }
+            ]
+        ];
 
-        // Si es admin, agregar botón de admin y broadcast
+        // Si es admin, agregar botones de admin
         if (isAdmin(userId)) {
             const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true`;
             
             keyboard.push([
                 { 
-                    text: '🔧 Panel Admin', 
+                    text: '🔧 PANEL ADMIN', 
                     web_app: { url: adminUrl }
                 },
                 {
-                    text: '📢 Broadcast',
+                    text: '📢 BROADCAST',
                     callback_data: 'start_broadcast'
                 }
             ]);
             
             // Agregar fila adicional para broadcast en webapp
             keyboard.push([{ 
-                text: '📢 Enviar a Todos (Web)', 
+                text: '📢 ENVIAR A TODOS (WEB)', 
                 web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/broadcast.html?userId=${userId}&admin=true` }
             }]);
         }
 
         await ctx.reply(
             `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
-            `Bienvenido a *VPN Cuba* 🚀\n\n` +
-            `Ofrecemos la mejor conexión de baja latencia para tu experiencia gaming y navegación segura.\n\n` +
-            `Para ver nuestros planes y realizar tu compra, haz clic en el botón de abajo:`,
+            `*BIENVENIDO A VPN CUBA* 🚀\n\n` +
+            `Ofrecemos la mejor conexión de baja latencia para gaming y navegación segura.\n\n` +
+            `*Selecciona una opción:*`,
             {
                 parse_mode: 'Markdown',
                 reply_markup: {
@@ -207,46 +165,115 @@ bot.start(async (ctx) => {
     }
 });
 
-// ==================== COMANDO /PLANS ====================
+// Botón "MENÚ PRINCIPAL"
+bot.action('main_menu', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const firstName = ctx.from.first_name;
+    
+    const plansUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}`;
+    
+    // Crear teclado principal
+    const keyboard = [
+        [
+            { 
+                text: '📋 VER PLANES', 
+                web_app: { url: plansUrl }
+            },
+            {
+                text: '👑 MI ESTADO',
+                callback_data: 'check_status'
+            }
+        ],
+        [
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ]
+    ];
 
-bot.command('plans', async (ctx) => {
-    const userId = ctx.from.id;
+    // Si es admin, agregar botones de admin
+    if (isAdmin(userId)) {
+        const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true`;
+        
+        keyboard.push([
+            { 
+                text: '🔧 PANEL ADMIN', 
+                web_app: { url: adminUrl }
+            },
+            {
+                text: '📢 BROADCAST',
+                callback_data: 'start_broadcast'
+            }
+        ]);
+        
+        keyboard.push([{ 
+            text: '📢 ENVIAR A TODOS (WEB)', 
+            web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/broadcast.html?userId=${userId}&admin=true` }
+        }]);
+    }
+
+    await ctx.editMessageText(
+        `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
+        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+        `Selecciona una opción:`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
+});
+
+// Botón "VER PLANES"
+bot.action('view_plans_button', async (ctx) => {
+    const userId = ctx.from.id.toString();
     const webappUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}`;
     
-    // Crear teclado dinámico
-    const keyboard = [[
-        { 
-            text: '🚀 Comprar Ahora', 
-            web_app: { url: webappUrl }
-        },
-        {
-            text: '📊 Ver Detalles',
-            callback_data: 'view_detailed_plans'
-        }
-    ]];
+    // Crear teclado para planes
+    const keyboard = [
+        [
+            { 
+                text: '🚀 COMPRAR AHORA', 
+                web_app: { url: webappUrl }
+            }
+        ],
+        [
+            {
+                text: '📊 VER DETALLES',
+                callback_data: 'view_detailed_plans'
+            }
+        ],
+        [
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
     
     // Si es admin, agregar botón de broadcast
     if (isAdmin(userId)) {
         keyboard.push([
             {
-                text: '📢 Broadcast',
+                text: '📢 BROADCAST',
                 callback_data: 'start_broadcast'
             }
         ]);
     }
     
-    keyboard.push([
-        {
-            text: '🆘 Soporte',
-            url: 'https://t.me/L0quen2'
-        }
-    ]);
-    
-    await ctx.reply(
-        `📋 *Planes Disponibles*\n\n` +
-        `*Básico (1 mes)*\n` +
+    await ctx.editMessageText(
+        `📋 *PLANES DISPONIBLES* 🚀\n\n` +
+        `*BÁSICO (1 mes)*\n` +
         `💵 $800 CUP\n\n` +
-        `*Premium (2 meses)*\n` +
+        `*PREMIUM (2 meses)*\n` +
         `💵 $1,300 CUP\n` +
         `💰 ¡Ahorras $300 CUP!\n\n` +
         `*VIP (6 meses)*\n` +
@@ -257,7 +284,7 @@ bot.command('plans', async (ctx) => {
         `✅ Baja Latencia\n` +
         `✅ Ancho de Banda Ilimitado\n` +
         `✅ Soporte Prioritario\n\n` +
-        `Para comprar, haz clic en el botón de abajo:`,
+        `Selecciona una opción:`,
         {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -267,16 +294,37 @@ bot.command('plans', async (ctx) => {
     );
 });
 
-// ==================== COMANDO /STATUS ====================
-
-bot.command('status', async (ctx) => {
+// Botón "MI ESTADO"
+bot.action('check_status', async (ctx) => {
     const userId = ctx.from.id.toString();
     
     try {
         const user = await userService.getUserByTelegramId(userId);
         
         if (!user) {
-            await ctx.reply('❌ No estás registrado. Usa /start para comenzar.');
+            await ctx.editMessageText(
+                `❌ *NO ESTÁS REGISTRADO*\n\n` +
+                `Usa el botón "📋 VER PLANES" para registrarte y comenzar.`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '📋 VER PLANES',
+                                    callback_data: 'view_plans_button'
+                                }
+                            ],
+                            [
+                                {
+                                    text: '🏠 MENÚ PRINCIPAL',
+                                    callback_data: 'main_menu'
+                                }
+                            ]
+                        ]
+                    }
+                }
+            );
             return;
         }
         
@@ -284,50 +332,63 @@ bot.command('status', async (ctx) => {
             const vipSince = formatearFecha(user.vip_since);
             const diasRestantes = calcularDiasRestantes(user);
             const planNombre = user.plan ? 
-                (user.plan === 'basico' ? 'Básico (1 mes)' : 
-                 user.plan === 'premium' ? 'Premium (2 meses)' : 
+                (user.plan === 'basico' ? 'BÁSICO (1 mes)' : 
+                 user.plan === 'premium' ? 'PREMIUM (2 meses)' : 
                  user.plan === 'vip' ? 'VIP (6 meses)' : user.plan) : 
                 'No especificado';
             
-            let mensajeEstado = `✅ *¡Eres usuario VIP!*\n\n`;
+            let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
             mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
             mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
             mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
             mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
             
             if (diasRestantes <= 7) {
-                mensajeEstado += `⚠️ *Tu plan está por expirar pronto.*\n`;
+                mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
                 mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
             } else {
                 mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
             }
             
-            mensajeEstado += `Para problemas técnicos, contacta a nuestro soporte:`;
+            mensajeEstado += `*SELECCIONA UNA OPCIÓN:*`;
             
             // Crear teclado dinámico
-            const keyboard = [[
-                { 
-                    text: '🆘 Contactar Soporte', 
-                    url: 'https://t.me/L0quen2'
-                }
-            ], [
-                {
-                    text: '📋 Ver Planes',
-                    web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}` }
-                }
-            ]];
+            const keyboard = [
+                [
+                    { 
+                        text: '🆘 CONTACTAR SOPORTE', 
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '📋 VER PLANES',
+                        web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}` }
+                    },
+                    {
+                        text: '🔄 RENOVAR',
+                        callback_data: 'view_plans_button'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
             
             // Si es admin, agregar botón de broadcast
             if (isAdmin(userId)) {
                 keyboard.push([
                     {
-                        text: '📢 Broadcast',
+                        text: '📢 BROADCAST',
                         callback_data: 'start_broadcast'
                     }
                 ]);
             }
             
-            await ctx.reply(
+            await ctx.editMessageText(
                 mensajeEstado,
                 { 
                     parse_mode: 'Markdown',
@@ -340,29 +401,37 @@ bot.command('status', async (ctx) => {
             const webappUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}`;
             
             // Crear teclado dinámico
-            const keyboard = [[
-                { 
-                    text: '📋 Ver Planes', 
-                    web_app: { url: webappUrl }
-                },
-                {
-                    text: '🆘 Soporte',
-                    url: 'https://t.me/L0quen2'
-                }
-            ]];
+            const keyboard = [
+                [
+                    { 
+                        text: '📋 VER PLANES', 
+                        web_app: { url: webappUrl }
+                    },
+                    {
+                        text: '🆘 SOPORTE',
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
             
             // Si es admin, agregar botón de broadcast
             if (isAdmin(userId)) {
                 keyboard.push([
                     {
-                        text: '📢 Broadcast',
+                        text: '📢 BROADCAST',
                         callback_data: 'start_broadcast'
                     }
                 ]);
             }
             
-            await ctx.reply(
-                `❌ *No eres usuario VIP*\n\n` +
+            await ctx.editMessageText(
+                `❌ *NO ERES USUARIO VIP*\n\n` +
                 `Actualmente no tienes acceso a los servicios premium.\n\n` +
                 `Haz clic en los botones para ver nuestros planes o contactar soporte:`,
                 {
@@ -374,8 +443,27 @@ bot.command('status', async (ctx) => {
             );
         }
     } catch (error) {
-        console.error('Error en comando /status:', error);
-        await ctx.reply('❌ Hubo un error al verificar tu estado. Por favor, intenta de nuevo.');
+        console.error('Error en botón MI ESTADO:', error);
+        await ctx.editMessageText(
+            `❌ Error al verificar tu estado.\n\nPor favor, intenta de nuevo.`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: '🔄 REINTENTAR',
+                                callback_data: 'check_status'
+                            },
+                            {
+                                text: '🏠 MENÚ PRINCIPAL',
+                                callback_data: 'main_menu'
+                            }
+                        ]
+                    ]
+                }
+            }
+        );
     }
 });
 
@@ -389,21 +477,21 @@ bot.on('callback_query', async (ctx) => {
         switch (data) {
             case 'view_detailed_plans':
                 await ctx.editMessageText(
-                    `📊 *Detalles de Planes*\n\n` +
-                    `*Plan Básico (1 mes)*\n` +
+                    `📊 *DETALLES DE PLANES* 📋\n\n` +
+                    `*PLAN BÁSICO (1 mes)*\n` +
                     `• Precio: $800 CUP\n` +
                     `• Conexión de baja latencia\n` +
                     `• Ancho de banda ilimitado\n` +
                     `• Soporte prioritario\n` +
                     `• 10 servidores disponibles\n\n` +
-                    `*Plan Premium (2 meses)*\n` +
+                    `*PLAN PREMIUM (2 meses)*\n` +
                     `• Precio: $1,300 CUP\n` +
                     `• ¡Ahorras $300 CUP!\n` +
                     `• Todo lo del Básico\n` +
                     `• 2 meses de servicio\n` +
                     `• Soporte 24/7\n` +
                     `• Protección de datos avanzada\n\n` +
-                    `*Plan VIP (6 meses)*\n` +
+                    `*PLAN VIP (6 meses)*\n` +
                     `• Precio: $3,000 CUP\n` +
                     `• ¡Ahorras $1,800 CUP!\n` +
                     `• Solo $500 CUP/mes\n` +
@@ -412,132 +500,35 @@ bot.on('callback_query', async (ctx) => {
                     `• Configuración personalizada\n` +
                     `• Soporte dedicado VIP\n` +
                     `• Velocidad máxima garantizada\n\n` +
-                    `Haz clic en Comprar Ahora para seleccionar tu plan:`,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [[
-                                { 
-                                    text: '🚀 Comprar Ahora', 
-                                    web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}` }
-                                }
-                            ], [
-                                {
-                                    text: '🆘 Soporte',
-                                    url: 'https://t.me/L0quen2'
-                                }
-                            ]]
-                        }
-                    }
-                );
-                break;
-                
-            case 'check_status':
-                const user = await userService.getUserByTelegramId(userId);
-                
-                if (!user) {
-                    await ctx.answerCbQuery('❌ No estás registrado');
-                    return;
-                }
-                
-                if (user.vip) {
-                    const vipSince = formatearFecha(user.vip_since);
-                    const diasRestantes = calcularDiasRestantes(user);
-                    const planNombre = user.plan ? 
-                        (user.plan === 'basico' ? 'Básico (1 mes)' : 
-                         user.plan === 'premium' ? 'Premium (2 meses)' : 
-                         user.plan === 'vip' ? 'VIP (6 meses)' : user.plan) : 
-                        'No especificado';
-                    
-                    let mensajeEstado = `✅ *¡Eres usuario VIP!*\n\n`;
-                    mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
-                    mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
-                    mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
-                    mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-                    
-                    if (diasRestantes <= 7) {
-                        mensajeEstado += `⚠️ *Tu plan está por expirar pronto.*\n`;
-                        mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
-                    } else {
-                        mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
-                    }
-                    
-                    mensajeEstado += `Para problemas técnicos, contacta a nuestro soporte:`;
-                    
-                    await ctx.editMessageText(
-                        mensajeEstado,
-                        { 
-                            parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[
-                                    { 
-                                        text: '🆘 Contactar Soporte', 
-                                        url: 'https://t.me/L0quen2'
-                                    }
-                                ], [
-                                    {
-                                        text: '📋 Ver Planes',
-                                        web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}` }
-                                    }
-                                ]]
-                            }
-                        }
-                    );
-                } else {
-                    const webappUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}`;
-                    
-                    await ctx.editMessageText(
-                        `❌ *No eres usuario VIP*\n\n` +
-                        `Actualmente no tienes acceso a los servicios premium.\n\n` +
-                        `Haz clic en los botones para ver nuestros planes o contactar soporte:`,
-                        {
-                            parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[
-                                    { 
-                                        text: '📋 Ver Planes', 
-                                        web_app: { url: webappUrl }
-                                    },
-                                    {
-                                        text: '🆘 Soporte',
-                                        url: 'https://t.me/L0quen2'
-                                    }
-                                ]]
-                            }
-                        }
-                    );
-                }
-                await ctx.answerCbQuery();
-                break;
-                
-            case 'admin_panel':
-                if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
-                    return;
-                }
-                
-                const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true`;
-                await ctx.editMessageText(
-                    `🔧 *Panel de Administración*\n\n` +
-                    `Selecciona una opción:`,
+                    `*SELECCIONA UNA OPCIÓN:*`,
                     {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ 
-                                    text: '🔧 Abrir Panel Web', 
-                                    web_app: { url: adminUrl }
-                                }],
                                 [
-                                    {
-                                        text: '📢 Enviar Broadcast',
-                                        callback_data: 'start_broadcast'
+                                    { 
+                                        text: '🚀 COMPRAR AHORA', 
+                                        web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}` }
                                     }
                                 ],
-                                [{
-                                    text: '🆘 Soporte',
-                                    url: 'https://t.me/L0quen2'
-                                }]
+                                [
+                                    {
+                                        text: '🆘 SOPORTE',
+                                        url: 'https://t.me/L0quen2'
+                                    }
+                                ],
+                                [
+                                    {
+                                        text: '📋 VER PLANES RESUMEN',
+                                        callback_data: 'view_plans_button'
+                                    }
+                                ],
+                                [
+                                    {
+                                        text: '🏠 MENÚ PRINCIPAL',
+                                        callback_data: 'main_menu'
+                                    }
+                                ]
                             ]
                         }
                     }
@@ -546,7 +537,7 @@ bot.on('callback_query', async (ctx) => {
                 
             case 'start_broadcast':
                 if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
+                    await ctx.answerCbQuery('❌ NO AUTORIZADO');
                     return;
                 }
                 
@@ -554,26 +545,39 @@ bot.on('callback_query', async (ctx) => {
                 ctx.session.waitingForBroadcastMessage = true;
                 
                 await ctx.editMessageText(
-                    `📢 *ENVIAR MENSAJE A TODOS LOS CLIENTES*\n\n` +
-                    `Por favor, escribe el mensaje que quieres enviar a todos los usuarios registrados.\n\n` +
-                    `*Formato:* Puedes usar Markdown para formato\n` +
-                    `*Ejemplo:*\n` +
+                    `📢 *ENVIAR MENSAJE A TODOS LOS CLIENTES* 📤\n\n` +
+                    `Por favor, escribe el mensaje que quieres enviar a *todos* los usuarios registrados.\n\n` +
+                    `*FORMATO:* Puedes usar Markdown para formato\n` +
+                    `*EJEMPLO:*\n` +
                     `¡Hola a todos! 🎉\n` +
-                    `Tenemos nuevas actualizaciones disponibles...`,
-                    { parse_mode: 'Markdown' }
+                    `Tenemos nuevas actualizaciones disponibles...\n\n` +
+                    `Escribe tu mensaje ahora:`,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: '❌ CANCELAR',
+                                        callback_data: 'main_menu'
+                                    }
+                                ]
+                            ]
+                        }
+                    }
                 );
                 await ctx.answerCbQuery();
                 break;
                 
             case 'confirm_broadcast':
                 if (!isAdmin(userId)) {
-                    await ctx.answerCbQuery('❌ No autorizado');
+                    await ctx.answerCbQuery('❌ NO AUTORIZADO');
                     return;
                 }
                 
                 const broadcastMessage = ctx.session?.pendingBroadcast;
                 if (!broadcastMessage) {
-                    await ctx.answerCbQuery('❌ No hay mensaje para enviar');
+                    await ctx.answerCbQuery('❌ NO HAY MENSAJE PARA ENVIAR');
                     return;
                 }
                 
@@ -582,10 +586,16 @@ bot.on('callback_query', async (ctx) => {
                 const totalUsers = users.length;
                 
                 await ctx.editMessageText(
-                    `📢 *ENVIANDO BROADCAST*\n\n` +
+                    `📢 *ENVIANDO BROADCAST* 📤\n\n` +
                     `Enviando mensaje a ${totalUsers} usuarios...\n` +
-                    `Por favor, espera.`,
-                    { parse_mode: 'Markdown' }
+                    `Por favor, espera. Esto puede tomar unos minutos.\n\n` +
+                    `⏳ *PROGRESO:* 0/${totalUsers}`,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: []
+                        }
+                    }
                 );
                 
                 let successCount = 0;
@@ -599,7 +609,7 @@ bot.on('callback_query', async (ctx) => {
                     try {
                         await bot.telegram.sendMessage(
                             user.telegram_id,
-                            `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${broadcastMessage}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte._`,
+                            `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${broadcastMessage}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
                             { parse_mode: 'Markdown' }
                         );
                         successCount++;
@@ -610,8 +620,10 @@ bot.on('callback_query', async (ctx) => {
                                 ctx.chat.id,
                                 ctx.callbackQuery.message.message_id,
                                 null,
-                                `📢 *ENVIANDO BROADCAST*\n\n` +
-                                `Progreso: ${i + 1}/${totalUsers} usuarios\n` +
+                                `📢 *ENVIANDO BROADCAST* 📤\n\n` +
+                                `Enviando mensaje a ${totalUsers} usuarios...\n` +
+                                `Por favor, espera. Esto puede tomar unos minutos.\n\n` +
+                                `⏳ *PROGRESO:* ${i + 1}/${totalUsers}\n` +
                                 `✅ Enviados: ${successCount}\n` +
                                 `❌ Fallados: ${failCount}`,
                                 { parse_mode: 'Markdown' }
@@ -630,8 +642,8 @@ bot.on('callback_query', async (ctx) => {
                 
                 delete ctx.session.pendingBroadcast;
                 
-                let finalMessage = `✅ *BROADCAST COMPLETADO*\n\n`;
-                finalMessage += `📊 *Estadísticas:*\n`;
+                let finalMessage = `✅ *BROADCAST COMPLETADO* 📤\n\n`;
+                finalMessage += `📊 *ESTADÍSTICAS:*\n`;
                 finalMessage += `• Total de usuarios: ${totalUsers}\n`;
                 finalMessage += `• Mensajes enviados: ${successCount}\n`;
                 finalMessage += `• Mensajes fallados: ${failCount}\n`;
@@ -639,23 +651,38 @@ bot.on('callback_query', async (ctx) => {
                 
                 if (failCount > 0) {
                     finalMessage += `❌ *Usuarios con error:*\n`;
-                    finalMessage += failedUsers.slice(0, 10).map(id => `• ${id}`).join('\n');
-                    if (failedUsers.length > 10) {
-                        finalMessage += `\n• ... y ${failedUsers.length - 10} más`;
+                    finalMessage += failedUsers.slice(0, 5).map(id => `• ${id}`).join('\n');
+                    if (failedUsers.length > 5) {
+                        finalMessage += `\n• ... y ${failedUsers.length - 5} más`;
                     }
+                    finalMessage += `\n`;
                 }
+                
+                finalMessage += `\n*SELECCIONA UNA OPCIÓN:*`;
                 
                 await ctx.editMessageText(
                     finalMessage,
                     { 
                         parse_mode: 'Markdown',
                         reply_markup: {
-                            inline_keyboard: [[
-                                {
-                                    text: '📊 Ver Panel Admin',
-                                    web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true` }
-                                }
-                            ]]
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: '🔧 PANEL ADMIN',
+                                        web_app: { url: `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}&admin=true` }
+                                    },
+                                    {
+                                        text: '📢 NUEVO BROADCAST',
+                                        callback_data: 'start_broadcast'
+                                    }
+                                ],
+                                [
+                                    {
+                                        text: '🏠 MENÚ PRINCIPAL',
+                                        callback_data: 'main_menu'
+                                    }
+                                ]
+                            ]
                         }
                     }
                 );
@@ -669,8 +696,27 @@ bot.on('callback_query', async (ctx) => {
                 
                 await ctx.editMessageText(
                     `❌ *BROADCAST CANCELADO*\n\n` +
-                    `El envío masivo ha sido cancelado.`,
-                    { parse_mode: 'Markdown' }
+                    `El envío masivo ha sido cancelado.\n\n` +
+                    `*SELECCIONA UNA OPCIÓN:*`,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: '📢 NUEVO BROADCAST',
+                                        callback_data: 'start_broadcast'
+                                    }
+                                ],
+                                [
+                                    {
+                                        text: '🏠 MENÚ PRINCIPAL',
+                                        callback_data: 'main_menu'
+                                    }
+                                ]
+                            ]
+                        }
+                    }
                 );
                 await ctx.answerCbQuery();
                 break;
@@ -683,52 +729,36 @@ bot.on('callback_query', async (ctx) => {
     }
 });
 
-// ==================== COMANDO /ADMIN ====================
+// ==================== MANEJAR MENSAJES DE BROADCAST ====================
 
-bot.command('admin', async (ctx) => {
+// Manejar mensaje de broadcast
+bot.on('text', async (ctx) => {
     const currentUserId = ctx.from.id.toString();
+    const message = ctx.message.text;
     
-    if (!isAdmin(currentUserId)) {
-        await ctx.reply('❌ No tienes permisos para acceder al panel de administración.');
-        return;
-    }
-    
-    const adminUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/admin.html?userId=${currentUserId}&admin=true`;
-    const broadcastUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/broadcast.html?userId=${currentUserId}&admin=true`;
-    
-    await ctx.reply(
-        `🔧 *Panel de Administración*\n\n` +
-        `Accede al panel completo desde:`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        { 
-                            text: '🔧 Abrir Panel Admin', 
-                            web_app: { url: adminUrl }
-                        }
-                    ],
-                    [
-                        {
-                            text: '📢 Enviar Broadcast',
-                            callback_data: 'start_broadcast'
-                        },
-                        {
-                            text: '📢 Web Broadcast',
-                            web_app: { url: broadcastUrl }
-                        }
-                    ],
-                    [
-                        {
-                            text: '🆘 Soporte',
-                            url: 'https://t.me/L0quen2'
-                        }
+    // Verificar si es admin y está esperando mensaje de broadcast
+    if (isAdmin(currentUserId) && ctx.session?.waitingForBroadcastMessage) {
+        ctx.session.waitingForBroadcastMessage = false;
+        ctx.session.pendingBroadcast = message;
+        
+        await ctx.reply(
+            `📢 *CONFIRMAR ENVÍO DE BROADCAST* ✅\n\n` +
+            `*MENSAJE A ENVIAR:*\n${message}\n\n` +
+            `Este mensaje será enviado a *todos los usuarios registrados*.\n\n` +
+            `¿Estás seguro de que quieres continuar?`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '✅ SÍ, ENVIAR A TODOS', callback_data: 'confirm_broadcast' },
+                            { text: '❌ CANCELAR', callback_data: 'cancel_broadcast' }
+                        ]
                     ]
-                ]
+                }
             }
-        }
-    );
+        );
+    }
 });
 
 // ==================== MANEJAR ARCHIVOS ====================
@@ -765,23 +795,55 @@ bot.on('document', async (ctx) => {
             
             // Enviar archivo al usuario objetivo
             await ctx.telegram.sendDocument(target, fileId, {
-                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                caption: `🎉 *¡TU CONFIGURACIÓN DE VPN CUBA ESTÁ LISTA!* 🚀\n\n` +
                         `📁 *Archivo:* ${fileName}\n\n` +
-                        `*Instrucciones de instalación:*\n` +
+                        `*INSTRUCCIONES DE INSTALACIÓN:*\n` +
                         `1. Descarga este archivo\n` +
                         `2. Descomprime el ZIP/RAR\n` +
                         `3. Importa el archivo .conf en tu cliente WireGuard\n` +
                         `4. Activa la conexión\n` +
                         `5. ¡Disfruta de baja latencia! 🚀\n\n` +
-                        `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+                        `*SOPORTE:* Contacta con @L0quen2 si tienes problemas.`,
                 parse_mode: 'Markdown'
             });
             
-            await ctx.reply(`✅ Archivo enviado exitosamente al usuario ${target}`);
+            await ctx.reply(
+                `✅ *ARCHIVO ENVIADO EXITOSAMENTE* 📤\n\n` +
+                `Al usuario: ${target}`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '🏠 MENÚ PRINCIPAL',
+                                    callback_data: 'main_menu'
+                                }
+                            ]
+                        ]
+                    }
+                }
+            );
             
         } catch (error) {
             console.error('Error al enviar archivo:', error);
-            await ctx.reply(`❌ Error al enviar archivo: ${error.message}`);
+            await ctx.reply(
+                `❌ *ERROR AL ENVIAR ARCHIVO*\n\n` +
+                `${error.message}`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '🔄 REINTENTAR',
+                                    callback_data: 'main_menu'
+                                }
+                            ]
+                        ]
+                    }
+                }
+            );
         }
         
         // Limpiar sesión
@@ -789,108 +851,36 @@ bot.on('document', async (ctx) => {
     }
 });
 
-// ==================== COMANDO /SOPORTE ====================
+// ==================== COMANDOS DE TEXTO (SOLO PARA EMERGENCIA) ====================
 
-bot.command(['soporte', 'support'], async (ctx) => {
-    const userId = ctx.from.id.toString();
-    
-    // Crear teclado dinámico
-    const keyboard = [[
-        { 
-            text: '🆘 Contactar Soporte', 
-            url: 'https://t.me/L0quen2'
-        }
-    ]];
-    
-    // Si es admin, agregar botón de broadcast
-    if (isAdmin(userId)) {
-        keyboard.push([
-            {
-                text: '📢 Broadcast',
-                callback_data: 'start_broadcast'
-            }
-        ]);
-    }
-    
-    await ctx.reply(
-        `🆘 *Soporte VPN Cuba*\n\n` +
-        `Para cualquier problema o consulta, contacta a nuestro equipo de soporte:\n\n` +
-        `📱 *Telegram:* @L0quen2\n\n` +
-        `Nuestro equipo está disponible para ayudarte con:\n` +
-        `• Problemas de conexión\n` +
-        `• Configuración de la VPN\n` +
-        `• Renovación de plan\n` +
-        `• Consultas generales\n\n` +
-        `¡Estamos aquí para ayudarte! 🚀`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: keyboard
-            }
-        }
-    );
-});
-
-// ==================== COMANDO /HELP ====================
-
+// Comando /help - Solo como backup
 bot.command('help', async (ctx) => {
     const userId = ctx.from.id.toString();
     
-    // Crear teclado dinámico
-    const keyboard = [[
-        {
-            text: '🆘 Soporte',
-            url: 'https://t.me/L0quen2'
-        }
-    ]];
-    
-    // Si es admin, agregar botón de broadcast
-    if (isAdmin(userId)) {
-        keyboard.push([
-            {
-                text: '📢 Broadcast',
-                callback_data: 'start_broadcast'
-            }
-        ]);
-    }
-    
     await ctx.reply(
-        `📚 *Ayuda - VPN Cuba*\n\n` +
-        `*Comandos disponibles:*\n` +
-        `/start - Iniciar el bot\n` +
-        `/plans - Ver planes disponibles\n` +
-        `/status - Verificar tu estado VIP\n` +
-        `/soporte - Contactar con soporte\n` +
-        `/help - Mostrar esta ayuda\n\n` +
-        `${isAdmin(userId) ? '/broadcast - Enviar mensaje a todos los usuarios (solo admin)\n' : ''}` +
-        `*Para comprar:*\n` +
-        `1. Usa /plans o haz clic en "Ver Planes"\n` +
-        `2. Selecciona tu plan\n` +
-        `3. Realiza el pago\n` +
-        `4. Envía la captura de pantalla\n` +
-        `5. Espera la aprobación\n` +
-        `6. Recibirás tu configuración\n\n` +
-        `*Soporte:*\n` +
-        `Para problemas, contacta a @L0quen2\n\n` +
-        `¡Gracias por elegir VPN Cuba! 🚀`,
+        `🆘 *VPN CUBA - AYUDA*\n\n` +
+        `Usa los botones para navegar por todas las funciones.\n\n` +
+        `*BOTONES DISPONIBLES:*\n` +
+        `📋 VER PLANES - Ver y comprar planes\n` +
+        `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
+        `🆘 SOPORTE - Contactar con soporte técnico\n` +
+        `🔧 PANEL ADMIN - Panel de administración (solo admins)\n` +
+        `📢 BROADCAST - Enviar mensaje a todos (solo admins)\n\n` +
+        `¡Todo está disponible en los botones! 🚀`,
         { 
             parse_mode: 'Markdown',
             reply_markup: {
-                inline_keyboard: keyboard
+                inline_keyboard: [
+                    [
+                        {
+                            text: '🏠 MENÚ PRINCIPAL',
+                            callback_data: 'main_menu'
+                        }
+                    ]
+                ]
             }
         }
     );
-});
-
-// ==================== MANEJAR ERRORES ====================
-
-bot.catch((err, ctx) => {
-    console.error(`Error en el bot para ${ctx.updateType}:`, err);
-    
-    // Intentar notificar al usuario sobre el error
-    if (ctx.message) {
-        ctx.reply('❌ Ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.');
-    }
 });
 
 // ==================== INICIAR BOT ====================
@@ -902,26 +892,14 @@ async function startBot() {
         console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
         console.log(`🆘 Soporte configurado: @L0quen2`);
         console.log(`📢 Funcionalidad de Broadcast activa para admins`);
+        console.log(`🎯 Todo en botones - Sin comandos de texto`);
         
-        // Configurar comandos del bot
-        const commands = [
-            { command: 'start', description: 'Iniciar el bot' },
-            { command: 'plans', description: 'Ver planes disponibles' },
-            { command: 'status', description: 'Verificar estado VIP y días restantes' },
-            { command: 'soporte', description: 'Contactar con soporte' },
-            { command: 'help', description: 'Mostrar ayuda' }
-        ];
+        // Configurar comandos del bot (solo comandos básicos)
+        await bot.telegram.setMyCommands([
+            { command: 'start', description: 'Iniciar el bot y ver menú principal' },
+            { command: 'help', description: 'Ayuda y información' }
+        ]);
         
-        // Agregar comando broadcast solo para admins (opcional, puede comentarse para que no sea visible)
-        // commands.push({ command: 'broadcast', description: 'Enviar mensaje a todos (solo admin)' });
-        
-        await bot.telegram.setMyCommands(commands);
-        
-        // Si hay administradores, agregar comandos de admin
-        if (ADMIN_IDS.length > 0) {
-            console.log('✅ Comandos de admin disponibles para usuarios autorizados');
-        }
-
         // Iniciar keep-alive del bot
         startBotKeepAlive();
         

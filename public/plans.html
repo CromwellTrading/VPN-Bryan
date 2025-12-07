@@ -25,6 +25,8 @@
             --featured: #f59e0b;
             --vip: #fbbf24;
             --trial: #10b981;
+            --trial-1h: #10b981;
+            --trial-glow: rgba(16, 185, 129, 0.3);
             --shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.3);
         }
@@ -171,8 +173,12 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+            background: linear-gradient(90deg, var(--trial-1h), #34d399);
             border-radius: 16px 16px 0 0;
+        }
+
+        .plan-card.standard::before {
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
         }
 
         .plan-card.featured::before {
@@ -181,10 +187,6 @@
 
         .plan-card.vip::before {
             background: linear-gradient(90deg, var(--vip), #fbbf24);
-        }
-
-        .plan-card.trial::before {
-            background: linear-gradient(90deg, var(--trial), #34d399);
         }
 
         /* EFECTO HOVER COMPACTO */
@@ -200,7 +202,7 @@
             position: absolute;
             top: 15px;
             right: 15px;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
             color: white;
             padding: 5px 12px;
             border-radius: 15px;
@@ -208,8 +210,13 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 3px 8px var(--trial-glow);
             z-index: 2;
+        }
+
+        .plan-card.standard .plan-badge {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
         }
 
         .plan-card.featured .plan-badge {
@@ -221,12 +228,6 @@
             background: linear-gradient(135deg, var(--vip), #fbbf24);
             color: #000;
             font-weight: 700;
-        }
-
-        .plan-card.trial .plan-badge {
-            background: linear-gradient(135deg, var(--trial), #34d399);
-            color: white;
-            font-weight: 600;
         }
 
         /* ENCABEZADO DEL PLAN COMPACTO */
@@ -267,9 +268,15 @@
             font-size: 2.8rem;
             font-weight: 800;
             line-height: 1;
-            background: linear-gradient(135deg, var(--accent-light), var(--accent));
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .plan-card.standard .price-amount {
+            background: linear-gradient(135deg, var(--accent-light), var(--accent));
+            -webkit-background-clip: text;
             background-clip: text;
         }
 
@@ -281,12 +288,6 @@
 
         .plan-card.vip .price-amount {
             background: linear-gradient(135deg, var(--vip), #f59e0b);
-            -webkit-background-clip: text;
-            background-clip: text;
-        }
-
-        .plan-card.trial .price-amount {
-            background: linear-gradient(135deg, var(--trial), #34d399);
             -webkit-background-clip: text;
             background-clip: text;
         }
@@ -304,11 +305,16 @@
             text-align: center;
             margin: 12px 0;
             padding: 12px;
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.1));
             border-radius: 12px;
-            border: 1px solid rgba(79, 70, 229, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.2);
             position: relative;
             overflow: hidden;
+        }
+
+        .plan-card.standard .savings-section {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
+            border-color: rgba(79, 70, 229, 0.2);
         }
 
         .plan-card.featured .savings-section {
@@ -321,15 +327,14 @@
             border-color: rgba(251, 191, 36, 0.2);
         }
 
-        .plan-card.trial .savings-section {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.1));
-            border-color: rgba(16, 185, 129, 0.2);
-        }
-
         .savings-text {
             font-size: 0.95rem;
             font-weight: 600;
-            color: var(--success);
+            color: var(--trial-1h);
+        }
+
+        .plan-card.standard .savings-text {
+            color: var(--accent-light);
         }
 
         .plan-card.featured .savings-text {
@@ -340,21 +345,17 @@
             color: var(--vip);
         }
 
-        .plan-card.trial .savings-text {
-            color: var(--trial);
-        }
-
         /* SUBTÍTULO VIP COMPACTO */
         .vip-subtitle {
             text-align: center;
             font-size: 0.9rem;
             font-weight: 600;
-            color: var(--vip);
+            color: var(--trial-1h);
             margin: 12px 0;
             padding: 10px;
-            background: rgba(251, 191, 36, 0.1);
+            background: rgba(16, 185, 129, 0.1);
             border-radius: 10px;
-            border: 1px solid rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.2);
             position: relative;
             overflow: hidden;
         }
@@ -378,8 +379,20 @@
         }
 
         .features-list::-webkit-scrollbar-thumb {
-            background: var(--accent);
+            background: var(--trial-1h);
             border-radius: 2px;
+        }
+
+        .plan-card.standard .features-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+        }
+
+        .plan-card.featured .features-list::-webkit-scrollbar-thumb {
+            background: var(--featured);
+        }
+
+        .plan-card.vip .features-list::-webkit-scrollbar-thumb {
+            background: var(--vip);
         }
 
         .feature-item {
@@ -391,12 +404,11 @@
             background: rgba(255, 255, 255, 0.03);
             border-radius: 8px;
             transition: all 0.2s ease;
-            border-left: 2px solid var(--accent);
+            border-left: 2px solid var(--trial-1h);
         }
 
-        .feature-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            transform: translateX(3px);
+        .plan-card.standard .feature-item {
+            border-left-color: var(--accent);
         }
 
         .plan-card.featured .feature-item {
@@ -407,14 +419,19 @@
             border-left-color: var(--vip);
         }
 
-        .plan-card.trial .feature-item {
-            border-left-color: var(--trial);
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(3px);
         }
 
         .feature-icon {
             font-size: 0.9rem;
             min-width: 20px;
             text-align: center;
+            color: var(--trial-1h);
+        }
+
+        .plan-card.standard .feature-icon {
             color: var(--accent);
         }
 
@@ -424,10 +441,6 @@
 
         .plan-card.vip .feature-icon {
             color: var(--vip);
-        }
-
-        .plan-card.trial .feature-icon {
-            color: var(--trial);
         }
 
         .feature-text {
@@ -505,14 +518,14 @@
         }
 
         .purchase-button.trial {
-            background: linear-gradient(135deg, var(--trial), #34d399);
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
             color: white;
             font-weight: 600;
         }
 
         .purchase-button.trial:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 6px 18px var(--trial-glow);
         }
 
         .button-icon {
@@ -652,6 +665,21 @@
             color: var(--accent);
         }
 
+        .notification.success {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .notification.error {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .notification.warning {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
         /* MEDIA QUERIES PARA RESPONSIVE */
         @media (max-width: 1200px) {
             .plans-container {
@@ -754,10 +782,59 @@
             <p class="subtitle">Planes optimizados para máxima velocidad y seguridad. Conexión estable y ancho de banda ilimitado.</p>
         </header>
         
-        <!-- PLANES HORIZONTALES COMPACTOS -->
+        <!-- PLANES HORIZONTALES COMPACTOS - PRUEBA PRIMERO -->
         <div class="plans-container">
-            <!-- PLAN BÁSICO -->
+            <!-- PLAN DE PRUEBA GRATUITA - PRIMERO -->
             <div class="plan-card">
+                <div class="plan-badge">Nuevo</div>
+                
+                <div class="plan-header">
+                    <h2 class="plan-title">Prueba 1H</h2>
+                    <p class="plan-period">Acceso por 1 hora</p>
+                </div>
+                
+                <div class="plan-price">
+                    <div class="price-container">
+                        <span class="price-amount">0</span>
+                        <span class="price-currency">CUP</span>
+                    </div>
+                </div>
+                
+                <div class="savings-section">
+                    <div class="savings-text">¡Prueba totalmente gratuita!</div>
+                </div>
+                
+                <div class="vip-subtitle">
+                    <i class="fas fa-gift"></i> Ideal para probar el servicio
+                </div>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <span class="feature-text">Conexión completa por 1 hora</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-infinity feature-icon"></i>
+                        <span class="feature-text">Ancho de banda ilimitado</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <span class="feature-text">Misma seguridad que planes pagos</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-clock feature-icon"></i>
+                        <span class="feature-text">Configuración en minutos</span>
+                    </div>
+                </div>
+                
+                <button class="purchase-button trial" onclick="requestTrial()">
+                    <i class="fas fa-gift button-icon"></i>
+                    <span>Solicitar Prueba Gratuita</span>
+                </button>
+            </div>
+            
+            <!-- PLAN BÁSICO -->
+            <div class="plan-card standard">
                 <div class="plan-badge">Popular</div>
                 
                 <div class="plan-header">
@@ -862,7 +939,7 @@
                     <div class="savings-text">¡Ahorras 1,800 CUP!</div>
                 </div>
                 
-                <div class="vip-subtitle">
+                <div class="vip-subtitle" style="background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.2); color: var(--vip);">
                     <i class="fas fa-star"></i> Solo 500 CUP/mes
                 </div>
                 
@@ -888,55 +965,6 @@
                 <button class="purchase-button vip" onclick="selectPlan('vip', 3000)">
                     <i class="fas fa-gem button-icon"></i>
                     <span>Seleccionar VIP</span>
-                </button>
-            </div>
-            
-            <!-- PLAN DE PRUEBA GRATUITA -->
-            <div class="plan-card trial">
-                <div class="plan-badge">Nuevo</div>
-                
-                <div class="plan-header">
-                    <h2 class="plan-title">Prueba 24H</h2>
-                    <p class="plan-period">Acceso por 24 horas</p>
-                </div>
-                
-                <div class="plan-price">
-                    <div class="price-container">
-                        <span class="price-amount">0</span>
-                        <span class="price-currency">CUP</span>
-                    </div>
-                </div>
-                
-                <div class="savings-section">
-                    <div class="savings-text">¡Prueba totalmente gratuita!</div>
-                </div>
-                
-                <div class="vip-subtitle" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); color: #10b981;">
-                    <i class="fas fa-gift"></i> Ideal para probar el servicio
-                </div>
-                
-                <div class="features-list">
-                    <div class="feature-item">
-                        <i class="fas fa-bolt feature-icon"></i>
-                        <span class="feature-text">Conexión completa por 24 horas</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-infinity feature-icon"></i>
-                        <span class="feature-text">Ancho de banda ilimitado</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-shield-alt feature-icon"></i>
-                        <span class="feature-text">Misma seguridad que planes pagos</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-clock feature-icon"></i>
-                        <span class="feature-text">Configuración en menos de 1 hora</span>
-                    </div>
-                </div>
-                
-                <button class="purchase-button trial" onclick="requestTrial()">
-                    <i class="fas fa-gift button-icon"></i>
-                    <span>Solicitar Prueba Gratuita</span>
                 </button>
             </div>
         </div>
@@ -1069,8 +1097,14 @@
             showNotification('Solicitando prueba gratuita...');
             
             try {
+                // Construir URL base
+                const baseUrl = window.location.origin;
+                const apiUrl = `${baseUrl}/api/request-trial`;
+                
+                console.log('📤 Enviando solicitud a:', apiUrl);
+                
                 // Enviar solicitud al servidor
-                const response = await fetch('/api/request-trial', {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1078,14 +1112,24 @@
                     body: JSON.stringify({
                         telegramId: userId,
                         username: username,
-                        firstName: firstName
+                        firstName: firstName,
+                        trialType: '1h'
                     })
                 });
                 
-                const data = await response.json();
+                const responseText = await response.text();
+                console.log('📥 Respuesta del servidor:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('❌ Error parseando JSON:', e);
+                    throw new Error('Respuesta del servidor inválida');
+                }
                 
                 if (response.ok && data.success) {
-                    showNotification('✅ Solicitud enviada. Recibirás la configuración en menos de 1 hora.');
+                    showNotification('✅ Solicitud enviada. Recibirás la configuración en minutos.', 'success');
                     
                     // Después de 3 segundos, redirigir o cerrar
                     setTimeout(() => {
@@ -1093,7 +1137,8 @@
                             tg.close();
                         } else {
                             // Redirigir al bot de Telegram
-                            window.location.href = 'https://t.me/' + (tg.initDataUnsafe?.user?.username ? `@${tg.initDataUnsafe.user.username}` : '');
+                            const telegramUrl = username ? `https://t.me/${username}` : 'https://t.me/';
+                            window.location.href = telegramUrl;
                         }
                     }, 3000);
                 } else {
@@ -1125,6 +1170,36 @@
                 return false;
             }
             return true;
+        }
+        
+        // Mostrar notificación
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            // Configurar color según tipo
+            let borderColor = 'var(--accent)';
+            let icon = 'fas fa-info-circle';
+            
+            if (type === 'success') {
+                borderColor = 'var(--success)';
+                icon = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                borderColor = 'var(--error)';
+                icon = 'fas fa-exclamation-circle';
+            } else if (type === 'warning') {
+                borderColor = 'var(--warning)';
+                icon = 'fas fa-exclamation-triangle';
+            }
+            
+            notification.style.borderColor = borderColor;
+            notification.innerHTML = `<i class="${icon} notification-icon"></i><span>${message}</span>`;
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
         
         // Ejecutar verificación al cargar
@@ -1160,34 +1235,14 @@
                     this.style.zIndex = '1';
                 });
             });
-        });
-        
-        // Mostrar notificación
-        function showNotification(message, type = 'info') {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notification-text');
             
-            // Configurar color según tipo
-            let borderColor = 'var(--accent)';
-            let icon = 'fas fa-info-circle';
-            
-            if (type === 'success') {
-                borderColor = 'var(--success)';
-                icon = 'fas fa-check-circle';
-            } else if (type === 'error') {
-                borderColor = 'var(--error)';
-                icon = 'fas fa-exclamation-circle';
-            }
-            
-            notification.style.borderColor = borderColor;
-            notification.innerHTML = `<i class="${icon} notification-icon"></i><span>${message}</span>`;
-            
-            notification.classList.add('show');
-            
+            // Animar entrada de tarjetas
             setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
+                cards.forEach(card => {
+                    card.style.opacity = '1';
+                });
+            }, 100);
+        });
         
         // Añadir estilos CSS para mejor visualización
         const style = document.createElement('style');
@@ -1235,6 +1290,23 @@
                 
                 .features-list {
                     max-height: 120px !important;
+                }
+            }
+            
+            /* Animación para botón de prueba */
+            .purchase-button.trial {
+                animation: pulseTrial 2s infinite;
+            }
+            
+            @keyframes pulseTrial {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
                 }
             }
         `;

@@ -34,10 +34,11 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
+
 const upload = multer({ 
   storage,
   limits: { 
-    fileSize: 10 * 1024 * 1024, // 10MB para capturas, 20MB para archivos
+    fileSize: 20 * 1024 * 1024, // 20MB para todos los archivos
     files: 1 
   },
   fileFilter: (req, file, cb) => {
@@ -48,21 +49,24 @@ const upload = multer({
       } else {
         cb(new Error('Solo se permiten imágenes JPG, PNG, GIF o WebP'));
       }
-    } else if (file.fieldname === 'configFile') {
-      // Permitir archivos .zip y .rar
-      const allowedExtensions = ['.zip', '.rar'];
+    } else if (file.fieldname === 'configFile' || file.fieldname === 'trialConfigFile') {
+      // Permitir archivos .conf, .zip y .rar
+      const allowedExtensions = ['.conf', '.zip', '.rar'];
       const allowedMimeTypes = [
         'application/zip', 
         'application/x-rar-compressed', 
         'application/x-zip-compressed',
-        'application/octet-stream'
+        'application/octet-stream',
+        'text/plain', // Para .conf
+        'application/x-conf'
       ];
       const fileExt = path.extname(file.originalname).toLowerCase();
+      const fileMime = file.mimetype.toLowerCase();
       
-      if (allowedExtensions.includes(fileExt) || allowedMimeTypes.includes(file.mimetype)) {
+      if (allowedExtensions.includes(fileExt) || allowedMimeTypes.includes(fileMime)) {
         cb(null, true);
       } else {
-        cb(new Error('Solo se permiten archivos .zip o .rar'));
+        cb(new Error('Solo se permiten archivos .conf, .zip o .rar'));
       }
     } else {
       cb(null, true);
@@ -517,7 +521,7 @@ app.get('/api/payments/:id', async (req, res) => {
   }
 });
 
-// 13. ENVIAR ARCHIVO DE CONFIGURACIÓN (ZIP/RAR) - ACTUALIZADO
+// 13. ENVIAR ARCHIVO DE CONFIGURACIÓN (ZIP/RAR/CONF) - ACTUALIZADO
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
     console.log('📤 Recibiendo archivo de configuración...', {
@@ -539,12 +543,12 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     
     // Verificar que el archivo sea .zip o .rar
     const fileName = req.file.originalname.toLowerCase();
-    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar')) {
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
       // Eliminar archivo subido
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
-      return res.status(400).json({ error: 'El archivo debe tener extensión .zip o .rar' });
+      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
     // Obtener información del pago
@@ -579,7 +583,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
                   `📁 *Archivo:* ${req.file.originalname}\n\n` +
                   `*Instrucciones de instalación:*\n` +
                   `1. Descarga este archivo\n` +
-                  `2. Descomprime el ZIP/RAR en tu dispositivo\n` +
+                  `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
                   `3. Importa el archivo .conf en tu cliente WireGuard\n` +
                   `4. Activa la conexión\n` +
                   `5. ¡Disfruta de baja latencia! 🚀\n\n` +
@@ -916,7 +920,157 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
   }
 });
 
-// 22. Ruta de prueba para verificar que el servidor funciona
+// 22. ENVIAR ARCHIVO DE CONFIGURACIÓN DE PRUEBA (desde web admin) - NUEVA RUTA
+app.post('/api/send-trial-config', upload.single('trialConfigFile'), async (req, res) => {
+  try {
+    console.log('🎁 Recibiendo archivo de configuración de prueba...', {
+      body: req.body,
+      file: req.file ? req.file.filename : 'No file'
+    });
+    
+    const { telegramId, adminId, trialType = '1h' } = req.body;
+    
+    // Verificar permisos de administrador
+    if (!isAdmin(adminId)) {
+      console.log(`❌ Intento no autorizado de enviar configuración de prueba por ${adminId}`);
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'Archivo de configuración requerido' });
+    }
+    
+    // Verificar que el archivo sea .conf, .zip o .rar
+    const fileName = req.file.originalname.toLowerCase();
+    const isValidFile = fileName.endsWith('.conf') || fileName.endsWith('.zip') || fileName.endsWith('.rar');
+    
+    if (!isValidFile) {
+      // Eliminar archivo subido
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
+    }
+    
+    // Obtener información del usuario
+    const user = await db.getUser(telegramId);
+    
+    if (!user) {
+      // Eliminar archivo subido
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    // Verificar que el usuario haya solicitado prueba
+    if (!user.trial_requested) {
+      // Eliminar archivo subido
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'El usuario no solicitó prueba' });
+    }
+    
+    // Verificar que no haya recibido ya la prueba
+    if (user.trial_received) {
+      // Eliminar archivo subido
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
+    }
+    
+    try {
+      console.log(`🎁 Enviando configuración de prueba (${trialType}) a ${telegramId}`);
+      
+      // Enviar archivo por Telegram
+      await bot.telegram.sendDocument(
+        telegramId,
+        { source: req.file.path, filename: req.file.originalname },
+        {
+          caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
+                  `📁 *Archivo de configuración para ${trialType} de prueba*\n\n` +
+                  `*Instrucciones de instalación:*\n` +
+                  `1. Descarga este archivo\n` +
+                  `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
+                  `3. Importa el archivo .conf en tu cliente WireGuard\n` +
+                  `4. Activa la conexión\n` +
+                  `5. ¡Disfruta de ${trialType} de prueba gratis! 🎉\n\n` +
+                  `⏰ *Duración:* ${trialType}\n` +
+                  `📋 *Tipo:* Prueba gratuita\n` +
+                  `👑 *Estado:* Acceso temporal\n\n` +
+                  `*Importante:* Esta configuración expirará en ${trialType}.\n` +
+                  `Para continuar usando el servicio después de la prueba, adquiere uno de nuestros planes.\n\n` +
+                  `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+          parse_mode: 'Markdown'
+        }
+      );
+      
+      // Marcar usuario como que recibió prueba
+      await db.markTrialAsSent(telegramId, adminId);
+      
+      // Actualizar tipo de prueba si es diferente
+      if (trialType && trialType !== user.trial_plan_type) {
+        await db.updateUserTrial(telegramId, {
+          trial_plan_type: trialType
+        });
+      }
+      
+      // Eliminar archivo local después de enviar
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
+      });
+      
+      console.log(`✅ Configuración de prueba enviada a ${telegramId}`);
+      
+      res.json({ 
+        success: true, 
+        message: 'Configuración de prueba enviada correctamente',
+        filename: req.file.filename,
+        trialType: trialType
+      });
+      
+    } catch (telegramError) {
+      console.error('❌ Error enviando archivo de prueba por Telegram:', telegramError);
+      
+      // Verificar si el error es porque el usuario bloqueó al bot
+      if (telegramError.description && telegramError.description.includes('blocked')) {
+        console.log(`⚠️ Usuario ${telegramId} bloqueó al bot`);
+        
+        // Eliminar archivo subido
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('❌ Error al eliminar archivo:', err);
+        });
+        
+        return res.status(400).json({ 
+          error: 'No se puede enviar mensaje al usuario. Posiblemente el usuario bloqueó al bot.' 
+        });
+      }
+      
+      // Eliminar archivo subido
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      
+      res.status(500).json({ error: 'Error enviando archivo por Telegram: ' + telegramError.message });
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en send-trial-config:', error);
+    
+    // Eliminar archivo si hubo error
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+    }
+    
+    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+  }
+});
+
+// 23. Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -929,7 +1083,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 23. Ruta para obtener imagen directa (si está guardada localmente)
+// 24. Ruta para obtener imagen directa (si está guardada localmente)
 app.get('/api/image/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
@@ -1341,12 +1495,12 @@ bot.action('check_status', async (ctx) => {
             if (user.trial_received) {
                 const trialSentAt = formatearFecha(user.trial_sent_at);
                 trialMessage += `✅ *Prueba recibida:* ${trialSentAt}\n`;
-                trialMessage += `⏰ *Duración:* 1 hora\n`;
+                trialMessage += `⏰ *Duración:* ${user.trial_plan_type || '1h'}\n`;
                 trialMessage += `📋 *Estado:* Completada\n\n`;
                 trialMessage += `Si quieres acceso ilimitado, adquiere uno de nuestros planes.`;
             } else {
                 trialMessage += `⏳ *Estado:* Pendiente de envío\n`;
-                trialMessage += `⏰ *Duración:* 1 hora\n`;
+                trialMessage += `⏰ *Duración:* ${user.trial_plan_type || '1h'}\n`;
                 trialMessage += `📋 *Solicitada:* ${formatearFecha(user.trial_requested_at)}\n\n`;
                 trialMessage += `Recibirás la configuración por este chat en minutos.`;
             }
@@ -1542,6 +1696,48 @@ bot.action('request_trial', async (ctx) => {
     }
 });
 
+// Comando para ver estado de prueba
+bot.command('trialstatus', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    
+    try {
+        const user = await db.getUser(userId);
+        
+        if (!user) {
+            return ctx.reply('❌ No estás registrado. Usa /start para comenzar.');
+        }
+        
+        if (!user.trial_requested) {
+            return ctx.reply('🎯 *Estado de prueba:* No has solicitado prueba gratuita.\n\nUsa "🎁 PRUEBA GRATIS" en el menú para solicitar.', { parse_mode: 'Markdown' });
+        }
+        
+        if (user.trial_received) {
+            const sentDate = user.trial_sent_at ? new Date(user.trial_sent_at).toLocaleDateString('es-ES') : 'No disponible';
+            return ctx.reply(
+                `✅ *Prueba gratuita recibida*\n\n` +
+                `📅 Enviada: ${sentDate}\n` +
+                `⏰ Duración: ${user.trial_plan_type || '1h'}\n` +
+                `📋 Estado: Activada\n\n` +
+                `Busca el archivo en este chat. Si no lo encuentras, contacta a soporte.`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            const requestedDate = user.trial_requested_at ? new Date(user.trial_requested_at).toLocaleDateString('es-ES') : 'No disponible';
+            return ctx.reply(
+                `⏳ *Prueba gratuita pendiente*\n\n` +
+                `📅 Solicitada: ${requestedDate}\n` +
+                `⏰ Duración: ${user.trial_plan_type || '1h'}\n` +
+                `📋 Estado: En espera de envío\n\n` +
+                `Recibirás la configuración por este chat en breve.`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    } catch (error) {
+        console.error('❌ Error en trialstatus:', error);
+        return ctx.reply('❌ Error al verificar estado de prueba.');
+    }
+});
+
 // Manejar callback para enviar configuración de prueba
 bot.action(/send_trial_(.+)/, async (ctx) => {
     const adminId = ctx.from.id.toString();
@@ -1562,10 +1758,10 @@ bot.action(/send_trial_(.+)/, async (ctx) => {
         trialType: trialType || '1h'
     };
     
-    await ctx.reply(`📤 Enviar configuración de prueba (${trialType || '1h'}) a ${telegramId}\n\nPor favor, envía el archivo ZIP/RAR de configuración:`);
+    await ctx.reply(`📤 Enviar configuración de prueba (${trialType || '1h'}) a ${telegramId}\n\nPor favor, envía el archivo .conf, .zip o .rar de configuración:`);
 });
 
-// Manejar archivos enviados por admin (para pruebas)
+// Manejar archivos enviados por admin (para pruebas y configuraciones normales)
 bot.on('document', async (ctx) => {
     const adminId = ctx.from.id.toString();
     
@@ -1581,8 +1777,8 @@ bot.on('document', async (ctx) => {
         
         try {
             const fileNameLower = fileName.toLowerCase();
-            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
-                await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
+                await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
                 return;
             }
             
@@ -1594,32 +1790,77 @@ bot.on('document', async (ctx) => {
                 return;
             }
             
+            // Verificar que el usuario solicitó prueba
+            if (!user.trial_requested) {
+                await ctx.reply(`❌ El usuario ${target} no solicitó prueba`);
+                return;
+            }
+            
+            // Verificar que no haya recibido ya la prueba
+            if (user.trial_received) {
+                await ctx.reply(`❌ El usuario ${target} ya recibió la prueba`);
+                return;
+            }
+            
             // Enviar archivo al usuario
-            await bot.telegram.sendDocument(target, fileId, {
-                caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
-                        `📁 *Archivo de configuración para ${trialType}*\n\n` +
-                        `*Instrucciones:*\n` +
-                        `1. Descomprime este archivo\n` +
-                        `2. Importa el archivo .conf en WireGuard\n` +
-                        `3. Activa la conexión\n` +
-                        `4. ¡Disfruta de ${trialType} gratis! 🎉\n\n` +
-                        `*Nota:* Esta configuración expirará en ${trialType}.\n` +
-                        `Para continuar usando el servicio, adquiere uno de nuestros planes.\n\n` +
-                        `*Soporte:* @L0quen2`,
-                parse_mode: 'Markdown'
-            });
-            
-            // Marcar usuario como que recibió prueba
-            await db.markTrialAsSent(target, adminId);
-            
-            // Notificar al admin
-            await ctx.reply(`✅ Configuración de prueba (${trialType}) enviada a ${target}`);
+            try {
+                await bot.telegram.sendDocument(target, fileId, {
+                    caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
+                            `📁 *Archivo de configuración para ${trialType} de prueba*\n\n` +
+                            `*Instrucciones:*\n` +
+                            `1. Descarga este archivo\n` +
+                            `2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime este archivo'}\n` +
+                            `3. Importa el archivo .conf en WireGuard\n` +
+                            `4. Activa la conexión\n` +
+                            `5. ¡Disfruta de ${trialType} gratis! 🎉\n\n` +
+                            `*Nota:* Esta configuración expirará en ${trialType}.\n` +
+                            `Para continuar usando el servicio, adquiere uno de nuestros planes.\n\n` +
+                            `*Soporte:* @L0quen2`,
+                    parse_mode: 'Markdown'
+                });
+                
+                // Marcar usuario como que recibió prueba
+                await db.markTrialAsSent(target, adminId);
+                
+                // Actualizar tipo de prueba si es diferente
+                if (trialType && trialType !== user.trial_plan_type) {
+                    await db.updateUserTrial(target, {
+                        trial_plan_type: trialType
+                    });
+                }
+                
+                // Notificar al admin
+                await ctx.reply(`✅ Configuración de prueba (${trialType}) enviada a ${target}`);
+                
+                // Enviar mensaje de confirmación al usuario
+                await bot.telegram.sendMessage(
+                    target,
+                    `✅ *¡Prueba gratuita activada!*\n\n` +
+                    `Tu configuración de prueba de ${trialType} ha sido enviada.\n\n` +
+                    `📁 Busca el archivo en este chat.\n` +
+                    `⏰ Duración: ${trialType}\n` +
+                    `🎯 Acceso completo a todos los servidores\n\n` +
+                    `¡Disfruta de baja latencia! 🚀`,
+                    { parse_mode: 'Markdown' }
+                );
+                
+            } catch (sendError) {
+                console.error('❌ Error enviando archivo al usuario:', sendError);
+                
+                // Verificar si el usuario bloqueó al bot
+                if (sendError.description && sendError.description.includes('blocked')) {
+                    await ctx.reply(`❌ No se puede enviar archivo a ${target}. El usuario probablemente bloqueó al bot.`);
+                } else {
+                    await ctx.reply(`❌ Error enviando archivo: ${sendError.message}`);
+                }
+                return;
+            }
             
             delete ctx.session.waitingForTrialFile;
             
         } catch (error) {
-            console.error('❌ Error enviando archivo de prueba:', error);
-            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+            console.error('❌ Error procesando archivo de prueba:', error);
+            await ctx.reply(`❌ Error procesando archivo: ${error.message}`);
         }
     }
     
@@ -1633,8 +1874,8 @@ bot.on('document', async (ctx) => {
 
         try {
             const fileNameLower = fileName.toLowerCase();
-            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
-                await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
+                await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
                 return;
             }
             
@@ -1663,10 +1904,15 @@ bot.on('document', async (ctx) => {
             }
 
             await bot.telegram.sendDocument(target, fileId, {
-                caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
-                        '📁 Descomprime este archivo ZIP/RAR\n' +
-                        '📄 Importa el archivo .conf en WireGuard\n' +
-                        '🚀 ¡Disfruta de baja latencia!',
+                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                        `📁 *Archivo:* ${fileName}\n\n` +
+                        `*Instrucciones:*\n` +
+                        `1. Descarga este archivo\n` +
+                        `2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR'}\n` +
+                        `3. Importa el archivo .conf en WireGuard\n` +
+                        `4. Activa la conexión\n` +
+                        `5. ¡Disfruta de baja latencia! 🚀\n\n` +
+                        `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
                 parse_mode: 'Markdown'
             });
 
@@ -1957,7 +2203,7 @@ bot.command('enviar', async (ctx) => {
         paymentId: paymentId
     };
 
-    await ctx.reply(`📤 Esperando archivo .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo comprimido ahora:`);
+    await ctx.reply(`📤 Esperando archivo .conf, .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo de configuración ahora:`);
 });
 
 // ==================== SERVIDOR ====================
@@ -1974,6 +2220,7 @@ app.listen(PORT, async () => {
     console.log(`📢 Broadcast: Disponible para admins`);
     console.log(`🎯 Prueba gratuita: Disponible (1 hora)`);
     console.log(`📊 Estadísticas de trial: /api/trial-stats`);
+    console.log(`📤 Envío de archivos de prueba: Desde web admin y bot`);
     
     // Iniciar bot
     try {
@@ -1984,7 +2231,9 @@ app.listen(PORT, async () => {
         const commands = [
             { command: 'start', description: 'Iniciar el bot' },
             { command: 'help', description: 'Mostrar ayuda' },
-            { command: 'admin', description: 'Panel de administración (solo admins)' }
+            { command: 'admin', description: 'Panel de administración (solo admins)' },
+            { command: 'trialstatus', description: 'Ver estado de prueba gratuita' },
+            { command: 'comprar', description: 'Ver planes y comprar' }
         ];
         
         await bot.telegram.setMyCommands(commands);

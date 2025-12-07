@@ -139,7 +139,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const keyboard = [
         [
             { 
-                text: '📋 VER PLANES', 
+                text: '🎁 PRUEBA GRATIS', 
                 web_app: { url: plansUrl }
             },
             {
@@ -148,10 +148,16 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             }
         ],
         [
+            { 
+                text: '📋 VER PLANES', 
+                web_app: { url: plansUrl }
+            },
             {
                 text: '💻 DESCARGAR WIREGUARD',
                 callback_data: 'download_wireguard'
-            },
+            }
+        ],
+        [
             {
                 text: '🆘 SOPORTE',
                 url: 'https://t.me/L0quen2'
@@ -729,27 +735,39 @@ app.post('/api/remove-vip', async (req, res) => {
   }
 });
 
-// 18. Solicitar prueba gratuita
+// 18. Solicitar prueba gratuita (1 hora)
 app.post('/api/request-trial', async (req, res) => {
   try {
-    const { telegramId, username, firstName } = req.body;
+    const { telegramId, username, firstName, trialType = '1h' } = req.body;
     
-    console.log(`🎯 Solicitud de prueba de ${telegramId} (${username})`);
+    console.log(`🎯 Solicitud de prueba (${trialType}) de ${telegramId} (${username})`);
+    
+    // Verificar elegibilidad para prueba
+    const eligibility = await db.checkTrialEligibility(telegramId);
+    
+    if (!eligibility.eligible) {
+      return res.status(400).json({ 
+        error: `No puedes solicitar una prueba en este momento: ${eligibility.reason}` 
+      });
+    }
     
     // Guardar/actualizar usuario con solicitud de prueba
-    const user = await db.saveUser(telegramId, {
+    const updatedUser = await db.saveUser(telegramId, {
       telegram_id: telegramId,
       username: username,
       first_name: firstName,
-      trial_requested: true
+      trial_requested: true,
+      trial_requested_at: new Date().toISOString(),
+      trial_plan_type: trialType
     });
     
     // Notificar a TODOS los administradores
-    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA 24H*\n\n` +
+    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA ${trialType.toUpperCase()}*\n\n` +
       `👤 *Usuario:* ${firstName}\n` +
       `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
       `🆔 *ID:* ${telegramId}\n` +
-      `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
+      `⏰ *Duración:* 1 hora\n` +
+      `📅 *Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
       `*Acciones disponibles:*\n` +
       `1. Enviar configuración de prueba\n` +
       `2. Contactar al usuario\n\n` +
@@ -765,7 +783,7 @@ app.post('/api/request-trial', async (req, res) => {
               [
                 {
                   text: '📤 Enviar Configuración',
-                  callback_data: `send_trial_${telegramId}`
+                  callback_data: `send_trial_${telegramId}_${trialType}`
                 },
                 {
                   text: '💬 Contactar Usuario',
@@ -794,12 +812,12 @@ app.post('/api/request-trial', async (req, res) => {
       await bot.telegram.sendMessage(
         telegramId,
         '✅ *Solicitud de prueba recibida*\n\n' +
-        'Tu solicitud de prueba gratuita de 24 horas ha sido recibida.\n\n' +
+        'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
         '📋 *Proceso:*\n' +
         '1. Un administrador revisará tu solicitud\n' +
         '2. Recibirás la configuración por este chat\n' +
-        '3. Tendrás 24 horas de acceso completo\n\n' +
-        '⏰ *Tiempo estimado:* Menos de 1 hora\n\n' +
+        '3. Tendrás 1 hora de acceso completo\n\n' +
+        '⏰ *Tiempo estimado:* Minutos\n\n' +
         '¡Gracias por probar VPN Cuba! 🚀',
         { parse_mode: 'Markdown' }
       );
@@ -809,15 +827,96 @@ app.post('/api/request-trial', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: 'Solicitud de prueba enviada. Recibirás la configuración por Telegram en breve.' 
+      message: 'Solicitud de prueba enviada. Recibirás la configuración por Telegram en minutos.',
+      trialType: trialType,
+      user: updatedUser
     });
   } catch (error) {
     console.error('❌ Error en solicitud de prueba:', error);
-    res.status(500).json({ error: 'Error procesando solicitud de prueba' });
+    res.status(500).json({ error: 'Error procesando solicitud de prueba: ' + error.message });
   }
 });
 
-// 19. Ruta de prueba para verificar que el servidor funciona
+// 19. Ruta para obtener estadísticas de pruebas
+app.get('/api/trial-stats', async (req, res) => {
+  try {
+    console.log('🎯 Obteniendo estadísticas de pruebas...');
+    const stats = await db.getTrialStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de prueba:', error);
+    res.status(500).json({ error: 'Error obteniendo estadísticas de prueba' });
+  }
+});
+
+// 20. Ruta para obtener pruebas pendientes
+app.get('/api/trials/pending', async (req, res) => {
+  try {
+    console.log('⏳ Obteniendo pruebas pendientes...');
+    const trials = await db.getPendingTrials();
+    
+    // Obtener información completa de usuarios
+    const trialsWithUsers = await Promise.all(trials.map(async (user) => {
+      return {
+        ...user,
+        trial_info: {
+          requested_at: user.trial_requested_at,
+          plan_type: user.trial_plan_type || '1h',
+          days_ago: user.trial_requested_at ? 
+            Math.floor((new Date() - new Date(user.trial_requested_at)) / (1000 * 60 * 60 * 24)) : 0
+        }
+      };
+    }));
+    
+    res.json(trialsWithUsers);
+  } catch (error) {
+    console.error('❌ Error obteniendo pruebas pendientes:', error);
+    res.status(500).json({ error: 'Error obteniendo pruebas pendientes' });
+  }
+});
+
+// 21. Ruta para marcar prueba como enviada
+app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    // Verificar permisos de administrador
+    if (!isAdmin(adminId)) {
+      console.log(`❌ Intento no autorizado de marcar prueba como enviada por ${adminId}`);
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    console.log(`✅ Marcando prueba como enviada para ${req.params.telegramId}...`);
+    
+    const user = await db.markTrialAsSent(req.params.telegramId, adminId);
+    
+    // Notificar al usuario
+    try {
+      await bot.telegram.sendMessage(
+        req.params.telegramId,
+        '🎉 *¡Tu prueba gratuita está lista!*\n\n' +
+        'Has recibido la configuración de prueba de 1 hora.\n' +
+        '¡Disfruta de baja latencia! 🚀\n\n' +
+        '*Nota:* Esta prueba expirará en 1 hora.',
+        { parse_mode: 'Markdown' }
+      );
+      console.log(`✅ Usuario ${req.params.telegramId} notificado de envío de prueba`);
+    } catch (botError) {
+      console.log('❌ No se pudo notificar al usuario:', botError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Prueba marcada como enviada',
+      user 
+    });
+  } catch (error) {
+    console.error('❌ Error marcando prueba como enviada:', error);
+    res.status(500).json({ error: 'Error marcando prueba como enviada' });
+  }
+});
+
+// 22. Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -830,7 +929,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 20. Ruta para obtener imagen directa (si está guardada localmente)
+// 23. Ruta para obtener imagen directa (si está guardada localmente)
 app.get('/api/image/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
@@ -844,18 +943,6 @@ app.get('/api/image/:filename', (req, res) => {
   } catch (error) {
     console.error('❌ Error sirviendo imagen:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
-// 21. Obtener estadísticas de pruebas
-app.get('/api/trial-stats', async (req, res) => {
-  try {
-    console.log('🎯 Obteniendo estadísticas de pruebas...');
-    const stats = await db.getTrialStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de prueba:', error);
-    res.status(500).json({ error: 'Error obteniendo estadísticas de prueba' });
   }
 });
 
@@ -1048,6 +1135,9 @@ bot.action('view_plans', async (ctx) => {
     
     await ctx.editMessageText(
         `📋 *NUESTROS PLANES* 🚀\n\n` +
+        `*PRUEBA GRATIS (1 hora)*\n` +
+        `💵 $0 CUP\n` +
+        `🎁 ¡Prueba completamente gratis!\n\n` +
         `*BÁSICO (1 mes)*\n` +
         `💵 $800 CUP\n\n` +
         `*PREMIUM (2 meses)*\n` +
@@ -1119,6 +1209,12 @@ bot.action('view_detailed_plans', async (ctx) => {
     
     await ctx.editMessageText(
         `📊 *DETALLES DE PLANES* 📋\n\n` +
+        `*PRUEBA GRATIS (1 hora)*\n` +
+        `• Precio: $0 CUP\n` +
+        `• Conexión completa por 1 hora\n` +
+        `• Ancho de banda ilimitado\n` +
+        `• Misma seguridad que planes pagos\n` +
+        `• Configuración en minutos\n\n` +
         `*PLAN BÁSICO (1 mes)*\n` +
         `• Precio: $800 CUP\n` +
         `• Conexión de baja latencia\n` +
@@ -1239,6 +1335,59 @@ bot.action('check_status', async (ctx) => {
                     }
                 }
             );
+        } else if (user?.trial_requested) {
+            let trialMessage = `🎁 *SOLICITASTE UNA PRUEBA GRATUITA*\n\n`;
+            
+            if (user.trial_received) {
+                const trialSentAt = formatearFecha(user.trial_sent_at);
+                trialMessage += `✅ *Prueba recibida:* ${trialSentAt}\n`;
+                trialMessage += `⏰ *Duración:* 1 hora\n`;
+                trialMessage += `📋 *Estado:* Completada\n\n`;
+                trialMessage += `Si quieres acceso ilimitado, adquiere uno de nuestros planes.`;
+            } else {
+                trialMessage += `⏳ *Estado:* Pendiente de envío\n`;
+                trialMessage += `⏰ *Duración:* 1 hora\n`;
+                trialMessage += `📋 *Solicitada:* ${formatearFecha(user.trial_requested_at)}\n\n`;
+                trialMessage += `Recibirás la configuración por este chat en minutos.`;
+            }
+            
+            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+            const keyboard = [
+                [
+                    { 
+                        text: '📋 VER PLANES',
+                        web_app: { url: webappUrl }
+                    }
+                ],
+                [
+                    {
+                        text: '💻 DESCARGAR WIREGUARD',
+                        callback_data: 'download_wireguard'
+                    }
+                ],
+                [
+                    {
+                        text: '🆘 CONTACTAR SOPORTE', 
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
+            
+            await ctx.editMessageText(
+                trialMessage,
+                { 
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: keyboard
+                    }
+                }
+            );
         } else {
             const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
             const keyboard = [
@@ -1339,24 +1488,25 @@ bot.action('start_broadcast', async (ctx) => {
     await ctx.answerCbQuery();
 });
 
-// Botón: Solicitar Prueba Gratuita (solo para prueba)
+// Botón: Solicitar Prueba Gratuita desde el bot
 bot.action('request_trial', async (ctx) => {
     const userId = ctx.from.id.toString();
     const username = ctx.from.username;
     const firstName = ctx.from.first_name;
     
-    console.log(`🎯 Usuario ${userId} solicita prueba gratuita`);
+    console.log(`🎯 Usuario ${userId} solicita prueba gratuita desde bot`);
     
-    // Verificar si ya solicitó prueba
-    const user = await db.getUser(userId);
-    if (user && user.trial_requested) {
-        await ctx.answerCbQuery('❌ Ya solicitaste una prueba anteriormente');
+    // Verificar elegibilidad
+    const eligibility = await db.checkTrialEligibility(userId);
+    
+    if (!eligibility.eligible) {
+        await ctx.answerCbQuery(`❌ ${eligibility.reason}`);
         return;
     }
     
-    // Enviar solicitud a la API
     try {
-        const response = await fetch(`http://localhost:${PORT}/api/request-trial`, {
+        const baseUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+        const response = await fetch(`${baseUrl}/api/request-trial`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1364,7 +1514,8 @@ bot.action('request_trial', async (ctx) => {
             body: JSON.stringify({
                 telegramId: userId,
                 username: username,
-                firstName: firstName
+                firstName: firstName,
+                trialType: '1h'
             })
         });
         
@@ -1374,12 +1525,16 @@ bot.action('request_trial', async (ctx) => {
             await ctx.answerCbQuery('✅ Solicitud enviada');
             await ctx.reply(
                 '✅ *Solicitud de prueba enviada*\n\n' +
-                'Recibirás la configuración en menos de 1 hora.\n' +
+                'Recibirás la configuración en minutos.\n' +
                 '¡Gracias por probar VPN Cuba! 🚀',
                 { parse_mode: 'Markdown' }
             );
         } else {
             await ctx.answerCbQuery('❌ Error en la solicitud');
+            await ctx.reply(
+                `❌ *Error:* ${data.error || 'No se pudo procesar la solicitud'}`,
+                { parse_mode: 'Markdown' }
+            );
         }
     } catch (error) {
         console.error('❌ Error en request_trial:', error);
@@ -1390,23 +1545,24 @@ bot.action('request_trial', async (ctx) => {
 // Manejar callback para enviar configuración de prueba
 bot.action(/send_trial_(.+)/, async (ctx) => {
     const adminId = ctx.from.id.toString();
-    const telegramId = ctx.match[1];
+    const [telegramId, trialType] = ctx.match[1].split('_');
     
     if (!isAdmin(adminId)) {
         await ctx.answerCbQuery('❌ No autorizado');
         return;
     }
     
-    await ctx.answerCbQuery('📤 Preparando para enviar configuración...');
+    await ctx.answerCbQuery('📤 Preparando para enviar configuración de prueba...');
     
     // Preguntar por archivo de configuración
     ctx.session = ctx.session || {};
     ctx.session.waitingForTrialFile = {
         target: telegramId,
-        adminId: adminId
+        adminId: adminId,
+        trialType: trialType || '1h'
     };
     
-    await ctx.reply(`📤 Enviar configuración de prueba a ${telegramId}\n\nPor favor, envía el archivo ZIP/RAR de configuración:`);
+    await ctx.reply(`📤 Enviar configuración de prueba (${trialType || '1h'}) a ${telegramId}\n\nPor favor, envía el archivo ZIP/RAR de configuración:`);
 });
 
 // Manejar archivos enviados por admin (para pruebas)
@@ -1417,11 +1573,11 @@ bot.on('document', async (ctx) => {
     
     // Para configuración de prueba
     if (ctx.session?.waitingForTrialFile && ctx.session.waitingForTrialFile.target) {
-        const { target, adminId } = ctx.session.waitingForTrialFile;
+        const { target, adminId, trialType } = ctx.session.waitingForTrialFile;
         const fileId = ctx.message.document.file_id;
         const fileName = ctx.message.document.file_name;
         
-        console.log(`📁 Admin ${adminId} envía archivo de prueba ${fileName} a ${target}`);
+        console.log(`📁 Admin ${adminId} envía archivo de prueba ${fileName} a ${target} (${trialType})`);
         
         try {
             const fileNameLower = fileName.toLowerCase();
@@ -1433,30 +1589,31 @@ bot.on('document', async (ctx) => {
             // Obtener información del usuario
             const user = await db.getUser(target);
             
+            if (!user) {
+                await ctx.reply(`❌ Usuario ${target} no encontrado`);
+                return;
+            }
+            
             // Enviar archivo al usuario
             await bot.telegram.sendDocument(target, fileId, {
-                caption: '🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n' +
-                        '📁 *Archivo de configuración para 24 horas*\n\n' +
-                        '*Instrucciones:*\n' +
-                        '1. Descomprime este archivo\n' +
-                        '2. Importa el archivo .conf en WireGuard\n' +
-                        '3. Activa la conexión\n' +
-                        '4. ¡Disfruta de 24 horas gratis! 🎉\n\n' +
-                        '*Nota:* Esta configuración expirará en 24 horas.\n' +
-                        'Para continuar usando el servicio, adquiere uno de nuestros planes.\n\n' +
-                        '*Soporte:* @L0quen2',
+                caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
+                        `📁 *Archivo de configuración para ${trialType}*\n\n` +
+                        `*Instrucciones:*\n` +
+                        `1. Descomprime este archivo\n` +
+                        `2. Importa el archivo .conf en WireGuard\n` +
+                        `3. Activa la conexión\n` +
+                        `4. ¡Disfruta de ${trialType} gratis! 🎉\n\n` +
+                        `*Nota:* Esta configuración expirará en ${trialType}.\n` +
+                        `Para continuar usando el servicio, adquiere uno de nuestros planes.\n\n` +
+                        `*Soporte:* @L0quen2`,
                 parse_mode: 'Markdown'
             });
             
             // Marcar usuario como que recibió prueba
-            await db.updateUser(target, {
-                trial_received: true,
-                trial_sent_at: new Date().toISOString(),
-                trial_sent_by: adminId
-            });
+            await db.markTrialAsSent(target, adminId);
             
             // Notificar al admin
-            await ctx.reply(`✅ Configuración de prueba enviada a ${target}`);
+            await ctx.reply(`✅ Configuración de prueba (${trialType}) enviada a ${target}`);
             
             delete ctx.session.waitingForTrialFile;
             
@@ -1720,6 +1877,7 @@ bot.command('help', async (ctx) => {
         `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
         `Usa los botones para navegar por todas las funciones.\n\n` +
         `*BOTONES DISPONIBLES:*\n` +
+        `🎁 PRUEBA GRATIS - Prueba gratuita de 1 hora\n` +
         `📋 VER PLANES - Ver y comprar planes\n` +
         `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
         `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
@@ -1814,7 +1972,8 @@ app.listen(PORT, async () => {
     console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
     console.log(`🆘 Soporte: @L0quen2`);
     console.log(`📢 Broadcast: Disponible para admins`);
-    console.log(`🎯 Prueba gratuita: Disponible`);
+    console.log(`🎯 Prueba gratuita: Disponible (1 hora)`);
+    console.log(`📊 Estadísticas de trial: /api/trial-stats`);
     
     // Iniciar bot
     try {
@@ -1824,7 +1983,8 @@ app.listen(PORT, async () => {
         // Configurar comandos del bot
         const commands = [
             { command: 'start', description: 'Iniciar el bot' },
-            { command: 'help', description: 'Mostrar ayuda' }
+            { command: 'help', description: 'Mostrar ayuda' },
+            { command: 'admin', description: 'Panel de administración (solo admins)' }
         ];
         
         await bot.telegram.setMyCommands(commands);

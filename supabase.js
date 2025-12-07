@@ -340,3 +340,4 @@ const db = {
   async getApprovedPayments() {
     try {
       console
+    }

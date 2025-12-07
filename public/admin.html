@@ -22,6 +22,8 @@
             --warning: #f59e0b;
             --error: #ef4444;
             --trial: #10b981;
+            --trial-light: #34d399;
+            --trial-glow: rgba(16, 185, 129, 0.4);
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
@@ -213,6 +215,9 @@
         .stat-card.pending .stat-value { color: var(--warning); }
         .stat-card.pending .stat-icon { color: var(--warning); }
 
+        .stat-card.trial-pending .stat-value { color: var(--trial-light); }
+        .stat-card.trial-pending .stat-icon { color: var(--trial-light); }
+
         /* TABLAS */
         .table-container {
             overflow-x: auto;
@@ -286,10 +291,23 @@
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
+        .badge.trial-pending {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            animation: pulse 2s infinite;
+        }
+
         .badge.non-vip {
             background: rgba(156, 163, 175, 0.2);
             color: #9ca3af;
             border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
 
         /* BOTONES DE ACCIÓN */
@@ -355,6 +373,17 @@
 
         .action-btn.remove-vip:hover {
             background: rgba(245, 158, 11, 0.3);
+        }
+
+        .action-btn.send-trial {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--trial-light);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .action-btn.send-trial:hover {
+            background: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px var(--trial-glow);
         }
 
         .action-btn:disabled {
@@ -449,6 +478,23 @@
 
         .submit-config:hover {
             background: var(--accent-light);
+        }
+
+        .submit-trial {
+            width: 100%;
+            padding: 15px;
+            background: var(--trial);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-trial:hover {
+            background: var(--trial-light);
+            box-shadow: 0 0 20px var(--trial-glow);
         }
 
         /* LOADING */
@@ -584,6 +630,22 @@
             font-size: 0.85rem;
             color: var(--text-secondary);
         }
+
+        /* INFO BOX */
+        .info-box {
+            padding: 15px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: var(--trial-light);
+            font-size: 0.9rem;
+        }
+
+        .info-box i {
+            margin-right: 10px;
+            color: var(--trial-light);
+        }
     </style>
 </head>
 <body>
@@ -601,6 +663,7 @@
         <div class="tabs">
             <div class="tab active" data-tab="stats">📊 Estadísticas</div>
             <div class="tab" data-tab="pending">⏳ Pendientes</div>
+            <div class="tab" data-tab="trial-pending">🎯 Pruebas Pendientes</div>
             <div class="tab" data-tab="approved">✅ Aprobados</div>
             <div class="tab" data-tab="users">👥 Usuarios</div>
         </div>
@@ -624,6 +687,12 @@
                     <i class="fas fa-gift stat-icon"></i>
                     <div class="stat-value" id="trialRequests">0</div>
                     <div class="stat-label">Solicitudes de Prueba</div>
+                </div>
+                
+                <div class="stat-card trial-pending">
+                    <i class="fas fa-clock stat-icon"></i>
+                    <div class="stat-value" id="trialPendingCount">0</div>
+                    <div class="stat-label">Pruebas Pendientes</div>
                 </div>
                 
                 <div class="stat-card pending">
@@ -665,12 +734,12 @@
                     
                     <div class="trial-stat">
                         <div class="trial-stat-value" id="pendingTrials">0</div>
-                        <div class="trial-stat-label">Pendientes</div>
+                        <div class="trial-stat-label">Pendientes de Enviar</div>
                     </div>
                     
                     <div class="trial-stat">
                         <div class="trial-stat-value" id="todayTrialRequests">0</div>
-                        <div class="trial-stat-label">Hoy</div>
+                        <div class="trial-stat-label">Solicitudes Hoy</div>
                     </div>
                 </div>
             </div>
@@ -717,6 +786,57 @@
                 <div class="no-data" id="pendingNoData" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
                     <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 20px;"></i>
                     <p>No hay pagos pendientes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRUEBAS PENDIENTES -->
+        <div id="trial-pendingContent" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-gift"></i>
+                        Pruebas Pendientes
+                    </h2>
+                    <button class="refresh-btn" onclick="loadPendingTrials()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    Estos usuarios solicitaron una prueba gratuita y están esperando el archivo de configuración.
+                    Envía el archivo .conf, .zip o .rar para completar la solicitud.
+                </div>
+                
+                <div class="loading" id="trialLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando pruebas pendientes...</p>
+                </div>
+                
+                <div class="table-container">
+                    <table id="trialTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Solicitado</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Días Esperando</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trialTableBody">
+                            <!-- Datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="no-data" id="trialNoData" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                    <p>No hay pruebas pendientes</p>
                 </div>
             </div>
         </div>
@@ -839,7 +959,7 @@
         </div>
     </div>
 
-    <!-- MODAL PARA ENVIAR CONFIGURACIÓN -->
+    <!-- MODAL PARA ENVIAR CONFIGURACIÓN DE PAGO -->
     <div id="configModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -854,15 +974,45 @@
                 <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
                     <p style="color: #a5b4fc; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i>
-                        Solo se permiten archivos .zip o .rar
+                        Se permiten archivos .conf, .zip o .rar
                     </p>
                 </div>
                 
-                <input type="file" id="configFile" class="file-input" accept=".zip,.rar">
+                <input type="file" id="configFile" class="file-input" accept=".conf,.zip,.rar">
                 
                 <button class="submit-config" onclick="sendConfigFile()">
                     <i class="fas fa-paper-plane"></i>
                     Enviar Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA ENVIAR CONFIGURACIÓN DE PRUEBA -->
+    <div id="trialConfigModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Enviar Configuración de Prueba</h3>
+                <button class="close-modal" onclick="closeTrialConfigModal()">&times;</button>
+            </div>
+            <div class="config-form">
+                <p><strong>Usuario:</strong> <span id="trialConfigUserId"></span></p>
+                <p><strong>Nombre:</strong> <span id="trialConfigName"></span></p>
+                <p><strong>Solicitado:</strong> <span id="trialConfigDate"></span></p>
+                <p><strong>Tipo:</strong> <span id="trialConfigType"></span></p>
+                
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                    <p style="color: #34d399; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i>
+                        Archivo .conf para 1 hora de prueba
+                    </p>
+                </div>
+                
+                <input type="file" id="trialConfigFile" class="file-input" accept=".conf,.zip,.rar">
+                
+                <button class="submit-trial" onclick="sendTrialConfigFile()">
+                    <i class="fas fa-gift"></i>
+                    Enviar Configuración de Prueba
                 </button>
             </div>
         </div>
@@ -879,6 +1029,7 @@
         let currentPaymentId = null;
         let currentTab = 'stats';
         let currentUserId = null;
+        let currentTrialUserId = null;
         let isAdminUser = false;
 
         // Inicializar Telegram WebApp
@@ -945,6 +1096,7 @@
                 document.getElementById('trialRequests').textContent = stats.users?.trial_requests || 0;
                 document.getElementById('pendingPaymentsCount').textContent = stats.payments?.pending || 0;
                 document.getElementById('totalRevenue').textContent = stats.revenue?.total || 0;
+                document.getElementById('trialPendingCount').textContent = stats.users?.trial_pending || 0;
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
             }
@@ -1020,6 +1172,66 @@
                 console.error('❌ Error cargando pagos pendientes:', error);
                 document.getElementById('pendingLoading').style.display = 'none';
                 showNotification('❌ Error cargando pagos pendientes: ' + error.message, 'error');
+            }
+        }
+
+        // Cargar pruebas pendientes
+        async function loadPendingTrials() {
+            try {
+                document.getElementById('trialLoading').style.display = 'block';
+                document.getElementById('trialTable').style.display = 'none';
+                document.getElementById('trialNoData').style.display = 'none';
+                
+                console.log('🎯 Cargando pruebas pendientes...');
+                const response = await fetch('/api/trials/pending');
+                const trials = await response.json();
+                
+                console.log(`📊 Pruebas pendientes recibidas (${trials.length}):`, trials);
+                
+                document.getElementById('trialLoading').style.display = 'none';
+                
+                if (!trials || trials.length === 0) {
+                    console.log('📭 No hay pruebas pendientes');
+                    document.getElementById('trialNoData').style.display = 'block';
+                    return;
+                }
+                
+                const tableBody = document.getElementById('trialTableBody');
+                tableBody.innerHTML = '';
+                
+                trials.forEach(trial => {
+                    const daysAgo = trial.trial_info?.days_ago || 0;
+                    const trialDate = trial.trial_requested_at ? new Date(trial.trial_requested_at).toLocaleDateString('es-ES') : 'N/A';
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${trial.telegram_id || 'N/A'}</td>
+                        <td>
+                            <strong>${trial.first_name || trial.username || 'Usuario'}</strong><br>
+                            <small>@${trial.username || 'sin_usuario'}</small>
+                        </td>
+                        <td>${trialDate}</td>
+                        <td>${trial.trial_plan_type || '1h'}</td>
+                        <td><span class="badge trial-pending">Pendiente</span></td>
+                        <td>${daysAgo} días</td>
+                        <td>
+                            <button class="action-btn send-trial" onclick="openTrialConfigModal('${trial.telegram_id}', '${trial.first_name || trial.username || 'Usuario'}', '${trialDate}', '${trial.trial_plan_type || '1h'}')">
+                                <i class="fas fa-gift"></i> Enviar
+                            </button>
+                            <button class="action-btn message" onclick="sendMessageToUser('${trial.telegram_id}')">
+                                <i class="fas fa-comment"></i> Mensaje
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                document.getElementById('trialTable').style.display = 'table';
+                
+            } catch (error) {
+                console.error('❌ Error cargando pruebas pendientes:', error);
+                document.getElementById('trialLoading').style.display = 'none';
+                showNotification('❌ Error cargando pruebas pendientes: ' + error.message, 'error');
             }
         }
 
@@ -1113,7 +1325,7 @@
                     const trialBadge = user.trial_requested ? 
                         (user.trial_received ? 
                             '<span class="badge trial">Prueba Enviada</span>' : 
-                            '<span class="badge pending">Prueba Pendiente</span>') : 
+                            '<span class="badge trial-pending">Prueba Pendiente</span>') : 
                         '';
                     
                     const row = document.createElement('tr');
@@ -1169,7 +1381,7 @@
             document.getElementById('screenshotModal').classList.add('active');
         }
 
-        // Abrir modal de configuración
+        // Abrir modal de configuración para pago
         function openConfigModal(paymentId, telegramId, plan) {
             currentPaymentId = paymentId;
             
@@ -1182,6 +1394,20 @@
             document.getElementById('configModal').classList.add('active');
         }
 
+        // Abrir modal de configuración para prueba
+        function openTrialConfigModal(telegramId, name, date, trialType) {
+            currentTrialUserId = telegramId;
+            
+            console.log(`🎁 Abriendo modal para enviar configuración de prueba a ${telegramId}`);
+            
+            document.getElementById('trialConfigUserId').textContent = telegramId;
+            document.getElementById('trialConfigName').textContent = name;
+            document.getElementById('trialConfigDate').textContent = date;
+            document.getElementById('trialConfigType').textContent = trialType;
+            
+            document.getElementById('trialConfigModal').classList.add('active');
+        }
+
         // Cerrar modales
         function closeModal() {
             console.log('❌ Cerrando modal de captura');
@@ -1192,6 +1418,12 @@
             console.log('❌ Cerrando modal de configuración');
             document.getElementById('configModal').classList.remove('active');
             document.getElementById('configFile').value = '';
+        }
+
+        function closeTrialConfigModal() {
+            console.log('❌ Cerrando modal de configuración de prueba');
+            document.getElementById('trialConfigModal').classList.remove('active');
+            document.getElementById('trialConfigFile').value = '';
         }
 
         // Aprobar pago
@@ -1261,7 +1493,7 @@
             }
         }
 
-        // Enviar archivo de configuración (ZIP/RAR)
+        // Enviar archivo de configuración (ZIP/RAR/CONF) para pago
         async function sendConfigFile() {
             const fileInput = document.getElementById('configFile');
             const file = fileInput.files[0];
@@ -1271,12 +1503,12 @@
                 return;
             }
             
-            // Validar que sea ZIP o RAR
+            // Validar que sea ZIP, RAR o CONF
             const fileName = file.name.toLowerCase();
-            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar');
+            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
             
             if (!isValidFile) {
-                showNotification('❌ Solo se permiten archivos .zip o .rar', 'warning');
+                showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
                 return;
             }
             
@@ -1316,12 +1548,76 @@
                         const errorData = JSON.parse(responseText);
                         throw new Error(errorData.error || 'Error enviando configuración');
                     } catch (parseError) {
-                        // Si la respuesta no es JSON, mostrar el texto completo
                         throw new Error(`Error ${response.status}: ${responseText.substring(0, 100)}`);
                     }
                 }
             } catch (error) {
                 console.error('❌ Error enviando configuración:', error);
+                showNotification('❌ ' + error.message, 'error');
+            }
+        }
+
+        // Enviar archivo de configuración de prueba
+        async function sendTrialConfigFile() {
+            const fileInput = document.getElementById('trialConfigFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('❌ Selecciona un archivo de configuración', 'warning');
+                return;
+            }
+            
+            // Validar que sea ZIP, RAR o CONF
+            const fileName = file.name.toLowerCase();
+            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
+            
+            if (!isValidFile) {
+                showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
+                return;
+            }
+            
+            console.log(`🎁 Enviando archivo de prueba ${file.name} a ${currentTrialUserId}...`);
+            
+            const formData = new FormData();
+            formData.append('trialConfigFile', file);
+            formData.append('telegramId', currentTrialUserId);
+            formData.append('adminId', currentUserId);
+            formData.append('trialType', document.getElementById('trialConfigType').textContent);
+            
+            try {
+                const response = await fetch('/api/send-trial-config', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const responseText = await response.text();
+                console.log('📥 Respuesta del servidor:', responseText);
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        console.log('✅ Configuración de prueba enviada:', data);
+                        showNotification('✅ Configuración de prueba enviada correctamente', 'success');
+                        closeTrialConfigModal();
+                        loadPendingTrials();
+                        loadTrialStats();
+                        loadStats();
+                    } catch (jsonError) {
+                        console.error('❌ Error parseando JSON:', jsonError);
+                        showNotification('✅ Archivo de prueba enviado', 'success');
+                    }
+                } else {
+                    console.error('❌ Error del servidor:', response.status, responseText);
+                    
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        throw new Error(errorData.error || 'Error enviando configuración de prueba');
+                    } catch (parseError) {
+                        throw new Error(`Error ${response.status}: ${responseText.substring(0, 100)}`);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error enviando configuración de prueba:', error);
                 showNotification('❌ ' + error.message, 'error');
             }
         }
@@ -1433,6 +1729,9 @@
                 case 'pending':
                     loadPendingPayments();
                     break;
+                case 'trial-pending':
+                    loadPendingTrials();
+                    break;
                 case 'approved':
                     loadApprovedPayments();
                     break;
@@ -1476,6 +1775,7 @@
                 if (e.key === 'Escape') {
                     closeModal();
                     closeConfigModal();
+                    closeTrialConfigModal();
                 }
             });
         });

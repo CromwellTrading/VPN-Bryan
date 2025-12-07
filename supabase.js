@@ -94,12 +94,19 @@ const db = {
         // Actualizar usuario existente
         console.log(`✏️ Actualizando usuario existente ${telegramId}`);
         
+        const updateData = {
+          ...userData,
+          updated_at: new Date().toISOString()
+        };
+        
+        // Si se envía trial_requested, actualizar también trial_requested_at
+        if (userData.trial_requested && !existingUser.trial_requested) {
+          updateData.trial_requested_at = new Date().toISOString();
+        }
+        
         const { data, error } = await supabase
           .from('users')
-          .update({
-            ...userData,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('telegram_id', telegramId)
           .select()
           .single();
@@ -115,14 +122,21 @@ const db = {
         // Crear nuevo usuario
         console.log(`🆕 Creando nuevo usuario ${telegramId}`);
         
+        const insertData = {
+          telegram_id: telegramId,
+          ...userData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        // Si es solicitud de prueba, agregar fecha
+        if (userData.trial_requested) {
+          insertData.trial_requested_at = new Date().toISOString();
+        }
+        
         const { data, error } = await supabase
           .from('users')
-          .insert([{
-            telegram_id: telegramId,
-            ...userData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }])
+          .insert([insertData])
           .select()
           .single();
         
@@ -136,6 +150,33 @@ const db = {
       }
     } catch (error) {
       console.error('❌ Error guardando usuario:', error);
+      throw error;
+    }
+  },
+
+  async updateUser(telegramId, updateData) {
+    try {
+      console.log(`✏️ Actualizando usuario ${telegramId}...`);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('telegram_id', telegramId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando usuario:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Usuario ${telegramId} actualizado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error actualizando usuario:', error);
       throw error;
     }
   },
@@ -500,7 +541,7 @@ const db = {
       // Obtener estadísticas de usuarios
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('vip, created_at');
+        .select('vip, created_at, trial_requested, trial_received');
       
       if (usersError) {
         console.error('❌ Error obteniendo usuarios para estadísticas:', usersError);
@@ -509,11 +550,13 @@ const db = {
       
       const totalUsers = usersData?.length || 0;
       const vipUsers = usersData?.filter(u => u.vip)?.length || 0;
+      const trialRequests = usersData?.filter(u => u.trial_requested)?.length || 0;
+      const trialReceived = usersData?.filter(u => u.trial_received)?.length || 0;
       
       // Obtener estadísticas de pagos
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
-        .select('status, price');
+        .select('status, price, plan');
       
       if (paymentsError) {
         console.error('❌ Error obteniendo pagos para estadísticas:', paymentsError);
@@ -529,6 +572,14 @@ const db = {
       const totalRevenue = paymentsData
         ?.filter(p => p.status === 'approved' && p.price)
         ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
+      
+      // Calcular ingresos por plan
+      const revenueByPlan = {};
+      paymentsData?.forEach(p => {
+        if (p.status === 'approved' && p.price && p.plan) {
+          revenueByPlan[p.plan] = (revenueByPlan[p.plan] || 0) + (parseFloat(p.price) || 0);
+        }
+      });
       
       // Calcular usuarios nuevos hoy
       const today = new Date().toISOString().split('T')[0];
@@ -558,7 +609,10 @@ const db = {
           total: totalUsers,
           vip: vipUsers,
           regular: totalUsers - vipUsers,
-          new_today: newUsersToday
+          new_today: newUsersToday,
+          trial_requests: trialRequests,
+          trial_received: trialReceived,
+          trial_pending: trialRequests - trialReceived
         },
         payments: {
           total: totalPayments,
@@ -570,7 +624,8 @@ const db = {
         revenue: {
           total: totalRevenue,
           average: approvedPayments > 0 ? totalRevenue / approvedPayments : 0,
-          today: revenueToday
+          today: revenueToday,
+          by_plan: revenueByPlan
         },
         charts: {
           daily_payments: await this.getDailyPaymentsChart(),
@@ -580,9 +635,28 @@ const db = {
     } catch (error) {
       console.error('❌ Error obteniendo estadísticas:', error);
       return {
-        users: { total: 0, vip: 0, regular: 0, new_today: 0 },
-        payments: { total: 0, pending: 0, approved: 0, rejected: 0, today: 0 },
-        revenue: { total: 0, average: 0, today: 0 },
+        users: { 
+          total: 0, 
+          vip: 0, 
+          regular: 0, 
+          new_today: 0,
+          trial_requests: 0,
+          trial_received: 0,
+          trial_pending: 0
+        },
+        payments: { 
+          total: 0, 
+          pending: 0, 
+          approved: 0, 
+          rejected: 0, 
+          today: 0 
+        },
+        revenue: { 
+          total: 0, 
+          average: 0, 
+          today: 0,
+          by_plan: {}
+        },
         charts: {
           daily_payments: [],
           plan_distribution: []
@@ -783,6 +857,8 @@ const db = {
           username: u.username,
           first_name: u.first_name,
           vip: u.vip,
+          trial_requested: u.trial_requested,
+          trial_received: u.trial_received,
           created_at: u.created_at,
           updated_at: u.updated_at
         }))
@@ -881,9 +957,28 @@ const db = {
     } catch (error) {
       console.error('❌ Error en getAdminStats:', error);
       return {
-        users: { total: 0, vip: 0, regular: 0, new_today: 0 },
-        payments: { total: 0, pending: 0, approved: 0, rejected: 0, today: 0 },
-        revenue: { total: 0, average: 0, today: 0 },
+        users: { 
+          total: 0, 
+          vip: 0, 
+          regular: 0, 
+          new_today: 0,
+          trial_requests: 0,
+          trial_received: 0,
+          trial_pending: 0
+        },
+        payments: { 
+          total: 0, 
+          pending: 0, 
+          approved: 0, 
+          rejected: 0, 
+          today: 0 
+        },
+        revenue: { 
+          total: 0, 
+          average: 0, 
+          today: 0,
+          by_plan: {}
+        },
         charts: {
           daily_payments: [],
           plan_distribution: []
@@ -929,7 +1024,7 @@ const db = {
     try {
       const { data, error } = await supabase
         .from('payments')
-        .select('price, status, created_at');
+        .select('price, status, created_at, plan');
       
       if (error) {
         throw error;
@@ -943,17 +1038,68 @@ const db = {
         .filter(p => p.created_at?.startsWith(today))
         .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
       
+      // Calcular ingresos por plan
+      const revenueByPlan = {};
+      approvedPayments.forEach(p => {
+        if (p.plan) {
+          revenueByPlan[p.plan] = (revenueByPlan[p.plan] || 0) + (parseFloat(p.price) || 0);
+        }
+      });
+      
       return {
         total: totalRevenue,
         average: approvedPayments.length > 0 ? totalRevenue / approvedPayments.length : 0,
-        today: todayRevenue
+        today: todayRevenue,
+        by_plan: revenueByPlan
       };
     } catch (error) {
       console.error('❌ Error en getRevenueStats:', error);
       return {
         total: 0,
         average: 0,
-        today: 0
+        today: 0,
+        by_plan: {}
+      };
+    }
+  },
+
+  async getTrialStats() {
+    try {
+      console.log('🎯 Obteniendo estadísticas de pruebas...');
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('trial_requested, trial_received, trial_requested_at, trial_sent_at')
+        .eq('trial_requested', true);
+      
+      if (error) {
+        console.error('❌ Error obteniendo estadísticas de prueba:', error);
+        throw error;
+      }
+      
+      const totalRequests = data?.length || 0;
+      const completedTrials = data?.filter(u => u.trial_received)?.length || 0;
+      const pendingTrials = totalRequests - completedTrials;
+      
+      // Calcular solicitudes de hoy
+      const today = new Date().toISOString().split('T')[0];
+      const todayRequests = data?.filter(u => 
+        u.trial_requested_at && u.trial_requested_at.startsWith(today)
+      )?.length || 0;
+      
+      return {
+        total_requests: totalRequests,
+        completed: completedTrials,
+        pending: pendingTrials,
+        today_requests: todayRequests
+      };
+    } catch (error) {
+      console.error('❌ Error en getTrialStats:', error);
+      return {
+        total_requests: 0,
+        completed: 0,
+        pending: 0,
+        today_requests: 0
       };
     }
   }

@@ -762,6 +762,34 @@
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
         .delay-4 { animation-delay: 0.4s; }
+        
+        /* NOTIFICACIÓN FLOTANTE */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 3s forwards;
+            max-width: 400px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -863,7 +891,7 @@
                                     <span>Tarjeta de destino</span>
                                 </div>
                                 <div class="info-value" id="cardNumber">9248 1299 7027 1730</div>
-                                <button class="copy-btn" data-text="9248129970271730">
+                                <button class="copy-btn" onclick="copyToClipboard('9248129970271730', this)">
                                     <i class="far fa-copy"></i>
                                     <span>Copiar</span>
                                 </button>
@@ -875,7 +903,7 @@
                                     <span>Número de confirmación</span>
                                 </div>
                                 <div class="info-value" id="confirmationNumber">63806513</div>
-                                <button class="copy-btn" data-text="63806513">
+                                <button class="copy-btn" onclick="copyToClipboard('63806513', this)">
                                     <i class="far fa-copy"></i>
                                     <span>Copiar</span>
                                 </button>
@@ -1000,6 +1028,26 @@
             return { userId, plan, price };
         }
         
+        // CORREGIDO: Función para copiar al portapapeles
+        function copyToClipboard(text, buttonElement) {
+            navigator.clipboard.writeText(text).then(function() {
+                const originalText = buttonElement.innerHTML;
+                
+                buttonElement.classList.add('copied');
+                buttonElement.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>';
+                
+                setTimeout(function() {
+                    buttonElement.classList.remove('copied');
+                    buttonElement.innerHTML = originalText;
+                }, 2000);
+                
+                showNotification('Texto copiado al portapapeles', 'success');
+            }).catch(function(err) {
+                console.error('❌ Error copiando al portapapeles:', err);
+                showNotification('Error al copiar el texto', 'error');
+            });
+        }
+        
         // Verificar términos y cargar información
         function initializePage() {
             console.log('🔄 Inicializando página de pago...');
@@ -1065,9 +1113,6 @@
             
             // Configurar upload
             setupUploadArea();
-            
-            // Configurar botones de copiar
-            setupCopyButtons();
             
             // Mostrar animaciones
             document.querySelectorAll('.fade-in').forEach(el => {
@@ -1164,37 +1209,6 @@
             showNotification('Imagen eliminada. Sube otra captura para continuar.', 'info');
         }
         
-        // Configurar botones de copiar
-        function setupCopyButtons() {
-            document.querySelectorAll('.copy-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const text = this.getAttribute('data-text');
-                    copyToClipboard(text);
-                });
-            });
-        }
-        
-        // Copiar al portapapeles
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(function() {
-                const button = event.currentTarget;
-                const originalText = button.innerHTML;
-                
-                button.classList.add('copied');
-                button.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>';
-                
-                setTimeout(function() {
-                    button.classList.remove('copied');
-                    button.innerHTML = originalText;
-                }, 2000);
-                
-                showNotification('Texto copiado al portapapeles', 'success');
-            }).catch(function(err) {
-                console.error('❌ Error copiando al portapapeles:', err);
-                showNotification('Error al copiar el texto', 'error');
-            });
-        }
-        
         // Enviar pago
         async function submitPayment() {
             if (!selectedFile) {
@@ -1275,27 +1289,12 @@
         }
         
         // Mostrar notificación
-        function showNotification(message, type) {
+        function showNotification(message, type = 'info') {
             console.log(`📢 Notificación (${type}): ${message}`);
             
             // Crear notificación
             const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 12px;
-                color: white;
-                font-weight: 500;
-                z-index: 1000;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-                animation: slideIn 0.3s ease, fadeOut 0.3s ease 3s forwards;
-                max-width: 400px;
-            `;
+            notification.className = 'notification';
             
             let bgColor = 'var(--accent)';
             let icon = 'fas fa-info-circle';
@@ -1326,21 +1325,6 @@
                 }
             }, 3500);
         }
-        
-        // Añadir estilos para animaciones de notificación
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
         
         // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {

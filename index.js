@@ -37,7 +37,7 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage,
   limits: { 
-    fileSize: 10 * 1024 * 1024, // 10MB para capturas
+    fileSize: 10 * 1024 * 1024, // 10MB para capturas, 20MB para archivos
     files: 1 
   },
   fileFilter: (req, file, cb) => {
@@ -49,10 +49,20 @@ const upload = multer({
         cb(new Error('Solo se permiten imágenes JPG, PNG, GIF o WebP'));
       }
     } else if (file.fieldname === 'configFile') {
-      if (file.mimetype === 'text/plain' || file.originalname.endsWith('.conf')) {
+      // Permitir archivos .zip y .rar
+      const allowedExtensions = ['.zip', '.rar'];
+      const allowedMimeTypes = [
+        'application/zip', 
+        'application/x-rar-compressed', 
+        'application/x-zip-compressed',
+        'application/octet-stream'
+      ];
+      const fileExt = path.extname(file.originalname).toLowerCase();
+      
+      if (allowedExtensions.includes(fileExt) || allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Solo se permiten archivos .conf o texto'));
+        cb(new Error('Solo se permiten archivos .zip o .rar'));
       }
     } else {
       cb(null, true);
@@ -410,9 +420,14 @@ app.get('/api/payments/:id', async (req, res) => {
   }
 });
 
-// 13. Enviar archivo de configuración
+// 13. ENVIAR ARCHIVO DE CONFIGURACIÓN (ZIP/RAR) - ACTUALIZADO
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
+    console.log('📤 Recibiendo archivo de configuración...', {
+      body: req.body,
+      file: req.file ? req.file.filename : 'No file'
+    });
+    
     const { paymentId, telegramId, adminId } = req.body;
     
     // Verificar permisos de administrador
@@ -425,13 +440,14 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'Archivo de configuración requerido' });
     }
     
-    // Verificar que el archivo sea .conf
-    if (!req.file.originalname.endsWith('.conf')) {
+    // Verificar que el archivo sea .zip o .rar
+    const fileName = req.file.originalname.toLowerCase();
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar')) {
       // Eliminar archivo subido
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
-      return res.status(400).json({ error: 'El archivo debe tener extensión .conf' });
+      return res.status(400).json({ error: 'El archivo debe tener extensión .zip o .rar' });
     }
     
     // Obtener información del pago
@@ -466,9 +482,10 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
                   `📁 *Archivo:* ${req.file.originalname}\n\n` +
                   `*Instrucciones de instalación:*\n` +
                   `1. Descarga este archivo\n` +
-                  `2. Importa en tu cliente WireGuard\n` +
-                  `3. Activa la conexión\n` +
-                  `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                  `2. Descomprime el ZIP/RAR en tu dispositivo\n` +
+                  `3. Importa el archivo .conf en tu cliente WireGuard\n` +
+                  `4. Activa la conexión\n` +
+                  `5. ¡Disfruta de baja latencia! 🚀\n\n` +
                   `*Soporte:* Contacta con soporte si tienes problemas.`,
           parse_mode: 'Markdown'
         }
@@ -512,7 +529,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
-      res.status(500).json({ error: 'Error enviando archivo por Telegram' });
+      res.status(500).json({ error: 'Error enviando archivo por Telegram: ' + telegramError.message });
     }
     
   } catch (error) {
@@ -525,7 +542,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       });
     }
     
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
 
@@ -921,7 +938,7 @@ bot.command('enviar', async (ctx) => {
     paymentId: paymentId
   };
 
-  await ctx.reply(`📤 Esperando archivo .conf para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo .conf ahora:`);
+  await ctx.reply(`📤 Esperando archivo .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo comprimido ahora:`);
 });
 
 // Manejar archivos enviados por admin
@@ -934,9 +951,10 @@ bot.on('document', async (ctx) => {
     console.log(`📁 Admin ${ctx.from.id} envía archivo ${fileName} a ${target}`);
 
     try {
-      // Verificar que sea un archivo .conf
-      if (!fileName.endsWith('.conf')) {
-        await ctx.reply('❌ El archivo debe tener extensión .conf');
+      // Verificar que sea un archivo .zip o .rar
+      const fileNameLower = fileName.toLowerCase();
+      if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
+        await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
         return;
       }
       
@@ -970,7 +988,8 @@ bot.on('document', async (ctx) => {
       // Enviar al usuario
       await ctx.telegram.sendDocument(target, fileId, {
         caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
-                '📁 Importa este archivo en WireGuard\n' +
+                '📁 Descomprime este archivo ZIP/RAR\n' +
+                '📄 Importa el archivo .conf en WireGuard\n' +
                 '🚀 ¡Disfruta de baja latencia!',
         parse_mode: 'Markdown'
       });

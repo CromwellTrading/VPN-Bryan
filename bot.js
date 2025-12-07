@@ -14,6 +14,34 @@ function isAdmin(userId) {
     return ADMIN_IDS.includes(userId.toString());
 }
 
+// ==================== KEEP ALIVE ====================
+
+// Función para mantener activa la conexión del bot (ping cada 5 minutos)
+function startBotKeepAlive() {
+  const keepAliveInterval = 5 * 60 * 1000; // 5 minutos en milisegundos
+  
+  setInterval(() => {
+    // Simplemente registramos que el bot está activo
+    console.log(`🤖 Bot activo y escuchando a las ${new Date().toLocaleTimeString()}`);
+    
+    // También podemos verificar conexión con Telegram
+    try {
+      // Opcional: Hacer una llamada simple para verificar que el bot sigue conectado
+      bot.telegram.getMe()
+        .then(() => {
+          console.log('✅ Conexión con Telegram estable');
+        })
+        .catch(error => {
+          console.error('❌ Error en conexión con Telegram:', error.message);
+        });
+    } catch (error) {
+      console.error('❌ Error en keep-alive del bot:', error.message);
+    }
+  }, keepAliveInterval);
+
+  console.log(`🔄 Keep-alive del bot iniciado. Verificación cada 5 minutos`);
+}
+
 // Comando /start
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
@@ -366,6 +394,9 @@ async function startBot() {
         if (ADMIN_IDS.length > 0) {
             console.log('✅ Comandos de admin disponibles para usuarios autorizados');
         }
+
+        // Iniciar keep-alive del bot
+        startBotKeepAlive();
         
     } catch (error) {
         console.error('Error al iniciar el bot:', error);

@@ -104,6 +104,16 @@ const db = {
           updateData.trial_requested_at = new Date().toISOString();
         }
         
+        // Si se envía trial_received, actualizar también trial_sent_at
+        if (userData.trial_received && !existingUser.trial_received) {
+          updateData.trial_sent_at = new Date().toISOString();
+        }
+        
+        // Si se envía trial_plan_type, actualizarlo
+        if (userData.trial_plan_type) {
+          updateData.trial_plan_type = userData.trial_plan_type;
+        }
+        
         const { data, error } = await supabase
           .from('users')
           .update(updateData)
@@ -132,6 +142,7 @@ const db = {
         // Si es solicitud de prueba, agregar fecha
         if (userData.trial_requested) {
           insertData.trial_requested_at = new Date().toISOString();
+          insertData.trial_plan_type = userData.trial_plan_type || '1h';
         }
         
         const { data, error } = await supabase
@@ -604,15 +615,18 @@ const db = {
         paymentsToday = todayPayments.length;
       }
       
+      // Obtener estadísticas de trial
+      const trialStats = await this.getTrialStats();
+      
       return {
         users: {
           total: totalUsers,
           vip: vipUsers,
           regular: totalUsers - vipUsers,
           new_today: newUsersToday,
-          trial_requests: trialRequests,
-          trial_received: trialReceived,
-          trial_pending: trialRequests - trialReceived
+          trial_requests: trialStats.total_requests,
+          trial_received: trialStats.completed,
+          trial_pending: trialStats.pending
         },
         payments: {
           total: totalPayments,
@@ -1063,13 +1077,14 @@ const db = {
     }
   },
 
+  // ========== FUNCIONES DE PRUEBA GRATUITA ==========
   async getTrialStats() {
     try {
       console.log('🎯 Obteniendo estadísticas de pruebas...');
       
       const { data, error } = await supabase
         .from('users')
-        .select('trial_requested, trial_received, trial_requested_at, trial_sent_at')
+        .select('trial_requested, trial_received, trial_requested_at, trial_sent_at, trial_plan_type')
         .eq('trial_requested', true);
       
       if (error) {
@@ -1087,11 +1102,18 @@ const db = {
         u.trial_requested_at && u.trial_requested_at.startsWith(today)
       )?.length || 0;
       
+      // Calcular por tipo de prueba
+      const trialByType = {
+        '1h': data?.filter(u => u.trial_plan_type === '1h')?.length || 0,
+        '24h': data?.filter(u => u.trial_plan_type === '24h')?.length || 0
+      };
+      
       return {
         total_requests: totalRequests,
         completed: completedTrials,
         pending: pendingTrials,
-        today_requests: todayRequests
+        today_requests: todayRequests,
+        by_type: trialByType
       };
     } catch (error) {
       console.error('❌ Error en getTrialStats:', error);
@@ -1099,8 +1121,169 @@ const db = {
         total_requests: 0,
         completed: 0,
         pending: 0,
-        today_requests: 0
+        today_requests: 0,
+        by_type: {}
       };
+    }
+  },
+
+  async getPendingTrials() {
+    try {
+      console.log('⏳ Obteniendo pruebas pendientes...');
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('trial_requested', true)
+        .eq('trial_received', false)
+        .order('trial_requested_at', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Error obteniendo pruebas pendientes:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} pruebas pendientes encontradas`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getPendingTrials:', error);
+      return [];
+    }
+  },
+
+  async markTrialAsSent(telegramId, sentBy) {
+    try {
+      console.log(`✅ Marcando prueba como enviada para ${telegramId}...`);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          trial_received: true,
+          trial_sent_at: new Date().toISOString(),
+          trial_sent_by: sentBy,
+          updated_at: new Date().toISOString()
+        })
+        .eq('telegram_id', telegramId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error marcando prueba como enviada:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Prueba marcada como enviada para ${telegramId}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en markTrialAsSent:', error);
+      throw error;
+    }
+  },
+
+  async checkTrialEligibility(telegramId) {
+    try {
+      console.log(`🔍 Verificando elegibilidad para prueba de ${telegramId}...`);
+      
+      const user = await this.getUser(telegramId);
+      
+      if (!user) {
+        return {
+          eligible: true,
+          reason: 'Nuevo usuario'
+        };
+      }
+      
+      // Verificar si ya solicitó prueba
+      if (!user.trial_requested) {
+        return {
+          eligible: true,
+          reason: 'Primera solicitud'
+        };
+      }
+      
+      // Verificar si ya recibió prueba
+      if (user.trial_requested && !user.trial_received) {
+        return {
+          eligible: false,
+          reason: 'Ya tiene una solicitud pendiente'
+        };
+      }
+      
+      // Verificar si recibió prueba hace menos de 30 días
+      if (user.trial_received && user.trial_sent_at) {
+        const lastTrialDate = new Date(user.trial_sent_at);
+        const now = new Date();
+        const daysSinceLastTrial = Math.floor((now - lastTrialDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceLastTrial < 30) {
+          return {
+            eligible: false,
+            reason: `Debe esperar ${30 - daysSinceLastTrial} días para solicitar otra prueba`,
+            days_remaining: 30 - daysSinceLastTrial
+          };
+        }
+      }
+      
+      return {
+        eligible: true,
+        reason: 'Puede solicitar nueva prueba'
+      };
+    } catch (error) {
+      console.error('❌ Error en checkTrialEligibility:', error);
+      return {
+        eligible: false,
+        reason: 'Error verificando elegibilidad'
+      };
+    }
+  },
+
+  async getUsersWithTrials() {
+    try {
+      console.log('👥 Obteniendo usuarios con solicitudes de prueba...');
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('trial_requested', true)
+        .order('trial_requested_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo usuarios con pruebas:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} usuarios con pruebas encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getUsersWithTrials:', error);
+      return [];
+    }
+  },
+
+  async updateUserTrial(telegramId, trialData) {
+    try {
+      console.log(`✏️ Actualizando datos de prueba para ${telegramId}...`);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          ...trialData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('telegram_id', telegramId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando datos de prueba:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Datos de prueba actualizados para ${telegramId}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error actualizando datos de prueba:', error);
+      throw error;
     }
   }
 };

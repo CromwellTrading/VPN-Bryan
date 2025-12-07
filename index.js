@@ -729,7 +729,95 @@ app.post('/api/remove-vip', async (req, res) => {
   }
 });
 
-// 18. Ruta de prueba para verificar que el servidor funciona
+// 18. Solicitar prueba gratuita
+app.post('/api/request-trial', async (req, res) => {
+  try {
+    const { telegramId, username, firstName } = req.body;
+    
+    console.log(`🎯 Solicitud de prueba de ${telegramId} (${username})`);
+    
+    // Guardar/actualizar usuario con solicitud de prueba
+    const user = await db.saveUser(telegramId, {
+      telegram_id: telegramId,
+      username: username,
+      first_name: firstName,
+      trial_requested: true
+    });
+    
+    // Notificar a TODOS los administradores
+    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA 24H*\n\n` +
+      `👤 *Usuario:* ${firstName}\n` +
+      `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
+      `🆔 *ID:* ${telegramId}\n` +
+      `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
+      `*Acciones disponibles:*\n` +
+      `1. Enviar configuración de prueba\n` +
+      `2. Contactar al usuario\n\n` +
+      `*Para gestionar:* Ve al panel de administración.`;
+    
+    // Enviar notificación a cada admin
+    for (const adminId of ADMIN_IDS) {
+      try {
+        await bot.telegram.sendMessage(adminId, adminMessage, { 
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '📤 Enviar Configuración',
+                  callback_data: `send_trial_${telegramId}`
+                },
+                {
+                  text: '💬 Contactar Usuario',
+                  url: `https://t.me/${username || telegramId}`
+                }
+              ],
+              [
+                {
+                  text: '🔧 Panel Admin',
+                  web_app: { 
+                    url: `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${adminId}&admin=true`
+                  }
+                }
+              ]
+            ]
+          }
+        });
+        console.log(`✅ Notificación de prueba enviada al admin ${adminId}`);
+      } catch (adminError) {
+        console.log(`❌ No se pudo notificar al admin ${adminId}:`, adminError.message);
+      }
+    }
+    
+    // Enviar confirmación al usuario
+    try {
+      await bot.telegram.sendMessage(
+        telegramId,
+        '✅ *Solicitud de prueba recibida*\n\n' +
+        'Tu solicitud de prueba gratuita de 24 horas ha sido recibida.\n\n' +
+        '📋 *Proceso:*\n' +
+        '1. Un administrador revisará tu solicitud\n' +
+        '2. Recibirás la configuración por este chat\n' +
+        '3. Tendrás 24 horas de acceso completo\n\n' +
+        '⏰ *Tiempo estimado:* Menos de 1 hora\n\n' +
+        '¡Gracias por probar VPN Cuba! 🚀',
+        { parse_mode: 'Markdown' }
+      );
+    } catch (userError) {
+      console.log('❌ No se pudo notificar al usuario:', userError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Solicitud de prueba enviada. Recibirás la configuración por Telegram en breve.' 
+    });
+  } catch (error) {
+    console.error('❌ Error en solicitud de prueba:', error);
+    res.status(500).json({ error: 'Error procesando solicitud de prueba' });
+  }
+});
+
+// 19. Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -742,7 +830,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 19. Ruta para obtener imagen directa (si está guardada localmente)
+// 20. Ruta para obtener imagen directa (si está guardada localmente)
 app.get('/api/image/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
@@ -759,27 +847,15 @@ app.get('/api/image/:filename', (req, res) => {
   }
 });
 
-// 20. Ruta de prueba para crear pago
-app.post('/api/test-payment', async (req, res) => {
+// 21. Obtener estadísticas de pruebas
+app.get('/api/trial-stats', async (req, res) => {
   try {
-    console.log('🧪 Test payment recibido:', req.body);
-    
-    const testPayment = {
-      telegram_id: req.body.telegramId || '12345',
-      plan: req.body.plan || 'basico',
-      price: req.body.price || 800,
-      screenshot_url: 'https://via.placeholder.com/300',
-      status: 'pending',
-      created_at: new Date().toISOString()
-    };
-    
-    const payment = await db.createPayment(testPayment);
-    
-    console.log('🧪 Test payment creado:', payment);
-    res.json({ success: true, message: 'Test payment creado', payment });
+    console.log('🎯 Obteniendo estadísticas de pruebas...');
+    const stats = await db.getTrialStats();
+    res.json(stats);
   } catch (error) {
-    console.error('❌ Error en test payment:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error obteniendo estadísticas de prueba:', error);
+    res.status(500).json({ error: 'Error obteniendo estadísticas de prueba' });
   }
 });
 
@@ -1263,6 +1339,190 @@ bot.action('start_broadcast', async (ctx) => {
     await ctx.answerCbQuery();
 });
 
+// Botón: Solicitar Prueba Gratuita (solo para prueba)
+bot.action('request_trial', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const username = ctx.from.username;
+    const firstName = ctx.from.first_name;
+    
+    console.log(`🎯 Usuario ${userId} solicita prueba gratuita`);
+    
+    // Verificar si ya solicitó prueba
+    const user = await db.getUser(userId);
+    if (user && user.trial_requested) {
+        await ctx.answerCbQuery('❌ Ya solicitaste una prueba anteriormente');
+        return;
+    }
+    
+    // Enviar solicitud a la API
+    try {
+        const response = await fetch(`http://localhost:${PORT}/api/request-trial`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                telegramId: userId,
+                username: username,
+                firstName: firstName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await ctx.answerCbQuery('✅ Solicitud enviada');
+            await ctx.reply(
+                '✅ *Solicitud de prueba enviada*\n\n' +
+                'Recibirás la configuración en menos de 1 hora.\n' +
+                '¡Gracias por probar VPN Cuba! 🚀',
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            await ctx.answerCbQuery('❌ Error en la solicitud');
+        }
+    } catch (error) {
+        console.error('❌ Error en request_trial:', error);
+        await ctx.answerCbQuery('❌ Error del servidor');
+    }
+});
+
+// Manejar callback para enviar configuración de prueba
+bot.action(/send_trial_(.+)/, async (ctx) => {
+    const adminId = ctx.from.id.toString();
+    const telegramId = ctx.match[1];
+    
+    if (!isAdmin(adminId)) {
+        await ctx.answerCbQuery('❌ No autorizado');
+        return;
+    }
+    
+    await ctx.answerCbQuery('📤 Preparando para enviar configuración...');
+    
+    // Preguntar por archivo de configuración
+    ctx.session = ctx.session || {};
+    ctx.session.waitingForTrialFile = {
+        target: telegramId,
+        adminId: adminId
+    };
+    
+    await ctx.reply(`📤 Enviar configuración de prueba a ${telegramId}\n\nPor favor, envía el archivo ZIP/RAR de configuración:`);
+});
+
+// Manejar archivos enviados por admin (para pruebas)
+bot.on('document', async (ctx) => {
+    const adminId = ctx.from.id.toString();
+    
+    if (!isAdmin(adminId)) return;
+    
+    // Para configuración de prueba
+    if (ctx.session?.waitingForTrialFile && ctx.session.waitingForTrialFile.target) {
+        const { target, adminId } = ctx.session.waitingForTrialFile;
+        const fileId = ctx.message.document.file_id;
+        const fileName = ctx.message.document.file_name;
+        
+        console.log(`📁 Admin ${adminId} envía archivo de prueba ${fileName} a ${target}`);
+        
+        try {
+            const fileNameLower = fileName.toLowerCase();
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
+                await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
+                return;
+            }
+            
+            // Obtener información del usuario
+            const user = await db.getUser(target);
+            
+            // Enviar archivo al usuario
+            await bot.telegram.sendDocument(target, fileId, {
+                caption: '🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n' +
+                        '📁 *Archivo de configuración para 24 horas*\n\n' +
+                        '*Instrucciones:*\n' +
+                        '1. Descomprime este archivo\n' +
+                        '2. Importa el archivo .conf en WireGuard\n' +
+                        '3. Activa la conexión\n' +
+                        '4. ¡Disfruta de 24 horas gratis! 🎉\n\n' +
+                        '*Nota:* Esta configuración expirará en 24 horas.\n' +
+                        'Para continuar usando el servicio, adquiere uno de nuestros planes.\n\n' +
+                        '*Soporte:* @L0quen2',
+                parse_mode: 'Markdown'
+            });
+            
+            // Marcar usuario como que recibió prueba
+            await db.updateUser(target, {
+                trial_received: true,
+                trial_sent_at: new Date().toISOString(),
+                trial_sent_by: adminId
+            });
+            
+            // Notificar al admin
+            await ctx.reply(`✅ Configuración de prueba enviada a ${target}`);
+            
+            delete ctx.session.waitingForTrialFile;
+            
+        } catch (error) {
+            console.error('❌ Error enviando archivo de prueba:', error);
+            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+        }
+    }
+    
+    // Para configuración normal (mantener compatibilidad)
+    if (ctx.session?.waitingForFile && isAdmin(adminId)) {
+        const { target, paymentId } = ctx.session.waitingForFile;
+        const fileId = ctx.message.document.file_id;
+        const fileName = ctx.message.document.file_name;
+
+        console.log(`📁 Admin ${adminId} envía archivo ${fileName} a ${target}`);
+
+        try {
+            const fileNameLower = fileName.toLowerCase();
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
+                await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
+                return;
+            }
+            
+            await db.saveConfigFile({
+                telegram_id: target,
+                file_id: fileId,
+                file_name: fileName,
+                sent_by: ctx.from.username || 'admin',
+                sent_at: new Date().toISOString(),
+                payment_id: paymentId
+            });
+
+            await db.updatePayment(paymentId, {
+                config_sent: true,
+                config_sent_at: new Date().toISOString()
+            });
+            
+            const user = await db.getUser(target);
+            if (user && !user.vip) {
+                const payment = await db.getPayment(paymentId);
+                await db.makeUserVIP(target, {
+                    plan: payment.plan,
+                    plan_price: payment.price,
+                    vip_since: new Date().toISOString()
+                });
+            }
+
+            await bot.telegram.sendDocument(target, fileId, {
+                caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
+                        '📁 Descomprime este archivo ZIP/RAR\n' +
+                        '📄 Importa el archivo .conf en WireGuard\n' +
+                        '🚀 ¡Disfruta de baja latencia!',
+                parse_mode: 'Markdown'
+            });
+
+            await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
+        } catch (error) {
+            console.error('❌ Error enviando archivo:', error);
+            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+        }
+
+        delete ctx.session.waitingForFile;
+    }
+});
+
 // Manejar mensaje de broadcast
 bot.on('text', async (ctx) => {
     const currentUserId = ctx.from.id.toString();
@@ -1542,64 +1802,6 @@ bot.command('enviar', async (ctx) => {
     await ctx.reply(`📤 Esperando archivo .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo comprimido ahora:`);
 });
 
-// Manejar archivos enviados por admin (mantener por compatibilidad)
-bot.on('document', async (ctx) => {
-    if (ctx.session?.waitingForFile && isAdmin(ctx.from.id.toString())) {
-        const { target, paymentId } = ctx.session.waitingForFile;
-        const fileId = ctx.message.document.file_id;
-        const fileName = ctx.message.document.file_name;
-
-        console.log(`📁 Admin ${ctx.from.id} envía archivo ${fileName} a ${target}`);
-
-        try {
-            const fileNameLower = fileName.toLowerCase();
-            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
-                await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
-                return;
-            }
-            
-            await db.saveConfigFile({
-                telegram_id: target,
-                file_id: fileId,
-                file_name: fileName,
-                sent_by: ctx.from.username || 'admin',
-                sent_at: new Date().toISOString(),
-                payment_id: paymentId
-            });
-
-            await db.updatePayment(paymentId, {
-                config_sent: true,
-                config_sent_at: new Date().toISOString()
-            });
-            
-            const user = await db.getUser(target);
-            if (user && !user.vip) {
-                const payment = await db.getPayment(paymentId);
-                await db.makeUserVIP(target, {
-                    plan: payment.plan,
-                    plan_price: payment.price,
-                    vip_since: new Date().toISOString()
-                });
-            }
-
-            await ctx.telegram.sendDocument(target, fileId, {
-                caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
-                        '📁 Descomprime este archivo ZIP/RAR\n' +
-                        '📄 Importa el archivo .conf en WireGuard\n' +
-                        '🚀 ¡Disfruta de baja latencia!',
-                parse_mode: 'Markdown'
-            });
-
-            await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
-        } catch (error) {
-            console.error('❌ Error enviando archivo:', error);
-            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
-        }
-
-        delete ctx.session.waitingForFile;
-    }
-});
-
 // ==================== SERVIDOR ====================
 
 // Iniciar servidor
@@ -1612,6 +1814,7 @@ app.listen(PORT, async () => {
     console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
     console.log(`🆘 Soporte: @L0quen2`);
     console.log(`📢 Broadcast: Disponible para admins`);
+    console.log(`🎯 Prueba gratuita: Disponible`);
     
     // Iniciar bot
     try {
@@ -1664,31 +1867,6 @@ function startKeepAlive() {
 
     console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
 }
-
-// Si usas una versión de Node.js anterior a la 18 (que no tiene fetch nativo), usa esta versión:
-// function startKeepAlive() {
-//   const keepAliveInterval = 5 * 60 * 1000; // 5 minutos en milisegundos
-//   const http = require('http');
-//   const healthCheckUrl = `http://localhost:${PORT}/api/health`;
-
-//   setInterval(() => {
-//     const req = http.request(healthCheckUrl, (res) => {
-//       if (res.statusCode === 200) {
-//         console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
-//       } else {
-//         console.error(`❌ Keep-alive ping falló con estado ${res.statusCode}`);
-//       }
-//     });
-
-//     req.on('error', (error) => {
-//       console.error('❌ Error en keep-alive ping:', error.message);
-//     });
-
-//     req.end();
-//   }, keepAliveInterval);
-
-//   console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
-// }
 
 // Exportar para pruebas
 module.exports = {

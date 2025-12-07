@@ -739,11 +739,11 @@
                 <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
                     <p style="color: #a5b4fc; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i>
-                        Selecciona un archivo comprimido (.zip o .rar) con la configuración
+                        Solo se permiten archivos .zip o .rar
                     </p>
                 </div>
                 
-                <input type="file" id="configFile" class="file-input" accept=".zip,.rar,application/zip,application/x-rar-compressed">
+                <input type="file" id="configFile" class="file-input" accept=".zip,.rar">
                 
                 <button class="submit-config" onclick="sendConfigFile()">
                     <i class="fas fa-paper-plane"></i>
@@ -1154,16 +1154,31 @@
                     body: formData
                 });
                 
+                const responseText = await response.text();
+                console.log('📥 Respuesta del servidor:', responseText);
+                
                 if (response.ok) {
-                    console.log('✅ Configuración enviada');
-                    showNotification('✅ Configuración enviada correctamente', 'success');
-                    closeConfigModal();
-                    loadApprovedPayments();
-                    loadStats();
+                    try {
+                        const data = JSON.parse(responseText);
+                        console.log('✅ Configuración enviada:', data);
+                        showNotification('✅ Configuración enviada correctamente', 'success');
+                        closeConfigModal();
+                        loadApprovedPayments();
+                        loadStats();
+                    } catch (jsonError) {
+                        console.error('❌ Error parseando JSON:', jsonError);
+                        showNotification('✅ Archivo enviado (respuesta no JSON)', 'success');
+                    }
                 } else {
-                    const errorData = await response.json();
-                    console.error('❌ Error enviando configuración:', errorData);
-                    throw new Error(errorData.error || 'Error enviando configuración');
+                    console.error('❌ Error del servidor:', response.status, responseText);
+                    
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        throw new Error(errorData.error || 'Error enviando configuración');
+                    } catch (parseError) {
+                        // Si la respuesta no es JSON, mostrar el texto completo
+                        throw new Error(`Error ${response.status}: ${responseText.substring(0, 100)}`);
+                    }
                 }
             } catch (error) {
                 console.error('❌ Error enviando configuración:', error);

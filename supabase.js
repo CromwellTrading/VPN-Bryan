@@ -339,5 +339,624 @@ const db = {
 
   async getApprovedPayments() {
     try {
-      console
+      console.log('🔍 Buscando pagos aprobados...');
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo pagos aprobados:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} pagos aprobados encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo pagos aprobados:', error);
+      return [];
     }
+  },
+
+  async approvePayment(paymentId) {
+    try {
+      console.log(`✅ Aprobando pago ${paymentId}...`);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .update({
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error aprobando pago:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Pago ${paymentId} aprobado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error aprobando pago:', error);
+      throw error;
+    }
+  },
+
+  async rejectPayment(paymentId, reason) {
+    try {
+      console.log(`❌ Rechazando pago ${paymentId} con motivo: ${reason}`);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .update({
+          status: 'rejected',
+          rejected_reason: reason,
+          rejected_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error rechazando pago:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Pago ${paymentId} rechazado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error rechazando pago:', error);
+      throw error;
+    }
+  },
+
+  async updatePayment(paymentId, updateData) {
+    try {
+      console.log(`✏️ Actualizando pago ${paymentId}...`);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando pago:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Pago ${paymentId} actualizado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error actualizando pago:', error);
+      throw error;
+    }
+  },
+
+  async getUserPayments(telegramId) {
+    try {
+      console.log(`📊 Obteniendo pagos del usuario ${telegramId}...`);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo pagos del usuario:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} pagos encontrados para usuario ${telegramId}`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo pagos del usuario:', error);
+      return [];
+    }
+  },
+
+  async saveConfigFile(configData) {
+    try {
+      console.log(`💾 Guardando registro de archivo de configuración...`);
+      
+      const { data, error } = await supabase
+        .from('config_files')
+        .insert([{
+          ...configData,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error guardando configuración:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Configuración guardada con ID: ${data.id}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error guardando configuración:', error);
+      throw error;
+    }
+  },
+
+  async getStats() {
+    try {
+      console.log('📊 Obteniendo estadísticas...');
+      
+      // Obtener estadísticas de usuarios
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('vip, created_at');
+      
+      if (usersError) {
+        console.error('❌ Error obteniendo usuarios para estadísticas:', usersError);
+        throw usersError;
+      }
+      
+      const totalUsers = usersData?.length || 0;
+      const vipUsers = usersData?.filter(u => u.vip)?.length || 0;
+      
+      // Obtener estadísticas de pagos
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('status, price');
+      
+      if (paymentsError) {
+        console.error('❌ Error obteniendo pagos para estadísticas:', paymentsError);
+        throw paymentsError;
+      }
+      
+      const totalPayments = paymentsData?.length || 0;
+      const pendingPayments = paymentsData?.filter(p => p.status === 'pending')?.length || 0;
+      const approvedPayments = paymentsData?.filter(p => p.status === 'approved')?.length || 0;
+      const rejectedPayments = paymentsData?.filter(p => p.status === 'rejected')?.length || 0;
+      
+      // Calcular ingresos totales
+      const totalRevenue = paymentsData
+        ?.filter(p => p.status === 'approved' && p.price)
+        ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
+      
+      // Calcular usuarios nuevos hoy
+      const today = new Date().toISOString().split('T')[0];
+      const newUsersToday = usersData?.filter(u => 
+        u.created_at && u.created_at.startsWith(today)
+      )?.length || 0;
+      
+      // Obtener pagos de hoy
+      const { data: todayPayments, error: todayPaymentsError } = await supabase
+        .from('payments')
+        .select('status, price, created_at')
+        .gte('created_at', today);
+      
+      let revenueToday = 0;
+      let paymentsToday = 0;
+      
+      if (!todayPaymentsError && todayPayments) {
+        revenueToday = todayPayments
+          .filter(p => p.status === 'approved' && p.price)
+          .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+        
+        paymentsToday = todayPayments.length;
+      }
+      
+      return {
+        users: {
+          total: totalUsers,
+          vip: vipUsers,
+          regular: totalUsers - vipUsers,
+          new_today: newUsersToday
+        },
+        payments: {
+          total: totalPayments,
+          pending: pendingPayments,
+          approved: approvedPayments,
+          rejected: rejectedPayments,
+          today: paymentsToday
+        },
+        revenue: {
+          total: totalRevenue,
+          average: approvedPayments > 0 ? totalRevenue / approvedPayments : 0,
+          today: revenueToday
+        },
+        charts: {
+          daily_payments: await this.getDailyPaymentsChart(),
+          plan_distribution: await this.getPlanDistribution()
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas:', error);
+      return {
+        users: { total: 0, vip: 0, regular: 0, new_today: 0 },
+        payments: { total: 0, pending: 0, approved: 0, rejected: 0, today: 0 },
+        revenue: { total: 0, average: 0, today: 0 },
+        charts: {
+          daily_payments: [],
+          plan_distribution: []
+        }
+      };
+    }
+  },
+
+  async getDailyPaymentsChart() {
+    try {
+      console.log('📈 Obteniendo datos para gráfico de pagos diarios...');
+      
+      // Obtener pagos de los últimos 7 días
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('created_at, status, price')
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Error obteniendo datos para gráfico:', error);
+        return [];
+      }
+      
+      // Agrupar por día
+      const dailyData = {};
+      
+      data?.forEach(payment => {
+        const date = payment.created_at.split('T')[0];
+        if (!dailyData[date]) {
+          dailyData[date] = {
+            date,
+            total: 0,
+            approved: 0,
+            pending: 0,
+            revenue: 0
+          };
+        }
+        
+        dailyData[date].total += 1;
+        
+        if (payment.status === 'approved') {
+          dailyData[date].approved += 1;
+          dailyData[date].revenue += parseFloat(payment.price) || 0;
+        } else if (payment.status === 'pending') {
+          dailyData[date].pending += 1;
+        }
+      });
+      
+      // Convertir a array y ordenar por fecha
+      const result = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
+      
+      console.log(`✅ Datos para gráfico obtenidos: ${result.length} días`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error en getDailyPaymentsChart:', error);
+      return [];
+    }
+  },
+
+  async getPlanDistribution() {
+    try {
+      console.log('📊 Obteniendo distribución de planes...');
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('plan, status')
+        .eq('status', 'approved');
+      
+      if (error) {
+        console.error('❌ Error obteniendo distribución de planes:', error);
+        return [];
+      }
+      
+      const planCounts = {
+        'basico': 0,
+        'premium': 0,
+        'vip': 0
+      };
+      
+      data?.forEach(payment => {
+        if (planCounts[payment.plan] !== undefined) {
+          planCounts[payment.plan] += 1;
+        }
+      });
+      
+      // Convertir a array para gráfico
+      const result = Object.entries(planCounts).map(([plan, count]) => ({
+        plan: plan === 'basico' ? 'Básico' : plan === 'premium' ? 'Premium' : 'VIP',
+        count,
+        percentage: data.length > 0 ? (count / data.length * 100).toFixed(1) : 0
+      }));
+      
+      console.log('✅ Distribución de planes obtenida');
+      return result;
+    } catch (error) {
+      console.error('❌ Error en getPlanDistribution:', error);
+      return [];
+    }
+  },
+
+  async searchUsers(searchTerm) {
+    try {
+      console.log(`🔍 Buscando usuarios con término: ${searchTerm}`);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .or(`telegram_id.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('❌ Error buscando usuarios:', error);
+        return [];
+      }
+      
+      console.log(`✅ ${data?.length || 0} usuarios encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en searchUsers:', error);
+      return [];
+    }
+  },
+
+  async searchPayments(searchTerm) {
+    try {
+      console.log(`🔍 Buscando pagos con término: ${searchTerm}`);
+      
+      // Buscar por ID de pago o ID de usuario
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .or(`id.eq.${searchTerm},telegram_id.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('❌ Error buscando pagos:', error);
+        return [];
+      }
+      
+      console.log(`✅ ${data?.length || 0} pagos encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en searchPayments:', error);
+      return [];
+    }
+  },
+
+  async getRecentActivity(limit = 20) {
+    try {
+      console.log(`📅 Obteniendo actividad reciente (${limit} items)...`);
+      
+      // Obtener pagos recientes
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (paymentsError) {
+        console.error('❌ Error obteniendo pagos recientes:', paymentsError);
+        return [];
+      }
+      
+      // Obtener usuarios recientes
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (usersError) {
+        console.error('❌ Error obteniendo usuarios recientes:', usersError);
+        return [];
+      }
+      
+      // Combinar y ordenar por fecha
+      const activity = [
+        ...payments.map(p => ({
+          type: 'payment',
+          id: p.id,
+          telegram_id: p.telegram_id,
+          status: p.status,
+          plan: p.plan,
+          price: p.price,
+          created_at: p.created_at,
+          updated_at: p.updated_at
+        })),
+        ...users.map(u => ({
+          type: 'user',
+          id: u.id,
+          telegram_id: u.telegram_id,
+          username: u.username,
+          first_name: u.first_name,
+          vip: u.vip,
+          created_at: u.created_at,
+          updated_at: u.updated_at
+        }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+       .slice(0, limit);
+      
+      console.log(`✅ ${activity.length} actividades recientes obtenidas`);
+      return activity;
+    } catch (error) {
+      console.error('❌ Error en getRecentActivity:', error);
+      return [];
+    }
+  },
+
+  async getPaymentStatsByUser(telegramId) {
+    try {
+      console.log(`📊 Obteniendo estadísticas de pagos para usuario ${telegramId}`);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('status, plan, price, created_at')
+        .eq('telegram_id', telegramId);
+      
+      if (error) {
+        console.error('❌ Error obteniendo estadísticas de usuario:', error);
+        return null;
+      }
+      
+      const totalPayments = data?.length || 0;
+      const approvedPayments = data?.filter(p => p.status === 'approved')?.length || 0;
+      const pendingPayments = data?.filter(p => p.status === 'pending')?.length || 0;
+      const rejectedPayments = data?.filter(p => p.status === 'rejected')?.length || 0;
+      
+      const totalSpent = data
+        ?.filter(p => p.status === 'approved' && p.price)
+        ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
+      
+      const lastPayment = data?.length > 0 
+        ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+        : null;
+      
+      const planDistribution = {};
+      data?.forEach(payment => {
+        if (payment.plan) {
+          planDistribution[payment.plan] = (planDistribution[payment.plan] || 0) + 1;
+        }
+      });
+      
+      return {
+        total_payments: totalPayments,
+        approved_payments: approvedPayments,
+        pending_payments: pendingPayments,
+        rejected_payments: rejectedPayments,
+        total_spent: totalSpent,
+        average_payment: approvedPayments > 0 ? totalSpent / approvedPayments : 0,
+        last_payment: lastPayment,
+        plan_distribution: planDistribution,
+        payment_history: data || []
+      };
+    } catch (error) {
+      console.error('❌ Error en getPaymentStatsByUser:', error);
+      return null;
+    }
+  },
+
+  async getAdminStats() {
+    try {
+      console.log('📈 Obteniendo estadísticas para administrador...');
+      
+      const [
+        usersStats,
+        paymentsStats,
+        revenueStats,
+        dailyChart,
+        planDistribution,
+        recentActivity
+      ] = await Promise.all([
+        this.getStats(),
+        this.getPaymentStats(),
+        this.getRevenueStats(),
+        this.getDailyPaymentsChart(),
+        this.getPlanDistribution(),
+        this.getRecentActivity(10)
+      ]);
+      
+      return {
+        ...usersStats,
+        payments: paymentsStats,
+        revenue: revenueStats,
+        charts: {
+          daily_payments: dailyChart,
+          plan_distribution: planDistribution
+        },
+        recent_activity: recentActivity
+      };
+    } catch (error) {
+      console.error('❌ Error en getAdminStats:', error);
+      return {
+        users: { total: 0, vip: 0, regular: 0, new_today: 0 },
+        payments: { total: 0, pending: 0, approved: 0, rejected: 0, today: 0 },
+        revenue: { total: 0, average: 0, today: 0 },
+        charts: {
+          daily_payments: [],
+          plan_distribution: []
+        },
+        recent_activity: []
+      };
+    }
+  },
+
+  async getPaymentStats() {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('status, created_at');
+      
+      if (error) {
+        throw error;
+      }
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayPayments = data?.filter(p => p.created_at?.startsWith(today))?.length || 0;
+      
+      return {
+        total: data?.length || 0,
+        pending: data?.filter(p => p.status === 'pending')?.length || 0,
+        approved: data?.filter(p => p.status === 'approved')?.length || 0,
+        rejected: data?.filter(p => p.status === 'rejected')?.length || 0,
+        today: todayPayments
+      };
+    } catch (error) {
+      console.error('❌ Error en getPaymentStats:', error);
+      return {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        today: 0
+      };
+    }
+  },
+
+  async getRevenueStats() {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('price, status, created_at');
+      
+      if (error) {
+        throw error;
+      }
+      
+      const approvedPayments = data?.filter(p => p.status === 'approved' && p.price) || [];
+      const totalRevenue = approvedPayments.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayRevenue = approvedPayments
+        .filter(p => p.created_at?.startsWith(today))
+        .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+      
+      return {
+        total: totalRevenue,
+        average: approvedPayments.length > 0 ? totalRevenue / approvedPayments.length : 0,
+        today: todayRevenue
+      };
+    } catch (error) {
+      console.error('❌ Error en getRevenueStats:', error);
+      return {
+        total: 0,
+        average: 0,
+        today: 0
+      };
+    }
+  }
+};
+
+module.exports = db;

@@ -20,7 +20,7 @@ bot.start(async (ctx) => {
     const username = ctx.from.username;
     const firstName = ctx.from.first_name;
     
-    const webappUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}?userId=${userId}`;
+    const plansUrl = `${process.env.WEBAPP_URL || 'http://localhost:3000'}/plans.html?userId=${userId}`;
     
     try {
         // Registrar usuario si no existe
@@ -33,8 +33,8 @@ bot.start(async (ctx) => {
         // Crear teclado dinámico según si es admin o no
         const keyboard = [[
             { 
-                text: '🚀 Abrir WebApp', 
-                web_app: { url: webappUrl }
+                text: '📋 Ver Planes', 
+                web_app: { url: plansUrl }
             }
         ]];
 
@@ -50,7 +50,7 @@ bot.start(async (ctx) => {
             `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
             `Bienvenido a *VPN Cuba* 🚀\n\n` +
             `Ofrecemos la mejor conexión de baja latencia para tu experiencia gaming y navegación segura.\n\n` +
-            `Para ver nuestros planes y realizar tu compra, abre nuestra WebApp:`,
+            `Para ver nuestros planes y realizar tu compra, haz clic en el botón de abajo:`,
             {
                 parse_mode: 'Markdown',
                 reply_markup: {
@@ -137,7 +137,7 @@ bot.command('status', async (ctx) => {
                     reply_markup: {
                         inline_keyboard: [[
                             { 
-                                text: '🚀 Ver Planes', 
+                                text: '📋 Ver Planes', 
                                 web_app: { url: webappUrl }
                             }
                         ]]
@@ -295,9 +295,10 @@ bot.on('document', async (ctx) => {
                         `📁 *Archivo:* ${fileName}\n\n` +
                         `*Instrucciones de instalación:*\n` +
                         `1. Descarga este archivo\n` +
-                        `2. Importa en tu cliente WireGuard\n` +
-                        `3. Activa la conexión\n` +
-                        `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                        `2. Descomprime el ZIP/RAR\n` +
+                        `3. Importa el archivo .conf en tu cliente WireGuard\n` +
+                        `4. Activa la conexión\n` +
+                        `5. ¡Disfruta de baja latencia! 🚀\n\n` +
                         `*Soporte:* Contacta con @${ctx.from.username || 'admin'} si tienes problemas.`,
                 parse_mode: 'Markdown'
             });
@@ -312,6 +313,28 @@ bot.on('document', async (ctx) => {
         // Limpiar sesión
         delete ctx.session.waitingForFile;
     }
+});
+
+// Comando /help
+bot.command('help', async (ctx) => {
+    await ctx.reply(
+        `📚 *Ayuda - VPN Cuba*\n\n` +
+        `*Comandos disponibles:*\n` +
+        `/start - Iniciar el bot\n` +
+        `/plans - Ver planes disponibles\n` +
+        `/status - Verificar tu estado VIP\n` +
+        `/help - Mostrar esta ayuda\n\n` +
+        `*Para comprar:*\n` +
+        `1. Usa /plans o haz clic en "Ver Planes"\n` +
+        `2. Selecciona tu plan\n` +
+        `3. Realiza el pago\n` +
+        `4. Envía la captura de pantalla\n` +
+        `5. Espera la aprobación\n` +
+        `6. Recibirás tu configuración\n\n` +
+        `*Soporte:*\n` +
+        `Para problemas, contacta a un administrador.`,
+        { parse_mode: 'Markdown' }
+    );
 });
 
 // Manejar errores del bot

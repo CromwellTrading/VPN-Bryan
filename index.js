@@ -85,6 +85,93 @@ function getPlanName(planType) {
   return plans[planType] || planType;
 }
 
+// ==================== FUNCIONES AUXILIARES DEL BOT ====================
+
+// Función para calcular días restantes según el plan
+function calcularDiasRestantes(user) {
+    if (!user.vip || !user.vip_since || !user.plan) {
+        return 0;
+    }
+
+    const fechaInicio = new Date(user.vip_since);
+    const fechaActual = new Date();
+    
+    let duracionDias;
+    switch(user.plan.toLowerCase()) {
+        case 'basico':
+            duracionDias = 30;
+            break;
+        case 'premium':
+            duracionDias = 60;
+            break;
+        case 'vip':
+            duracionDias = 180;
+            break;
+        default:
+            duracionDias = 30;
+    }
+    
+    const fechaExpiracion = new Date(fechaInicio);
+    fechaExpiracion.setDate(fechaExpiracion.getDate() + duracionDias);
+    
+    const diferenciaMs = fechaExpiracion - fechaActual;
+    const diasRestantes = Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
+    
+    return diasRestantes;
+}
+
+// Función para formatear fecha
+function formatearFecha(fecha) {
+    return new Date(fecha).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+// Función para crear menú principal
+function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
+    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
+    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
+    
+    // Crear teclado BASE para TODOS los usuarios
+    const keyboard = [
+        [
+            { 
+                text: '📋 VER PLANES', 
+                web_app: { url: plansUrl }
+            },
+            {
+                text: '👑 MI ESTADO',
+                callback_data: 'check_status'
+            }
+        ],
+        [
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ]
+    ];
+
+    // Si es ADMIN, agregar botones adicionales
+    if (esAdmin) {
+        keyboard.push([
+            { 
+                text: '🔧 PANEL ADMIN', 
+                web_app: { url: adminUrl }
+            },
+            {
+                text: '📢 BROADCAST',
+                callback_data: 'start_broadcast'
+            }
+        ]);
+    }
+
+    return keyboard;
+}
+
 // ==================== RUTAS DE LA API ====================
 
 // 1. Verificar si es administrador
@@ -714,392 +801,791 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// ==================== BOT DE TELEGRAM ====================
+// ==================== BOT DE TELEGRAM - ACTUALIZADO ====================
 
-// Comando /start con detección de admin
+// Comando /start con todos los botones visibles
 bot.start(async (ctx) => {
-  const userId = ctx.from.id;
-  const isAdminUser = isAdmin(userId);
-  
-  console.log(`🤖 Comando /start de ${userId} (Admin: ${isAdminUser})`);
-  
-  // Guardar/actualizar usuario en la base de datos
-  try {
-    await db.saveUser(userId.toString(), {
-      telegram_id: userId.toString(),
-      username: ctx.from.username,
-      first_name: ctx.from.first_name,
-      last_name: ctx.from.last_name,
-      created_at: new Date().toISOString()
-    });
-    console.log(`✅ Usuario ${userId} guardado/actualizado`);
-  } catch (error) {
-    console.error('❌ Error guardando usuario:', error);
-  }
-  
-  const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}?userId=${userId}`;
-  
-  // Mensaje de bienvenida personalizado
-  let welcomeMessage = `¡Hola ${ctx.from.first_name || 'usuario'}! 👋\n\n`;
-  welcomeMessage += `Bienvenido a *VPN Cuba* 🚀\n\n`;
-  welcomeMessage += `Conéctate con la mejor latencia para gaming y navegación.\n\n`;
-  
-  if (isAdminUser) {
-    welcomeMessage += `🔧 *Detectado como Administrador*\n`;
-    welcomeMessage += `Tienes acceso al panel de administración.\n\n`;
-  }
-  
-  welcomeMessage += `Usa los botones para navegar:`;
-  
-  // Crear teclado dinámico
-  const keyboard = [[
-    { text: '🚀 Ver Planes', web_app: { url: webappUrl } }
-  ], [
-    { text: '📋 Ver Planes', callback_data: 'view_plans' },
-    { text: '👑 Mi Estado', callback_data: 'check_status' }
-  ]];
-  
-  // Si es admin, agregar botón de admin
-  if (isAdminUser) {
-    const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-    keyboard.push([{ 
-      text: '🔧 Panel Admin', 
-      web_app: { url: adminUrl }
-    }]);
-  }
-  
-  await ctx.reply(
-    welcomeMessage,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: keyboard
-      }
+    const userId = ctx.from.id;
+    const firstName = ctx.from.first_name;
+    const esAdmin = isAdmin(userId);
+    
+    console.log(`🤖 Comando /start de ${userId} (Admin: ${esAdmin})`);
+    
+    // Guardar/actualizar usuario en la base de datos
+    try {
+        await db.saveUser(userId.toString(), {
+            telegram_id: userId.toString(),
+            username: ctx.from.username,
+            first_name: firstName,
+            last_name: ctx.from.last_name,
+            created_at: new Date().toISOString()
+        });
+        console.log(`✅ Usuario ${userId} guardado/actualizado`);
+    } catch (error) {
+        console.error('❌ Error guardando usuario:', error);
     }
-  );
-});
-
-// Botón: Ver planes (dentro del bot)
-bot.action('view_plans', async (ctx) => {
-  console.log(`📋 Usuario ${ctx.from.id} solicita ver planes`);
-  
-  const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${ctx.from.id}`;
-  
-  await ctx.editMessageText(
-    `📋 *NUESTROS PLANES*\n\n` +
-    `*Básico (1 mes)*\n` +
-    `💵 $800 CUP\n\n` +
-    `*Premium (2 meses)*\n` +
-    `💵 $1,300 CUP\n` +
-    `💰 ¡Ahorras $300 CUP!\n\n` +
-    `*VIP (6 meses)*\n` +
-    `💵 $3,000 CUP\n` +
-    `👑 ¡MEJOR OFERTA!\n` +
-    `💰 ¡Ahorras $1,800 CUP!\n` +
-    `📅 Solo $500 CUP/mes\n\n` +
-    `✅ Baja Latencia\n` +
-    `✅ Ancho de Banda Ilimitado\n` +
-    `✅ Soporte Prioritario\n\n` +
-    `Para comprar, haz clic en Ver Planes`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🚀 Ver Planes en WebApp', web_app: { url: webappUrl } }
-        ]]
-      }
-    }
-  );
-});
-
-// Botón: Ver estado VIP
-bot.action('check_status', async (ctx) => {
-  console.log(`👑 Usuario ${ctx.from.id} verifica estado VIP`);
-  
-  const user = await db.getUser(ctx.from.id.toString());
-  
-  if (user?.vip) {
-    await ctx.editMessageText(
-      `✅ *¡Eres usuario VIP!*\n\n` +
-      `📋 Plan: ${user.plan || 'VIP'}\n` +
-      `💰 Precio: $${user.plan_price || '3,000'} CUP\n` +
-      `📅 VIP desde: ${new Date(user.vip_since).toLocaleDateString()}\n\n` +
-      `Tu acceso está activo. Si necesitas ayuda, contacta con soporte.`,
-      { parse_mode: 'Markdown' }
+    
+    const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
+    
+    await ctx.reply(
+        `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
+        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+        `Conéctate con la mejor latencia para gaming y navegación.\n\n` +
+        `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
+        `*Selecciona una opción:*`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
     );
-  } else {
-    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${ctx.from.id}`;
+});
+
+// Botón: Menú Principal
+bot.action('main_menu', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const firstName = ctx.from.first_name;
+    const esAdmin = isAdmin(userId);
+    
+    const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
     
     await ctx.editMessageText(
-      `❌ *No eres usuario VIP*\n\n` +
-      `Aún no tienes acceso a los servicios premium.\n\n` +
-      `Haz clic en el botón para ver nuestros planes:`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '🚀 Ver Planes', web_app: { url: webappUrl } }
-          ]]
+        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+        `Selecciona una opción:`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
         }
-      }
     );
-  }
 });
 
-// Comando /comprar
-bot.command('comprar', async (ctx) => {
-  console.log(`🛒 Usuario ${ctx.from.id} usa /comprar`);
-  
-  const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${ctx.from.id}`;
-  
-  await ctx.reply(
-    `🛒 *Proceso de Compra*\n\n` +
-    `Para realizar tu compra, haz clic en el botón de abajo:`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🚀 Comprar Ahora', web_app: { url: webappUrl } }
-        ]]
-      }
-    }
-  );
-});
-
-// Comando /admin solo para admins
-bot.command('admin', async (ctx) => {
-  if (!isAdmin(ctx.from.id.toString())) {
-    console.log(`❌ Usuario ${ctx.from.id} intentó usar /admin sin permisos`);
-    return ctx.reply('❌ Solo el administrador puede usar este comando.');
-  }
-
-  console.log(`🔧 Admin ${ctx.from.id} usa /admin`);
-  
-  const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${ctx.from.id}&admin=true`;
-  
-  await ctx.reply(
-    `🔧 *Panel de Administración*\n\n` +
-    `Selecciona una opción:`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ 
-            text: '📋 Abrir Panel Web', 
-            web_app: { url: adminUrl }
-          }]
+// Botón: Ver Planes (callback)
+bot.action('view_plans', async (ctx) => {
+    console.log(`📋 Usuario ${ctx.from.id} solicita ver planes`);
+    
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+    
+    // Crear teclado específico para planes
+    const keyboard = [
+        [
+            { 
+                text: '🚀 VER PLANES EN WEB', 
+                web_app: { url: webappUrl }
+            }
+        ],
+        [
+            {
+                text: '📊 VER DETALLES',
+                callback_data: 'view_detailed_plans'
+            }
+        ],
+        [
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
         ]
-      }
+    ];
+    
+    // Si es admin, agregar botón de broadcast
+    if (esAdmin) {
+        keyboard.splice(3, 0, [
+            {
+                text: '📢 BROADCAST',
+                callback_data: 'start_broadcast'
+            }
+        ]);
     }
-  );
+    
+    await ctx.editMessageText(
+        `📋 *NUESTROS PLANES* 🚀\n\n` +
+        `*BÁSICO (1 mes)*\n` +
+        `💵 $800 CUP\n\n` +
+        `*PREMIUM (2 meses)*\n` +
+        `💵 $1,300 CUP\n` +
+        `💰 ¡Ahorras $300 CUP!\n\n` +
+        `*VIP (6 meses)*\n` +
+        `💵 $3,000 CUP\n` +
+        `👑 ¡MEJOR OFERTA!\n` +
+        `💰 ¡Ahorras $1,800 CUP!\n` +
+        `📅 Solo $500 CUP/mes\n\n` +
+        `✅ Baja Latencia\n` +
+        `✅ Ancho de Banda Ilimitado\n` +
+        `✅ Soporte Prioritario\n\n` +
+        `Selecciona una opción:`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
 });
 
-// Comando /enviar para administrador (enviar configuración)
-bot.command('enviar', async (ctx) => {
-  if (!isAdmin(ctx.from.id.toString())) {
-    return ctx.reply('❌ Solo el administrador puede usar este comando.');
-  }
-
-  const args = ctx.message.text.split(' ');
-  if (args.length < 2) {
-    return ctx.reply('Uso: /enviar <ID de pago o ID de usuario>\nEjemplo: /enviar 123');
-  }
-
-  const target = args[1];
-  
-  console.log(`📤 Admin ${ctx.from.id} intenta enviar configuración a ${target}`);
-  
-  // Verificar si es un ID de pago o de usuario
-  let paymentId, telegramId;
-  
-  // Asumimos que si es un número corto, es un ID de pago
-  if (/^\d+$/.test(target) && target.length < 10) {
-    paymentId = target;
-    const payment = await db.getPayment(paymentId);
-    if (!payment) {
-      return ctx.reply(`❌ No se encontró el pago con ID ${paymentId}`);
+// Botón: Ver Detalles de Planes
+bot.action('view_detailed_plans', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+    
+    const keyboard = [
+        [
+            { 
+                text: '🚀 COMPRAR AHORA', 
+                web_app: { url: webappUrl }
+            }
+        ],
+        [
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '📋 VER PLANES RESUMEN',
+                callback_data: 'view_plans'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+    
+    if (esAdmin) {
+        keyboard.splice(3, 0, [
+            {
+                text: '📢 BROADCAST',
+                callback_data: 'start_broadcast'
+            }
+        ]);
     }
-    telegramId = payment.telegram_id;
-  } else {
-    // Es un ID de usuario de Telegram
-    telegramId = target.replace('@', '');
-    // Buscar el último pago aprobado del usuario
-    const payments = await db.getUserPayments(telegramId);
-    const approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
-    if (!approvedPayment) {
-      return ctx.reply(`❌ No se encontró un pago aprobado sin configuración para el usuario ${telegramId}`);
-    }
-    paymentId = approvedPayment.id;
-  }
-  
-  ctx.session = ctx.session || {};
-  ctx.session.waitingForFile = {
-    target: telegramId,
-    paymentId: paymentId
-  };
-
-  await ctx.reply(`📤 Esperando archivo .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo comprimido ahora:`);
+    
+    await ctx.editMessageText(
+        `📊 *DETALLES DE PLANES* 📋\n\n` +
+        `*PLAN BÁSICO (1 mes)*\n` +
+        `• Precio: $800 CUP\n` +
+        `• Conexión de baja latencia\n` +
+        `• Ancho de banda ilimitado\n` +
+        `• Soporte prioritario\n` +
+        `• 10 servidores disponibles\n\n` +
+        `*PLAN PREMIUM (2 meses)*\n` +
+        `• Precio: $1,300 CUP\n` +
+        `• ¡Ahorras $300 CUP!\n` +
+        `• Todo lo del Básico\n` +
+        `• 2 meses de servicio\n` +
+        `• Soporte 24/7\n` +
+        `• Protección de datos avanzada\n\n` +
+        `*PLAN VIP (6 meses)*\n` +
+        `• Precio: $3,000 CUP\n` +
+        `• ¡Ahorras $1,800 CUP!\n` +
+        `• Solo $500 CUP/mes\n` +
+        `• Todo lo del Premium\n` +
+        `• 6 meses de servicio\n` +
+        `• Configuración personalizada\n` +
+        `• Soporte dedicado VIP\n` +
+        `• Velocidad máxima garantizada\n\n` +
+        `*SELECCIONA UNA OPCIÓN:*`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
 });
 
-// Manejar archivos enviados por admin
-bot.on('document', async (ctx) => {
-  if (ctx.session?.waitingForFile && isAdmin(ctx.from.id.toString())) {
-    const { target, paymentId } = ctx.session.waitingForFile;
-    const fileId = ctx.message.document.file_id;
-    const fileName = ctx.message.document.file_name;
-
-    console.log(`📁 Admin ${ctx.from.id} envía archivo ${fileName} a ${target}`);
-
+// Botón: Mi Estado (con días restantes)
+bot.action('check_status', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    
+    console.log(`👑 Usuario ${userId} verifica estado VIP`);
+    
     try {
-      // Verificar que sea un archivo .zip o .rar
-      const fileNameLower = fileName.toLowerCase();
-      if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
-        await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
-        return;
-      }
-      
-      // Guardar registro en la base de datos
-      await db.saveConfigFile({
-        telegram_id: target,
-        file_id: fileId,
-        file_name: fileName,
-        sent_by: ctx.from.username || 'admin',
-        sent_at: new Date().toISOString(),
-        payment_id: paymentId
-      });
-
-      // Actualizar pago
-      await db.updatePayment(paymentId, {
-        config_sent: true,
-        config_sent_at: new Date().toISOString()
-      });
-      
-      // Marcar usuario como VIP
-      const user = await db.getUser(target);
-      if (user && !user.vip) {
-        const payment = await db.getPayment(paymentId);
-        await db.makeUserVIP(target, {
-          plan: payment.plan,
-          plan_price: payment.price,
-          vip_since: new Date().toISOString()
-        });
-      }
-
-      // Enviar al usuario
-      await ctx.telegram.sendDocument(target, fileId, {
-        caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
-                '📁 Descomprime este archivo ZIP/RAR\n' +
-                '📄 Importa el archivo .conf en WireGuard\n' +
-                '🚀 ¡Disfruta de baja latencia!',
-        parse_mode: 'Markdown'
-      });
-
-      await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
+        const user = await db.getUser(userId);
+        
+        if (!user) {
+            const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+            await ctx.editMessageText(
+                `❌ *NO ESTÁS REGISTRADO*\n\n` +
+                `Usa el botón "📋 VER PLANES" para registrarte y comenzar.\n\n` +
+                `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: keyboard
+                    }
+                }
+            );
+            return;
+        }
+        
+        if (user?.vip) {
+            const vipSince = formatearFecha(user.vip_since);
+            const diasRestantes = calcularDiasRestantes(user);
+            const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
+            
+            let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
+            mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
+            mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
+            mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
+            mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
+            
+            if (diasRestantes <= 7) {
+                mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
+                mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
+            } else {
+                mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
+            }
+            
+            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+            const keyboard = [
+                [
+                    { 
+                        text: '🆘 CONTACTAR SOPORTE', 
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '📋 VER PLANES',
+                        web_app: { url: webappUrl }
+                    },
+                    {
+                        text: '🔄 RENOVAR',
+                        callback_data: 'view_plans'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
+            
+            if (esAdmin) {
+                keyboard.splice(2, 0, [
+                    {
+                        text: '📢 BROADCAST',
+                        callback_data: 'start_broadcast'
+                    }
+                ]);
+            }
+            
+            await ctx.editMessageText(
+                mensajeEstado,
+                { 
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: keyboard
+                    }
+                }
+            );
+        } else {
+            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+            const keyboard = [
+                [
+                    { 
+                        text: '📋 VER PLANES', 
+                        web_app: { url: webappUrl }
+                    },
+                    {
+                        text: '🆘 SOPORTE',
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
+            
+            if (esAdmin) {
+                keyboard.splice(1, 0, [
+                    {
+                        text: '📢 BROADCAST',
+                        callback_data: 'start_broadcast'
+                    }
+                ]);
+            }
+            
+            await ctx.editMessageText(
+                `❌ *NO ERES USUARIO VIP*\n\n` +
+                `Actualmente no tienes acceso a los servicios premium.\n\n` +
+                `Haz clic en los botones para ver nuestros planes o contactar soporte:`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: keyboard
+                    }
+                }
+            );
+        }
     } catch (error) {
-      console.error('❌ Error enviando archivo:', error);
-      await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+        console.error('❌ Error en check_status:', error);
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+        await ctx.editMessageText(
+            `❌ Error al verificar tu estado.\n\n` +
+            `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
     }
-
-    delete ctx.session.waitingForFile;
-  }
 });
 
-// Comando /help
-bot.command('help', async (ctx) => {
-  console.log(`🆘 Usuario ${ctx.from.id} solicita ayuda`);
-  
-  const keyboard = [[
-    { text: '📋 Ver Planes', callback_data: 'view_plans' },
-    { text: '👑 Mi Estado', callback_data: 'check_status' }
-  ]];
-  
-  if (isAdmin(ctx.from.id.toString())) {
-    keyboard.push([{ text: '🔧 Panel Admin', callback_data: 'admin_panel' }]);
-  }
-  
-  await ctx.reply(
-    `🆘 *Ayuda - VPN Cuba*\n\n` +
-    `Comandos disponibles:\n` +
-    `/start - Iniciar el bot\n` +
-    `/plans - Ver planes disponibles\n` +
-    `/comprar - Comprar un plan\n` +
-    `/status - Verificar tu estado VIP\n` +
-    `/help - Mostrar esta ayuda\n\n` +
-    `También puedes usar los botones:`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: keyboard
-      }
+// Botón: Iniciar Broadcast (solo admin)
+bot.action('start_broadcast', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    
+    if (!isAdmin(userId)) {
+        await ctx.answerCbQuery('❌ NO AUTORIZADO');
+        return;
     }
-  );
+    
+    ctx.session = ctx.session || {};
+    ctx.session.waitingForBroadcastMessage = true;
+    
+    await ctx.editMessageText(
+        `📢 *ENVIAR MENSAJE A TODOS LOS CLIENTES* 📤\n\n` +
+        `Por favor, escribe el mensaje que quieres enviar a *todos* los usuarios registrados.\n\n` +
+        `*EJEMPLO:*\n` +
+        `¡Hola a todos! 🎉\n` +
+        `Tenemos nuevas actualizaciones disponibles...\n\n` +
+        `Escribe tu mensaje ahora:`,
+        { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: '❌ CANCELAR',
+                            callback_data: 'main_menu'
+                        }
+                    ]
+                ]
+            }
+        }
+    );
+    await ctx.answerCbQuery();
+});
+
+// Manejar mensaje de broadcast
+bot.on('text', async (ctx) => {
+    const currentUserId = ctx.from.id.toString();
+    const message = ctx.message.text;
+    
+    if (isAdmin(currentUserId) && ctx.session?.waitingForBroadcastMessage) {
+        ctx.session.waitingForBroadcastMessage = false;
+        ctx.session.pendingBroadcast = message;
+        
+        await ctx.reply(
+            `📢 *CONFIRMAR ENVÍO DE BROADCAST* ✅\n\n` +
+            `*MENSAJE A ENVIAR:*\n${message}\n\n` +
+            `Este mensaje será enviado a *todos los usuarios registrados*.\n\n` +
+            `¿Estás seguro de que quieres continuar?`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '✅ SÍ, ENVIAR A TODOS', callback_data: 'confirm_broadcast' },
+                            { text: '❌ CANCELAR', callback_data: 'main_menu' }
+                        ]
+                    ]
+                }
+            }
+        );
+    }
+});
+
+// Botón: Confirmar Broadcast
+bot.action('confirm_broadcast', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    
+    if (!isAdmin(userId)) {
+        await ctx.answerCbQuery('❌ NO AUTORIZADO');
+        return;
+    }
+    
+    const broadcastMessage = ctx.session?.pendingBroadcast;
+    if (!broadcastMessage) {
+        await ctx.answerCbQuery('❌ NO HAY MENSAJE PARA ENVIAR');
+        return;
+    }
+    
+    try {
+        const users = await db.getAllUsers();
+        const totalUsers = users.length;
+        
+        await ctx.editMessageText(
+            `📢 *ENVIANDO BROADCAST* 📤\n\n` +
+            `Enviando mensaje a ${totalUsers} usuarios...\n` +
+            `Por favor, espera. Esto puede tomar unos minutos.\n\n` +
+            `⏳ *PROGRESO:* 0/${totalUsers}`,
+            { 
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard: [] }
+            }
+        );
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            
+            try {
+                await bot.telegram.sendMessage(
+                    user.telegram_id,
+                    `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${broadcastMessage}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
+                    { parse_mode: 'Markdown' }
+                );
+                successCount++;
+                
+                if (i % 10 === 0 || i === users.length - 1) {
+                    await ctx.telegram.editMessageText(
+                        ctx.chat.id,
+                        ctx.callbackQuery.message.message_id,
+                        null,
+                        `📢 *ENVIANDO BROADCAST* 📤\n\n` +
+                        `⏳ *PROGRESO:* ${i + 1}/${totalUsers}\n` +
+                        `✅ Enviados: ${successCount}\n` +
+                        `❌ Fallados: ${failCount}`,
+                        { parse_mode: 'Markdown' }
+                    );
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+            } catch (error) {
+                console.error(`Error enviando broadcast a ${user.telegram_id}:`, error.message);
+                failCount++;
+            }
+        }
+        
+        delete ctx.session.pendingBroadcast;
+        
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, true);
+        
+        await ctx.editMessageText(
+            `✅ *BROADCAST COMPLETADO* 📤\n\n` +
+            `📊 *ESTADÍSTICAS:*\n` +
+            `• Total de usuarios: ${totalUsers}\n` +
+            `• Mensajes enviados: ${successCount}\n` +
+            `• Mensajes fallados: ${failCount}\n` +
+            `• Tasa de éxito: ${((successCount / totalUsers) * 100).toFixed(1)}%\n\n` +
+            `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
+            { 
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+        
+    } catch (error) {
+        console.error('❌ Error en broadcast:', error);
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, true);
+        await ctx.editMessageText(
+            `❌ *ERROR EN BROADCAST*\n\n` +
+            `Hubo un error al enviar el broadcast: ${error.message}\n\n` +
+            `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    }
+});
+
+// Comando /admin solo para admins (mantener por compatibilidad)
+bot.command('admin', async (ctx) => {
+    if (!isAdmin(ctx.from.id.toString())) {
+        console.log(`❌ Usuario ${ctx.from.id} intentó usar /admin sin permisos`);
+        return ctx.reply('❌ Solo el administrador puede usar este comando.');
+    }
+
+    console.log(`🔧 Admin ${ctx.from.id} usa /admin`);
+    
+    const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${ctx.from.id}&admin=true`;
+    
+    const keyboard = [
+        [
+            { 
+                text: '🔧 ABRIR PANEL WEB', 
+                web_app: { url: adminUrl }
+            }
+        ],
+        [
+            {
+                text: '📢 BROADCAST',
+                callback_data: 'start_broadcast'
+            }
+        ],
+        [
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+    
+    await ctx.reply(
+        `🔧 *PANEL DE ADMINISTRACIÓN*\n\n` +
+        `Selecciona una opción:`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
+});
+
+// Comando /help actualizado
+bot.command('help', async (ctx) => {
+    console.log(`🆘 Usuario ${ctx.from.id} solicita ayuda`);
+    
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+    
+    await ctx.reply(
+        `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
+        `Usa los botones para navegar por todas las funciones.\n\n` +
+        `*BOTONES DISPONIBLES:*\n` +
+        `📋 VER PLANES - Ver y comprar planes\n` +
+        `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
+        `🆘 SOPORTE - Contactar con soporte técnico\n` +
+        `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
+        `${esAdmin ? '📢 BROADCAST - Enviar mensaje a todos los usuarios\n' : ''}` +
+        `\n¡Todo está disponible en los botones! 🚀`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
+});
+
+// Comando /comprar (mantener por compatibilidad)
+bot.command('comprar', async (ctx) => {
+    console.log(`🛒 Usuario ${ctx.from.id} usa /comprar`);
+    
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${ctx.from.id}`;
+    
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+    
+    await ctx.reply(
+        `🛒 *PROCESO DE COMPRA*\n\n` +
+        `Para realizar tu compra, haz clic en el botón "📋 VER PLANES" en el menú principal.\n\n` +
+        `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
+});
+
+// Comando /enviar para administrador (mantener por compatibilidad)
+bot.command('enviar', async (ctx) => {
+    if (!isAdmin(ctx.from.id.toString())) {
+        return ctx.reply('❌ Solo el administrador puede usar este comando.');
+    }
+
+    const args = ctx.message.text.split(' ');
+    if (args.length < 2) {
+        return ctx.reply('Uso: /enviar <ID de pago o ID de usuario>\nEjemplo: /enviar 123');
+    }
+
+    const target = args[1];
+    
+    console.log(`📤 Admin ${ctx.from.id} intenta enviar configuración a ${target}`);
+    
+    let paymentId, telegramId;
+    
+    if (/^\d+$/.test(target) && target.length < 10) {
+        paymentId = target;
+        const payment = await db.getPayment(paymentId);
+        if (!payment) {
+            return ctx.reply(`❌ No se encontró el pago con ID ${paymentId}`);
+        }
+        telegramId = payment.telegram_id;
+    } else {
+        telegramId = target.replace('@', '');
+        const payments = await db.getUserPayments(telegramId);
+        const approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
+        if (!approvedPayment) {
+            return ctx.reply(`❌ No se encontró un pago aprobado sin configuración para el usuario ${telegramId}`);
+        }
+        paymentId = approvedPayment.id;
+    }
+    
+    ctx.session = ctx.session || {};
+    ctx.session.waitingForFile = {
+        target: telegramId,
+        paymentId: paymentId
+    };
+
+    await ctx.reply(`📤 Esperando archivo .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo comprimido ahora:`);
+});
+
+// Manejar archivos enviados por admin (mantener por compatibilidad)
+bot.on('document', async (ctx) => {
+    if (ctx.session?.waitingForFile && isAdmin(ctx.from.id.toString())) {
+        const { target, paymentId } = ctx.session.waitingForFile;
+        const fileId = ctx.message.document.file_id;
+        const fileName = ctx.message.document.file_name;
+
+        console.log(`📁 Admin ${ctx.from.id} envía archivo ${fileName} a ${target}`);
+
+        try {
+            const fileNameLower = fileName.toLowerCase();
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar')) {
+                await ctx.reply('❌ El archivo debe tener extensión .zip o .rar');
+                return;
+            }
+            
+            await db.saveConfigFile({
+                telegram_id: target,
+                file_id: fileId,
+                file_name: fileName,
+                sent_by: ctx.from.username || 'admin',
+                sent_at: new Date().toISOString(),
+                payment_id: paymentId
+            });
+
+            await db.updatePayment(paymentId, {
+                config_sent: true,
+                config_sent_at: new Date().toISOString()
+            });
+            
+            const user = await db.getUser(target);
+            if (user && !user.vip) {
+                const payment = await db.getPayment(paymentId);
+                await db.makeUserVIP(target, {
+                    plan: payment.plan,
+                    plan_price: payment.price,
+                    vip_since: new Date().toISOString()
+                });
+            }
+
+            await ctx.telegram.sendDocument(target, fileId, {
+                caption: '🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n' +
+                        '📁 Descomprime este archivo ZIP/RAR\n' +
+                        '📄 Importa el archivo .conf en WireGuard\n' +
+                        '🚀 ¡Disfruta de baja latencia!',
+                parse_mode: 'Markdown'
+            });
+
+            await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
+        } catch (error) {
+            console.error('❌ Error enviando archivo:', error);
+            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+        }
+
+        delete ctx.session.waitingForFile;
+    }
 });
 
 // ==================== SERVIDOR ====================
 
 // Iniciar servidor
 app.listen(PORT, async () => {
-  console.log(`🚀 Servidor en http://localhost:${PORT}`);
-  console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
-  console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
-  console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
-  console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
-  console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
-  
-  // Iniciar bot
-  try {
-    await bot.launch();
-    console.log('🤖 Bot de Telegram iniciado');
+    console.log(`🚀 Servidor en http://localhost:${PORT}`);
+    console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
+    console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
+    console.log(`🆘 Soporte: @L0quen2`);
+    console.log(`📢 Broadcast: Disponible para admins`);
     
-    // Configurar comandos del bot
-    const commands = [
-      { command: 'start', description: 'Iniciar el bot' },
-      { command: 'plans', description: 'Ver planes disponibles' },
-      { command: 'comprar', description: 'Comprar un plan' },
-      { command: 'status', description: 'Verificar estado VIP' },
-      { command: 'help', description: 'Mostrar ayuda' }
-    ];
-    
-    // Solo mostrar comandos de admin a los admins (no es posible diferenciar)
-    await bot.telegram.setMyCommands(commands);
-    console.log('📝 Comandos del bot configurados');
-    
-  } catch (error) {
-    console.error('❌ Error iniciando bot:', error);
-  }
+    // Iniciar bot
+    try {
+        await bot.launch();
+        console.log('🤖 Bot de Telegram iniciado');
+        
+        // Configurar comandos del bot
+        const commands = [
+            { command: 'start', description: 'Iniciar el bot' },
+            { command: 'help', description: 'Mostrar ayuda' }
+        ];
+        
+        await bot.telegram.setMyCommands(commands);
+        console.log('📝 Comandos del bot configurados');
+        
+    } catch (error) {
+        console.error('❌ Error iniciando bot:', error);
+    }
 
-  // Iniciar keep-alive
-  startKeepAlive();
+    // Iniciar keep-alive
+    startKeepAlive();
 });
 
 // Manejar cierre
 process.on('SIGINT', () => {
-  console.log('\n👋 Cerrando aplicación...');
-  bot.stop();
-  process.exit(0);
+    console.log('\n👋 Cerrando aplicación...');
+    bot.stop();
+    process.exit(0);
 });
 
 // ==================== KEEP ALIVE ====================
 
 // Función para hacer ping a la propia aplicación cada 5 minutos
 function startKeepAlive() {
-  const keepAliveInterval = 5 * 60 * 1000; // 5 minutos en milisegundos
-  const healthCheckUrl = `http://localhost:${PORT}/api/health`;
+    const keepAliveInterval = 5 * 60 * 1000; // 5 minutos en milisegundos
+    const healthCheckUrl = `http://localhost:${PORT}/api/health`;
 
-  setInterval(async () => {
-    try {
-      const response = await fetch(healthCheckUrl);
-      if (response.ok) {
-        console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
-      } else {
-        console.error(`❌ Keep-alive ping falló con estado ${response.status}`);
-      }
-    } catch (error) {
-      console.error('❌ Error en keep-alive ping:', error.message);
-    }
-  }, keepAliveInterval);
+    setInterval(async () => {
+        try {
+            const response = await fetch(healthCheckUrl);
+            if (response.ok) {
+                console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
+            } else {
+                console.error(`❌ Keep-alive ping falló con estado ${response.status}`);
+            }
+        } catch (error) {
+            console.error('❌ Error en keep-alive ping:', error.message);
+        }
+    }, keepAliveInterval);
 
-  console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
+    console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
 }
 
 // Si usas una versión de Node.js anterior a la 18 (que no tiene fetch nativo), usa esta versión:
@@ -1129,7 +1615,7 @@ function startKeepAlive() {
 
 // Exportar para pruebas
 module.exports = {
-  app,
-  isAdmin,
-  ADMIN_IDS
+    app,
+    isAdmin,
+    ADMIN_IDS
 };

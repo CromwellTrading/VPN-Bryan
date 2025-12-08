@@ -7,10 +7,10 @@ require('dotenv').config();
 
 // ========== CONFIGURACIÓN INICIAL ==========
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const PORT = process.env.PORT || 3000;
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+const PORT = process.env.PORT || 10000; // Usa 10000 como default
+const ADMIN_CHAT_ID = process.env.ADMIN_ID || process.env.ADMIN_CHAT_ID; // Soporta ambos nombres
 const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutos
-const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || `http://localhost:${PORT}/health`;
+const WEBAPP_URL = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
 const WHATSAPP_GROUP_URL = process.env.WHATSAPP_GROUP_URL || 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc';
 
 if (!BOT_TOKEN) {
@@ -26,6 +26,34 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ========== MIDDLEWARES DEL BOT ==========
+bot.use(session());
+
+// Middleware para registrar usuarios
+bot.use(async (ctx, next) => {
+  if (ctx.from) {
+    const user = await db.getUser(ctx.from.id);
+    if (!user) {
+      // Registrar nuevo usuario
+      await db.saveUser(ctx.from.id, {
+        username: ctx.from.username,
+        first_name: ctx.from.first_name,
+        last_name: ctx.from.last_name,
+        language_code: ctx.from.language_code,
+        is_bot: ctx.from.is_bot,
+        last_activity: new Date().toISOString()
+      });
+      console.log(`🆕 Nuevo usuario registrado: ${ctx.from.first_name} (@${ctx.from.username || 'sin_usuario'})`);
+    } else {
+      // Actualizar última actividad
+      await db.updateUser(ctx.from.id, {
+        last_activity: new Date().toISOString()
+      });
+    }
+  }
+  return next();
+});
+
 // ========== KEEP ALIVE CONFIGURATION ==========
 
 // Función para mantener el bot activo
@@ -33,22 +61,20 @@ async function keepAlive() {
   try {
     console.log('🫀 Ejecutando keep-alive...');
     
-    // Opción 1: Hacer ping a una URL de health check
-    if (HEALTH_CHECK_URL && HEALTH_CHECK_URL !== `http://localhost:${PORT}/health`) {
-      try {
-        const response = await fetch(HEALTH_CHECK_URL);
-        console.log(`✅ Health check: ${response.status}`);
-      } catch (error) {
-        console.log('⚠️ No se pudo hacer health check externo');
-      }
+    // Opción 1: Hacer ping a la propia aplicación
+    try {
+      const response = await fetch(`${WEBAPP_URL}/health`);
+      console.log(`✅ Health check: ${response.status}`);
+    } catch (error) {
+      console.log('⚠️ No se pudo hacer health check interno:', error.message);
     }
     
     // Opción 2: Ejecutar una consulta simple a la base de datos
     const userCount = await db.getAllUsers();
     console.log(`✅ Keep-alive ejecutado. Usuarios totales: ${userCount.length}`);
     
-    // Opción 3: Enviar un mensaje de log (opcional)
-    if (ADMIN_CHAT_ID) {
+    // Opción 3: Enviar un mensaje de log al admin si hay usuarios
+    if (ADMIN_CHAT_ID && userCount.length > 0) {
       try {
         const vipUsers = userCount.filter(u => u.vip).length;
         const trialPending = userCount.filter(u => u.trial_requested && !u.trial_received).length;
@@ -71,43 +97,6 @@ async function keepAlive() {
   }
 }
 
-// Iniciar keep-alive periódico
-if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
-  console.log('🚀 Iniciando keep-alive cada 5 minutos...');
-  setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
-  
-  // Ejecutar inmediatamente al iniciar
-  setTimeout(keepAlive, 10000);
-}
-
-// ========== MIDDLEWARES DEL BOT ==========
-bot.use(session());
-
-// Middleware para registrar usuarios
-bot.use(async (ctx, next) => {
-  if (ctx.from) {
-    const user = await db.getUser(ctx.from.id);
-    if (!user) {
-      // Registrar nuevo usuario
-      await db.saveUser(ctx.from.id, {
-        username: ctx.from.username,
-        first_name: ctx.from.first_name,
-        last_name: ctx.from.last_name,
-        language_code: ctx.from.language_code,
-        is_bot: ctx.from.is_bot,
-        last_activity: new Date().toISOString()
-      });
-      console.log(`🆕 Nuevo usuario registrado: ${ctx.from.first_name} (@${ctx.from.username})`);
-    } else {
-      // Actualizar última actividad
-      await db.updateUser(ctx.from.id, {
-        last_activity: new Date().toISOString()
-      });
-    }
-  }
-  return next();
-});
-
 // ========== COMANDOS DEL BOT ==========
 
 // Comando /start
@@ -123,10 +112,10 @@ bot.start(async (ctx) => {
       `¿Qué te gustaría hacer hoy?`;
 
     const keyboard = Markup.keyboard([
-  ['🎮 Prueba Gratuita', '💳 Ver Planes'],
-  ['📞 Soporte', 'ℹ️ Información'],
-  ['💬 Grupo WhatsApp']
-]).resize();
+      ['🎮 Prueba Gratuita', '💳 Ver Planes'],
+      ['📞 Soporte', 'ℹ️ Información'],
+      ['💬 Grupo WhatsApp']
+    ]).resize();
 
     await ctx.replyWithMarkdown(welcomeMessage, keyboard);
     
@@ -135,7 +124,7 @@ bot.start(async (ctx) => {
       await ctx.reply(
         '👑 *Modo Administrador Activado*\n' +
         'Puedes acceder al panel de administración en:\n' +
-        `${process.env.ADMIN_URL || 'http://localhost:3000/admin.html'}`,
+        `${WEBAPP_URL}/admin.html`,
         { parse_mode: 'Markdown' }
       );
     }
@@ -153,7 +142,7 @@ bot.command('admin', async (ctx) => {
 
   const adminMessage = `👑 *Panel de Administración*\n\n` +
     `Accede al panel completo en:\n` +
-    `${process.env.ADMIN_URL || 'http://localhost:3000/admin.html'}\n\n` +
+    `${WEBAPP_URL}/admin.html\n\n` +
     `Comandos disponibles:\n` +
     `/stats - Ver estadísticas rápidas\n` +
     `/users - Contar usuarios\n` +
@@ -591,7 +580,7 @@ bot.on('photo', async (ctx) => {
         `*Plan:* ${ctx.session.selectedPlan}\n` +
         `*Monto:* ${ctx.session.selectedPrice} CUP\n` +
         `*Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
-        `Ver en panel: ${process.env.ADMIN_URL || 'http://localhost:3000/admin.html?admin=true&userId=' + ADMIN_CHAT_ID}`;
+        `Ver en panel: ${WEBAPP_URL}/admin.html`;
       
       await bot.telegram.sendMessage(ADMIN_CHAT_ID, adminNotification, { parse_mode: 'Markdown' });
       
@@ -669,7 +658,7 @@ bot.on('text', async (ctx) => {
           `*📡 Conexión:* ${connection}\n` +
           `*⏰ Tipo:* 1 hora\n` +
           `*📅 Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
-          `Enviar configuración desde: ${process.env.ADMIN_URL || 'http://localhost:3000/admin.html?admin=true&userId=' + ADMIN_CHAT_ID}`;
+          `Enviar configuración desde: ${WEBAPP_URL}/admin.html`;
         
         await bot.telegram.sendMessage(ADMIN_CHAT_ID, adminNotification, { parse_mode: 'Markdown' });
       }
@@ -1091,51 +1080,6 @@ app.post('/api/remove-vip', requireAdmin, async (req, res) => {
   }
 });
 
-// ========== BROADCAST ENDPOINTS (SIN BROADCAST EN BOT) ==========
-
-// Obtener broadcasts
-app.get('/api/broadcasts', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('broadcasts')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    
-    if (error) throw error;
-    res.json(data || []);
-  } catch (error) {
-    console.error('❌ Error en /api/broadcasts:', error);
-    res.status(500).json({ error: 'Error al obtener broadcasts' });
-  }
-});
-
-// Crear broadcast
-app.post('/api/broadcast/create', requireAdmin, async (req, res) => {
-  try {
-    const { message, target, adminId } = req.body;
-    
-    const { data, error } = await supabase
-      .from('broadcasts')
-      .insert([{
-        message,
-        target_users: target,
-        sent_by: adminId,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    res.json({ success: true, id: data.id });
-  } catch (error) {
-    console.error('❌ Error en /api/broadcast/create:', error);
-    res.status(500).json({ error: 'Error al crear broadcast' });
-  }
-});
-
 // Endpoint de health check
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -1164,27 +1108,41 @@ bot.catch((err, ctx) => {
 
 async function start() {
   try {
-    // Iniciar el bot
+    console.log('🤖 Iniciando bot...');
+    
+    // Iniciar el bot primero
     await bot.launch();
-    console.log('🤖 Bot iniciado correctamente');
+    console.log('✅ Bot iniciado correctamente');
     
     // Iniciar servidor Express
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
-      console.log(`📊 Panel admin: http://localhost:${PORT}/admin.html?admin=true&userId=${ADMIN_CHAT_ID}`);
-      console.log(`🫀 Health check: http://localhost:${PORT}/health`);
+      console.log(`🌐 URL pública: ${WEBAPP_URL}`);
+      console.log(`📊 Panel admin: ${WEBAPP_URL}/admin.html`);
+      console.log(`🫀 Health check: ${WEBAPP_URL}/health`);
+      
+      // Ahora iniciar keep-alive después de que el servidor esté corriendo
+      if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
+        console.log('🚀 Iniciando keep-alive cada 5 minutos...');
+        setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
+        
+        // Ejecutar keep-alive después de 10 segundos
+        setTimeout(keepAlive, 10000);
+      }
     });
     
-    // Para evitar que el proceso se cierre por inactividad en Heroku/railway
+    // Para evitar que el proceso se cierre por inactividad en Render/railway
     process.on('SIGTERM', () => {
       console.log('🔴 Recibido SIGTERM, cerrando bot...');
-      bot.stopPolling();
+      bot.stop('SIGTERM');
+      server.close();
       process.exit(0);
     });
 
     process.on('SIGINT', () => {
       console.log('🔴 Recibido SIGINT, cerrando bot...');
-      bot.stopPolling();
+      bot.stop('SIGINT');
+      server.close();
       process.exit(0);
     });
     
@@ -1197,13 +1155,14 @@ async function start() {
             `🤖 *Bot VPN Cuba Iniciado*\n\n` +
             `✅ Bot activo y funcionando\n` +
             `🚀 Servidor en puerto ${PORT}\n` +
-            `📊 Panel admin disponible\n` +
+            `🌐 URL: ${WEBAPP_URL}\n` +
+            `📊 Panel: ${WEBAPP_URL}/admin.html\n` +
             `⏰ ${new Date().toLocaleString('es-ES')}\n\n` +
             `¡Sistema listo para recibir solicitudes!`,
             { parse_mode: 'Markdown' }
           );
         } catch (error) {
-          console.log('⚠️ No se pudo enviar mensaje de inicio al admin');
+          console.log('⚠️ No se pudo enviar mensaje de inicio al admin:', error.message);
         }
       }, 5000);
     }

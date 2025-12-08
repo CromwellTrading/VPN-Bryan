@@ -2232,7 +2232,7 @@ Emojis: 🎮 📱 🔥"></textarea>
             }
         }
 
-        // Enviar broadcast
+        // Enviar broadcast - CORREGIDA
         async function sendBroadcast() {
             const message = document.getElementById('broadcastMessage').value.trim();
             const target = document.getElementById('broadcastTarget').value;
@@ -2262,6 +2262,11 @@ Emojis: 🎮 📱 🔥"></textarea>
             progressDiv.classList.add('active');
             
             try {
+                // Validar que currentUserId existe
+                if (!currentUserId) {
+                    throw new Error('ID de usuario no válido. Recarga la página.');
+                }
+                
                 // Crear broadcast
                 const createResponse = await fetch('/api/broadcast/create', {
                     method: 'POST',
@@ -2276,11 +2281,17 @@ Emojis: 🎮 📱 🔥"></textarea>
                 });
                 
                 if (!createResponse.ok) {
-                    throw new Error('Error creando broadcast');
+                    const errorText = await createResponse.text();
+                    console.error('❌ Error creando broadcast:', errorText);
+                    throw new Error(`Error ${createResponse.status}: ${errorText.substring(0, 100)}`);
                 }
                 
                 const broadcastData = await createResponse.json();
-                const broadcastId = broadcastData.id;
+                const broadcastId = broadcastData.broadcast?.id || broadcastData.id;
+                
+                if (!broadcastId) {
+                    throw new Error('No se recibió un ID de broadcast válido');
+                }
                 
                 console.log(`✅ Broadcast creado con ID: ${broadcastId}`);
                 showNotification('✅ Broadcast creado. Enviando mensajes en segundo plano...', 'success');
@@ -2293,7 +2304,7 @@ Emojis: 🎮 📱 🔥"></textarea>
                 
                 currentBroadcastId = broadcastId;
                 
-                // Iniciar polling de progreso
+                // Iniciar el polling de progreso
                 startBroadcastProgressPolling(broadcastId);
                 
                 // Recargar historial después de 3 segundos
@@ -2305,18 +2316,26 @@ Emojis: 🎮 📱 🔥"></textarea>
                 console.error('❌ Error enviando broadcast:', error);
                 showNotification('❌ Error enviando broadcast: ' + error.message, 'error');
                 
-                // Restaurar botón
-                button.disabled = false;
-                button.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Broadcast';
-                progressDiv.classList.remove('active');
+                // Restaurar UI
+                resetBroadcastUI();
             }
         }
 
-        // Monitorear progreso de broadcast
+        // Monitorear progreso de broadcast - CORREGIDA
         async function startBroadcastProgressPolling(broadcastId) {
             if (broadcastInterval) {
                 clearInterval(broadcastInterval);
             }
+            
+            // Validar que broadcastId existe
+            if (!broadcastId || broadcastId === 'undefined') {
+                console.error('❌ Broadcast ID inválido:', broadcastId);
+                showNotification('❌ Error: ID de broadcast inválido', 'error');
+                resetBroadcastUI();
+                return;
+            }
+            
+            console.log(`🔍 Iniciando polling para broadcast: ${broadcastId}`);
             
             let attempts = 0;
             const maxAttempts = 300; // 5 minutos máximo
@@ -2326,27 +2345,41 @@ Emojis: 🎮 📱 🔥"></textarea>
                 
                 if (attempts > maxAttempts) {
                     clearInterval(broadcastInterval);
+                    broadcastInterval = null;
                     showNotification('⚠️ Broadcast tardó mucho tiempo. Verifica manualmente.', 'warning');
                     resetBroadcastUI();
                     return;
                 }
                 
                 try {
+                    console.log(`📡 Polling broadcast ${broadcastId}, intento ${attempts}`);
+                    
                     const response = await fetch(`/api/broadcast/status/${broadcastId}`);
+                    
                     if (!response.ok) {
-                        throw new Error('Error obteniendo estado');
+                        if (response.status === 404) {
+                            console.log(`📭 Broadcast ${broadcastId} no encontrado, deteniendo polling`);
+                            clearInterval(broadcastInterval);
+                            broadcastInterval = null;
+                            updateBroadcastProgressUI(100, 'Error', 'Broadcast no encontrado');
+                            setTimeout(resetBroadcastUI, 3000);
+                            return;
+                        }
+                        throw new Error(`HTTP ${response.status}`);
                     }
                     
                     const status = await response.json();
+                    console.log(`📊 Estado broadcast:`, status);
                     
                     if (status.status === 'completed') {
                         clearInterval(broadcastInterval);
+                        broadcastInterval = null;
                         
                         // Actualizar UI final
                         updateBroadcastProgressUI(100, 'Completado', 
-                            `✅ ${status.sent_count} mensajes enviados, ${status.failed_count} fallidos`);
+                            `✅ ${status.sent_count || 0} mensajes enviados, ${status.failed_count || 0} fallidos`);
                         
-                        showNotification(`✅ Broadcast completado: ${status.sent_count} mensajes enviados`, 'success');
+                        showNotification(`✅ Broadcast completado: ${status.sent_count || 0} mensajes enviados`, 'success');
                         
                         // Restaurar UI después de 5 segundos
                         setTimeout(() => {
@@ -2357,21 +2390,37 @@ Emojis: 🎮 📱 🔥"></textarea>
                         
                     } else if (status.status === 'sending') {
                         // Actualizar progreso
-                        const percent = Math.min(10 + Math.floor((status.sent_count / status.total_users) * 80), 95);
+                        const sent = status.sent_count || 0;
+                        const total = status.total_users || 1;
+                        const percent = Math.min(10 + Math.floor((sent / total) * 80), 95);
                         updateBroadcastProgressUI(percent, 'Enviando...', 
-                            `Enviando a ${status.sent_count} de ${status.total_users} usuarios`);
+                            `Enviando a ${sent} de ${total} usuarios`);
                         
                     } else if (status.status === 'failed') {
                         clearInterval(broadcastInterval);
+                        broadcastInterval = null;
                         
                         updateBroadcastProgressUI(100, 'Error', 'Error en el envío');
                         showNotification('❌ Error enviando broadcast', 'error');
                         
                         setTimeout(resetBroadcastUI, 3000);
+                        
+                    } else if (status.status === 'pending') {
+                        // Aún no comenzó, mantener en 10%
+                        updateBroadcastProgressUI(10, 'En cola...', 'Esperando para comenzar el envío');
                     }
                     
                 } catch (error) {
                     console.error('❌ Error monitoreando progreso:', error);
+                    
+                    // Si hay muchos errores consecutivos, detener
+                    if (attempts > 10) {
+                        clearInterval(broadcastInterval);
+                        broadcastInterval = null;
+                        updateBroadcastProgressUI(100, 'Error', 'Error de conexión');
+                        showNotification('❌ Error de conexión monitoreando broadcast', 'error');
+                        setTimeout(resetBroadcastUI, 3000);
+                    }
                 }
             }, 2000); // Poll cada 2 segundos
         }
@@ -2443,6 +2492,12 @@ Emojis: 🎮 📱 🔥"></textarea>
             if (!confirm('¿Reintentar envío de este broadcast?')) return;
             
             try {
+                // Validar que currentUserId existe
+                if (!currentUserId) {
+                    showNotification('❌ Error: ID de usuario no válido', 'error');
+                    return;
+                }
+                
                 const response = await fetch(`/api/broadcast/retry/${broadcastId}`, {
                     method: 'POST',
                     headers: {

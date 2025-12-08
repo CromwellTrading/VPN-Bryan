@@ -96,7 +96,8 @@ const db = {
         
         const updateData = {
           ...userData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          last_activity: new Date().toISOString()
         };
         
         // Si se envía trial_requested, actualizar también trial_requested_at
@@ -112,6 +113,16 @@ const db = {
         // Si se envía trial_plan_type, actualizarlo
         if (userData.trial_plan_type) {
           updateData.trial_plan_type = userData.trial_plan_type;
+        }
+        
+        // Si se envía trial_game_server, actualizarlo
+        if (userData.trial_game_server) {
+          updateData.trial_game_server = userData.trial_game_server;
+        }
+        
+        // Si se envía trial_connection_type, actualizarlo
+        if (userData.trial_connection_type) {
+          updateData.trial_connection_type = userData.trial_connection_type;
         }
         
         const { data, error } = await supabase
@@ -136,7 +147,8 @@ const db = {
           telegram_id: telegramId,
           ...userData,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          last_activity: new Date().toISOString()
         };
         
         // Si es solicitud de prueba, agregar fecha
@@ -301,6 +313,32 @@ const db = {
       return data || [];
     } catch (error) {
       console.error('❌ Error obteniendo usuarios VIP:', error);
+      return [];
+    }
+  },
+
+  async getActiveUsers(days = 30) {
+    try {
+      console.log(`📱 Obteniendo usuarios activos (últimos ${days} días)...`);
+      
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .gte('last_activity', date.toISOString())
+        .order('last_activity', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo usuarios activos:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} usuarios activos encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo usuarios activos:', error);
       return [];
     }
   },
@@ -545,6 +583,7 @@ const db = {
     }
   },
 
+  // ========== ESTADÍSTICAS ==========
   async getStats() {
     try {
       console.log('📊 Obteniendo estadísticas...');
@@ -1284,6 +1323,391 @@ const db = {
     } catch (error) {
       console.error('❌ Error actualizando datos de prueba:', error);
       throw error;
+    }
+  },
+
+  // ========== FUNCIONES DE BROADCAST ==========
+  async createBroadcast(message, targetUsers = 'all', sentBy) {
+    try {
+      console.log(`📢 Creando broadcast...`);
+      
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .insert([{
+          message: message,
+          target_users: targetUsers,
+          sent_by: sentBy,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error creando broadcast:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Broadcast creado con ID: ${data.id}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error creando broadcast:', error);
+      throw error;
+    }
+  },
+
+  async getBroadcasts(limit = 50) {
+    try {
+      console.log('📢 Obteniendo broadcasts...');
+      
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('❌ Error obteniendo broadcasts:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} broadcasts encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo broadcasts:', error);
+      return [];
+    }
+  },
+
+  async getBroadcast(broadcastId) {
+    try {
+      console.log(`🔍 Obteniendo broadcast ${broadcastId}...`);
+      
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .eq('id', broadcastId)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Broadcast ${broadcastId} no encontrado`);
+        return null;
+      }
+      
+      if (error) {
+        console.error('❌ Error obteniendo broadcast:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Broadcast ${broadcastId} encontrado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error obteniendo broadcast:', error);
+      return null;
+    }
+  },
+
+  async getBroadcastStats(broadcastId) {
+    try {
+      console.log(`📊 Obteniendo estadísticas de broadcast ${broadcastId}...`);
+      
+      const { data, error } = await supabase
+        .from('broadcast_stats')
+        .select('*')
+        .eq('broadcast_id', broadcastId)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        return null;
+      }
+      
+      if (error) {
+        console.error('❌ Error obteniendo stats de broadcast:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getBroadcastStats:', error);
+      return null;
+    }
+  },
+
+  async updateBroadcastStatus(broadcastId, status, stats = {}) {
+    try {
+      console.log(`✏️ Actualizando broadcast ${broadcastId} a ${status}...`);
+      
+      const updateData = {
+        status: status,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (status === 'completed' || status === 'failed') {
+        updateData.completed_at = new Date().toISOString();
+        updateData.sent_count = stats.sent_count || 0;
+        updateData.failed_count = stats.failed_count || 0;
+        updateData.total_users = stats.total_users || 0;
+      } else if (status === 'sending') {
+        updateData.sent_count = stats.sent_count || 0;
+        updateData.total_users = stats.total_users || 0;
+      }
+      
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .update(updateData)
+        .eq('id', broadcastId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando broadcast:', error);
+        throw error;
+      }
+      
+      // Guardar estadísticas detalladas si están disponibles
+      if (stats.detailed_stats) {
+        await this.saveBroadcastStats(broadcastId, stats);
+      }
+      
+      console.log(`✅ Broadcast ${broadcastId} actualizado a ${status}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error actualizando broadcast:', error);
+      throw error;
+    }
+  },
+
+  async saveBroadcastStats(broadcastId, stats) {
+    try {
+      console.log(`📊 Guardando estadísticas de broadcast ${broadcastId}...`);
+      
+      const { data, error } = await supabase
+        .from('broadcast_stats')
+        .insert([{
+          broadcast_id: broadcastId,
+          total_users: stats.total_users || 0,
+          sent_count: stats.sent_count || 0,
+          failed_count: stats.failed_count || 0,
+          vip_users: stats.vip_users || 0,
+          trial_users: stats.trial_users || 0,
+          active_users: stats.active_users || 0,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error guardando stats de broadcast:', error);
+        return null;
+      }
+      
+      console.log(`✅ Estadísticas de broadcast guardadas`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error guardando stats de broadcast:', error);
+      return null;
+    }
+  },
+
+  async getUsersForBroadcast(targetUsers = 'all') {
+    try {
+      console.log(`👥 Obteniendo usuarios para broadcast: ${targetUsers}...`);
+      
+      let query = supabase
+        .from('users')
+        .select('telegram_id, username, first_name, vip, trial_requested, trial_received, last_activity');
+      
+      if (targetUsers === 'vip') {
+        query = query.eq('vip', true);
+      } else if (targetUsers === 'non_vip') {
+        query = query.eq('vip', false);
+      } else if (targetUsers === 'trial_pending') {
+        query = query.eq('trial_requested', true).eq('trial_received', false);
+      } else if (targetUsers === 'trial_received') {
+        query = query.eq('trial_received', true);
+      } else if (targetUsers === 'active') {
+        // Usuarios que han interactuado en los últimos 30 días
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        query = query.gte('last_activity', thirtyDaysAgo.toISOString());
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('❌ Error obteniendo usuarios para broadcast:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} usuarios encontrados para broadcast`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo usuarios para broadcast:', error);
+      return [];
+    }
+  },
+
+  async getBroadcastProgress(broadcastId) {
+    try {
+      console.log(`📈 Obteniendo progreso de broadcast ${broadcastId}...`);
+      
+      const broadcast = await this.getBroadcast(broadcastId);
+      if (!broadcast) {
+        return null;
+      }
+      
+      return {
+        status: broadcast.status,
+        sent_count: broadcast.sent_count || 0,
+        failed_count: broadcast.failed_count || 0,
+        total_users: broadcast.total_users || 0,
+        progress: broadcast.total_users > 0 ? 
+          Math.round((broadcast.sent_count / broadcast.total_users) * 100) : 0
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo progreso de broadcast:', error);
+      return null;
+    }
+  },
+
+  async retryFailedBroadcast(broadcastId) {
+    try {
+      console.log(`🔄 Reintentando broadcast fallido ${broadcastId}...`);
+      
+      const broadcast = await this.getBroadcast(broadcastId);
+      if (!broadcast) {
+        throw new Error('Broadcast no encontrado');
+      }
+      
+      if (broadcast.status !== 'failed') {
+        throw new Error('Solo se pueden reintentar broadcasts fallidos');
+      }
+      
+      // Resetear estadísticas
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .update({
+          status: 'pending',
+          sent_count: 0,
+          failed_count: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', broadcastId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error reintentando broadcast:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Broadcast ${broadcastId} marcado para reintento`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en retryFailedBroadcast:', error);
+      throw error;
+    }
+  },
+
+  // ========== FUNCIONES ADICIONALES PARA EL PANEL ==========
+  async getUsersByGameServer(gameServer) {
+    try {
+      console.log(`🎮 Buscando usuarios por juego: ${gameServer}`);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('trial_game_server', `%${gameServer}%`)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error buscando usuarios por juego:', error);
+        return [];
+      }
+      
+      console.log(`✅ ${data?.length || 0} usuarios encontrados para el juego ${gameServer}`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getUsersByGameServer:', error);
+      return [];
+    }
+  },
+
+  async getUsersByConnectionType(connectionType) {
+    try {
+      console.log(`📡 Buscando usuarios por conexión: ${connectionType}`);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('trial_connection_type', `%${connectionType}%`)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error buscando usuarios por conexión:', error);
+        return [];
+      }
+      
+      console.log(`✅ ${data?.length || 0} usuarios encontrados para conexión ${connectionType}`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getUsersByConnectionType:', error);
+      return [];
+    }
+  },
+
+  async getGamesStatistics() {
+    try {
+      console.log('📊 Obteniendo estadísticas de juegos...');
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('trial_game_server, trial_connection_type, trial_requested_at')
+        .eq('trial_requested', true);
+      
+      if (error) {
+        console.error('❌ Error obteniendo estadísticas de juegos:', error);
+        return { games: [], connections: [] };
+      }
+      
+      // Agrupar por juego
+      const gamesMap = new Map();
+      const connectionsMap = new Map();
+      
+      data?.forEach(user => {
+        const game = user.trial_game_server || 'No especificado';
+        const connection = user.trial_connection_type || 'No especificado';
+        
+        // Contar juegos
+        if (!gamesMap.has(game)) {
+          gamesMap.set(game, { game, count: 0, lastRequest: user.trial_requested_at });
+        }
+        const gameData = gamesMap.get(game);
+        gameData.count += 1;
+        if (user.trial_requested_at && (!gameData.lastRequest || user.trial_requested_at > gameData.lastRequest)) {
+          gameData.lastRequest = user.trial_requested_at;
+        }
+        
+        // Contar conexiones
+        if (!connectionsMap.has(connection)) {
+          connectionsMap.set(connection, { connection, count: 0 });
+        }
+        connectionsMap.get(connection).count += 1;
+      });
+      
+      // Convertir a arrays y ordenar
+      const games = Array.from(gamesMap.values())
+        .sort((a, b) => b.count - a.count);
+      
+      const connections = Array.from(connectionsMap.values())
+        .sort((a, b) => b.count - a.count);
+      
+      console.log(`✅ Estadísticas de juegos obtenidas: ${games.length} juegos, ${connections.length} conexiones`);
+      return { games, connections };
+    } catch (error) {
+      console.error('❌ Error en getGamesStatistics:', error);
+      return { games: [], connections: [] };
     }
   }
 };

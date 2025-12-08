@@ -1,68 +1,1127 @@
-const { Telegraf, session, Markup } = require('telegraf');
+const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
-const fs = require('fs').promises;
-const path = require('path');
 const db = require('./supabase');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
-// ========== CONFIGURACIÓN INICIAL ==========
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const PORT = process.env.PORT || 3000;
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
-const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutos
-const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || `http://localhost:${PORT}/health`;
+const app = express();
+const port = process.env.PORT || 3000;
 
-if (!BOT_TOKEN) {
-  console.error('❌ Error: Faltan variables de entorno BOT_TOKEN');
+// Configuración del bot
+const token = process.env.TELEGRAM_BOT_TOKEN;
+if (!token) {
+  console.error('❌ Error: Faltan variables de entorno TELEGRAM_BOT_TOKEN');
   process.exit(1);
 }
 
-// Inicializar bot y Express
-const bot = new Telegraf(BOT_TOKEN);
-const app = express();
+const bot = new TelegramBot(token, { polling: true });
 
 // Middleware para parsear JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir archivos estáticos
+app.use(express.static('public'));
+
+// ========== RUTAS PARA EL PANEL ADMIN ==========
+
+// Ruta principal del panel admin
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Ruta para verificar administrador
+app.get('/api/check-admin/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await db.getUser(userId);
+    
+    // Verificar si es admin (puedes tener una lista de admin IDs en .env)
+    const adminIds = process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',') : [];
+    const isAdmin = adminIds.includes(userId) || (user && user.admin === true);
+    
+    res.json({ isAdmin: isAdmin, user: user });
+  } catch (error) {
+    console.error('❌ Error verificando admin:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener estadísticas
+app.get('/api/stats', async (req, res) => {
+  try {
+    const stats = await db.getStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener pagos pendientes
+app.get('/api/payments/pending', async (req, res) => {
+  try {
+    const payments = await db.getPendingPayments();
+    
+    // Para cada pago, obtener información del usuario
+    const paymentsWithUser = await Promise.all(payments.map(async (payment) => {
+      const user = await db.getUser(payment.telegram_id);
+      return { ...payment, user };
+    }));
+    
+    res.json(paymentsWithUser);
+  } catch (error) {
+    console.error('❌ Error obteniendo pagos pendientes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener pagos aprobados
+app.get('/api/payments/approved', async (req, res) => {
+  try {
+    const payments = await db.getApprovedPayments();
+    
+    const paymentsWithUser = await Promise.all(payments.map(async (payment) => {
+      const user = await db.getUser(payment.telegram_id);
+      return { ...payment, user };
+    }));
+    
+    res.json(paymentsWithUser);
+  } catch (error) {
+    console.error('❌ Error obteniendo pagos aprobados:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para aprobar un pago
+app.post('/api/payments/:id/approve', async (req, res) => {
+  try {
+    const paymentId = req.params.id;
+    const payment = await db.approvePayment(paymentId);
+    
+    // Obtener información del usuario
+    const user = await db.getUser(payment.telegram_id);
+    
+    // Marcar al usuario como VIP
+    await db.makeUserVIP(payment.telegram_id, {
+      plan: payment.plan,
+      plan_price: payment.price
+    });
+    
+    // Enviar mensaje al usuario notificando la aprobación
+    try {
+      await bot.sendMessage(
+        payment.telegram_id,
+        `✅ *¡Pago Aprobado!*\n\n` +
+        `Tu pago por el plan *${payment.plan}* ha sido aprobado.\n` +
+        `Monto: $${payment.price} CUP\n` +
+        `En breve recibirás tu archivo de configuración.`,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (error) {
+      console.error('❌ Error enviando mensaje al usuario:', error);
+    }
+    
+    res.json({ success: true, payment, user });
+  } catch (error) {
+    console.error('❌ Error aprobando pago:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para rechazar un pago
+app.post('/api/payments/:id/reject', async (req, res) => {
+  try {
+    const paymentId = req.params.id;
+    const { reason } = req.body;
+    
+    if (!reason) {
+      return res.status(400).json({ error: 'Se requiere un motivo' });
+    }
+    
+    const payment = await db.rejectPayment(paymentId, reason);
+    
+    // Enviar mensaje al usuario notificando el rechazo
+    try {
+      await bot.sendMessage(
+        payment.telegram_id,
+        `❌ *Pago Rechazado*\n\n` +
+        `Tu pago por el plan *${payment.plan}* ha sido rechazado.\n` +
+        `Motivo: ${reason}\n\n` +
+        `Si crees que esto es un error, contacta con el administrador.`,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (error) {
+      console.error('❌ Error enviando mensaje al usuario:', error);
+    }
+    
+    res.json({ success: true, payment });
+  } catch (error) {
+    console.error('❌ Error rechazando pago:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para enviar archivo de configuración
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+
+app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
+  try {
+    const { paymentId, telegramId, adminId } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No se subió ningún archivo' });
+    }
+
+    // Actualizar el pago como config enviada
+    await db.updatePayment(paymentId, { 
+      config_sent: true, 
+      config_sent_at: new Date().toISOString() 
+    });
+
+    // Guardar registro del archivo enviado
+    await db.saveConfigFile({
+      payment_id: paymentId,
+      telegram_id: telegramId,
+      sent_by: adminId,
+      file_type: 'config',
+      file_name: file.originalname,
+      file_size: file.size,
+      sent_at: new Date().toISOString()
+    });
+
+    // Enviar archivo al usuario
+    try {
+      await bot.sendDocument(
+        telegramId,
+        file.path,
+        {
+          caption: `📁 *¡Configuración Enviada!*\n\n` +
+                  `Aquí está tu archivo de configuración para el plan.\n` +
+                  `Sigue las instrucciones para configurar tu VPN.\n\n` +
+                  `*Nombre:* ${file.originalname}\n` +
+                  `*Tamaño:* ${(file.size / 1024).toFixed(2)} KB`
+        }
+      );
+
+      // Eliminar archivo temporal
+      fs.unlinkSync(file.path);
+
+    } catch (error) {
+      console.error('❌ Error enviando archivo al usuario:', error);
+      return res.status(500).json({ error: 'Error enviando archivo al usuario' });
+    }
+
+    res.json({ success: true, message: 'Configuración enviada' });
+  } catch (error) {
+    console.error('❌ Error enviando configuración:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para enviar configuración de prueba
+app.post('/api/send-trial-config', upload.single('trialConfigFile'), async (req, res) => {
+  try {
+    const { telegramId, adminId, trialType } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No se subió ningún archivo' });
+    }
+
+    // Marcar la prueba como enviada
+    await db.markTrialAsSent(telegramId, adminId);
+
+    // Enviar archivo al usuario
+    try {
+      await bot.sendDocument(
+        telegramId,
+        file.path,
+        {
+          caption: `🎁 *¡Prueba Gratuita Enviada!*\n\n` +
+                  `Aquí está tu prueba gratuita de ${trialType}.\n` +
+                  `Sigue las instrucciones para configurar tu VPN.\n\n` +
+                  `*Duración:* ${trialType}\n` +
+                  `*Nombre:* ${file.originalname}\n` +
+                  `*Tamaño:* ${(file.size / 1024).toFixed(2)} KB\n\n` +
+                  `¡Disfruta de tu prueba! 🎮`
+        }
+      );
+
+      // Eliminar archivo temporal
+      fs.unlinkSync(file.path);
+
+    } catch (error) {
+      console.error('❌ Error enviando archivo de prueba al usuario:', error);
+      return res.status(500).json({ error: 'Error enviando archivo de prueba' });
+    }
+
+    res.json({ success: true, message: 'Prueba enviada' });
+  } catch (error) {
+    console.error('❌ Error enviando prueba:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener todos los usuarios
+app.get('/api/all-users', async (req, res) => {
+  try {
+    const users = await db.getAllUsers();
+    res.json(users);
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para remover VIP de un usuario
+app.post('/api/remove-vip', async (req, res) => {
+  try {
+    const { telegramId, adminId } = req.body;
+    
+    await db.removeVIP(telegramId);
+    
+    // Enviar mensaje al usuario
+    try {
+      await bot.sendMessage(
+        telegramId,
+        `⚠️ *Estado VIP Actualizado*\n\n` +
+        `Tu estado VIP ha sido removido por el administrador.\n` +
+        `Si crees que esto es un error, contacta con el administrador.`,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (error) {
+      console.error('❌ Error enviando mensaje al usuario:', error);
+    }
+    
+    res.json({ success: true, message: 'VIP removido' });
+  } catch (error) {
+    console.error('❌ Error removiendo VIP:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para enviar mensaje a un usuario
+app.post('/api/send-message', async (req, res) => {
+  try {
+    const { telegramId, message, adminId } = req.body;
+    
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
+    }
+    
+    // Enviar mensaje al usuario
+    await bot.sendMessage(telegramId, message, { parse_mode: 'Markdown' });
+    
+    res.json({ success: true, message: 'Mensaje enviado' });
+  } catch (error) {
+    console.error('❌ Error enviando mensaje:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener estadísticas de pruebas
+app.get('/api/trial-stats', async (req, res) => {
+  try {
+    const stats = await db.getTrialStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de prueba:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener pruebas pendientes
+app.get('/api/trials/pending', async (req, res) => {
+  try {
+    const trials = await db.getPendingTrials();
+    
+    // Enriquecer con información de días esperando
+    const enrichedTrials = trials.map(trial => {
+      let daysAgo = 0;
+      if (trial.trial_requested_at) {
+        const requestedDate = new Date(trial.trial_requested_at);
+        const now = new Date();
+        daysAgo = Math.floor((now - requestedDate) / (1000 * 60 * 60 * 24));
+      }
+      
+      return {
+        ...trial,
+        trial_info: {
+          game_server: trial.trial_game_server || 'No especificado',
+          connection_type: trial.trial_connection_type || 'No especificado',
+          days_ago: daysAgo
+        }
+      };
+    });
+    
+    res.json(enrichedTrials);
+  } catch (error) {
+    console.error('❌ Error obteniendo pruebas pendientes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener usuarios activos (últimos 30 días)
+app.get('/api/users/active', async (req, res) => {
+  try {
+    const users = await db.getAllUsers();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const activeUsers = users.filter(user => {
+      if (!user.updated_at) return false;
+      const updatedDate = new Date(user.updated_at);
+      return updatedDate >= thirtyDaysAgo;
+    });
+    
+    res.json(activeUsers);
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios activos:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ========== RUTAS PARA BROADCAST (PARA EL PANEL ADMIN) ==========
+
+// Ruta para crear un broadcast
+app.post('/api/broadcast/create', async (req, res) => {
+  try {
+    const { message, target, adminId } = req.body;
+    
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
+    }
+    
+    const broadcast = await db.createBroadcast(message, target, adminId);
+    
+    res.json(broadcast);
+  } catch (error) {
+    console.error('❌ Error creando broadcast:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener broadcasts
+app.get('/api/broadcasts', async (req, res) => {
+  try {
+    const broadcasts = await db.getBroadcasts();
+    res.json(broadcasts);
+  } catch (error) {
+    console.error('❌ Error obteniendo broadcasts:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para obtener el estado de un broadcast
+app.get('/api/broadcast/status/:id', async (req, res) => {
+  try {
+    const broadcastId = req.params.id;
+    
+    // Obtener el broadcast
+    const { data: broadcast, error: broadcastError } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .eq('id', broadcastId)
+      .single();
+    
+    if (broadcastError) {
+      return res.status(404).json({ error: 'Broadcast no encontrado' });
+    }
+    
+    res.json(broadcast);
+  } catch (error) {
+    console.error('❌ Error obteniendo estado de broadcast:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta para enviar un broadcast (iniciar el envío)
+app.post('/api/broadcast/send', async (req, res) => {
+  try {
+    const { broadcastId, target, adminId } = req.body;
+    
+    // Obtener el broadcast
+    const { data: broadcast, error: broadcastError } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .eq('id', broadcastId)
+      .single();
+    
+    if (broadcastError) {
+      return res.status(404).json({ error: 'Broadcast no encontrado' });
+    }
+    
+    // Obtener usuarios destino
+    const users = await db.getUsersForBroadcast(target);
+    
+    // Actualizar estado a "enviando"
+    await db.updateBroadcastStatus(broadcastId, 'sending', {
+      total_users: users.length
+    });
+    
+    // Iniciar el envío en segundo plano (no bloquear la respuesta)
+    sendBroadcastMessages(broadcastId, users, broadcast.message, adminId);
+    
+    res.json({
+      success: true,
+      message: 'Broadcast iniciado',
+      total_users: users.length
+    });
+  } catch (error) {
+    console.error('❌ Error iniciando broadcast:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Función para enviar mensajes de broadcast en segundo plano
+async function sendBroadcastMessages(broadcastId, users, message, adminId) {
+  let sentCount = 0;
+  let failedCount = 0;
+  
+  console.log(`📢 Iniciando envío de broadcast a ${users.length} usuarios`);
+  
+  // Limitar el número de mensajes por segundo para no sobrecargar la API
+  const BATCH_SIZE = 10;
+  const DELAY_BETWEEN_BATCHES = 1000; // 1 segundo
+  
+  for (let i = 0; i < users.length; i += BATCH_SIZE) {
+    const batch = users.slice(i, i + BATCH_SIZE);
+    
+    // Enviar en paralelo cada batch
+    const promises = batch.map(user => 
+      bot.sendMessage(user.telegram_id, message, { parse_mode: 'Markdown' })
+        .then(() => {
+          sentCount++;
+          return { success: true, userId: user.telegram_id };
+        })
+        .catch(error => {
+          console.error(`❌ Error enviando a ${user.telegram_id}:`, error.message);
+          failedCount++;
+          return { success: false, userId: user.telegram_id, error: error.message };
+        })
+    );
+    
+    await Promise.all(promises);
+    
+    // Actualizar progreso
+    await db.updateBroadcastStatus(broadcastId, 'sending', {
+      sent_count: sentCount,
+      failed_count: failedCount,
+      total_users: users.length
+    });
+    
+    console.log(`📤 Progreso: ${sentCount}/${users.length} enviados`);
+    
+    // Esperar antes del siguiente batch
+    if (i + BATCH_SIZE < users.length) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+    }
+  }
+  
+  // Marcar como completado
+  await db.updateBroadcastStatus(broadcastId, 'completed', {
+    sent_count: sentCount,
+    failed_count: failedCount,
+    total_users: users.length
+  });
+  
+  console.log(`✅ Broadcast completado: ${sentCount} enviados, ${failedCount} fallidos`);
+  
+  // Notificar al administrador
+  if (adminId) {
+    try {
+      await bot.sendMessage(
+        adminId,
+        `📢 *Broadcast Completado*\n\n` +
+        `ID: ${broadcastId}\n` +
+        `Enviados: ${sentCount}\n` +
+        `Fallidos: ${failedCount}\n` +
+        `Total: ${users.length}`,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (error) {
+      console.error('❌ Error notificando al administrador:', error);
+    }
+  }
+}
+
+// Ruta para reintentar un broadcast
+app.post('/api/broadcast/retry/:id', async (req, res) => {
+  try {
+    const broadcastId = req.params.id;
+    const { adminId } = req.body;
+    
+    const { data: broadcast, error: broadcastError } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .eq('id', broadcastId)
+      .single();
+    
+    if (broadcastError) {
+      return res.status(404).json({ error: 'Broadcast no encontrado' });
+    }
+    
+    // Obtener usuarios destino
+    const users = await db.getUsersForBroadcast(broadcast.target_users);
+    
+    // Actualizar estado a "enviando"
+    await db.updateBroadcastStatus(broadcastId, 'sending', {
+      total_users: users.length
+    });
+    
+    // Iniciar el envío en segundo plano
+    sendBroadcastMessages(broadcastId, users, broadcast.message, adminId);
+    
+    res.json({
+      success: true,
+      message: 'Reintento de broadcast iniciado',
+      total_users: users.length
+    });
+  } catch (error) {
+    console.error('❌ Error reintentando broadcast:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ========== HEALTH CHECK PARA KEEP-ALIVE ==========
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
+// ========== INICIAR SERVIDOR ==========
+app.listen(port, () => {
+  console.log(`🚀 Servidor escuchando en puerto ${port}`);
+});
+
+// ========== COMANDOS DEL BOT ==========
+
+// Comando /start
+bot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const firstName = msg.from.first_name;
+  
+  console.log(`🚀 Usuario ${userId} (${firstName}) inició el bot`);
+  
+  // Guardar usuario en la base de datos
+  await db.saveUser(userId, {
+    username: msg.from.username,
+    first_name: firstName,
+    last_name: msg.from.last_name,
+    language_code: msg.from.language_code
+  });
+  
+  // Mensaje de bienvenida
+  const welcomeMessage = `¡Hola ${firstName}! 👋\n\n` +
+    `Bienvenido a *VPN CUBA* - Tu solución para una conexión segura y estable.\n\n` +
+    `📡 *Servicios que ofrecemos:*\n` +
+    `• VPN para juegos online 🎮\n` +
+    `• VPN para streaming 📺\n` +
+    `• VPN para navegación segura 🔒\n\n` +
+    `💎 *Planes disponibles:*\n` +
+    `• *Básico:* 1 mes - $250 CUP\n` +
+    `• *Premium:* 2 meses - $400 CUP\n` +
+    `• *VIP:* 6 meses - $900 CUP\n\n` +
+    `🎁 *¡Prueba gratuita disponible!*\n` +
+    `Solicita una prueba de 1 hora para probar nuestro servicio.\n\n` +
+    `Usa los comandos abajo para comenzar ↓`;
+  
+  // Teclado con opciones
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '📋 Ver Planes', callback_data: 'view_plans' },
+          { text: '🎁 Prueba Gratis', callback_data: 'request_trial' }
+        ],
+        [
+          { text: '📞 Soporte', callback_data: 'support' },
+          { text: '📝 Términos', callback_data: 'terms' }
+        ]
+      ]
+    },
+    parse_mode: 'Markdown'
+  };
+  
+  await bot.sendMessage(chatId, welcomeMessage, options);
+});
+
+// Manejar callbacks de botones
+bot.on('callback_query', async (callbackQuery) => {
+  const chatId = callbackQuery.message.chat.id;
+  const userId = callbackQuery.from.id;
+  const data = callbackQuery.data;
+  
+  console.log(`🔘 Callback: ${userId} -> ${data}`);
+  
+  try {
+    switch (data) {
+      case 'view_plans':
+        await showPlans(chatId, userId);
+        break;
+      case 'request_trial':
+        await requestTrial(chatId, userId);
+        break;
+      case 'support':
+        await showSupport(chatId);
+        break;
+      case 'terms':
+        await showTerms(chatId, userId);
+        break;
+      case 'accept_terms':
+        await acceptTerms(chatId, userId);
+        break;
+      case 'trial_1h':
+        await processTrialRequest(chatId, userId, '1h');
+        break;
+      case 'trial_24h':
+        await processTrialRequest(chatId, userId, '24h');
+        break;
+      case 'plan_basico':
+        await processPlanSelection(chatId, userId, 'basico', 250);
+        break;
+      case 'plan_premium':
+        await processPlanSelection(chatId, userId, 'premium', 400);
+        break;
+      case 'plan_vip':
+        await processPlanSelection(chatId, userId, 'vip', 900);
+        break;
+      default:
+        if (data.startsWith('pay_')) {
+          const plan = data.split('_')[1];
+          await processPayment(chatId, userId, plan);
+        }
+    }
+    
+    // Responder al callback para quitar el "cargando" del botón
+    await bot.answerCallbackQuery(callbackQuery.id);
+  } catch (error) {
+    console.error('❌ Error manejando callback:', error);
+    await bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Ocurrió un error' });
+  }
+});
+
+// Función para mostrar planes
+async function showPlans(chatId, userId) {
+  const plansMessage = `📋 *Planes Disponibles*\n\n` +
+    `*1. Plan Básico* 💎\n` +
+    `• Duración: 1 mes\n` +
+    `• Precio: *$250 CUP*\n` +
+    `• Soporte: Básico\n\n` +
+    `*2. Plan Premium* 🚀\n` +
+    `• Duración: 2 meses\n` +
+    `• Precio: *$400 CUP*\n` +
+    `• Soporte: Prioritario\n` +
+    `• Velocidad mejorada\n\n` +
+    `*3. Plan VIP* 👑\n` +
+    `• Duración: 6 meses\n` +
+    `• Precio: *$900 CUP*\n` +
+    `• Soporte: 24/7\n` +
+    `• Velocidad máxima\n` +
+    `• Configuración personalizada\n\n` +
+    `*Método de pago:* Transferencia por EnZona o Transfermóvil\n` +
+    `*Beneficios adicionales:*\n` +
+    `• Configuración asistida\n` +
+    `• Soporte técnico\n` +
+    `• Actualizaciones gratuitas`;
+  
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Básico - $250 CUP', callback_data: 'plan_basico' },
+          { text: 'Premium - $400 CUP', callback_data: 'plan_premium' }
+        ],
+        [
+          { text: 'VIP - $900 CUP', callback_data: 'plan_vip' }
+        ],
+        [
+          { text: '🎁 Prueba Gratis', callback_data: 'request_trial' },
+          { text: '🔙 Volver', callback_data: 'back_to_start' }
+        ]
+      ]
+    },
+    parse_mode: 'Markdown'
+  };
+  
+  await bot.sendMessage(chatId, plansMessage, options);
+}
+
+// Función para solicitar prueba
+async function requestTrial(chatId, userId) {
+  // Verificar elegibilidad
+  const eligibility = await db.checkTrialEligibility(userId);
+  
+  if (!eligibility.eligible) {
+    await bot.sendMessage(
+      chatId,
+      `❌ *No eres elegible para una prueba gratuita*\n\n` +
+      `Motivo: ${eligibility.reason}\n\n` +
+      `Puedes adquirir uno de nuestros planes para disfrutar del servicio.`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+  
+  const trialMessage = `🎁 *Prueba Gratuita*\n\n` +
+    `Ofrecemos pruebas gratuitas para que pruebes nuestro servicio:\n\n` +
+    `*1. Prueba de 1 hora*\n` +
+    `• Ideal para probar juegos específicos\n` +
+    `• Configuración rápida\n\n` +
+    `*2. Prueba de 24 horas*\n` +
+    `• Para uso extendido\n` +
+    `• Prueba de estabilidad\n\n` +
+    `*Requisitos:*\n` +
+    `• Debes especificar para qué juego/servidor necesitas la VPN\n` +
+    `• Indicar el tipo de conexión que usas\n` +
+    `• Solo una prueba por usuario cada 30 días`;
+  
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '⏰ 1 Hora', callback_data: 'trial_1h' },
+          { text: '⏱️ 24 Horas', callback_data: 'trial_24h' }
+        ],
+        [
+          { text: '🔙 Volver', callback_data: 'view_plans' }
+        ]
+      ]
+    },
+    parse_mode: 'Markdown'
+  };
+  
+  await bot.sendMessage(chatId, trialMessage, options);
+}
+
+// Función para procesar solicitud de prueba
+async function processTrialRequest(chatId, userId, trialType) {
+  // Guardar solicitud de prueba
+  await db.saveUser(userId, {
+    trial_requested: true,
+    trial_plan_type: trialType
+  });
+  
+  // Pedir información adicional
+  const infoMessage = `📝 *Información Requerida para la Prueba*\n\n` +
+    `Para procesar tu solicitud de prueba de *${trialType}*, necesitamos que nos proporciones:\n\n` +
+    `1. *🎮 Juego o Servidor:*\n` +
+    `   ¿Para qué juego o servicio necesitas la VPN?\n\n` +
+    `2. *📡 Tipo de Conexión:*\n` +
+    `   ¿Qué tipo de conexión usas? (Ej: WiFi, Ethernet, Datos móviles)\n\n` +
+    `*Envía esta información en un solo mensaje.*`;
+  
+  await bot.sendMessage(chatId, infoMessage, { parse_mode: 'Markdown' });
+  
+  // Escuchar la respuesta del usuario
+  bot.once('message', async (msg) => {
+    if (msg.chat.id === chatId && msg.from.id === userId) {
+      const userResponse = msg.text;
+      
+      // Extraer información
+      const lines = userResponse.split('\n');
+      let gameServer = 'No especificado';
+      let connectionType = 'No especificado';
+      
+      for (const line of lines) {
+        if (line.toLowerCase().includes('juego') || line.toLowerCase().includes('servidor')) {
+          gameServer = line.replace(/.*[juegoservidor:]+/i, '').trim() || 'No especificado';
+        }
+        if (line.toLowerCase().includes('conexión') || line.toLowerCase().includes('conexion')) {
+          connectionType = line.replace(/.*[conexiónconexion:]+/i, '').trim() || 'No especificado';
+        }
+      }
+      
+      // Si no se detectaron, usar el mensaje completo
+      if (gameServer === 'No especificado' && connectionType === 'No especificado') {
+        gameServer = userResponse.substring(0, 100); // Limitar a 100 caracteres
+      }
+      
+      // Actualizar información de prueba
+      await db.updateUserTrial(userId, {
+        trial_game_server: gameServer,
+        trial_connection_type: connectionType
+      });
+      
+      // Confirmación
+      await bot.sendMessage(
+        chatId,
+        `✅ *Solicitud de Prueba Recibida*\n\n` +
+        `Hemos recibido tu solicitud para una prueba de *${trialType}*.\n\n` +
+        `*Información proporcionada:*\n` +
+        `• 🎮 Juego/Servidor: ${gameServer}\n` +
+        `• 📡 Tipo de Conexión: ${connectionType}\n\n` +
+        `Un administrador revisará tu solicitud y te enviará la configuración pronto.\n` +
+        `Tiempo estimado: 1-24 horas.\n\n` +
+        `Gracias por tu paciencia.`,
+        { parse_mode: 'Markdown' }
+      );
+      
+      // Notificar a los administradores
+      const adminIds = process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',') : [];
+      for (const adminId of adminIds) {
+        try {
+          await bot.sendMessage(
+            adminId,
+            `🎁 *Nueva Solicitud de Prueba*\n\n` +
+            `Usuario: @${msg.from.username || 'sin_usuario'} (${msg.from.first_name})\n` +
+            `ID: ${userId}\n` +
+            `Tipo: ${trialType}\n` +
+            `Juego: ${gameServer}\n` +
+            `Conexión: ${connectionType}\n\n` +
+            `[Ver en panel](/admin?userId=${adminId}&admin=true)`,
+            { parse_mode: 'Markdown' }
+          );
+        } catch (error) {
+          console.error(`❌ Error notificando a admin ${adminId}:`, error);
+        }
+      }
+    }
+  });
+}
+
+// Función para mostrar soporte
+async function showSupport(chatId) {
+  const supportMessage = `📞 *Soporte y Contacto*\n\n` +
+    `¿Necesitas ayuda? Aquí estamos para asistirte:\n\n` +
+    `*Contacto directo:*\n` +
+    `• @admin1 - Soporte general\n` +
+    `• @admin2 - Soporte técnico\n\n` +
+    `*Horario de atención:*\n` +
+    `Lunes a Domingo: 9:00 AM - 12:00 PM\n\n` +
+    `*Para una atención más rápida:*\n` +
+    `1. Especifica tu problema con detalle\n` +
+    `2. Incluye capturas de pantalla si es posible\n` +
+    `3. Menciona tu ID: \`${chatId}\``;
+  
+  await bot.sendMessage(chatId, supportMessage, { parse_mode: 'Markdown' });
+}
+
+// Función para mostrar términos
+async function showTerms(chatId, userId) {
+  const termsMessage = `📝 *Términos y Condiciones*\n\n` +
+    `*1. Uso del Servicio*\n` +
+    `• El servicio es para uso personal\n` +
+    `• No se permite compartir cuentas\n` +
+    `• No se permite uso para actividades ilegales\n\n` +
+    `*2. Garantía*\n` +
+    `• Garantizamos un 95% de uptime\n` +
+    `• Soporte técnico incluido\n` +
+    `• No hay reembolsos después de 24 horas\n\n` +
+    `*3. Privacidad*\n` +
+    `• No almacenamos logs de actividad\n` +
+    `• Tus datos están protegidos\n` +
+    `• No compartimos información con terceros\n\n` +
+    `*4. Responsabilidad*\n` +
+    `• No nos hacemos responsables por mal uso\n` +
+    `• El usuario es responsable de su conexión\n` +
+    `• Puede haber interrupciones por mantenimiento`;
+  
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '✅ Aceptar Términos', callback_data: 'accept_terms' },
+          { text: '❌ Rechazar', callback_data: 'reject_terms' }
+        ]
+      ]
+    },
+    parse_mode: 'Markdown'
+  };
+  
+  await bot.sendMessage(chatId, termsMessage, options);
+}
+
+// Función para aceptar términos
+async function acceptTerms(chatId, userId) {
+  await db.acceptTerms(userId);
+  
+  await bot.sendMessage(
+    chatId,
+    `✅ *Términos Aceptados*\n\n` +
+    `Has aceptado nuestros términos y condiciones.\n` +
+    `Ahora puedes disfrutar de todos nuestros servicios.`,
+    { parse_mode: 'Markdown' }
+  );
+}
+
+// Función para procesar selección de plan
+async function processPlanSelection(chatId, userId, plan, price) {
+  const planNames = {
+    'basico': 'Básico (1 mes)',
+    'premium': 'Premium (2 meses)',
+    'vip': 'VIP (6 meses)'
+  };
+  
+  const planMessage = `🛒 *Confirmación de Plan*\n\n` +
+    `*Plan seleccionado:* ${planNames[plan]}\n` +
+    `*Precio:* $${price} CUP\n\n` +
+    `*Instrucciones de pago:*\n` +
+    `1. Realiza una transferencia de *$${price} CUP* a:\n` +
+    `   • EnZona: 1234567890\n` +
+    `   • Transfermóvil: 1234567890\n\n` +
+    `2. Toma una captura de pantalla del comprobante\n` +
+    `3. Envía la captura aquí\n\n` +
+    `*Nota:* Una vez verificado el pago, recibirás tu configuración en menos de 24 horas.`;
+  
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '📤 Enviar Comprobante', callback_data: `pay_${plan}` }
+        ],
+        [
+          { text: '🔙 Cambiar Plan', callback_data: 'view_plans' }
+        ]
+      ]
+    },
+    parse_mode: 'Markdown'
+  };
+  
+  await bot.sendMessage(chatId, planMessage, options);
+}
+
+// Función para procesar pago
+async function processPayment(chatId, userId, plan) {
+  // Crear registro de pago pendiente
+  const payment = await db.createPayment({
+    telegram_id: userId,
+    plan: plan,
+    price: plan === 'basico' ? 250 : plan === 'premium' ? 400 : 900,
+    status: 'pending'
+  });
+  
+  await bot.sendMessage(
+    chatId,
+    `📸 *Listo para recibir comprobante*\n\n` +
+    `Ahora puedes enviar la captura de pantalla del comprobante de pago.\n\n` +
+    `*ID de transacción:* ${payment.id}\n` +
+    `*Importante:* Asegúrate de que la captura sea clara y legible.`,
+    { parse_mode: 'Markdown' }
+  );
+  
+  // Escuchar para recibir la foto
+  bot.once('photo', async (msg) => {
+    if (msg.chat.id === chatId && msg.from.id === userId) {
+      try {
+        // Obtener la foto de mayor calidad
+        const photo = msg.photo[msg.photo.length - 1];
+        const fileId = photo.file_id;
+        
+        // Descargar la foto
+        const file = await bot.getFile(fileId);
+        const filePath = file.file_path;
+        const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
+        
+        // Actualizar pago con la URL
+        await db.updatePayment(payment.id, {
+          screenshot_url: downloadUrl,
+          screenshot_received: true
+        });
+        
+        // Confirmar recepción
+        await bot.sendMessage(
+          chatId,
+          `✅ *Comprobante Recibido*\n\n` +
+          `Hemos recibido tu comprobante de pago.\n` +
+          `ID de transacción: ${payment.id}\n\n` +
+          `Un administrador revisará tu pago y te enviará la configuración pronto.\n` +
+          `Tiempo estimado: 1-24 horas.\n\n` +
+          `Gracias por tu compra.`,
+          { parse_mode: 'Markdown' }
+        );
+        
+        // Notificar a los administradores
+        const adminIds = process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',') : [];
+        for (const adminId of adminIds) {
+          try {
+            await bot.sendMessage(
+              adminId,
+              `💰 *Nuevo Pago Recibido*\n\n` +
+              `Usuario: @${msg.from.username || 'sin_usuario'} (${msg.from.first_name})\n` +
+              `ID: ${userId}\n` +
+              `Plan: ${plan}\n` +
+              `Monto: $${payment.price} CUP\n` +
+              `ID Pago: ${payment.id}\n\n` +
+              `[Ver en panel](/admin?userId=${adminId}&admin=true)`,
+              { parse_mode: 'Markdown' }
+            );
+            
+            // Enviar la captura al administrador
+            await bot.sendPhoto(adminId, fileId, {
+              caption: `Comprobante de pago - ID: ${payment.id}`
+            });
+          } catch (error) {
+            console.error(`❌ Error notificando a admin ${adminId}:`, error);
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Error procesando foto:', error);
+        await bot.sendMessage(chatId, '❌ Ocurrió un error al procesar tu comprobante. Intenta nuevamente.');
+      }
+    }
+  });
+}
+
 // ========== KEEP ALIVE CONFIGURATION ==========
+const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutos
+const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || `http://localhost:${port}/health`;
 
 // Función para mantener el bot activo
 async function keepAlive() {
   try {
     console.log('🫀 Ejecutando keep-alive...');
     
-    // Opción 1: Hacer ping a una URL de health check
-    if (HEALTH_CHECK_URL && HEALTH_CHECK_URL !== `http://localhost:${PORT}/health`) {
+    // Hacer ping al health check endpoint
+    if (HEALTH_CHECK_URL) {
       try {
         const response = await fetch(HEALTH_CHECK_URL);
         console.log(`✅ Health check: ${response.status}`);
       } catch (error) {
-        console.log('⚠️ No se pudo hacer health check externo');
+        console.log(`⚠️ Health check falló: ${error.message}`);
       }
     }
     
-    // Opción 2: Ejecutar una consulta simple a la base de datos
-    const userCount = await db.getAllUsers();
-    console.log(`✅ Keep-alive ejecutado. Usuarios totales: ${userCount.length}`);
-    
-    // Opción 3: Enviar un mensaje de log (opcional)
-    if (ADMIN_CHAT_ID) {
-      try {
-        const vipUsers = userCount.filter(u => u.vip).length;
+    // Ejecutar una consulta simple a la base de datos
+    try {
+      const userCount = await db.getAllUsers();
+      console.log(`✅ Keep-alive ejecutado. Usuarios totales: ${userCount.length}`);
+      
+      // Enviar estadísticas periódicas al administrador
+      if (process.env.ADMIN_CHAT_ID && process.env.NODE_ENV === 'production') {
+        const vipCount = userCount.filter(u => u.vip).length;
         const trialPending = userCount.filter(u => u.trial_requested && !u.trial_received).length;
         
-        await bot.telegram.sendMessage(
-          ADMIN_CHAT_ID,
-          `🤖 Bot activo - ${new Date().toLocaleString('es-ES')}\n` +
-          `👥 Usuarios: ${userCount.length}\n` +
-          `👑 VIP: ${vipUsers}\n` +
-          `⏳ Pruebas pendientes: ${trialPending}\n` +
-          `🕐 Último check: ${new Date().toLocaleTimeString('es-ES')}`
-        );
-      } catch (error) {
-        console.log('⚠️ No se pudo enviar mensaje de keep-alive al admin');
+        // Enviar solo una vez al día para no spamear
+        const now = new Date();
+        const hours = now.getHours();
+        
+        if (hours === 9 || hours === 15 || hours === 21) { // 9 AM, 3 PM, 9 PM
+          await bot.sendMessage(
+            process.env.ADMIN_CHAT_ID,
+            `🤖 *Reporte de Actividad*\n` +
+            `Hora: ${now.toLocaleTimeString('es-ES')}\n` +
+            `👥 Usuarios: ${userCount.length}\n` +
+            `👑 VIP: ${vipCount}\n` +
+            `⏳ Pruebas pendientes: ${trialPending}\n` +
+            `🫀 Bot activo desde: ${Math.floor(process.uptime() / 3600)}h`,
+            { parse_mode: 'Markdown' }
+          );
+        }
       }
+    } catch (error) {
+      console.log(`⚠️ Consulta a DB falló: ${error.message}`);
     }
     
   } catch (error) {
@@ -71,1148 +1130,38 @@ async function keepAlive() {
 }
 
 // Iniciar keep-alive periódico
-if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
-  console.log('🚀 Iniciando keep-alive cada 5 minutos...');
-  setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
-  
-  // Ejecutar inmediatamente al iniciar
-  setTimeout(keepAlive, 10000);
-}
+console.log('🚀 Iniciando keep-alive cada 5 minutos...');
+setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
 
-// ========== MIDDLEWARES DEL BOT ==========
-bot.use(session());
+// Ejecutar inmediatamente al iniciar
+setTimeout(keepAlive, 10000);
 
-// Middleware para registrar usuarios
-bot.use(async (ctx, next) => {
-  if (ctx.from) {
-    const user = await db.getUser(ctx.from.id);
-    if (!user) {
-      // Registrar nuevo usuario
-      await db.saveUser(ctx.from.id, {
-        username: ctx.from.username,
-        first_name: ctx.from.first_name,
-        last_name: ctx.from.last_name,
-        language_code: ctx.from.language_code,
-        is_bot: ctx.from.is_bot,
-        last_activity: new Date().toISOString()
-      });
-      console.log(`🆕 Nuevo usuario registrado: ${ctx.from.first_name} (@${ctx.from.username})`);
-    } else {
-      // Actualizar última actividad
-      await db.updateUser(ctx.from.id, {
-        last_activity: new Date().toISOString()
-      });
-    }
-  }
-  return next();
+// También ejecutar keep-alive al azar para evitar que coincida con otros procesos
+setTimeout(() => {
+  setInterval(keepAlive, KEEP_ALIVE_INTERVAL + Math.random() * 60000); // Variación aleatoria de hasta 1 minuto
+}, 30000);
+
+// Manejar señales de terminación
+process.on('SIGTERM', () => {
+  console.log('🔴 Recibido SIGTERM, cerrando bot...');
+  bot.stopPolling();
+  process.exit(0);
 });
 
-// ========== COMANDOS DEL BOT ==========
-
-// Comando /start
-bot.start(async (ctx) => {
-  try {
-    const user = await db.getUser(ctx.from.id);
-    const welcomeMessage = `¡Hola ${ctx.from.first_name}! 👋\n\n` +
-      `Bienvenido a *VPN Cuba* - Tu solución para conexiones estables y rápidas.\n\n` +
-      `🎮 *Prueba gratuita* de 1 hora disponible\n` +
-      `💳 *Planes VIP* desde 100 CUP/mes\n` +
-      `📱 *Soporte para juegos y aplicaciones*\n` +
-      `⚡ *Baja latencia, alta velocidad*\n\n` +
-      `¿Qué te gustaría hacer hoy?`;
-
-    const keyboard = Markup.keyboard([
-  ['🎮 Prueba Gratuita', '💳 Ver Planes'],
-  ['📞 Soporte', 'ℹ️ Información'],
-  ['💬 Grupo WhatsApp']
-]).resize();
-
-    await ctx.replyWithMarkdown(welcomeMessage, keyboard);
-    
-    // Si es el admin, mostrar opción de admin
-    if (ctx.from.id.toString() === ADMIN_CHAT_ID) {
-      await ctx.reply(
-        '👑 *Modo Administrador Activado*\n' +
-        'Puedes acceder al panel de administración en:\n' +
-        `${process.env.ADMIN_URL || 'http://localhost:3000/admin.html'}`,
-        { parse_mode: 'Markdown' }
-      );
-    }
-  } catch (error) {
-    console.error('❌ Error en comando start:', error);
-    ctx.reply('❌ Ocurrió un error. Por favor, intenta de nuevo.');
-  }
+process.on('SIGINT', () => {
+  console.log('🔴 Recibido SIGINT, cerrando bot...');
+  bot.stopPolling();
+  process.exit(0);
 });
 
-// Comando /admin (solo para administradores)
-bot.command('admin', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
-    return ctx.reply('❌ No tienes permisos de administrador.');
-  }
-
-  const adminMessage = `👑 *Panel de Administración*\n\n` +
-    `Accede al panel completo en:\n` +
-    `${process.env.ADMIN_URL || 'http://localhost:3000/admin.html'}\n\n` +
-    `Comandos disponibles:\n` +
-    `/stats - Ver estadísticas rápidas\n` +
-    `/users - Contar usuarios\n` +
-    `/pending - Ver pagos pendientes\n` +
-    `/trialpending - Ver pruebas pendientes`;
-
-  await ctx.replyWithMarkdown(adminMessage);
+process.on('uncaughtException', (error) => {
+  console.error('⚠️ Excepción no capturada:', error);
+  // No salir, solo registrar el error
 });
 
-// Comando /stats (solo para administradores)
-bot.command('stats', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
-    return ctx.reply('❌ No tienes permisos de administrador.');
-  }
-
-  try {
-    const stats = await db.getStats();
-    const statsMessage = `📊 *Estadísticas del Bot*\n\n` +
-      `👥 *Usuarios:* ${stats.users.total}\n` +
-      `👑 *VIP:* ${stats.users.vip}\n` +
-      `🎮 *Pruebas solicitadas:* ${stats.users.trial_requests}\n` +
-      `✅ *Pruebas enviadas:* ${stats.users.trial_received}\n` +
-      `⏳ *Pruebas pendientes:* ${stats.users.trial_pending}\n\n` +
-      `💰 *Pagos totales:* ${stats.payments.total}\n` +
-      `⏳ *Pendientes:* ${stats.payments.pending}\n` +
-      `✅ *Aprobados:* ${stats.payments.approved}\n` +
-      `❌ *Rechazados:* ${stats.payments.rejected}\n\n` +
-      `💵 *Ingresos totales:* ${stats.revenue.total} CUP\n` +
-      `📈 *Ingresos hoy:* ${stats.revenue.today} CUP`;
-
-    await ctx.replyWithMarkdown(statsMessage);
-  } catch (error) {
-    console.error('❌ Error en comando stats:', error);
-    ctx.reply('❌ Error al obtener estadísticas.');
-  }
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Promesa rechazada no manejada:', reason);
+  // No salir, solo registrar el error
 });
 
-// Comando /users (solo para administradores)
-bot.command('users', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
-    return ctx.reply('❌ No tienes permisos de administrador.');
-  }
-
-  try {
-    const users = await db.getAllUsers();
-    const vipUsers = users.filter(u => u.vip).length;
-    const trialRequests = users.filter(u => u.trial_requested).length;
-    
-    const usersMessage = `👥 *Usuarios Registrados*\n\n` +
-      `📊 *Total:* ${users.length} usuarios\n` +
-      `👑 *VIP:* ${vipUsers}\n` +
-      `🎮 *Solicitudes de prueba:* ${trialRequests}\n` +
-      `📅 *Hoy:* ${users.filter(u => {
-        const today = new Date().toISOString().split('T')[0];
-        return u.created_at && u.created_at.startsWith(today);
-      }).length} nuevos\n\n` +
-      `Para más detalles visita el panel de administración.`;
-
-    await ctx.replyWithMarkdown(usersMessage);
-  } catch (error) {
-    console.error('❌ Error en comando users:', error);
-    ctx.reply('❌ Error al obtener usuarios.');
-  }
-});
-
-// Comando /pending (solo para administradores)
-bot.command('pending', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
-    return ctx.reply('❌ No tienes permisos de administrador.');
-  }
-
-  try {
-    const pendingPayments = await db.getPendingPayments();
-    
-    if (pendingPayments.length === 0) {
-      return ctx.reply('✅ No hay pagos pendientes.');
-    }
-    
-    let pendingMessage = `⏳ *Pagos Pendientes:* ${pendingPayments.length}\n\n`;
-    
-    // Mostrar solo los primeros 5 para no saturar
-    pendingPayments.slice(0, 5).forEach((payment, index) => {
-      pendingMessage += `${index + 1}. *ID:* ${payment.id}\n` +
-        `   👤 Usuario: ${payment.telegram_id}\n` +
-        `   📋 Plan: ${payment.plan}\n` +
-        `   💰 Monto: ${payment.price} CUP\n` +
-        `   📅 Fecha: ${new Date(payment.created_at).toLocaleDateString('es-ES')}\n\n`;
-    });
-    
-    if (pendingPayments.length > 5) {
-      pendingMessage += `... y ${pendingPayments.length - 5} más.\n\n`;
-    }
-    
-    pendingMessage += `Revisa el panel de administración para aprobar/rechazar.`;
-    
-    await ctx.replyWithMarkdown(pendingMessage);
-  } catch (error) {
-    console.error('❌ Error en comando pending:', error);
-    ctx.reply('❌ Error al obtener pagos pendientes.');
-  }
-});
-
-// Comando /trialpending (solo para administradores)
-bot.command('trialpending', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
-    return ctx.reply('❌ No tienes permisos de administrador.');
-  }
-
-  try {
-    const pendingTrials = await db.getPendingTrials();
-    
-    if (pendingTrials.length === 0) {
-      return ctx.reply('✅ No hay pruebas pendientes.');
-    }
-    
-    let trialsMessage = `🎮 *Pruebas Pendientes:* ${pendingTrials.length}\n\n`;
-    
-    // Mostrar solo los primeros 5
-    pendingTrials.slice(0, 5).forEach((trial, index) => {
-      const daysAgo = trial.trial_requested_at ? 
-        Math.floor((new Date() - new Date(trial.trial_requested_at)) / (1000 * 60 * 60 * 24)) : 0;
-      
-      trialsMessage += `${index + 1}. 👤 *${trial.first_name || trial.username || trial.telegram_id}*\n` +
-        `   🆔 ID: ${trial.telegram_id}\n` +
-        `   🎮 Juego: ${trial.trial_game_server || 'No especificado'}\n` +
-        `   📡 Conexión: ${trial.trial_connection_type || 'No especificado'}\n` +
-        `   ⏰ Esperando: ${daysAgo} días\n\n`;
-    });
-    
-    if (pendingTrials.length > 5) {
-      trialsMessage += `... y ${pendingTrials.length - 5} más.\n\n`;
-    }
-    
-    trialsMessage += `Envía las configuraciones desde el panel de administración.`;
-    
-    await ctx.replyWithMarkdown(trialsMessage);
-  } catch (error) {
-    console.error('❌ Error en comando trialpending:', error);
-    ctx.reply('❌ Error al obtener pruebas pendientes.');
-  }
-});
-
-// ========== MANEJADORES DE TEXTO ==========
-// Grupo WhatsApp
-bot.hears('💬 Grupo WhatsApp', async (ctx) => {
-  const whatsappMessage = `💬 *Únete a nuestro grupo de WhatsApp*\n\n` +
-    `¡Únete a nuestra comunidad de WhatsApp para estar al día con novedades, ofertas y soporte!\n\n` +
-    `*🌟 Beneficios del grupo:*\n` +
-    `✅ Notificaciones instantáneas\n` +
-    `✅ Soporte comunitario\n` +
-    `✅ Anuncios de nuevas funciones\n` +
-    `✅ Ofertas exclusivas\n` +
-    `✅ Tips y tutoriales\n\n` +
-    `*📋 Reglas del grupo:*\n` +
-    `• Respeto mutuo\n` +
-    `• No spam\n` +
-    `• Mantener el tema del VPN\n` +
-    `• Compartir experiencias útiles\n\n` +
-    `¡Te esperamos! 👇`;
-
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.url('💬 Unirse al Grupo', WHATSAPP_GROUP_URL)]
-  ]);
-
-  await ctx.replyWithMarkdown(whatsappMessage, keyboard);
-});
-// Prueba gratuita
-bot.hears('🎮 Prueba Gratuita', async (ctx) => {
-  try {
-    // Verificar elegibilidad
-    const eligibility = await db.checkTrialEligibility(ctx.from.id);
-    
-    if (!eligibility.eligible) {
-      return ctx.reply(`❌ *No puedes solicitar una prueba ahora*\n\n${eligibility.reason}`, 
-        { parse_mode: 'Markdown' });
-    }
-
-    const trialMessage = `🎮 *Prueba Gratuita de 1 Hora*\n\n` +
-      `Para configurar tu prueba, necesitamos saber:\n\n` +
-      `1️⃣ *¿Para qué juego o servidor la necesitas?*\n` +
-      `   Ejemplo: Call of Duty Mobile, Free Fire, Minecraft, etc.\n\n` +
-      `2️⃣ *¿Qué tipo de conexión usas?*\n` +
-      `   Ejemplo: WiFi de Etecsa, datos móviles, Nauta Hogar, etc.\n\n` +
-      `Responde a este mensaje con el siguiente formato:\n\n` +
-      `*Juego:* [escribe aquí el juego/servidor]\n` +
-      `*Conexión:* [escribe aquí tu tipo de conexión]`;
-
-    await ctx.replyWithMarkdown(trialMessage);
-    
-    // Guardar que el usuario está en proceso de solicitud de prueba
-    ctx.session.waitingForTrialInfo = true;
-  } catch (error) {
-    console.error('❌ Error en prueba gratuita:', error);
-    ctx.reply('❌ Ocurrió un error. Por favor, intenta de nuevo.');
-  }
-});
-
-// Ver planes
-bot.hears('💳 Ver Planes', async (ctx) => {
-  const plansMessage = `💳 *Planes Disponibles*\n\n` +
-    `*🟢 BÁSICO - 100 CUP/mes*\n` +
-    `✅ 1 mes de acceso completo\n` +
-    `✅ Soporte para 1 dispositivo\n` +
-    `✅ Velocidad completa\n` +
-    `✅ Soporte básico\n\n` +
-    
-    `*🟡 PREMIUM - 180 CUP/2 meses*\n` +
-    `✅ 2 meses de acceso completo\n` +
-    `✅ Soporte para 2 dispositivos\n` +
-    `✅ Velocidad prioritaria\n` +
-    `✅ Soporte rápido\n` +
-    `✅ Cambio de servidores\n\n` +
-    
-    `*🔴 VIP - 500 CUP/6 meses*\n` +
-    `✅ 6 meses de acceso completo\n` +
-    `✅ Soporte para 5 dispositivos\n` +
-    `✅ Velocidad máxima\n` +
-    `✅ Soporte 24/7\n` +
-    `✅ Servidores dedicados\n` +
-    `✅ Actualizaciones gratuitas\n\n` +
-    
-    `*📋 CÓMO COMPRAR:*\n` +
-    `1. Elige tu plan\n` +
-    `2. Envía el pago por Transfermóvil\n` +
-    `3. Envía la captura del pago\n` +
-    `4. Recibe tu configuración en minutos\n\n` +
-    
-    `*💳 DATOS PARA EL PAGO:*\n` +
-    `Banco: Banco Metropolitano\n` +
-    `Tarjeta: 9208 4501 3476 1852\n` +
-    `Nombre: Alejandro Rodríguez`;
-
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback('🟢 Comprar Básico', 'plan_basico')],
-    [Markup.button.callback('🟡 Comprar Premium', 'plan_premium')],
-    [Markup.button.callback('🔴 Comprar VIP', 'plan_vip')],
-    [Markup.button.callback('❓ Preguntas Frecuentes', 'faq')]
-  ]);
-
-  await ctx.replyWithMarkdown(plansMessage, keyboard);
-});
-
-// Soporte
-bot.hears('📞 Soporte', async (ctx) => {
-  const supportMessage = `📞 *Soporte y Ayuda*\n\n` +
-    `¿Necesitas ayuda? Estamos aquí para asistirte:\n\n` +
-    `*👤 Soporte Técnico:*\n` +
-    `@VPNCubaSupport\n\n` +
-    `*📱 WhatsApp:*\n` +
-    `+53 12345678\n\n` +
-    `*📧 Email:*\n` +
-    `soporte@vpn-cuba.com\n\n` +
-    `*⏰ Horario de atención:*\n` +
-    `Lunes a Domingo: 9:00 AM - 12:00 PM\n\n` +
-    `*Problemas comunes:*\n` +
-    `• Conexión lenta\n` +
-    `• Configuración de servidores\n` +
-    `• Renovación de planes\n` +
-    `• Problemas con pagos`;
-
-  await ctx.replyWithMarkdown(supportMessage);
-});
-
-// Información
-bot.hears('ℹ️ Información', async (ctx) => {
-  const infoMessage = `ℹ️ *Información sobre VPN Cuba*\n\n` +
-    `*🌟 ¿Qué ofrecemos?*\n` +
-    `✅ Conexiones VPN estables y rápidas\n` +
-    `✅ Soporte para juegos online\n` +
-    `✅ Baja latencia y ping\n` +
-    `✅ Configuraciones personalizadas\n` +
-    `✅ Soporte técnico 24/7\n\n` +
-    
-    `*🎮 Juegos compatibles:*\n` +
-    `• Call of Duty Mobile\n` +
-    `• Free Fire\n` +
-    `• PUBG Mobile\n` +
-    `• Minecraft\n` +
-    `• Roblox\n` +
-    `• Y muchos más...\n\n` +
-    
-    `*📱 Aplicaciones compatibles:*\n` +
-    `• WhatsApp\n` +
-    `• Telegram\n` +
-    `• Navegación web\n` +
-    `• Streaming\n` +
-    `• Videollamadas\n\n` +
-    
-    `*✅ Garantía de satisfacción:*\n` +
-    `Si no estás satisfecho con nuestro servicio en los primeros 3 días, te devolvemos tu dinero.`;
-
-  await ctx.replyWithMarkdown(infoMessage);
-});
-
-// ========== MANEJADORES DE CALLBACK ==========
-
-bot.action('plan_basico', async (ctx) => {
-  await handlePlanSelection(ctx, 'basico', 100);
-});
-
-bot.action('plan_premium', async (ctx) => {
-  await handlePlanSelection(ctx, 'premium', 180);
-});
-
-bot.action('plan_vip', async (ctx) => {
-  await handlePlanSelection(ctx, 'vip', 500);
-});
-
-bot.action('faq', async (ctx) => {
-  const faqMessage = `❓ *Preguntas Frecuentes*\n\n` +
-    `*1. ¿Cómo funciona el servicio?*\n` +
-    `Te enviamos un archivo de configuración que instalas en tu dispositivo. Una vez instalado, tu tráfico pasa por nuestros servidores seguros.\n\n` +
-    
-    `*2. ¿Es legal usar VPN en Cuba?*\n` +
-    `Sí, el uso de VPN es legal en Cuba para fines legítimos como mejorar la conexión y seguridad.\n\n` +
-    
-    `*3. ¿Funciona con datos móviles?*\n` +
-    `Sí, funciona tanto con WiFi como con datos móviles de Etecsa.\n\n` +
-    
-    `*4. ¿Necesito conocimientos técnicos?*\n` +
-    `No, te enviamos instrucciones paso a paso y damos soporte durante la instalación.\n\n` +
-    
-    `*5. ¿Puedo cambiar de plan después?*\n` +
-    `Sí, puedes actualizar tu plan en cualquier momento.\n\n` +
-    
-    `*6. ¿Ofrecen prueba gratuita?*\n` +
-    `Sí, ofrecemos prueba gratuita de 1 hora para que pruebes el servicio.`;
-
-  await ctx.editMessageText(faqMessage, { parse_mode: 'Markdown' });
-});
-
-async function handlePlanSelection(ctx, plan, price) {
-  try {
-    // Guardar en sesión el plan seleccionado
-    ctx.session.selectedPlan = plan;
-    ctx.session.selectedPrice = price;
-
-    const paymentMessage = `✅ *Has seleccionado el plan ${plan.toUpperCase()}*\n\n` +
-      `*💵 Precio:* ${price} CUP\n` +
-      `*⏱️ Duración:* ${plan === 'basico' ? '1 mes' : plan === 'premium' ? '2 meses' : '6 meses'}\n\n` +
-      
-      `*📋 INSTRUCCIONES DE PAGO:*\n\n` +
-      `1. Realiza el pago por *Transfermóvil* a:\n` +
-      `   ▸ *Banco:* Banco Metropolitano\n` +
-      `   ▸ *Tarjeta:* 9208 4501 3476 1852\n` +
-      `   ▸ *Nombre:* Alejandro Rodríguez\n\n` +
-      
-      `2. Toma una *captura de pantalla* del comprobante de pago\n\n` +
-      
-      `3. Envía la captura aquí en el chat\n\n` +
-      
-      `4. Recibirás tu configuración en *menos de 5 minutos*\n\n` +
-      
-      `*⚠️ IMPORTANTE:*\n` +
-      `• Asegúrate de que la captura se vea claramente\n` +
-      `• Incluye el monto y la referencia\n` +
-      `• Si tienes problemas, escribe /cancel y empieza de nuevo`;
-
-    await ctx.editMessageText(paymentMessage, { parse_mode: 'Markdown' });
-  } catch (error) {
-    console.error('❌ Error en selección de plan:', error);
-    ctx.reply('❌ Ocurrió un error. Por favor, intenta de nuevo.');
-  }
-}
-
-// ========== MANEJADOR DE FOTOS (CAPTURAS DE PAGO) ==========
-
-bot.on('photo', async (ctx) => {
-  if (!ctx.session.selectedPlan) {
-    return ctx.reply('❌ Primero selecciona un plan usando "💳 Ver Planes"');
-  }
-
-  try {
-    const photo = ctx.message.photo[ctx.message.photo.length - 1];
-    const fileId = photo.file_id;
-    const file = await ctx.telegram.getFile(fileId);
-    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
-    
-    // Crear directorio temp si no existe
-    const tempDir = path.join(__dirname, 'temp');
-    try {
-      await fs.access(tempDir);
-    } catch {
-      await fs.mkdir(tempDir, { recursive: true });
-    }
-    
-    // Descargar la imagen
-    const response = await fetch(fileUrl);
-    const buffer = await response.buffer();
-    const fileName = `pago_${ctx.from.id}_${Date.now()}.jpg`;
-    const filePath = path.join(tempDir, fileName);
-    
-    // Guardar temporalmente
-    await fs.writeFile(filePath, buffer);
-    
-    // Subir a Supabase Storage
-    const screenshotUrl = await db.uploadImage(filePath, ctx.from.id);
-    
-    // Crear registro de pago
-    const payment = await db.createPayment({
-      telegram_id: ctx.from.id,
-      plan: ctx.session.selectedPlan,
-      price: ctx.session.selectedPrice,
-      status: 'pending',
-      screenshot_url: screenshotUrl
-    });
-    
-    const confirmationMessage = `✅ *¡Captura recibida!*\n\n` +
-      `Hemos recibido tu comprobante de pago para el plan *${ctx.session.selectedPlan.toUpperCase()}*.\n\n` +
-      `*📋 Datos del pago:*\n` +
-      `▸ ID de pago: #${payment.id}\n` +
-      `▸ Monto: ${ctx.session.selectedPrice} CUP\n` +
-      `▸ Plan: ${ctx.session.selectedPlan}\n` +
-      `▸ Estado: ⏳ *Pendiente de revisión*\n\n` +
-      
-      `*⏱️ ¿Qué sigue?*\n` +
-      `Un administrador revisará tu pago en los próximos minutos y te enviará la configuración.\n\n` +
-      
-      `*📬 Notificación:*\n` +
-      `Recibirás un mensaje cuando tu pago sea aprobado.\n\n` +
-      
-      `Gracias por confiar en *VPN Cuba*! 🚀`;
-
-    await ctx.replyWithMarkdown(confirmationMessage);
-    
-    // Notificar al administrador
-    if (ADMIN_CHAT_ID) {
-      const adminNotification = `🔄 *NUEVO PAGO PENDIENTE*\n\n` +
-        `*ID:* #${payment.id}\n` +
-        `*Usuario:* ${ctx.from.first_name} ${ctx.from.last_name || ''}\n` +
-        `*Username:* @${ctx.from.username || 'sin_usuario'}\n` +
-        `*ID Telegram:* ${ctx.from.id}\n` +
-        `*Plan:* ${ctx.session.selectedPlan}\n` +
-        `*Monto:* ${ctx.session.selectedPrice} CUP\n` +
-        `*Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
-        `Ver en panel: ${process.env.ADMIN_URL || 'http://localhost:3000/admin.html?admin=true&userId=' + ADMIN_CHAT_ID}`;
-      
-      await bot.telegram.sendMessage(ADMIN_CHAT_ID, adminNotification, { parse_mode: 'Markdown' });
-      
-      // También enviar la imagen al admin
-      await bot.telegram.sendPhoto(ADMIN_CHAT_ID, fileId, {
-        caption: `Captura del pago #${payment.id}`
-      });
-    }
-    
-    // Limpiar sesión
-    ctx.session.selectedPlan = null;
-    ctx.session.selectedPrice = null;
-    
-    // Eliminar archivo temporal después de 30 segundos
-    setTimeout(async () => {
-      try {
-        await fs.unlink(filePath);
-        console.log(`🗑️ Archivo temporal eliminado: ${filePath}`);
-      } catch (error) {
-        console.error('❌ Error eliminando archivo temporal:', error);
-      }
-    }, 30000);
-    
-  } catch (error) {
-    console.error('❌ Error procesando pago:', error);
-    ctx.reply('❌ Error al procesar tu pago. Por favor, intenta de nuevo o contacta al administrador.');
-  }
-});
-
-// ========== MANEJADOR DE TEXTO PARA INFORMACIÓN DE PRUEBA ==========
-
-bot.on('text', async (ctx) => {
-  if (ctx.session.waitingForTrialInfo) {
-    try {
-      const message = ctx.message.text;
-      
-      // Extraer información del mensaje
-      const gameMatch = message.match(/[Jj]uego:\s*(.+)/i) || message.match(/[Pp]ara:\s*(.+)/i);
-      const connectionMatch = message.match(/[Cc]onexión:\s*(.+)/i) || message.match(/[Cc]onecto:\s*(.+)/i);
-      
-      const game = gameMatch ? gameMatch[1].trim() : 'No especificado';
-      const connection = connectionMatch ? connectionMatch[1].trim() : 'No especificado';
-      
-      // Guardar solicitud de prueba
-      await db.saveUser(ctx.from.id, {
-        trial_requested: true,
-        trial_plan_type: '1h',
-        trial_game_server: game,
-        trial_connection_type: connection
-      });
-      
-      const responseMessage = `✅ *¡Solicitud recibida!*\n\n` +
-        `Hemos procesado tu solicitud de prueba gratuita.\n\n` +
-        `*🎮 Juego/Servidor:* ${game}\n` +
-        `*📡 Tipo de Conexión:* ${connection}\n` +
-        `*⏰ Duración:* 1 hora\n\n` +
-        
-        `*⏱️ ¿Qué sigue?*\n` +
-        `Un administrador preparará tu configuración personalizada y te la enviará en breve.\n\n` +
-        
-        `*📬 Notificación:*\n` +
-        `Recibirás un mensaje cuando tu configuración esté lista.\n\n` +
-        
-        `¡Gracias por probar *VPN Cuba*! 🎮`;
-      
-      await ctx.replyWithMarkdown(responseMessage);
-      
-      // Notificar al administrador
-      if (ADMIN_CHAT_ID) {
-        const adminNotification = `🎮 *NUEVA SOLICITUD DE PRUEBA*\n\n` +
-          `*Usuario:* ${ctx.from.first_name} ${ctx.from.last_name || ''}\n` +
-          `*Username:* @${ctx.from.username || 'sin_usuario'}\n` +
-          `*ID Telegram:* ${ctx.from.id}\n` +
-          `*🎮 Juego/Servidor:* ${game}\n` +
-          `*📡 Conexión:* ${connection}\n` +
-          `*⏰ Tipo:* 1 hora\n` +
-          `*📅 Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
-          `Enviar configuración desde: ${process.env.ADMIN_URL || 'http://localhost:3000/admin.html?admin=true&userId=' + ADMIN_CHAT_ID}`;
-        
-        await bot.telegram.sendMessage(ADMIN_CHAT_ID, adminNotification, { parse_mode: 'Markdown' });
-      }
-      
-      // Limpiar sesión
-      ctx.session.waitingForTrialInfo = false;
-      
-    } catch (error) {
-      console.error('❌ Error procesando solicitud de prueba:', error);
-      ctx.reply('❌ Error al procesar tu solicitud. Por favor, intenta de nuevo.');
-    }
-  }
-});
-
-// ========== ENDPOINTS DE API PARA EL PANEL DE ADMINISTRACIÓN ==========
-
-// Middleware para verificar admin
-function requireAdmin(req, res, next) {
-  const adminId = req.headers['x-admin-id'] || req.query.adminId || req.body.adminId;
-  
-  if (!adminId || adminId.toString() !== ADMIN_CHAT_ID) {
-    return res.status(403).json({ error: 'No autorizado. Solo administradores pueden acceder.' });
-  }
-  next();
-}
-
-// Endpoint para obtener estadísticas
-app.get('/api/stats', async (req, res) => {
-  try {
-    const stats = await db.getStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error en /api/stats:', error);
-    res.status(500).json({ error: 'Error al obtener estadísticas' });
-  }
-});
-
-// Endpoint para obtener pagos pendientes
-app.get('/api/payments/pending', async (req, res) => {
-  try {
-    const payments = await db.getPendingPayments();
-    
-    // Obtener información de usuario para cada pago
-    const paymentsWithUsers = await Promise.all(
-      payments.map(async (payment) => {
-        const user = await db.getUser(payment.telegram_id);
-        return { ...payment, user };
-      })
-    );
-    
-    res.json(paymentsWithUsers);
-  } catch (error) {
-    console.error('❌ Error en /api/payments/pending:', error);
-    res.status(500).json({ error: 'Error al obtener pagos pendientes' });
-  }
-});
-
-// Endpoint para obtener pagos aprobados
-app.get('/api/payments/approved', async (req, res) => {
-  try {
-    const payments = await db.getApprovedPayments();
-    
-    const paymentsWithUsers = await Promise.all(
-      payments.map(async (payment) => {
-        const user = await db.getUser(payment.telegram_id);
-        return { ...payment, user };
-      })
-    );
-    
-    res.json(paymentsWithUsers);
-  } catch (error) {
-    console.error('❌ Error en /api/payments/approved:', error);
-    res.status(500).json({ error: 'Error al obtener pagos aprobados' });
-  }
-});
-
-// Endpoint para aprobar pago
-app.post('/api/payments/:id/approve', requireAdmin, async (req, res) => {
-  try {
-    const paymentId = req.params.id;
-    const payment = await db.getPayment(paymentId);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-    
-    // Aprobar pago
-    const approvedPayment = await db.approvePayment(paymentId);
-    
-    // Hacer usuario VIP
-    await db.makeUserVIP(payment.telegram_id, {
-      plan: payment.plan,
-      plan_price: payment.price
-    });
-    
-    // Notificar al usuario
-    await bot.telegram.sendMessage(
-      payment.telegram_id,
-      `✅ *¡PAGO APROBADO!*\n\n` +
-      `Tu pago *#${paymentId}* ha sido *APROBADO*.\n\n` +
-      `*🎉 ¡Felicidades!* Ahora eres usuario *VIP* de VPN Cuba.\n\n` +
-      `*📋 Plan:* ${payment.plan.toUpperCase()}\n` +
-      `*💰 Monto:* ${payment.price} CUP\n` +
-      `*📅 Fecha:* ${new Date().toLocaleDateString('es-ES')}\n\n` +
-      `*⏱️ ¿Qué sigue?*\n` +
-      `Recibirás tu configuración VIP en los próximos minutos.\n\n` +
-      `¡Gracias por confiar en nosotros! 🚀`,
-      { parse_mode: 'Markdown' }
-    );
-    
-    res.json({ success: true, payment: approvedPayment });
-  } catch (error) {
-    console.error('❌ Error en /api/payments/:id/approve:', error);
-    res.status(500).json({ error: 'Error al aprobar pago' });
-  }
-});
-
-// Endpoint para rechazar pago
-app.post('/api/payments/:id/reject', requireAdmin, async (req, res) => {
-  try {
-    const paymentId = req.params.id;
-    const { reason } = req.body;
-    
-    if (!reason) {
-      return res.status(400).json({ error: 'Debe proporcionar un motivo' });
-    }
-    
-    const payment = await db.getPayment(paymentId);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-    
-    // Rechazar pago
-    const rejectedPayment = await db.rejectPayment(paymentId, reason);
-    
-    // Notificar al usuario
-    await bot.telegram.sendMessage(
-      payment.telegram_id,
-      `❌ *PAGO RECHAZADO*\n\n` +
-      `Tu pago *#${paymentId}* ha sido *RECHAZADO*.\n\n` +
-      `*📋 Motivo:* ${reason}\n\n` +
-      `*💡 ¿Qué puedo hacer?*\n` +
-      `1. Verifica que hayas enviado el pago correctamente\n` +
-      `2. Asegúrate de que la captura sea clara\n` +
-      `3. Contacta al soporte si necesitas ayuda\n\n` +
-      `*📞 Soporte:* @VPNCubaSupport`,
-      { parse_mode: 'Markdown' }
-    );
-    
-    res.json({ success: true, payment: rejectedPayment });
-  } catch (error) {
-    console.error('❌ Error en /api/payments/:id/reject:', error);
-    res.status(500).json({ error: 'Error al rechazar pago' });
-  }
-});
-
-// Endpoint para enviar configuración (archivo)
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
-
-app.post('/api/send-config', upload.single('configFile'), requireAdmin, async (req, res) => {
-  try {
-    const { paymentId, telegramId, adminId } = req.body;
-    const file = req.file;
-    
-    if (!paymentId || !telegramId || !file) {
-      return res.status(400).json({ error: 'Faltan datos requeridos' });
-    }
-    
-    // Obtener información del pago
-    const payment = await db.getPayment(paymentId);
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-    
-    // Leer el archivo
-    const fileBuffer = await fs.readFile(file.path);
-    
-    // Enviar archivo al usuario
-    await bot.telegram.sendDocument(
-      parseInt(telegramId),
-      { source: fileBuffer, filename: file.originalname },
-      {
-        caption: `📁 *CONFIGURACIÓN VPN ENVIADA*\n\n` +
-          `Aquí tienes tu configuración para el plan *${payment.plan.toUpperCase()}*.\n\n` +
-          `*📋 Instrucciones de instalación:*\n` +
-          `1. Descarga este archivo\n` +
-          `2. Ábrelo con la aplicación VPN\n` +
-          `3. Activa la conexión\n` +
-          `4. ¡Disfruta de tu VPN!\n\n` +
-          `*🆘 ¿Problemas?*\n` +
-          `Contacta a @VPNCubaSupport para ayuda.\n\n` +
-          `¡Gracias por tu compra! 🚀`,
-        parse_mode: 'Markdown'
-      }
-    );
-    
-    // Marcar como enviado en la base de datos
-    await db.updatePayment(paymentId, { 
-      config_sent: true,
-      config_sent_at: new Date().toISOString(),
-      config_sent_by: adminId
-    });
-    
-    // Guardar registro del archivo enviado
-    await db.saveConfigFile({
-      payment_id: paymentId,
-      telegram_id: telegramId,
-      file_name: file.originalname,
-      file_size: file.size,
-      sent_by: adminId
-    });
-    
-    // Eliminar archivo temporal
-    await fs.unlink(file.path);
-    
-    res.json({ 
-      success: true, 
-      message: 'Configuración enviada correctamente',
-      paymentId,
-      telegramId
-    });
-    
-  } catch (error) {
-    console.error('❌ Error en /api/send-config:', error);
-    res.status(500).json({ error: 'Error al enviar configuración: ' + error.message });
-  }
-});
-
-// Endpoint para enviar configuración de prueba
-app.post('/api/send-trial-config', upload.single('trialConfigFile'), requireAdmin, async (req, res) => {
-  try {
-    const { telegramId, adminId, trialType } = req.body;
-    const file = req.file;
-    
-    if (!telegramId || !file) {
-      return res.status(400).json({ error: 'Faltan datos requeridos' });
-    }
-    
-    // Leer el archivo
-    const fileBuffer = await fs.readFile(file.path);
-    
-    // Enviar archivo al usuario
-    await bot.telegram.sendDocument(
-      parseInt(telegramId),
-      { source: fileBuffer, filename: file.originalname },
-      {
-        caption: `🎁 *PRUEBA GRATUITA ENVIADA*\n\n` +
-          `Aquí tienes tu configuración de prueba de *${trialType || '1 hora'}*.\n\n` +
-          `*⏰ Duración:* ${trialType || '1 hora'}\n` +
-          `*⚡ Velocidad completa*\n` +
-          `*🎮 Compatible con todos los juegos*\n\n` +
-          `*📋 Instrucciones:*\n` +
-          `1. Descarga este archivo\n` +
-          `2. Ábrelo con la aplicación VPN\n` +
-          `3. Activa la conexión\n` +
-          `4. ¡Disfruta de tu prueba!\n\n` +
-          `*💡 Consejo:*\n` +
-          `Prueba diferentes servidores para encontrar el mejor ping.\n\n` +
-          `¡Esperamos que disfrutes el servicio! 🎮`,
-        parse_mode: 'Markdown'
-      }
-    );
-    
-    // Marcar prueba como enviada
-    await db.markTrialAsSent(telegramId, adminId);
-    
-    // Eliminar archivo temporal
-    await fs.unlink(file.path);
-    
-    res.json({ 
-      success: true, 
-      message: 'Prueba enviada correctamente',
-      telegramId
-    });
-    
-  } catch (error) {
-    console.error('❌ Error en /api/send-trial-config:', error);
-    res.status(500).json({ error: 'Error al enviar prueba: ' + error.message });
-  }
-});
-
-// Endpoint para obtener todos los usuarios
-app.get('/api/all-users', async (req, res) => {
-  try {
-    const users = await db.getAllUsers();
-    res.json(users);
-  } catch (error) {
-    console.error('❌ Error en /api/all-users:', error);
-    res.status(500).json({ error: 'Error al obtener usuarios' });
-  }
-});
-
-// Endpoint para obtener pruebas pendientes
-app.get('/api/trials/pending', async (req, res) => {
-  try {
-    const trials = await db.getPendingTrials();
-    
-    // Calcular días desde la solicitud
-    const trialsWithInfo = trials.map(trial => {
-      const daysAgo = trial.trial_requested_at ? 
-        Math.floor((new Date() - new Date(trial.trial_requested_at)) / (1000 * 60 * 60 * 24)) : 0;
-      
-      return {
-        ...trial,
-        trial_info: {
-          days_ago: daysAgo,
-          game_server: trial.trial_game_server,
-          connection_type: trial.trial_connection_type
-        }
-      };
-    });
-    
-    res.json(trialsWithInfo);
-  } catch (error) {
-    console.error('❌ Error en /api/trials/pending:', error);
-    res.status(500).json({ error: 'Error al obtener pruebas pendientes' });
-  }
-});
-
-// Endpoint para estadísticas de pruebas
-app.get('/api/trial-stats', async (req, res) => {
-  try {
-    const stats = await db.getTrialStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error en /api/trial-stats:', error);
-    res.status(500).json({ error: 'Error al obtener estadísticas de prueba' });
-  }
-});
-
-// Endpoint para verificar administrador
-app.get('/api/check-admin/:userId', async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const isAdmin = userId === ADMIN_CHAT_ID;
-    
-    res.json({ isAdmin });
-  } catch (error) {
-    console.error('❌ Error en /api/check-admin:', error);
-    res.status(500).json({ error: 'Error verificando administrador' });
-  }
-});
-
-// Endpoint para usuarios activos (últimos 30 días)
-app.get('/api/users/active', async (req, res) => {
-  try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const allUsers = await db.getAllUsers();
-    const activeUsers = allUsers.filter(user => {
-      if (!user.last_activity) return false;
-      return new Date(user.last_activity) >= thirtyDaysAgo;
-    });
-    
-    res.json(activeUsers);
-  } catch (error) {
-    console.error('❌ Error en /api/users/active:', error);
-    res.status(500).json({ error: 'Error al obtener usuarios activos' });
-  }
-});
-
-// Endpoint para enviar mensaje a usuario
-app.post('/api/send-message', requireAdmin, async (req, res) => {
-  try {
-    const { telegramId, message, adminId } = req.body;
-    
-    if (!telegramId || !message) {
-      return res.status(400).json({ error: 'Faltan telegramId o mensaje' });
-    }
-    
-    await bot.telegram.sendMessage(
-      parseInt(telegramId),
-      `📬 *MENSAJE DEL ADMINISTRADOR*\n\n${message}\n\n` +
-      `_Este es un mensaje automático del sistema._`,
-      { parse_mode: 'Markdown' }
-    );
-    
-    res.json({ success: true, message: 'Mensaje enviado' });
-    
-  } catch (error) {
-    console.error('❌ Error en /api/send-message:', error);
-    res.status(500).json({ error: 'Error al enviar mensaje' });
-  }
-});
-
-// Endpoint para remover VIP
-app.post('/api/remove-vip', requireAdmin, async (req, res) => {
-  try {
-    const { telegramId, adminId } = req.body;
-    
-    if (!telegramId) {
-      return res.status(400).json({ error: 'Faltan telegramId' });
-    }
-    
-    await db.removeVIP(telegramId);
-    
-    // Notificar al usuario
-    await bot.telegram.sendMessage(
-      parseInt(telegramId),
-      `ℹ️ *ACTUALIZACIÓN DE ESTADO*\n\n` +
-      `Tu estado VIP ha sido removido.\n\n` +
-      `*💡 ¿Por qué?*\n` +
-      `• Tu plan ha expirado\n` +
-      `• O solicitud administrativa\n\n` +
-      `*🔄 ¿Cómo renovar?*\n` +
-      `Usa "💳 Ver Planes" para adquirir un nuevo plan.\n\n` +
-      `*📞 Soporte:* @VPNCubaSupport`,
-      { parse_mode: 'Markdown' }
-    );
-    
-    res.json({ success: true, message: 'VIP removido' });
-    
-  } catch (error) {
-    console.error('❌ Error en /api/remove-vip:', error);
-    res.status(500).json({ error: 'Error al remover VIP' });
-  }
-});
-
-// ========== BROADCAST ENDPOINTS (SIN BROADCAST EN BOT) ==========
-
-// Obtener broadcasts
-app.get('/api/broadcasts', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('broadcasts')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    
-    if (error) throw error;
-    res.json(data || []);
-  } catch (error) {
-    console.error('❌ Error en /api/broadcasts:', error);
-    res.status(500).json({ error: 'Error al obtener broadcasts' });
-  }
-});
-
-// Crear broadcast
-app.post('/api/broadcast/create', requireAdmin, async (req, res) => {
-  try {
-    const { message, target, adminId } = req.body;
-    
-    const { data, error } = await supabase
-      .from('broadcasts')
-      .insert([{
-        message,
-        target_users: target,
-        sent_by: adminId,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    res.json({ success: true, id: data.id });
-  } catch (error) {
-    console.error('❌ Error en /api/broadcast/create:', error);
-    res.status(500).json({ error: 'Error al crear broadcast' });
-  }
-});
-
-// Endpoint de health check
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    env: process.env.NODE_ENV,
-    bot: 'running'
-  });
-});
-
-// Servir archivos estáticos
-app.use(express.static('public'));
-
-// ========== MANEJO DE ERRORES DEL BOT ==========
-
-bot.catch((err, ctx) => {
-  console.error(`❌ Error en bot para ${ctx.updateType}:`, err);
-  if (ctx.chat) {
-    ctx.reply('❌ Ocurrió un error. Por favor, intenta de nuevo.');
-  }
-});
-
-// ========== INICIAR BOT Y SERVIDOR ==========
-
-async function start() {
-  try {
-    // Iniciar el bot
-    await bot.launch();
-    console.log('🤖 Bot iniciado correctamente');
-    
-    // Iniciar servidor Express
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
-      console.log(`📊 Panel admin: http://localhost:${PORT}/admin.html?admin=true&userId=${ADMIN_CHAT_ID}`);
-      console.log(`🫀 Health check: http://localhost:${PORT}/health`);
-    });
-    
-    // Para evitar que el proceso se cierre por inactividad en Heroku/railway
-    process.on('SIGTERM', () => {
-      console.log('🔴 Recibido SIGTERM, cerrando bot...');
-      bot.stopPolling();
-      process.exit(0);
-    });
-
-    process.on('SIGINT', () => {
-      console.log('🔴 Recibido SIGINT, cerrando bot...');
-      bot.stopPolling();
-      process.exit(0);
-    });
-    
-    // Mensaje de inicio al admin
-    if (ADMIN_CHAT_ID) {
-      setTimeout(async () => {
-        try {
-          await bot.telegram.sendMessage(
-            ADMIN_CHAT_ID,
-            `🤖 *Bot VPN Cuba Iniciado*\n\n` +
-            `✅ Bot activo y funcionando\n` +
-            `🚀 Servidor en puerto ${PORT}\n` +
-            `📊 Panel admin disponible\n` +
-            `⏰ ${new Date().toLocaleString('es-ES')}\n\n` +
-            `¡Sistema listo para recibir solicitudes!`,
-            { parse_mode: 'Markdown' }
-          );
-        } catch (error) {
-          console.log('⚠️ No se pudo enviar mensaje de inicio al admin');
-        }
-      }, 5000);
-    }
-    
-  } catch (error) {
-    console.error('❌ Error al iniciar:', error);
-    process.exit(1);
-  }
-}
-
-// Iniciar aplicación
-start();
-
-// Exportar para pruebas
-module.exports = { bot, app };
+console.log('🤖 Bot de Telegram iniciado correctamente');

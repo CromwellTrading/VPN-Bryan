@@ -1384,10 +1384,16 @@ const db = {
     try {
       console.log(`🔍 Obteniendo broadcast ${broadcastId}...`);
       
+      // Validar que broadcastId sea un número válido
+      if (!broadcastId || isNaN(parseInt(broadcastId))) {
+        console.log(`❌ ID de broadcast inválido: ${broadcastId}`);
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from('broadcasts')
         .select('*')
-        .eq('id', broadcastId)
+        .eq('id', parseInt(broadcastId))
         .single();
       
       if (error && error.code === 'PGRST116') {

@@ -173,7 +173,8 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     }
 
     return keyboard;
-                      }
+}
+
 // ==================== RUTAS DE LA API ====================
 
 // 1. Verificar si es administrador
@@ -974,11 +975,32 @@ app.post('/api/broadcast/create', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
+    // Validar que el mensaje no esté vacío
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
+    }
+    
+    // Validar que target sea válido
+    const validTargets = ['all', 'vip', 'non_vip', 'trial_pending', 'trial_received', 'active'];
+    if (!validTargets.includes(target)) {
+      return res.status(400).json({ error: 'Target de broadcast inválido' });
+    }
+    
+    console.log(`📢 Creando broadcast para ${target} usuarios...`);
+    
     // Crear broadcast en la base de datos
     const broadcast = await db.createBroadcast(message, target, adminId);
     
+    if (!broadcast || !broadcast.id) {
+      throw new Error('No se pudo crear el broadcast');
+    }
+    
+    console.log(`✅ Broadcast creado con ID: ${broadcast.id}`);
+    
     // Obtener usuarios según el target
     const users = await db.getUsersForBroadcast(target);
+    
+    console.log(`👥 ${users.length} usuarios encontrados para el broadcast`);
     
     // Actualizar broadcast con el total de usuarios
     await db.updateBroadcastStatus(broadcast.id, 'pending', {
@@ -993,7 +1015,13 @@ app.post('/api/broadcast/create', async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Broadcast creado y en proceso de envío',
-      broadcast,
+      broadcast: {
+        id: broadcast.id,
+        message: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
+        target: target,
+        total_users: users.length,
+        status: 'pending'
+      },
       totalUsers: users.length
     });
     
@@ -1017,9 +1045,18 @@ app.get('/api/broadcasts', async (req, res) => {
 // 27. Obtener estado de un broadcast
 app.get('/api/broadcast/status/:id', async (req, res) => {
   try {
-    const broadcast = await db.getBroadcast(req.params.id);
+    const broadcastId = req.params.id;
+    
+    // Validar que broadcastId sea un número
+    if (!broadcastId || isNaN(parseInt(broadcastId))) {
+      console.error(`❌ ID de broadcast inválido: ${broadcastId}`);
+      return res.status(400).json({ error: 'ID de broadcast inválido' });
+    }
+    
+    const broadcast = await db.getBroadcast(broadcastId);
     
     if (!broadcast) {
+      console.log(`📭 Broadcast ${broadcastId} no encontrado`);
       return res.status(404).json({ error: 'Broadcast no encontrado' });
     }
     
@@ -1079,14 +1116,21 @@ app.get('/api/users/active', async (req, res) => {
 // 30. Obtener un broadcast específico
 app.get('/api/broadcast/:id', async (req, res) => {
   try {
-    const broadcast = await db.getBroadcast(req.params.id);
+    const broadcastId = req.params.id;
+    
+    // Validar que broadcastId sea un número
+    if (!broadcastId || isNaN(parseInt(broadcastId))) {
+      return res.status(400).json({ error: 'ID de broadcast inválido' });
+    }
+    
+    const broadcast = await db.getBroadcast(broadcastId);
     
     if (!broadcast) {
       return res.status(404).json({ error: 'Broadcast no encontrado' });
     }
     
     // Obtener estadísticas detalladas si existen
-    const stats = await db.getBroadcastStats(req.params.id);
+    const stats = await db.getBroadcastStats(broadcastId);
     
     res.json({
       ...broadcast,
@@ -1101,6 +1145,14 @@ app.get('/api/broadcast/:id', async (req, res) => {
 // Función auxiliar para enviar broadcast a usuarios
 async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   try {
+    // Validar que broadcastId existe
+    if (!broadcastId) {
+      console.error('❌ ID de broadcast no proporcionado');
+      return;
+    }
+    
+    console.log(`🚀 Iniciando envío de broadcast ${broadcastId} a ${users.length} usuarios`);
+    
     // Actualizar estado a "enviando"
     await db.updateBroadcastStatus(broadcastId, 'sending', {
       total_users: users.length,
@@ -1109,15 +1161,19 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     
     let sentCount = 0;
     let failedCount = 0;
+    const failedUsers = [];
     
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
       
       try {
         if (!user.telegram_id) {
+          console.log(`⚠️ Usuario sin telegram_id, saltando`);
           failedCount++;
           continue;
         }
+        
+        console.log(`📨 Enviando a ${user.telegram_id} (${i+1}/${users.length})`);
         
         await bot.telegram.sendMessage(
           user.telegram_id,
@@ -1128,6 +1184,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         
         // Actualizar progreso cada 10 usuarios
         if ((i + 1) % 10 === 0 || i === users.length - 1) {
+          console.log(`📊 Progreso: ${sentCount} enviados, ${failedCount} fallidos`);
           await db.updateBroadcastStatus(broadcastId, 'sending', {
             sent_count: sentCount,
             failed_count: failedCount,
@@ -1140,10 +1197,23 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         
       } catch (error) {
         failedCount++;
+        failedUsers.push({
+          telegram_id: user.telegram_id,
+          error: error.message
+        });
+        
+        // Si el usuario bloqueó al bot, continuar
+        if (error.description && error.description.includes('blocked')) {
+          console.log(`❌ Usuario ${user.telegram_id} bloqueó al bot`);
+          continue;
+        }
+        
+        console.error(`❌ Error enviando a ${user.telegram_id}:`, error.message);
       }
     }
     
     // Actualizar estado final
+    console.log(`✅ Broadcast ${broadcastId} completado: ${sentCount} enviados, ${failedCount} fallidos`);
     await db.updateBroadcastStatus(broadcastId, 'completed', {
       sent_count: sentCount,
       failed_count: failedCount,
@@ -1152,11 +1222,17 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     
   } catch (error) {
     console.error(`❌ Error crítico en broadcast ${broadcastId}:`, error);
-    await db.updateBroadcastStatus(broadcastId, 'failed', {
-      sent_count: 0,
-      failed_count: users.length,
-      total_users: users.length
-    });
+    
+    // Intentar actualizar el estado a fallido
+    try {
+      await db.updateBroadcastStatus(broadcastId, 'failed', {
+        sent_count: 0,
+        failed_count: users.length || 0,
+        total_users: users.length || 0
+      });
+    } catch (updateError) {
+      console.error('❌ Error actualizando estado de broadcast a fallido:', updateError);
+    }
   }
 }
 
@@ -1228,16 +1304,25 @@ bot.action('main_menu', async (ctx) => {
     
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
     
-    await ctx.editMessageText(
-        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-        `Selecciona una opción:`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: keyboard
+    try {
+        await ctx.editMessageText(
+            `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+            `Selecciona una opción:`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
             }
+        );
+    } catch (error) {
+        // Ignorar error de "message not modified"
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
         }
-    );
+        throw error;
+    }
 });
 
 // Botón: Descargar WireGuard
@@ -1264,22 +1349,30 @@ bot.action('download_wireguard', async (ctx) => {
         ]
     ];
     
-    await ctx.editMessageText(
-        `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
-        `*Para Windows*\n` +
-        `Aplicación Oficial de WireGuard para Windows:\n` +
-        `Enlace: https://www.wireguard.com/install/\n\n` +
-        `*Para Android*\n` +
-        `Aplicación Oficial de WireGuard en Google Play Store:\n` +
-        `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
-        `*Selecciona tu sistema operativo:*`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: keyboard
+    try {
+        await ctx.editMessageText(
+            `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
+            `*Para Windows*\n` +
+            `Aplicación Oficial de WireGuard para Windows:\n` +
+            `Enlace: https://www.wireguard.com/install/\n\n` +
+            `*Para Android*\n` +
+            `Aplicación Oficial de WireGuard en Google Play Store:\n` +
+            `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
+            `*Selecciona tu sistema operativo:*`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
             }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
         }
-    );
+        throw error;
+    }
 });
 
 // Botón: Ver Planes
@@ -1313,28 +1406,36 @@ bot.action('view_plans', async (ctx) => {
         ]
     ];
     
-    await ctx.editMessageText(
-        `📋 *NUESTROS PLANES* 🚀\n\n` +
-        `*PRUEBA GRATIS (1 hora)*\n` +
-        `💵 $0 CUP\n` +
-        `🎁 ¡Prueba completamente gratis!\n\n` +
-        `*BÁSICO (1 mes)*\n` +
-        `💵 $800 CUP\n\n` +
-        `*PREMIUM (2 meses)*\n` +
-        `💵 $1,300 CUP\n` +
-        `💰 ¡Ahorras $300 CUP!\n\n` +
-        `*VIP (6 meses)*\n` +
-        `💵 $3,000 CUP\n` +
-        `👑 ¡MEJOR OFERTA!\n` +
-        `💰 ¡Ahorras $1,800 CUP!\n\n` +
-        `Selecciona una opción:`,
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: keyboard
+    try {
+        await ctx.editMessageText(
+            `📋 *NUESTROS PLANES* 🚀\n\n` +
+            `*PRUEBA GRATIS (1 hora)*\n` +
+            `💵 $0 CUP\n` +
+            `🎁 ¡Prueba completamente gratis!\n\n` +
+            `*BÁSICO (1 mes)*\n` +
+            `💵 $800 CUP\n\n` +
+            `*PREMIUM (2 meses)*\n` +
+            `💵 $1,300 CUP\n` +
+            `💰 ¡Ahorras $300 CUP!\n\n` +
+            `*VIP (6 meses)*\n` +
+            `💵 $3,000 CUP\n` +
+            `👑 ¡MEJOR OFERTA!\n` +
+            `💰 ¡Ahorras $1,800 CUP!\n\n` +
+            `Selecciona una opción:`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
             }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
         }
-    );
+        throw error;
+    }
 });
 
 // Botón: Mi Estado
@@ -1347,16 +1448,24 @@ bot.action('check_status', async (ctx) => {
         
         if (!user) {
             const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
-            await ctx.editMessageText(
-                `❌ *NO ESTÁS REGISTRADO*\n\n` +
-                `Usa el botón "📋 VER PLANES" para registrarte y comenzar.`,
-                {
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: keyboard
+            try {
+                await ctx.editMessageText(
+                    `❌ *NO ESTÁS REGISTRADO*\n\n` +
+                    `Usa el botón "📋 VER PLANES" para registrarte y comenzar.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
                     }
+                );
+            } catch (editError) {
+                // Si el mensaje no cambió, no hacer nada
+                if (!editError.response || !editError.response.description || 
+                    !editError.response.description.includes('message is not modified')) {
+                    throw editError;
                 }
-            );
+            }
             return;
         }
         
@@ -1404,15 +1513,23 @@ bot.action('check_status', async (ctx) => {
                 ]
             ];
             
-            await ctx.editMessageText(
-                mensajeEstado,
-                { 
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: keyboard
+            try {
+                await ctx.editMessageText(
+                    mensajeEstado,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
                     }
+                );
+            } catch (error) {
+                if (error.response && error.response.description && 
+                    error.response.description.includes('message is not modified')) {
+                    return;
                 }
-            );
+                throw error;
+            }
         } else if (user?.trial_requested) {
             let trialMessage = `🎁 *SOLICITASTE UNA PRUEBA GRATUITA*\n\n`;
             
@@ -1457,15 +1574,23 @@ bot.action('check_status', async (ctx) => {
                 ]
             ];
             
-            await ctx.editMessageText(
-                trialMessage,
-                { 
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: keyboard
+            try {
+                await ctx.editMessageText(
+                    trialMessage,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
                     }
+                );
+            } catch (error) {
+                if (error.response && error.response.description && 
+                    error.response.description.includes('message is not modified')) {
+                    return;
                 }
-            );
+                throw error;
+            }
         } else {
             const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
             const keyboard = [
@@ -1493,10 +1618,39 @@ bot.action('check_status', async (ctx) => {
                 ]
             ];
             
+            try {
+                await ctx.editMessageText(
+                    `❌ *NO ERES USUARIO VIP*\n\n` +
+                    `Actualmente no tienes acceso a los servicios premium.\n\n` +
+                    `Haz clic en los botones para ver nuestros planes o descargar WireGuard:`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
+                    }
+                );
+            } catch (error) {
+                if (error.response && error.response.description && 
+                    error.response.description.includes('message is not modified')) {
+                    return;
+                }
+                throw error;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error en check_status:', error);
+        
+        // Solo reenviar mensaje si no es el error de "message not modified"
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+        try {
             await ctx.editMessageText(
-                `❌ *NO ERES USUARIO VIP*\n\n` +
-                `Actualmente no tienes acceso a los servicios premium.\n\n` +
-                `Haz clic en los botones para ver nuestros planes o descargar WireGuard:`,
+                `❌ Error al verificar tu estado.`,
                 {
                     parse_mode: 'Markdown',
                     reply_markup: {
@@ -1504,19 +1658,12 @@ bot.action('check_status', async (ctx) => {
                     }
                 }
             );
-        }
-    } catch (error) {
-        console.error('❌ Error en check_status:', error);
-        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
-        await ctx.editMessageText(
-            `❌ Error al verificar tu estado.`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: keyboard
-                }
+        } catch (editError) {
+            if (!editError.response || !editError.response.description || 
+                !editError.response.description.includes('message is not modified')) {
+                console.error('❌ Error al editar mensaje de error:', editError);
             }
-        );
+        }
     }
 });
 
@@ -1578,7 +1725,6 @@ bot.command('help', async (ctx) => {
         `📋 VER PLANES - Ver y comprar planes\n` +
         `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
         `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
-        `📱 GRUPO WHATSAPP - Únete a nuestro grupo\n` +
         `🆘 SOPORTE - Contactar con soporte técnico\n` +
         `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
         `\n¡Todo está disponible en los botones! 🚀`,
@@ -1763,7 +1909,6 @@ app.listen(PORT, async () => {
     console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
-    console.log(`📱 Grupo WhatsApp: Disponible en el botón del menú`);
     console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
     console.log(`📊 Estadísticas completas: /api/stats`);
     

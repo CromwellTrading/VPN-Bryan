@@ -132,13 +132,13 @@ function formatearFecha(fecha) {
     });
 }
 
-// Función para crear menú principal (CON BOTÓN DE WHATSAPP Y SIN BROADCAST)
+// En la función crearMenuPrincipal, quitar la fila del botón de WhatsApp
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
-    // Crear teclado BASE para TODOS los usuarios
+    // Crear teclado BASE para TODOS los usuarios (SIN BOTÓN DE WHATSAPP)
     const keyboard = [
         [
             { 
@@ -156,19 +156,13 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
                 callback_data: 'download_wireguard'
             },
             {
-                text: '📱 GRUPO WHATSAPP',
-                url: 'https://chat.whatsapp.com/COLOCA_AQUI_TU_ENLACE'  // Cambiar por el enlace real
-            }
-        ],
-        [
-            {
                 text: '🆘 SOPORTE',
                 url: 'https://t.me/L0quen2'
             }
         ]
     ];
 
-    // Si es ADMIN, agregar botón de panel admin (SIN BROADCAST aquí)
+    // Si es ADMIN, agregar botón de panel admin
     if (esAdmin) {
         keyboard.push([
             { 
@@ -179,8 +173,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     }
 
     return keyboard;
-}
-
+                      }
 // ==================== RUTAS DE LA API ====================
 
 // 1. Verificar si es administrador

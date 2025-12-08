@@ -27,6 +27,8 @@
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             --game-color: #8b5cf6;
             --connection-color: #3b82f6;
+            --broadcast-color: #8b5cf6;
+            --broadcast-glow: rgba(139, 92, 246, 0.4);
         }
 
         * {
@@ -226,6 +228,9 @@
         .stat-card.connections .stat-value { color: var(--connection-color); }
         .stat-card.connections .stat-icon { color: var(--connection-color); }
 
+        .stat-card.broadcast .stat-value { color: var(--broadcast-color); }
+        .stat-card.broadcast .stat-icon { color: var(--broadcast-color); }
+
         /* TABLAS */
         .table-container {
             overflow-x: auto;
@@ -324,6 +329,31 @@
             border: 1px solid rgba(59, 130, 246, 0.3);
         }
 
+        .badge.broadcast {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .badge.sending {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .badge.completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge.failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -404,6 +434,27 @@
         .action-btn.send-trial:hover {
             background: rgba(16, 185, 129, 0.3);
             box-shadow: 0 0 15px var(--trial-glow);
+        }
+
+        .action-btn.send-broadcast {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .action-btn.send-broadcast:hover {
+            background: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 15px var(--broadcast-glow);
+        }
+
+        .action-btn.view-details {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-light);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .action-btn.view-details:hover {
+            background: rgba(99, 102, 241, 0.3);
         }
 
         .action-btn:disabled {
@@ -517,6 +568,35 @@
             box-shadow: 0 0 20px var(--trial-glow);
         }
 
+        .submit-broadcast {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--broadcast-color) 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-broadcast:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px var(--broadcast-glow);
+        }
+
+        .submit-broadcast:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         /* LOADING */
         .loading {
             text-align: center;
@@ -618,6 +698,11 @@
             border-color: var(--warning);
             background: rgba(245, 158, 11, 0.1);
         }
+
+        .notification.info {
+            border-color: var(--accent);
+            background: rgba(79, 70, 229, 0.1);
+        }
         
         /* SECCIÓN DE PRUEBAS */
         .trial-stats {
@@ -665,6 +750,16 @@
         .info-box i {
             margin-right: 10px;
             color: var(--trial-light);
+        }
+
+        .info-box.broadcast {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+        }
+
+        .info-box.broadcast i {
+            color: #a78bfa;
         }
 
         /* INFORMACIÓN ADICIONAL DE PRUEBAS */
@@ -756,6 +851,146 @@
         .trial-detail-value {
             color: var(--text-secondary);
         }
+
+        /* PROGRESS BAR */
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        .progress-text {
+            color: var(--text-secondary);
+        }
+
+        .progress-percent {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* FORMULARIOS */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 15px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-family: inherit;
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        /* STATS GRID */
+        .stats-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-mini {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-mini-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-mini-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* BROADCAST PROGRESS */
+        .broadcast-progress {
+            padding: 20px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .broadcast-progress.active {
+            display: block;
+        }
+
+        .broadcast-progress-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .broadcast-progress-title {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .broadcast-progress-details {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -777,6 +1012,7 @@
             <div class="tab" data-tab="approved">✅ Pagos Aprobados</div>
             <div class="tab" data-tab="users">👥 Usuarios</div>
             <div class="tab" data-tab="games">🎮 Juegos/Servidores</div>
+            <div class="tab" data-tab="broadcast">📢 Broadcast</div>
         </div>
 
         <!-- ESTADÍSTICAS -->
@@ -828,6 +1064,12 @@
                     <i class="fas fa-wifi stat-icon"></i>
                     <div class="stat-value" id="totalConnections">0</div>
                     <div class="stat-label">Tipos de Conexión</div>
+                </div>
+
+                <div class="stat-card broadcast">
+                    <i class="fas fa-bullhorn stat-icon"></i>
+                    <div class="stat-value" id="broadcastCount">0</div>
+                    <div class="stat-label">Broadcasts Enviados</div>
                 </div>
             </div>
             
@@ -1105,6 +1347,140 @@
                 </div>
             </div>
         </div>
+
+        <!-- BROADCAST -->
+        <div id="broadcastContent" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-bullhorn"></i>
+                        Enviar Mensaje Masivo (Broadcast)
+                    </h2>
+                </div>
+
+                <div class="info-box broadcast">
+                    <i class="fas fa-info-circle"></i>
+                    Envía un mensaje a múltiples usuarios simultáneamente. Los mensajes se enviarán en segundo plano y podrás monitorear el progreso.
+                </div>
+                
+                <div class="broadcast-form">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-users"></i> Destinatarios:
+                        </label>
+                        <select id="broadcastTarget" class="form-select">
+                            <option value="all">👥 Todos los usuarios</option>
+                            <option value="vip">👑 Solo usuarios VIP</option>
+                            <option value="non_vip">👤 Usuarios no VIP</option>
+                            <option value="trial_pending">⏳ Usuarios con prueba pendiente</option>
+                            <option value="trial_received">✅ Usuarios que recibieron prueba</option>
+                            <option value="active">📱 Usuarios activos (últimos 30 días)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-comment-alt"></i> Mensaje:
+                        </label>
+                        <textarea id="broadcastMessage" class="form-textarea" placeholder="Escribe tu mensaje aquí... Puedes usar formato Markdown:
+*Negrita*, _cursiva_, `código`
+[Texto](URL) para enlaces
+Emojis: 🎮 📱 🔥"></textarea>
+                        <div style="margin-top: 5px; color: var(--text-secondary); font-size: 0.85rem;">
+                            <i class="fas fa-info-circle"></i> Se permite formato Markdown básico
+                        </div>
+                    </div>
+                    
+                    <div class="stats-mini-grid">
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="broadcastTotalUsers">0</div>
+                            <div class="stat-mini-label">Total Usuarios</div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="broadcastVIPUsers">0</div>
+                            <div class="stat-mini-label">Usuarios VIP</div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="broadcastTrialUsers">0</div>
+                            <div class="stat-mini-label">Con Prueba</div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="broadcastActiveUsers">0</div>
+                            <div class="stat-mini-label">Activos</div>
+                        </div>
+                    </div>
+                    
+                    <button class="submit-broadcast" onclick="sendBroadcast()" id="broadcastButton">
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar Broadcast
+                    </button>
+                    
+                    <div class="broadcast-progress" id="broadcastProgress">
+                        <div class="broadcast-progress-header">
+                            <i class="fas fa-spinner fa-spin" style="color: var(--broadcast-color);"></i>
+                            <div class="broadcast-progress-title">Enviando mensajes...</div>
+                        </div>
+                        
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="broadcastProgressBar"></div>
+                            </div>
+                            <div class="progress-info">
+                                <div class="progress-text" id="broadcastProgressText">Preparando...</div>
+                                <div class="progress-percent" id="broadcastProgressPercent">0%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="broadcast-progress-details" id="broadcastProgressDetails">
+                            Obteniendo lista de usuarios...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HISTORIAL DE BROADCASTS -->
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-history"></i>
+                        Historial de Broadcasts
+                    </h2>
+                    <button class="refresh-btn" onclick="loadBroadcasts()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+                
+                <div class="loading" id="broadcastLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando historial de broadcasts...</p>
+                </div>
+                
+                <div class="table-container">
+                    <table id="broadcastTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Mensaje</th>
+                                <th>Destinatarios</th>
+                                <th>Estadísticas</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="broadcastTableBody">
+                            <!-- Datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="no-data" id="broadcastNoData" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-bullhorn" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                    <p>No hay broadcasts en el historial</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL PARA VER CAPTURA -->
@@ -1248,6 +1624,8 @@
         let currentUserId = null;
         let currentTrialUserId = null;
         let isAdminUser = false;
+        let broadcastInterval = null;
+        let currentBroadcastId = null;
 
         // Inicializar Telegram WebApp
         const tg = window.Telegram.WebApp;
@@ -1317,6 +1695,9 @@
                 
                 // Cargar estadísticas de juegos y conexiones
                 loadGamesAndConnectionsStats();
+                
+                // Cargar estadísticas de broadcasts
+                loadBroadcastCount();
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
             }
@@ -1371,6 +1752,42 @@
                 document.getElementById('todayTrialRequests').textContent = stats.today_requests || 0;
             } catch (error) {
                 console.error('❌ Error cargando estadísticas de prueba:', error);
+            }
+        }
+
+        // Cargar estadísticas de broadcast
+        async function loadBroadcastCount() {
+            try {
+                console.log('📢 Cargando estadísticas de broadcast...');
+                const response = await fetch('/api/broadcasts');
+                const broadcasts = await response.json();
+                
+                const completedBroadcasts = broadcasts.filter(b => b.status === 'completed').length;
+                document.getElementById('broadcastCount').textContent = completedBroadcasts;
+                
+                // Actualizar estadísticas para broadcast
+                await updateBroadcastStats();
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas de broadcast:', error);
+            }
+        }
+
+        // Actualizar estadísticas para broadcast
+        async function updateBroadcastStats() {
+            try {
+                const statsResponse = await fetch('/api/stats');
+                const stats = await statsResponse.json();
+                
+                const activeResponse = await fetch('/api/users/active');
+                const activeUsers = await activeResponse.json();
+                
+                document.getElementById('broadcastTotalUsers').textContent = stats.users?.total || 0;
+                document.getElementById('broadcastVIPUsers').textContent = stats.users?.vip || 0;
+                document.getElementById('broadcastTrialUsers').textContent = stats.users?.trial_requests || 0;
+                document.getElementById('broadcastActiveUsers').textContent = activeUsers.length || 0;
+                
+            } catch (error) {
+                console.error('❌ Error actualizando estadísticas de broadcast:', error);
             }
         }
 
@@ -1750,6 +2167,304 @@
             }
         }
 
+        // Cargar historial de broadcasts
+        async function loadBroadcasts() {
+            try {
+                document.getElementById('broadcastLoading').style.display = 'block';
+                document.getElementById('broadcastTable').style.display = 'none';
+                document.getElementById('broadcastNoData').style.display = 'none';
+                
+                console.log('📢 Cargando historial de broadcasts...');
+                const response = await fetch('/api/broadcasts');
+                const broadcasts = await response.json();
+                
+                console.log(`📊 Broadcasts recibidos (${broadcasts.length}):`, broadcasts);
+                
+                document.getElementById('broadcastLoading').style.display = 'none';
+                
+                if (!broadcasts || broadcasts.length === 0) {
+                    console.log('📭 No hay broadcasts en el historial');
+                    document.getElementById('broadcastNoData').style.display = 'block';
+                    return;
+                }
+                
+                const tableBody = document.getElementById('broadcastTableBody');
+                tableBody.innerHTML = '';
+                
+                broadcasts.forEach(broadcast => {
+                    const statusBadge = getBroadcastStatusBadge(broadcast.status);
+                    const targetName = getBroadcastTargetName(broadcast.target_users);
+                    const stats = broadcast.sent_count ? 
+                        `${broadcast.sent_count}/${broadcast.total_users || broadcast.sent_count + broadcast.failed_count} enviados` : 
+                        'No enviado';
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${broadcast.id || 'N/A'}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${broadcast.message}">
+                            ${truncateText(broadcast.message, 50)}
+                        </td>
+                        <td>${targetName}</td>
+                        <td>${stats}</td>
+                        <td>${statusBadge}</td>
+                        <td>${broadcast.created_at ? new Date(broadcast.created_at).toLocaleString('es-ES') : 'N/A'}</td>
+                        <td>
+                            <button class="action-btn view-details" onclick="viewBroadcastDetails('${broadcast.id}')" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${broadcast.status === 'pending' ? 
+                                `<button class="action-btn approve" onclick="retryBroadcast('${broadcast.id}')" title="Reintentar">
+                                    <i class="fas fa-redo"></i>
+                                </button>` : 
+                                ''
+                            }
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                document.getElementById('broadcastTable').style.display = 'table';
+                
+            } catch (error) {
+                console.error('❌ Error cargando broadcasts:', error);
+                document.getElementById('broadcastLoading').style.display = 'none';
+                showNotification('❌ Error cargando broadcasts: ' + error.message, 'error');
+            }
+        }
+
+        // Enviar broadcast
+        async function sendBroadcast() {
+            const message = document.getElementById('broadcastMessage').value.trim();
+            const target = document.getElementById('broadcastTarget').value;
+            
+            if (!message) {
+                showNotification('❌ Escribe un mensaje para enviar', 'warning');
+                return;
+            }
+            
+            const targetName = getBroadcastTargetName(target);
+            if (!confirm(`¿Estás seguro de enviar este mensaje a ${targetName}?\n\nMensaje: "${truncateText(message, 100)}"`)) {
+                return;
+            }
+            
+            console.log(`📢 Enviando broadcast a ${target}: ${message.substring(0, 100)}...`);
+            
+            const button = document.getElementById('broadcastButton');
+            const progressDiv = document.getElementById('broadcastProgress');
+            const progressBar = document.getElementById('broadcastProgressBar');
+            const progressText = document.getElementById('broadcastProgressText');
+            const progressPercent = document.getElementById('broadcastProgressPercent');
+            const progressDetails = document.getElementById('broadcastProgressDetails');
+            
+            // Deshabilitar botón y mostrar progreso
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            progressDiv.classList.add('active');
+            
+            try {
+                // Crear broadcast
+                const createResponse = await fetch('/api/broadcast/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        target: target,
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (!createResponse.ok) {
+                    throw new Error('Error creando broadcast');
+                }
+                
+                const broadcastData = await createResponse.json();
+                const broadcastId = broadcastData.id;
+                
+                console.log(`✅ Broadcast creado con ID: ${broadcastId}`);
+                showNotification('✅ Broadcast creado. Enviando mensajes en segundo plano...', 'success');
+                
+                // Iniciar monitoreo de progreso
+                progressDetails.textContent = 'Obteniendo lista de usuarios...';
+                progressBar.style.width = '10%';
+                progressPercent.textContent = '10%';
+                progressText.textContent = 'Preparando...';
+                
+                currentBroadcastId = broadcastId;
+                
+                // Iniciar polling de progreso
+                startBroadcastProgressPolling(broadcastId);
+                
+                // Recargar historial después de 3 segundos
+                setTimeout(() => {
+                    loadBroadcasts();
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Error enviando broadcast:', error);
+                showNotification('❌ Error enviando broadcast: ' + error.message, 'error');
+                
+                // Restaurar botón
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Broadcast';
+                progressDiv.classList.remove('active');
+            }
+        }
+
+        // Monitorear progreso de broadcast
+        async function startBroadcastProgressPolling(broadcastId) {
+            if (broadcastInterval) {
+                clearInterval(broadcastInterval);
+            }
+            
+            let attempts = 0;
+            const maxAttempts = 300; // 5 minutos máximo
+            
+            broadcastInterval = setInterval(async () => {
+                attempts++;
+                
+                if (attempts > maxAttempts) {
+                    clearInterval(broadcastInterval);
+                    showNotification('⚠️ Broadcast tardó mucho tiempo. Verifica manualmente.', 'warning');
+                    resetBroadcastUI();
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/broadcast/status/${broadcastId}`);
+                    if (!response.ok) {
+                        throw new Error('Error obteniendo estado');
+                    }
+                    
+                    const status = await response.json();
+                    
+                    if (status.status === 'completed') {
+                        clearInterval(broadcastInterval);
+                        
+                        // Actualizar UI final
+                        updateBroadcastProgressUI(100, 'Completado', 
+                            `✅ ${status.sent_count} mensajes enviados, ${status.failed_count} fallidos`);
+                        
+                        showNotification(`✅ Broadcast completado: ${status.sent_count} mensajes enviados`, 'success');
+                        
+                        // Restaurar UI después de 5 segundos
+                        setTimeout(() => {
+                            resetBroadcastUI();
+                            loadBroadcasts();
+                            loadBroadcastCount();
+                        }, 5000);
+                        
+                    } else if (status.status === 'sending') {
+                        // Actualizar progreso
+                        const percent = Math.min(10 + Math.floor((status.sent_count / status.total_users) * 80), 95);
+                        updateBroadcastProgressUI(percent, 'Enviando...', 
+                            `Enviando a ${status.sent_count} de ${status.total_users} usuarios`);
+                        
+                    } else if (status.status === 'failed') {
+                        clearInterval(broadcastInterval);
+                        
+                        updateBroadcastProgressUI(100, 'Error', 'Error en el envío');
+                        showNotification('❌ Error enviando broadcast', 'error');
+                        
+                        setTimeout(resetBroadcastUI, 3000);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error monitoreando progreso:', error);
+                }
+            }, 2000); // Poll cada 2 segundos
+        }
+
+        // Actualizar UI de progreso de broadcast
+        function updateBroadcastProgressUI(percent, text, details) {
+            const progressBar = document.getElementById('broadcastProgressBar');
+            const progressText = document.getElementById('broadcastProgressText');
+            const progressPercent = document.getElementById('broadcastProgressPercent');
+            const progressDetails = document.getElementById('broadcastProgressDetails');
+            
+            progressBar.style.width = `${percent}%`;
+            progressPercent.textContent = `${percent}%`;
+            progressText.textContent = text;
+            progressDetails.textContent = details;
+        }
+
+        // Resetear UI de broadcast
+        function resetBroadcastUI() {
+            const button = document.getElementById('broadcastButton');
+            const progressDiv = document.getElementById('broadcastProgress');
+            
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Broadcast';
+            progressDiv.classList.remove('active');
+            document.getElementById('broadcastMessage').value = '';
+            
+            // Resetear progreso
+            updateBroadcastProgressUI(0, 'Preparando...', 'Obteniendo lista de usuarios...');
+            
+            if (broadcastInterval) {
+                clearInterval(broadcastInterval);
+                broadcastInterval = null;
+            }
+            
+            currentBroadcastId = null;
+        }
+
+        // Ver detalles de broadcast
+        async function viewBroadcastDetails(broadcastId) {
+            try {
+                const response = await fetch(`/api/broadcast/${broadcastId}`);
+                if (!response.ok) {
+                    throw new Error('Error obteniendo detalles');
+                }
+                
+                const broadcast = await response.json();
+                
+                const details = `📋 *Detalles del Broadcast #${broadcast.id}*\n\n` +
+                    `*Mensaje:* ${broadcast.message}\n` +
+                    `*Destinatarios:* ${getBroadcastTargetName(broadcast.target_users)}\n` +
+                    `*Estado:* ${broadcast.status}\n` +
+                    `*Creado por:* ${broadcast.sent_by}\n` +
+                    `*Fecha creación:* ${new Date(broadcast.created_at).toLocaleString('es-ES')}\n` +
+                    `*Total usuarios:* ${broadcast.total_users || 'N/A'}\n` +
+                    `*Enviados:* ${broadcast.sent_count || 'N/A'}\n` +
+                    `*Fallidos:* ${broadcast.failed_count || 'N/A'}`;
+                
+                showNotification(details, 'info');
+                
+            } catch (error) {
+                console.error('❌ Error obteniendo detalles de broadcast:', error);
+                showNotification('❌ Error obteniendo detalles del broadcast', 'error');
+            }
+        }
+
+        // Reintentar broadcast
+        async function retryBroadcast(broadcastId) {
+            if (!confirm('¿Reintentar envío de este broadcast?')) return;
+            
+            try {
+                const response = await fetch(`/api/broadcast/retry/${broadcastId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification('✅ Broadcast programado para reintento', 'success');
+                    loadBroadcasts();
+                } else {
+                    throw new Error('Error programando reintento');
+                }
+            } catch (error) {
+                console.error('❌ Error reintentando broadcast:', error);
+                showNotification('❌ Error reintentando broadcast', 'error');
+            }
+        }
+
         // Buscar usuarios por juego
         async function searchUsersByGame(game) {
             // Cambiar a pestaña de usuarios
@@ -2107,13 +2822,24 @@
             const notification = document.getElementById('notification');
             const notificationText = document.getElementById('notificationText');
             
-            notificationText.textContent = message;
-            notification.className = 'notification ' + type;
+            // Si el mensaje es muy largo, truncarlo
+            const displayMessage = message.length > 200 ? message.substring(0, 200) + '...' : message;
+            notificationText.textContent = displayMessage;
+            
+            // Establecer clase según el tipo
+            notification.className = 'notification';
+            if (type) {
+                notification.classList.add(type);
+            }
+            
+            // Mostrar notificación
             notification.classList.add('show');
             
+            // Ocultar después de 5 segundos (o 10 si es error)
+            const duration = type === 'error' ? 10000 : 5000;
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 5000);
+            }, duration);
         }
 
         // Cambiar pestañas
@@ -2153,6 +2879,10 @@
                 case 'games':
                     loadGamesStats();
                     break;
+                case 'broadcast':
+                    updateBroadcastStats();
+                    loadBroadcasts();
+                    break;
                 case 'stats':
                     loadStats();
                     loadTrialStats();
@@ -2168,6 +2898,30 @@
                 'vip': 'VIP (6 meses)'
             };
             return plans[planType] || planType;
+        }
+
+        // Obtener nombre del target de broadcast
+        function getBroadcastTargetName(target) {
+            const targets = {
+                'all': '👥 Todos los usuarios',
+                'vip': '👑 Solo usuarios VIP',
+                'non_vip': '👤 Usuarios no VIP',
+                'trial_pending': '⏳ Pruebas pendientes',
+                'trial_received': '✅ Pruebas recibidas',
+                'active': '📱 Usuarios activos'
+            };
+            return targets[target] || target;
+        }
+
+        // Obtener badge de estado de broadcast
+        function getBroadcastStatusBadge(status) {
+            const badges = {
+                'pending': '<span class="badge pending">Pendiente</span>',
+                'sending': '<span class="badge sending">Enviando</span>',
+                'completed': '<span class="badge completed">Completado</span>',
+                'failed': '<span class="badge failed">Fallido</span>'
+            };
+            return badges[status] || `<span class="badge">${status}</span>`;
         }
 
         // Truncar texto
@@ -2211,6 +2965,17 @@
                     closeTrialConfigModal();
                 }
             });
+            
+            // Configurar auto-refresh de estadísticas cada 30 segundos
+            setInterval(() => {
+                if (currentTab === 'stats') {
+                    loadStats();
+                }
+                if (currentTab === 'broadcast' && currentBroadcastId) {
+                    // Si hay un broadcast en progreso, actualizar estadísticas
+                    updateBroadcastStats();
+                }
+            }, 30000);
         });
     </script>
 </body>

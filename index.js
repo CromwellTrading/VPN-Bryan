@@ -7,16 +7,29 @@ require('dotenv').config();
 
 // ========== CONFIGURACIÓN INICIAL ==========
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const PORT = process.env.PORT || 10000; // Usa 10000 como default
-const ADMIN_CHAT_ID = process.env.ADMIN_ID || process.env.ADMIN_CHAT_ID; // Soporta ambos nombres
+// Render asigna el puerto automáticamente, no lo definas en .env
+const PORT = process.env.PORT || 3000;
+// Acepta ambos nombres de variable para admin
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || process.env.ADMIN_ID;
 const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutos
-const WEBAPP_URL = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+// Usa la URL de Render si está definida, o localhost para desarrollo
+const WEBAPP_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
 const WHATSAPP_GROUP_URL = process.env.WHATSAPP_GROUP_URL || 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc';
 
 if (!BOT_TOKEN) {
   console.error('❌ Error: Faltan variables de entorno BOT_TOKEN');
   process.exit(1);
 }
+
+// Verificar admin ID
+if (!ADMIN_CHAT_ID) {
+  console.warn('⚠️  ADVERTENCIA: ADMIN_CHAT_ID no está definido');
+}
+
+console.log('📋 Configuración cargada:');
+console.log(`   - Puerto: ${PORT}`);
+console.log(`   - Web URL: ${WEBAPP_URL}`);
+console.log(`   - Admin ID: ${ADMIN_CHAT_ID || 'No definido'}`);
 
 // Inicializar bot y Express
 const bot = new Telegraf(BOT_TOKEN);
@@ -63,19 +76,21 @@ async function keepAlive() {
     
     // Opción 1: Hacer ping a la propia aplicación
     try {
-      const response = await fetch(`${WEBAPP_URL}/health`);
-      console.log(`✅ Health check: ${response.status}`);
+      const healthUrl = `${WEBAPP_URL}/health`;
+      console.log(`   Health check en: ${healthUrl}`);
+      const response = await fetch(healthUrl);
+      console.log(`   ✅ Health check: ${response.status}`);
     } catch (error) {
-      console.log('⚠️ No se pudo hacer health check interno:', error.message);
+      console.log(`   ⚠️ No se pudo hacer health check: ${error.message}`);
     }
     
     // Opción 2: Ejecutar una consulta simple a la base de datos
-    const userCount = await db.getAllUsers();
-    console.log(`✅ Keep-alive ejecutado. Usuarios totales: ${userCount.length}`);
-    
-    // Opción 3: Enviar un mensaje de log al admin si hay usuarios
-    if (ADMIN_CHAT_ID && userCount.length > 0) {
-      try {
+    try {
+      const userCount = await db.getAllUsers();
+      console.log(`   ✅ Usuarios totales: ${userCount.length}`);
+      
+      // Opción 3: Enviar un mensaje de log al admin si hay usuarios
+      if (ADMIN_CHAT_ID && userCount.length > 0) {
         const vipUsers = userCount.filter(u => u.vip).length;
         const trialPending = userCount.filter(u => u.trial_requested && !u.trial_received).length;
         
@@ -86,12 +101,13 @@ async function keepAlive() {
           `👑 VIP: ${vipUsers}\n` +
           `⏳ Pruebas pendientes: ${trialPending}\n` +
           `🕐 Último check: ${new Date().toLocaleTimeString('es-ES')}`
-        );
-      } catch (error) {
-        console.log('⚠️ No se pudo enviar mensaje de keep-alive al admin');
+        ).catch(err => console.log('   ⚠️ No se pudo enviar mensaje al admin'));
       }
+    } catch (error) {
+      console.log(`   ⚠️ Error en consulta DB: ${error.message}`);
     }
     
+    console.log('   ✅ Keep-alive completado');
   } catch (error) {
     console.error('❌ Error en keep-alive:', error.message);
   }
@@ -124,7 +140,7 @@ bot.start(async (ctx) => {
       await ctx.reply(
         '👑 *Modo Administrador Activado*\n' +
         'Puedes acceder al panel de administración en:\n' +
-        `${WEBAPP_URL}/admin.html`,
+        `${WEBAPP_URL}/admin.html?admin=true&userId=${ADMIN_CHAT_ID}`,
         { parse_mode: 'Markdown' }
       );
     }
@@ -136,13 +152,13 @@ bot.start(async (ctx) => {
 
 // Comando /admin (solo para administradores)
 bot.command('admin', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
+  if (!ADMIN_CHAT_ID || ctx.from.id.toString() !== ADMIN_CHAT_ID) {
     return ctx.reply('❌ No tienes permisos de administrador.');
   }
 
   const adminMessage = `👑 *Panel de Administración*\n\n` +
     `Accede al panel completo en:\n` +
-    `${WEBAPP_URL}/admin.html\n\n` +
+    `${WEBAPP_URL}/admin.html?admin=true&userId=${ADMIN_CHAT_ID}\n\n` +
     `Comandos disponibles:\n` +
     `/stats - Ver estadísticas rápidas\n` +
     `/users - Contar usuarios\n` +
@@ -154,7 +170,7 @@ bot.command('admin', async (ctx) => {
 
 // Comando /stats (solo para administradores)
 bot.command('stats', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
+  if (!ADMIN_CHAT_ID || ctx.from.id.toString() !== ADMIN_CHAT_ID) {
     return ctx.reply('❌ No tienes permisos de administrador.');
   }
 
@@ -182,7 +198,7 @@ bot.command('stats', async (ctx) => {
 
 // Comando /users (solo para administradores)
 bot.command('users', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
+  if (!ADMIN_CHAT_ID || ctx.from.id.toString() !== ADMIN_CHAT_ID) {
     return ctx.reply('❌ No tienes permisos de administrador.');
   }
 
@@ -210,7 +226,7 @@ bot.command('users', async (ctx) => {
 
 // Comando /pending (solo para administradores)
 bot.command('pending', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
+  if (!ADMIN_CHAT_ID || ctx.from.id.toString() !== ADMIN_CHAT_ID) {
     return ctx.reply('❌ No tienes permisos de administrador.');
   }
 
@@ -247,7 +263,7 @@ bot.command('pending', async (ctx) => {
 
 // Comando /trialpending (solo para administradores)
 bot.command('trialpending', async (ctx) => {
-  if (ctx.from.id.toString() !== ADMIN_CHAT_ID) {
+  if (!ADMIN_CHAT_ID || ctx.from.id.toString() !== ADMIN_CHAT_ID) {
     return ctx.reply('❌ No tienes permisos de administrador.');
   }
 
@@ -580,7 +596,7 @@ bot.on('photo', async (ctx) => {
         `*Plan:* ${ctx.session.selectedPlan}\n` +
         `*Monto:* ${ctx.session.selectedPrice} CUP\n` +
         `*Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
-        `Ver en panel: ${WEBAPP_URL}/admin.html`;
+        `Ver en panel: ${WEBAPP_URL}/admin.html?admin=true&userId=${ADMIN_CHAT_ID}`;
       
       await bot.telegram.sendMessage(ADMIN_CHAT_ID, adminNotification, { parse_mode: 'Markdown' });
       
@@ -658,7 +674,7 @@ bot.on('text', async (ctx) => {
           `*📡 Conexión:* ${connection}\n` +
           `*⏰ Tipo:* 1 hora\n` +
           `*📅 Fecha:* ${new Date().toLocaleString('es-ES')}\n\n` +
-          `Enviar configuración desde: ${WEBAPP_URL}/admin.html`;
+          `Enviar configuración desde: ${WEBAPP_URL}/admin.html?admin=true&userId=${ADMIN_CHAT_ID}`;
         
         await bot.telegram.sendMessage(ADMIN_CHAT_ID, adminNotification, { parse_mode: 'Markdown' });
       }
@@ -1080,7 +1096,7 @@ app.post('/api/remove-vip', requireAdmin, async (req, res) => {
   }
 });
 
-// Endpoint de health check
+// Endpoint de health check (importante para Render)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -1088,12 +1104,44 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     env: process.env.NODE_ENV,
-    bot: 'running'
+    bot: 'running',
+    port: PORT,
+    url: WEBAPP_URL
   });
 });
 
 // Servir archivos estáticos
 app.use(express.static('public'));
+
+// Ruta raíz para verificar que el servidor está funcionando
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>VPN Cuba Bot</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        .status { background: #4CAF50; color: white; padding: 10px; border-radius: 5px; }
+        .info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <h1>🤖 VPN Cuba Bot</h1>
+      <div class="status">✅ Servidor funcionando correctamente</div>
+      <div class="info">
+        <p><strong>URL:</strong> ${WEBAPP_URL}</p>
+        <p><strong>Puerto:</strong> ${PORT}</p>
+        <p><strong>Bot:</strong> Activo</p>
+        <p><strong>Base de datos:</strong> Conectada</p>
+      </div>
+      <p><a href="/admin.html">Panel de administración</a></p>
+      <p><a href="/health">Health Check</a></p>
+    </body>
+    </html>
+  `);
+});
 
 // ========== MANEJO DE ERRORES DEL BOT ==========
 
@@ -1108,22 +1156,18 @@ bot.catch((err, ctx) => {
 
 async function start() {
   try {
-    console.log('🤖 Iniciando bot...');
+    console.log('🚀 Iniciando aplicación VPN Cuba Bot...');
     
-    // Iniciar el bot primero
-    await bot.launch();
-    console.log('✅ Bot iniciado correctamente');
-    
-    // Iniciar servidor Express
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
-      console.log(`🌐 URL pública: ${WEBAPP_URL}`);
+    // Iniciar servidor Express PRIMERO (importante para Render)
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Servidor Express iniciado en puerto ${PORT}`);
+      console.log(`🌐 URL: ${WEBAPP_URL}`);
       console.log(`📊 Panel admin: ${WEBAPP_URL}/admin.html`);
       console.log(`🫀 Health check: ${WEBAPP_URL}/health`);
       
-      // Ahora iniciar keep-alive después de que el servidor esté corriendo
-      if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
-        console.log('🚀 Iniciando keep-alive cada 5 minutos...');
+      // Iniciar keep-alive después de que el servidor esté corriendo
+      if (process.env.NODE_ENV === 'production') {
+        console.log('🫀 Iniciando keep-alive cada 5 minutos...');
         setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
         
         // Ejecutar keep-alive después de 10 segundos
@@ -1131,20 +1175,10 @@ async function start() {
       }
     });
     
-    // Para evitar que el proceso se cierre por inactividad en Render/railway
-    process.on('SIGTERM', () => {
-      console.log('🔴 Recibido SIGTERM, cerrando bot...');
-      bot.stop('SIGTERM');
-      server.close();
-      process.exit(0);
-    });
-
-    process.on('SIGINT', () => {
-      console.log('🔴 Recibido SIGINT, cerrando bot...');
-      bot.stop('SIGINT');
-      server.close();
-      process.exit(0);
-    });
+    // Luego iniciar el bot de Telegram
+    console.log('🤖 Iniciando bot de Telegram...');
+    await bot.launch();
+    console.log('✅ Bot de Telegram iniciado correctamente');
     
     // Mensaje de inicio al admin
     if (ADMIN_CHAT_ID) {
@@ -1167,8 +1201,23 @@ async function start() {
       }, 5000);
     }
     
+    // Manejo de señales para apagado limpio
+    process.on('SIGTERM', () => {
+      console.log('🔴 Recibido SIGTERM, cerrando bot...');
+      bot.stop('SIGTERM');
+      server.close();
+      process.exit(0);
+    });
+
+    process.on('SIGINT', () => {
+      console.log('🔴 Recibido SIGINT, cerrando bot...');
+      bot.stop('SIGINT');
+      server.close();
+      process.exit(0);
+    });
+    
   } catch (error) {
-    console.error('❌ Error al iniciar:', error);
+    console.error('❌ Error al iniciar la aplicación:', error);
     process.exit(1);
   }
 }

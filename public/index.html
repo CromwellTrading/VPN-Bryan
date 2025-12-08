@@ -19,6 +19,9 @@
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
+            --whatsapp: #25D366;
+            --whatsapp-dark: #128C7E;
+            --whatsapp-glow: rgba(37, 211, 102, 0.3);
         }
 
         * {
@@ -176,6 +179,16 @@
         .btn-admin:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, var(--whatsapp), var(--whatsapp-dark));
+            color: white;
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px var(--whatsapp-glow);
         }
 
         /* LOADING */
@@ -661,6 +674,12 @@
                 <a id="statusBtn" class="btn btn-secondary" href="#">
                     <i class="fas fa-crown"></i>
                     <span>Mi Estado VIP</span>
+                </a>
+                
+                <!-- NUEVO BOTÓN DE WHATSAPP -->
+                <a class="btn btn-whatsapp" href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc" target="_blank">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>Grupo WhatsApp</span>
                 </a>
                 
                 <a id="adminBtn" class="btn btn-admin" href="#" style="display: none;">

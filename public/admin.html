@@ -25,6 +25,8 @@
             --trial-light: #34d399;
             --trial-glow: rgba(16, 185, 129, 0.4);
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --game-color: #8b5cf6;
+            --connection-color: #3b82f6;
         }
 
         * {
@@ -43,7 +45,7 @@
 
         /* CONTAINER */
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -218,6 +220,12 @@
         .stat-card.trial-pending .stat-value { color: var(--trial-light); }
         .stat-card.trial-pending .stat-icon { color: var(--trial-light); }
 
+        .stat-card.games .stat-value { color: var(--game-color); }
+        .stat-card.games .stat-icon { color: var(--game-color); }
+        
+        .stat-card.connections .stat-value { color: var(--connection-color); }
+        .stat-card.connections .stat-icon { color: var(--connection-color); }
+
         /* TABLAS */
         .table-container {
             overflow-x: auto;
@@ -302,6 +310,18 @@
             background: rgba(156, 163, 175, 0.2);
             color: #9ca3af;
             border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .badge.game {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .badge.connection {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
         }
 
         @keyframes pulse {
@@ -646,6 +666,96 @@
             margin-right: 10px;
             color: var(--trial-light);
         }
+
+        /* INFORMACIÓN ADICIONAL DE PRUEBAS */
+        .trial-info-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .trial-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+
+        .trial-info-item.game {
+            border-left-color: var(--game-color);
+        }
+
+        .trial-info-item.connection {
+            border-left-color: var(--connection-color);
+        }
+
+        .trial-info-icon {
+            font-size: 1.2rem;
+            width: 30px;
+            text-align: center;
+        }
+
+        .trial-info-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .trial-info-label {
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .trial-info-value {
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        /* ENCABEZADO DE INFORMACIÓN DE PRUEBA */
+        .trial-detail-header {
+            padding: 15px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .trial-detail-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: var(--trial-light);
+            font-size: 1.1rem;
+        }
+
+        .trial-detail-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .trial-detail-item {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .trial-detail-label {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .trial-detail-value {
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -656,16 +766,17 @@
                 <i class="fas fa-shield-alt logo-icon"></i>
                 <h1 class="title">VPN CUBA ADMIN</h1>
             </div>
-            <p class="subtitle">Panel de administración - Gestión de usuarios y pagos</p>
+            <p class="subtitle">Panel de administración - Gestión de usuarios, pagos y pruebas gratuitas</p>
         </header>
 
         <!-- TABS -->
         <div class="tabs">
             <div class="tab active" data-tab="stats">📊 Estadísticas</div>
-            <div class="tab" data-tab="pending">⏳ Pendientes</div>
+            <div class="tab" data-tab="pending">⏳ Pagos Pendientes</div>
             <div class="tab" data-tab="trial-pending">🎯 Pruebas Pendientes</div>
-            <div class="tab" data-tab="approved">✅ Aprobados</div>
+            <div class="tab" data-tab="approved">✅ Pagos Aprobados</div>
             <div class="tab" data-tab="users">👥 Usuarios</div>
+            <div class="tab" data-tab="games">🎮 Juegos/Servidores</div>
         </div>
 
         <!-- ESTADÍSTICAS -->
@@ -705,6 +816,18 @@
                     <i class="fas fa-money-bill-wave stat-icon"></i>
                     <div class="stat-value" id="totalRevenue">0</div>
                     <div class="stat-label">Ingresos Totales (CUP)</div>
+                </div>
+                
+                <div class="stat-card games">
+                    <i class="fas fa-gamepad stat-icon"></i>
+                    <div class="stat-value" id="totalGames">0</div>
+                    <div class="stat-label">Juegos Registrados</div>
+                </div>
+                
+                <div class="stat-card connections">
+                    <i class="fas fa-wifi stat-icon"></i>
+                    <div class="stat-value" id="totalConnections">0</div>
+                    <div class="stat-label">Tipos de Conexión</div>
                 </div>
             </div>
             
@@ -807,7 +930,7 @@
                 <div class="info-box">
                     <i class="fas fa-info-circle"></i>
                     Estos usuarios solicitaron una prueba gratuita y están esperando el archivo de configuración.
-                    Envía el archivo .conf, .zip o .rar para completar la solicitud.
+                    Cada solicitud incluye información del juego/servidor y tipo de conexión.
                 </div>
                 
                 <div class="loading" id="trialLoading">
@@ -821,6 +944,8 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Usuario</th>
+                                <th>🎮 Juego/Servidor</th>
+                                <th>📡 Conexión</th>
                                 <th>Solicitado</th>
                                 <th>Tipo</th>
                                 <th>Estado</th>
@@ -914,6 +1039,8 @@
                                 <th>Usuario</th>
                                 <th>VIP</th>
                                 <th>Prueba</th>
+                                <th>🎮 Juego</th>
+                                <th>📡 Conexión</th>
                                 <th>Registro</th>
                                 <th>Acciones</th>
                             </tr>
@@ -927,6 +1054,54 @@
                 <div class="no-data" id="usersNoData" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
                     <i class="fas fa-user-slash" style="font-size: 3rem; margin-bottom: 20px;"></i>
                     <p>No hay usuarios registrados</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- JUEGOS/SERVIDORES -->
+        <div id="gamesContent" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-gamepad"></i>
+                        Juegos/Servidores Solicitados
+                    </h2>
+                    <button class="refresh-btn" onclick="loadGamesStats()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    Estadísticas de juegos y servidores más solicitados por los usuarios para pruebas gratuitas.
+                </div>
+                
+                <div class="loading" id="gamesLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando estadísticas de juegos...</p>
+                </div>
+                
+                <div class="table-container">
+                    <table id="gamesTable">
+                        <thead>
+                            <tr>
+                                <th>🎮 Juego/Servidor</th>
+                                <th>Solicitudes</th>
+                                <th>📡 Tipo de Conexión</th>
+                                <th>Última Solicitud</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gamesTableBody">
+                            <!-- Datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="no-data" id="gamesNoData" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-gamepad" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                    <p>No hay datos de juegos/servidores</p>
                 </div>
             </div>
         </div>
@@ -996,15 +1171,57 @@
                 <button class="close-modal" onclick="closeTrialConfigModal()">&times;</button>
             </div>
             <div class="config-form">
-                <p><strong>Usuario:</strong> <span id="trialConfigUserId"></span></p>
-                <p><strong>Nombre:</strong> <span id="trialConfigName"></span></p>
-                <p><strong>Solicitado:</strong> <span id="trialConfigDate"></span></p>
-                <p><strong>Tipo:</strong> <span id="trialConfigType"></span></p>
+                <div class="trial-detail-header">
+                    <div class="trial-detail-title">
+                        <i class="fas fa-gift"></i>
+                        Información de la Prueba
+                    </div>
+                    <div class="trial-detail-content">
+                        <div class="trial-detail-item">
+                            <div class="trial-detail-label">Usuario:</div>
+                            <div class="trial-detail-value" id="trialConfigUserId"></div>
+                        </div>
+                        <div class="trial-detail-item">
+                            <div class="trial-detail-label">Nombre:</div>
+                            <div class="trial-detail-value" id="trialConfigName"></div>
+                        </div>
+                        <div class="trial-detail-item">
+                            <div class="trial-detail-label">Solicitado:</div>
+                            <div class="trial-detail-value" id="trialConfigDate"></div>
+                        </div>
+                        <div class="trial-detail-item">
+                            <div class="trial-detail-label">Tipo:</div>
+                            <div class="trial-detail-value" id="trialConfigType"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="trial-info-container">
+                    <div class="trial-info-item game">
+                        <div class="trial-info-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div class="trial-info-text">
+                            <span class="trial-info-label">Juego/Servidor:</span>
+                            <span class="trial-info-value" id="trialConfigGame"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="trial-info-item connection">
+                        <div class="trial-info-icon">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="trial-info-text">
+                            <span class="trial-info-label">Tipo de Conexión:</span>
+                            <span class="trial-info-value" id="trialConfigConnection"></span>
+                        </div>
+                    </div>
+                </div>
                 
                 <div style="margin-bottom: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
                     <p style="color: #34d399; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i>
-                        Archivo .conf para 1 hora de prueba
+                        Archivo .conf, .zip o .rar para 1 hora de prueba
                     </p>
                 </div>
                 
@@ -1097,8 +1314,45 @@
                 document.getElementById('pendingPaymentsCount').textContent = stats.payments?.pending || 0;
                 document.getElementById('totalRevenue').textContent = stats.revenue?.total || 0;
                 document.getElementById('trialPendingCount').textContent = stats.users?.trial_pending || 0;
+                
+                // Cargar estadísticas de juegos y conexiones
+                loadGamesAndConnectionsStats();
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
+            }
+        }
+
+        // Cargar estadísticas de juegos y conexiones
+        async function loadGamesAndConnectionsStats() {
+            try {
+                console.log('🎮 Cargando estadísticas de juegos y conexiones...');
+                const response = await fetch('/api/trials/pending');
+                const trials = await response.json();
+                
+                if (!trials || trials.length === 0) {
+                    document.getElementById('totalGames').textContent = '0';
+                    document.getElementById('totalConnections').textContent = '0';
+                    return;
+                }
+                
+                // Contar juegos únicos
+                const uniqueGames = new Set();
+                const uniqueConnections = new Set();
+                
+                trials.forEach(trial => {
+                    if (trial.trial_info?.game_server) {
+                        uniqueGames.add(trial.trial_info.game_server);
+                    }
+                    if (trial.trial_info?.connection_type) {
+                        uniqueConnections.add(trial.trial_info.connection_type);
+                    }
+                });
+                
+                document.getElementById('totalGames').textContent = uniqueGames.size;
+                document.getElementById('totalConnections').textContent = uniqueConnections.size;
+                
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas de juegos:', error);
             }
         }
 
@@ -1202,6 +1456,8 @@
                 trials.forEach(trial => {
                     const daysAgo = trial.trial_info?.days_ago || 0;
                     const trialDate = trial.trial_requested_at ? new Date(trial.trial_requested_at).toLocaleDateString('es-ES') : 'N/A';
+                    const gameServer = trial.trial_info?.game_server || 'No especificado';
+                    const connectionType = trial.trial_info?.connection_type || 'No especificado';
                     
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -1210,12 +1466,29 @@
                             <strong>${trial.first_name || trial.username || 'Usuario'}</strong><br>
                             <small>@${trial.username || 'sin_usuario'}</small>
                         </td>
+                        <td>
+                            <span class="badge game" title="${gameServer}">
+                                <i class="fas fa-gamepad"></i> ${truncateText(gameServer, 20)}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge connection" title="${connectionType}">
+                                <i class="fas fa-wifi"></i> ${truncateText(connectionType, 15)}
+                            </span>
+                        </td>
                         <td>${trialDate}</td>
                         <td>${trial.trial_plan_type || '1h'}</td>
                         <td><span class="badge trial-pending">Pendiente</span></td>
                         <td>${daysAgo} días</td>
                         <td>
-                            <button class="action-btn send-trial" onclick="openTrialConfigModal('${trial.telegram_id}', '${trial.first_name || trial.username || 'Usuario'}', '${trialDate}', '${trial.trial_plan_type || '1h'}')">
+                            <button class="action-btn send-trial" onclick="openTrialConfigModal(
+                                '${trial.telegram_id}', 
+                                '${trial.first_name || trial.username || 'Usuario'}', 
+                                '${trialDate}', 
+                                '${trial.trial_plan_type || '1h'}',
+                                '${escapeText(gameServer)}',
+                                '${escapeText(connectionType)}'
+                            )">
                                 <i class="fas fa-gift"></i> Enviar
                             </button>
                             <button class="action-btn message" onclick="sendMessageToUser('${trial.telegram_id}')">
@@ -1328,6 +1601,9 @@
                             '<span class="badge trial-pending">Prueba Pendiente</span>') : 
                         '';
                     
+                    const gameServer = user.trial_game_server || '';
+                    const connectionType = user.trial_connection_type || '';
+                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${user.telegram_id || 'N/A'}</td>
@@ -1341,6 +1617,22 @@
                             }
                         </td>
                         <td>${trialBadge}</td>
+                        <td>
+                            ${gameServer ? 
+                                `<span class="badge game" title="${gameServer}">
+                                    <i class="fas fa-gamepad"></i> ${truncateText(gameServer, 15)}
+                                </span>` : 
+                                '-'
+                            }
+                        </td>
+                        <td>
+                            ${connectionType ? 
+                                `<span class="badge connection" title="${connectionType}">
+                                    <i class="fas fa-wifi"></i> ${truncateText(connectionType, 10)}
+                                </span>` : 
+                                '-'
+                            }
+                        </td>
                         <td>${user.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             <button class="action-btn message" onclick="sendMessageToUser('${user.telegram_id}')">
@@ -1364,6 +1656,111 @@
                 document.getElementById('usersLoading').style.display = 'none';
                 showNotification('❌ Error cargando usuarios: ' + error.message, 'error');
             }
+        }
+
+        // Cargar estadísticas de juegos
+        async function loadGamesStats() {
+            try {
+                document.getElementById('gamesLoading').style.display = 'block';
+                document.getElementById('gamesTable').style.display = 'none';
+                document.getElementById('gamesNoData').style.display = 'none';
+                
+                console.log('🎮 Cargando estadísticas de juegos...');
+                const response = await fetch('/api/trials/pending');
+                const trials = await response.json();
+                
+                console.log(`📊 Pruebas recibidas para estadísticas (${trials.length}):`);
+                
+                document.getElementById('gamesLoading').style.display = 'none';
+                
+                if (!trials || trials.length === 0) {
+                    console.log('📭 No hay datos de juegos');
+                    document.getElementById('gamesNoData').style.display = 'block';
+                    return;
+                }
+                
+                // Agrupar por juego/servidor
+                const gamesMap = new Map();
+                
+                trials.forEach(trial => {
+                    const gameServer = trial.trial_info?.game_server || 'No especificado';
+                    const connectionType = trial.trial_info?.connection_type || 'No especificado';
+                    const requestedAt = trial.trial_requested_at;
+                    
+                    if (!gamesMap.has(gameServer)) {
+                        gamesMap.set(gameServer, {
+                            game: gameServer,
+                            requests: 0,
+                            connections: new Set(),
+                            lastRequest: requestedAt
+                        });
+                    }
+                    
+                    const gameData = gamesMap.get(gameServer);
+                    gameData.requests++;
+                    gameData.connections.add(connectionType);
+                    
+                    // Actualizar última solicitud si es más reciente
+                    if (requestedAt && gameData.lastRequest && new Date(requestedAt) > new Date(gameData.lastRequest)) {
+                        gameData.lastRequest = requestedAt;
+                    }
+                });
+                
+                // Convertir a array y ordenar por número de solicitudes
+                const gamesArray = Array.from(gamesMap.values()).sort((a, b) => b.requests - a.requests);
+                
+                const tableBody = document.getElementById('gamesTableBody');
+                tableBody.innerHTML = '';
+                
+                gamesArray.forEach(game => {
+                    const lastRequest = game.lastRequest ? new Date(game.lastRequest).toLocaleDateString('es-ES') : 'N/A';
+                    const connections = Array.from(game.connections).join(', ');
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>
+                            <strong>${truncateText(game.game, 30)}</strong>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #a78bfa;">
+                                ${game.requests} solicitudes
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge connection" title="${connections}">
+                                <i class="fas fa-wifi"></i> ${truncateText(connections, 20)}
+                            </span>
+                        </td>
+                        <td>${lastRequest}</td>
+                        <td>
+                            <button class="action-btn message" onclick="searchUsersByGame('${escapeText(game.game)}')">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                document.getElementById('gamesTable').style.display = 'table';
+                
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas de juegos:', error);
+                document.getElementById('gamesLoading').style.display = 'none';
+                showNotification('❌ Error cargando estadísticas de juegos: ' + error.message, 'error');
+            }
+        }
+
+        // Buscar usuarios por juego
+        async function searchUsersByGame(game) {
+            // Cambiar a pestaña de usuarios
+            switchTab('users');
+            
+            // Mostrar mensaje de búsqueda
+            showNotification(`🔍 Buscando usuarios con juego: ${game}`, 'info');
+            
+            // Aquí podrías implementar una búsqueda más específica si la API lo permite
+            // Por ahora, simplemente cargamos todos los usuarios
+            loadUsers();
         }
 
         // Ver captura de pantalla
@@ -1395,15 +1792,19 @@
         }
 
         // Abrir modal de configuración para prueba
-        function openTrialConfigModal(telegramId, name, date, trialType) {
+        function openTrialConfigModal(telegramId, name, date, trialType, gameServer, connectionType) {
             currentTrialUserId = telegramId;
             
             console.log(`🎁 Abriendo modal para enviar configuración de prueba a ${telegramId}`);
+            console.log(`🎮 Juego/Servidor: ${gameServer}`);
+            console.log(`📡 Conexión: ${connectionType}`);
             
             document.getElementById('trialConfigUserId').textContent = telegramId;
             document.getElementById('trialConfigName').textContent = name;
             document.getElementById('trialConfigDate').textContent = date;
             document.getElementById('trialConfigType').textContent = trialType;
+            document.getElementById('trialConfigGame').textContent = gameServer;
+            document.getElementById('trialConfigConnection').textContent = connectionType;
             
             document.getElementById('trialConfigModal').classList.add('active');
         }
@@ -1578,11 +1979,15 @@
             
             console.log(`🎁 Enviando archivo de prueba ${file.name} a ${currentTrialUserId}...`);
             
+            const gameServer = document.getElementById('trialConfigGame').textContent;
+            const connectionType = document.getElementById('trialConfigConnection').textContent;
+            const trialType = document.getElementById('trialConfigType').textContent;
+            
             const formData = new FormData();
             formData.append('trialConfigFile', file);
             formData.append('telegramId', currentTrialUserId);
             formData.append('adminId', currentUserId);
-            formData.append('trialType', document.getElementById('trialConfigType').textContent);
+            formData.append('trialType', trialType);
             
             try {
                 const response = await fetch('/api/send-trial-config', {
@@ -1597,11 +2002,18 @@
                     try {
                         const data = JSON.parse(responseText);
                         console.log('✅ Configuración de prueba enviada:', data);
-                        showNotification('✅ Configuración de prueba enviada correctamente', 'success');
+                        
+                        const successMessage = `✅ Configuración de prueba enviada correctamente\n\n` +
+                                             `🎮 *Juego/Servidor:* ${gameServer}\n` +
+                                             `📡 *Conexión:* ${connectionType}\n` +
+                                             `⏰ *Duración:* ${trialType}`;
+                        
+                        showNotification(successMessage, 'success');
                         closeTrialConfigModal();
                         loadPendingTrials();
                         loadTrialStats();
                         loadStats();
+                        loadGamesAndConnectionsStats();
                     } catch (jsonError) {
                         console.error('❌ Error parseando JSON:', jsonError);
                         showNotification('✅ Archivo de prueba enviado', 'success');
@@ -1701,7 +2113,7 @@
             
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 3000);
+            }, 5000);
         }
 
         // Cambiar pestañas
@@ -1738,6 +2150,9 @@
                 case 'users':
                     loadUsers();
                     break;
+                case 'games':
+                    loadGamesStats();
+                    break;
                 case 'stats':
                     loadStats();
                     loadTrialStats();
@@ -1753,6 +2168,24 @@
                 'vip': 'VIP (6 meses)'
             };
             return plans[planType] || planType;
+        }
+
+        // Truncar texto
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+
+        // Escapar texto para uso en atributos HTML
+        function escapeText(text) {
+            if (!text) return '';
+            return text
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, ' ')
+                .replace(/\r/g, ' ')
+                .replace(/\t/g, ' ');
         }
 
         // Inicializar página

@@ -133,17 +133,17 @@ function formatearFecha(fecha) {
     });
 }
 
-// Función para crear menú principal
+// Función para crear menú principal (SIN BOTÓN DE PRUEBA GRATIS)
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
-    // Crear teclado BASE para TODOS los usuarios
+    // Crear teclado BASE para TODOS los usuarios (SIN PRUEBA GRATIS)
     const keyboard = [
         [
             { 
-                text: '🎁 PRUEBA GRATIS', 
+                text: '📋 VER PLANES', 
                 web_app: { url: plansUrl }
             },
             {
@@ -152,16 +152,10 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             }
         ],
         [
-            { 
-                text: '📋 VER PLANES', 
-                web_app: { url: plansUrl }
-            },
             {
                 text: '💻 DESCARGAR WIREGUARD',
                 callback_data: 'download_wireguard'
-            }
-        ],
-        [
+            },
             {
                 text: '🆘 SOPORTE',
                 url: 'https://t.me/L0quen2'
@@ -1140,9 +1134,9 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// ==================== BOT DE TELEGRAM - ACTUALIZADO ====================
+// ==================== BOT DE TELEGRAM - ACTUALIZADO (SIN PRUEBA DESDE BOT) ====================
 
-// Comando /start con todos los botones visibles
+// Comando /start con todos los botones visibles (SIN PRUEBA GRATIS)
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
@@ -1624,7 +1618,7 @@ bot.action('check_status', async (ctx) => {
     }
 });
 
-// Botón: Iniciar Broadcast (solo admin) - CORREGIDO
+// Botón: Iniciar Broadcast (solo admin) - CORREGIDO Y MEJORADO
 bot.action('start_broadcast', async (ctx) => {
     const userId = ctx.from.id.toString();
     
@@ -1667,144 +1661,175 @@ bot.action('start_broadcast', async (ctx) => {
     }
 });
 
-// Botón: Solicitar Prueba Gratuita desde el bot - ACTUALIZADO
-bot.action('request_trial', async (ctx) => {
+// Botón: Confirmar Broadcast - VERSIÓN CORREGIDA
+bot.action('confirm_broadcast', async (ctx) => {
     const userId = ctx.from.id.toString();
-    const username = ctx.from.username;
-    const firstName = ctx.from.first_name;
     
-    console.log(`🎯 Usuario ${userId} solicita prueba gratuita desde bot`);
-    
-    // Verificar elegibilidad
-    const eligibility = await db.checkTrialEligibility(userId);
-    
-    if (!eligibility.eligible) {
-        await ctx.answerCbQuery(`❌ ${eligibility.reason}`);
+    if (!isAdmin(userId)) {
+        await ctx.answerCbQuery('❌ NO AUTORIZADO');
         return;
     }
     
-    // Pedir información adicional al usuario
+    const broadcastMessage = ctx.session?.pendingBroadcast;
+    if (!broadcastMessage) {
+        await ctx.answerCbQuery('❌ NO HAY MENSAJE PARA ENVIAR');
+        return;
+    }
+    
     try {
+        // Obtener usuarios usando una función más simple
+        let users = [];
+        try {
+            users = await db.getAllUsers();
+            console.log(`📢 Usuarios obtenidos para broadcast: ${users.length}`);
+            
+            if (users.length === 0) {
+                await ctx.editMessageText(
+                    `❌ *NO HAY USUARIOS REGISTRADOS*\n\nNo se puede enviar broadcast sin usuarios.`,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: { inline_keyboard: [] }
+                    }
+                );
+                return;
+            }
+        } catch (error) {
+            console.error('❌ Error obteniendo usuarios:', error);
+            await ctx.editMessageText(
+                `❌ *ERROR OBTENIENDO USUARIOS*\n\n${error.message}`,
+                { 
+                    parse_mode: 'Markdown',
+                    reply_markup: { inline_keyboard: [] }
+                }
+            );
+            return;
+        }
+        
+        const totalUsers = users.length;
+        
         await ctx.editMessageText(
-            `¡Perfecto! Para enviarte tu configuración de prueba y que experimentes la mejora de ping, necesitamos saber dónde sueles jugar:\n\n` +
-            `1️⃣ *¿A qué juego/servidor quieres conectarte?*\n(Ej: Free Fire - EE. UU., Call of Duty - Europa, etc.)\n\n` +
-            `2️⃣ *¿Estás conectado por WiFi o cable Ethernet, Datos Móviles?*\n(Recomendamos cable para el mejor ping)\n\n` +
-            `*Responde con el siguiente formato:*\n` +
-            `Juego: [tu juego/servidor]\n` +
-            `Conexión: [WiFi/Cable Ethernet/Datos Móviles]`,
+            `📢 *ENVIANDO BROADCAST* 📤\n\n` +
+            `Enviando mensaje a ${totalUsers} usuarios...\n` +
+            `Por favor, espera. Esto puede tomar unos minutos.\n\n` +
+            `⏳ *PROGRESO:* 0/${totalUsers}`,
+            { 
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard: [] }
+            }
+        );
+        
+        let successCount = 0;
+        let failCount = 0;
+        const failedUsers = [];
+        
+        for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            
+            try {
+                // Verificar que tenga telegram_id
+                if (!user.telegram_id) {
+                    console.log(`⚠️ Usuario sin telegram_id, saltando...`);
+                    failCount++;
+                    continue;
+                }
+                
+                await bot.telegram.sendMessage(
+                    user.telegram_id,
+                    `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${broadcastMessage}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
+                    { parse_mode: 'Markdown' }
+                );
+                successCount++;
+                
+                // Actualizar progreso cada 5 usuarios
+                if ((i + 1) % 5 === 0 || i === users.length - 1) {
+                    try {
+                        await ctx.telegram.editMessageText(
+                            ctx.chat.id,
+                            ctx.callbackQuery.message.message_id,
+                            null,
+                            `📢 *ENVIANDO BROADCAST* 📤\n\n` +
+                            `⏳ *PROGRESO:* ${i + 1}/${totalUsers}\n` +
+                            `✅ Enviados: ${successCount}\n` +
+                            `❌ Fallados: ${failCount}`,
+                            { parse_mode: 'Markdown' }
+                        );
+                    } catch (editError) {
+                        console.log('Error actualizando mensaje:', editError.message);
+                    }
+                }
+                
+                // Pequeña pausa para no saturar
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+            } catch (error) {
+                console.error(`❌ Error enviando a ${user.telegram_id || 'sin ID'}:`, error.message);
+                failCount++;
+                failedUsers.push({
+                    id: user.telegram_id,
+                    name: user.first_name || 'Sin nombre',
+                    error: error.message
+                });
+            }
+        }
+        
+        delete ctx.session.pendingBroadcast;
+        
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, true);
+        
+        let resultMessage = `✅ *BROADCAST COMPLETADO* 📤\n\n`;
+        resultMessage += `📊 *ESTADÍSTICAS:*\n`;
+        resultMessage += `• Total de usuarios: ${totalUsers}\n`;
+        resultMessage += `• Mensajes enviados: ${successCount}\n`;
+        resultMessage += `• Mensajes fallados: ${failCount}\n`;
+        
+        if (totalUsers > 0) {
+            resultMessage += `• Tasa de éxito: ${((successCount / totalUsers) * 100).toFixed(1)}%\n\n`;
+        }
+        
+        if (failedUsers.length > 0) {
+            resultMessage += `⚠️ *Usuarios con error (${failedUsers.length}):*\n`;
+            failedUsers.slice(0, 5).forEach(u => {
+                resultMessage += `• ${u.name} (${u.id}): ${u.error.substring(0, 30)}...\n`;
+            });
+            if (failedUsers.length > 5) {
+                resultMessage += `• ... y ${failedUsers.length - 5} más\n`;
+            }
+            resultMessage += `\n`;
+        }
+        
+        resultMessage += `*VPN CUBA - MENÚ PRINCIPAL* 🚀`;
+        
+        await ctx.editMessageText(
+            resultMessage,
             { 
                 parse_mode: 'Markdown',
                 reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: '❌ CANCELAR',
-                                callback_data: 'main_menu'
-                            }
-                        ]
-                    ]
+                    inline_keyboard: keyboard
                 }
             }
         );
         
-        // Esperar la respuesta del usuario
-        ctx.session = ctx.session || {};
-        ctx.session.waitingForTrialInfo = {
-            userId: userId,
-            username: username,
-            firstName: firstName,
-            step: 1
-        };
-        
     } catch (error) {
-        console.error('❌ Error en request_trial:', error);
-        await ctx.answerCbQuery('❌ Error del servidor');
+        console.error('❌ Error en broadcast:', error);
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, true);
+        await ctx.editMessageText(
+            `❌ *ERROR CRÍTICO EN BROADCAST*\n\n` +
+            `Error: ${error.message}\n\n` +
+            `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
     }
 });
 
-// Manejar respuestas de texto para información de prueba
+// Manejar mensajes de texto para broadcast
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id.toString();
     const message = ctx.message.text;
-    
-    // Verificar si está esperando información de prueba
-    if (ctx.session?.waitingForTrialInfo && ctx.session.waitingForTrialInfo.userId === userId) {
-        const trialInfo = ctx.session.waitingForTrialInfo;
-        
-        if (trialInfo.step === 1) {
-            // Procesar la respuesta del usuario
-            const lines = message.split('\n');
-            let gameServer = '';
-            let connectionType = '';
-            
-            for (const line of lines) {
-                if (line.toLowerCase().includes('juego:')) {
-                    gameServer = line.split(':')[1]?.trim() || '';
-                } else if (line.toLowerCase().includes('conexión:') || line.toLowerCase().includes('conexion:')) {
-                    connectionType = line.split(':')[1]?.trim() || '';
-                }
-            }
-            
-            // Si no se encontró en el formato específico, usar el mensaje completo
-            if (!gameServer || !connectionType) {
-                gameServer = message;
-                connectionType = 'No especificado';
-            }
-            
-            console.log(`🎮 Información de prueba recibida de ${userId}:`);
-            console.log(`  Juego/Servidor: ${gameServer}`);
-            console.log(`  Conexión: ${connectionType}`);
-            
-            // Limpiar la sesión
-            delete ctx.session.waitingForTrialInfo;
-            
-            try {
-                // Enviar solicitud al backend
-                const baseUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-                const response = await fetch(`${baseUrl}/api/request-trial`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        telegramId: userId,
-                        username: trialInfo.username,
-                        firstName: trialInfo.firstName,
-                        trialType: '1h',
-                        gameServer: gameServer,
-                        connectionType: connectionType
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    await ctx.reply(
-                        '✅ *Solicitud de prueba enviada*\n\n' +
-                        'Tu información ha sido recibida:\n' +
-                        `🎮 *Juego/Servidor:* ${gameServer}\n` +
-                        `📡 *Conexión:* ${connectionType}\n\n` +
-                        'Recibirás la configuración en minutos.\n' +
-                        '¡Gracias por probar VPN Cuba! 🚀',
-                        { parse_mode: 'Markdown' }
-                    );
-                } else {
-                    await ctx.reply(
-                        `❌ *Error:* ${data.error || 'No se pudo procesar la solicitud'}`,
-                        { parse_mode: 'Markdown' }
-                    );
-                }
-            } catch (error) {
-                console.error('❌ Error en request_trial:', error);
-                await ctx.reply(
-                    '❌ Error del servidor al procesar tu solicitud.',
-                    { parse_mode: 'Markdown' }
-                );
-            }
-            
-            return;
-        }
-    }
     
     // Manejar mensaje de broadcast (mantener funcionalidad existente)
     if (isAdmin(userId) && ctx.session?.waitingForBroadcastMessage) {
@@ -1831,108 +1856,6 @@ bot.on('text', async (ctx) => {
     }
 });
 
-// Botón: Confirmar Broadcast
-bot.action('confirm_broadcast', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    
-    if (!isAdmin(userId)) {
-        await ctx.answerCbQuery('❌ NO AUTORIZADO');
-        return;
-    }
-    
-    const broadcastMessage = ctx.session?.pendingBroadcast;
-    if (!broadcastMessage) {
-        await ctx.answerCbQuery('❌ NO HAY MENSAJE PARA ENVIAR');
-        return;
-    }
-    
-    try {
-        const users = await db.getAllUsers();
-        const totalUsers = users.length;
-        
-        await ctx.editMessageText(
-            `📢 *ENVIANDO BROADCAST* 📤\n\n` +
-            `Enviando mensaje a ${totalUsers} usuarios...\n` +
-            `Por favor, espera. Esto puede tomar unos minutos.\n\n` +
-            `⏳ *PROGRESO:* 0/${totalUsers}`,
-            { 
-                parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard: [] }
-            }
-        );
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        for (let i = 0; i < users.length; i++) {
-            const user = users[i];
-            
-            try {
-                await bot.telegram.sendMessage(
-                    user.telegram_id,
-                    `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${broadcastMessage}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
-                    { parse_mode: 'Markdown' }
-                );
-                successCount++;
-                
-                if (i % 10 === 0 || i === users.length - 1) {
-                    await ctx.telegram.editMessageText(
-                        ctx.chat.id,
-                        ctx.callbackQuery.message.message_id,
-                        null,
-                        `📢 *ENVIANDO BROADCAST* 📤\n\n` +
-                        `⏳ *PROGRESO:* ${i + 1}/${totalUsers}\n` +
-                        `✅ Enviados: ${successCount}\n` +
-                        `❌ Fallados: ${failCount}`,
-                        { parse_mode: 'Markdown' }
-                    );
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-            } catch (error) {
-                console.error(`Error enviando broadcast a ${user.telegram_id}:`, error.message);
-                failCount++;
-            }
-        }
-        
-        delete ctx.session.pendingBroadcast;
-        
-        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, true);
-        
-        await ctx.editMessageText(
-            `✅ *BROADCAST COMPLETADO* 📤\n\n` +
-            `📊 *ESTADÍSTICAS:*\n` +
-            `• Total de usuarios: ${totalUsers}\n` +
-            `• Mensajes enviados: ${successCount}\n` +
-            `• Mensajes fallados: ${failCount}\n` +
-            `• Tasa de éxito: ${((successCount / totalUsers) * 100).toFixed(1)}%\n\n` +
-            `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
-            { 
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: keyboard
-                }
-            }
-        );
-        
-    } catch (error) {
-        console.error('❌ Error en broadcast:', error);
-        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, true);
-        await ctx.editMessageText(
-            `❌ *ERROR EN BROADCAST*\n\n` +
-            `Hubo un error al enviar el broadcast: ${error.message}\n\n` +
-            `*VPN CUBA - MENÚ PRINCIPAL* 🚀`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: keyboard
-                }
-            }
-        );
-    }
-});
-
 // Comando para ver estado de prueba
 bot.command('trialstatus', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -1945,7 +1868,7 @@ bot.command('trialstatus', async (ctx) => {
         }
         
         if (!user.trial_requested) {
-            return ctx.reply('🎯 *Estado de prueba:* No has solicitado prueba gratuita.\n\nUsa "🎁 PRUEBA GRATIS" en el menú para solicitar.', { parse_mode: 'Markdown' });
+            return ctx.reply('🎯 *Estado de prueba:* No has solicitado prueba gratuita.\n\nUsa "🎁 PRUEBA GRATIS" en la web para solicitar.', { parse_mode: 'Markdown' });
         }
         
         if (user.trial_received) {
@@ -1979,207 +1902,7 @@ bot.command('trialstatus', async (ctx) => {
     }
 });
 
-// Manejar callback para enviar configuración de prueba
-bot.action(/send_trial_(.+)/, async (ctx) => {
-    const adminId = ctx.from.id.toString();
-    const [telegramId, trialType] = ctx.match[1].split('_');
-    
-    if (!isAdmin(adminId)) {
-        await ctx.answerCbQuery('❌ No autorizado');
-        return;
-    }
-    
-    await ctx.answerCbQuery('📤 Preparando para enviar configuración de prueba...');
-    
-    // Preguntar por archivo de configuración
-    ctx.session = ctx.session || {};
-    ctx.session.waitingForTrialFile = {
-        target: telegramId,
-        adminId: adminId,
-        trialType: trialType || '1h'
-    };
-    
-    await ctx.reply(`📤 Enviar configuración de prueba (${trialType || '1h'}) a ${telegramId}\n\nPor favor, envía el archivo .conf, .zip o .rar de configuración:`);
-});
-
-// Manejar archivos enviados por admin (para pruebas y configuraciones normales)
-bot.on('document', async (ctx) => {
-    const adminId = ctx.from.id.toString();
-    
-    if (!isAdmin(adminId)) return;
-    
-    // Para configuración de prueba
-    if (ctx.session?.waitingForTrialFile && ctx.session.waitingForTrialFile.target) {
-        const { target, adminId, trialType } = ctx.session.waitingForTrialFile;
-        const fileId = ctx.message.document.file_id;
-        const fileName = ctx.message.document.file_name;
-        
-        console.log(`📁 Admin ${adminId} envía archivo de prueba ${fileName} a ${target} (${trialType})`);
-        
-        try {
-            const fileNameLower = fileName.toLowerCase();
-            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
-                await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
-                return;
-            }
-            
-            // Obtener información del usuario
-            const user = await db.getUser(target);
-            
-            if (!user) {
-                await ctx.reply(`❌ Usuario ${target} no encontrado`);
-                return;
-            }
-            
-            // Verificar que el usuario solicitó prueba
-            if (!user.trial_requested) {
-                await ctx.reply(`❌ El usuario ${target} no solicitó prueba`);
-                return;
-            }
-            
-            // Verificar que no haya recibido ya la prueba
-            if (user.trial_received) {
-                await ctx.reply(`❌ El usuario ${target} ya recibió la prueba`);
-                return;
-            }
-            
-            // Obtener información adicional del juego/servidor
-            const gameServer = user.trial_game_server || 'No especificado';
-            const connectionType = user.trial_connection_type || 'No especificado';
-            
-            console.log(`🎮 Información de prueba para ${target}:`);
-            console.log(`  Juego/Servidor: ${gameServer}`);
-            console.log(`  Conexión: ${connectionType}`);
-            
-            // Enviar archivo al usuario
-            try {
-                await bot.telegram.sendDocument(target, fileId, {
-                    caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
-                            `📁 *Archivo de configuración para ${trialType} de prueba*\n\n` +
-                            `🎮 *Juego/Servidor:* ${gameServer}\n` +
-                            `📡 *Conexión:* ${connectionType}\n\n` +
-                            `*Instrucciones:*\n` +
-                            `1. Descarga este archivo\n` +
-                            `2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime este archivo'}\n` +
-                            `3. Importa el archivo .conf en WireGuard\n` +
-                            `4. Activa la conexión\n` +
-                            `5. ¡Disfruta de ${trialType} gratis! 🎉\n\n` +
-                            `*Nota:* Esta configuración expirará en ${trialType}.\n` +
-                            `Para continuar usando el servicio, adquiere uno de nuestros planes.\n\n` +
-                            `*Soporte:* @L0quen2`,
-                    parse_mode: 'Markdown'
-                });
-                
-                // Marcar usuario como que recibió prueba
-                await db.markTrialAsSent(target, adminId);
-                
-                // Actualizar tipo de prueba si es diferente
-                if (trialType && trialType !== user.trial_plan_type) {
-                    await db.updateUserTrial(target, {
-                        trial_plan_type: trialType
-                    });
-                }
-                
-                // Notificar al admin
-                await ctx.reply(`✅ Configuración de prueba (${trialType}) enviada a ${target}\n\n` +
-                               `🎮 *Juego/Servidor:* ${gameServer}\n` +
-                               `📡 *Conexión:* ${connectionType}`);
-                
-                // Enviar mensaje de confirmación al usuario
-                await bot.telegram.sendMessage(
-                    target,
-                    `✅ *¡Prueba gratuita activada!*\n\n` +
-                    `Tu configuración de prueba de ${trialType} ha sido enviada.\n\n` +
-                    `📁 Busca el archivo en este chat.\n` +
-                    `⏰ Duración: ${trialType}\n` +
-                    `🎯 Acceso completo a todos los servidores\n\n` +
-                    `¡Disfruta de baja latencia! 🚀`,
-                    { parse_mode: 'Markdown' }
-                );
-                
-            } catch (sendError) {
-                console.error('❌ Error enviando archivo al usuario:', sendError);
-                
-                // Verificar si el usuario bloqueó al bot
-                if (sendError.description && sendError.description.includes('blocked')) {
-                    await ctx.reply(`❌ No se puede enviar archivo a ${target}. El usuario probablemente bloqueó al bot.`);
-                } else {
-                    await ctx.reply(`❌ Error enviando archivo: ${sendError.message}`);
-                }
-                return;
-            }
-            
-            delete ctx.session.waitingForTrialFile;
-            
-        } catch (error) {
-            console.error('❌ Error procesando archivo de prueba:', error);
-            await ctx.reply(`❌ Error procesando archivo: ${error.message}`);
-        }
-    }
-    
-    // Para configuración normal (mantener compatibilidad)
-    if (ctx.session?.waitingForFile && isAdmin(adminId)) {
-        const { target, paymentId } = ctx.session.waitingForFile;
-        const fileId = ctx.message.document.file_id;
-        const fileName = ctx.message.document.file_name;
-
-        console.log(`📁 Admin ${adminId} envía archivo ${fileName} a ${target}`);
-
-        try {
-            const fileNameLower = fileName.toLowerCase();
-            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
-                await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
-                return;
-            }
-            
-            await db.saveConfigFile({
-                telegram_id: target,
-                file_id: fileId,
-                file_name: fileName,
-                sent_by: ctx.from.username || 'admin',
-                sent_at: new Date().toISOString(),
-                payment_id: paymentId
-            });
-
-            await db.updatePayment(paymentId, {
-                config_sent: true,
-                config_sent_at: new Date().toISOString()
-            });
-            
-            const user = await db.getUser(target);
-            if (user && !user.vip) {
-                const payment = await db.getPayment(paymentId);
-                await db.makeUserVIP(target, {
-                    plan: payment.plan,
-                    plan_price: payment.price,
-                    vip_since: new Date().toISOString()
-                });
-            }
-
-            await bot.telegram.sendDocument(target, fileId, {
-                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
-                        `📁 *Archivo:* ${fileName}\n\n` +
-                        `*Instrucciones:*\n` +
-                        `1. Descarga este archivo\n` +
-                        `2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR'}\n` +
-                        `3. Importa el archivo .conf en WireGuard\n` +
-                        `4. Activa la conexión\n` +
-                        `5. ¡Disfruta de baja latencia! 🚀\n\n` +
-                        `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
-                parse_mode: 'Markdown'
-            });
-
-            await ctx.reply(`✅ Archivo enviado al usuario ${target}`);
-        } catch (error) {
-            console.error('❌ Error enviando archivo:', error);
-            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
-        }
-
-        delete ctx.session.waitingForFile;
-    }
-});
-
-// Comando /admin solo para admins (mantener por compatibilidad)
+// Comando /admin solo para admins
 bot.command('admin', async (ctx) => {
     if (!isAdmin(ctx.from.id.toString())) {
         console.log(`❌ Usuario ${ctx.from.id} intentó usar /admin sin permisos`);
@@ -2245,7 +1968,6 @@ bot.command('help', async (ctx) => {
         `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
         `Usa los botones para navegar por todas las funciones.\n\n` +
         `*BOTONES DISPONIBLES:*\n` +
-        `🎁 PRUEBA GRATIS - Prueba gratuita de 1 hora\n` +
         `📋 VER PLANES - Ver y comprar planes\n` +
         `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
         `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
@@ -2262,7 +1984,7 @@ bot.command('help', async (ctx) => {
     );
 });
 
-// Comando /comprar (mantener por compatibilidad)
+// Comando /comprar
 bot.command('comprar', async (ctx) => {
     console.log(`🛒 Usuario ${ctx.from.id} usa /comprar`);
     
@@ -2285,7 +2007,7 @@ bot.command('comprar', async (ctx) => {
     );
 });
 
-// Comando /enviar para administrador (mantener por compatibilidad)
+// Comando /enviar simplificado para administrador
 bot.command('enviar', async (ctx) => {
     if (!isAdmin(ctx.from.id.toString())) {
         return ctx.reply('❌ Solo el administrador puede usar este comando.');
@@ -2293,39 +2015,121 @@ bot.command('enviar', async (ctx) => {
 
     const args = ctx.message.text.split(' ');
     if (args.length < 2) {
-        return ctx.reply('Uso: /enviar <ID de pago o ID de usuario>\nEjemplo: /enviar 123');
+        return ctx.reply('Uso: /enviar <ID de usuario>\nEjemplo: /enviar 123456789');
     }
 
-    const target = args[1];
+    const telegramId = args[1];
     
-    console.log(`📤 Admin ${ctx.from.id} intenta enviar configuración a ${target}`);
+    console.log(`📤 Admin ${ctx.from.id} prepara envío a ${telegramId}`);
     
-    let paymentId, telegramId;
-    
-    if (/^\d+$/.test(target) && target.length < 10) {
-        paymentId = target;
-        const payment = await db.getPayment(paymentId);
-        if (!payment) {
-            return ctx.reply(`❌ No se encontró el pago con ID ${paymentId}`);
+    // Pedir archivo directamente
+    await ctx.reply(
+        `📤 *ENVIAR CONFIGURACIÓN A USUARIO*\n\n` +
+        `Usuario: ${telegramId}\n\n` +
+        `Por favor, envía el archivo .conf, .zip o .rar ahora:`,
+        { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '❌ CANCELAR', callback_data: 'main_menu' }
+                    ]
+                ]
+            }
         }
-        telegramId = payment.telegram_id;
-    } else {
-        telegramId = target.replace('@', '');
-        const payments = await db.getUserPayments(telegramId);
-        const approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
-        if (!approvedPayment) {
-            return ctx.reply(`❌ No se encontró un pago aprobado sin configuración para el usuario ${telegramId}`);
-        }
-        paymentId = approvedPayment.id;
-    }
+    );
     
-    ctx.session = ctx.session || {};
-    ctx.session.waitingForFile = {
-        target: telegramId,
-        paymentId: paymentId
-    };
+    // Guardar en sesión simple
+    ctx.session = { waitingToSendTo: telegramId };
+});
 
-    await ctx.reply(`📤 Esperando archivo .conf, .zip o .rar para enviar al usuario ${telegramId} (Pago ID: ${paymentId})\n\nPor favor, envía el archivo de configuración ahora:`);
+// Manejar archivos enviados por admin (configuraciones normales)
+bot.on('document', async (ctx) => {
+    const adminId = ctx.from.id.toString();
+    
+    if (!isAdmin(adminId)) return;
+    
+    // Para configuración normal
+    if (ctx.session?.waitingToSendTo) {
+        const telegramId = ctx.session.waitingToSendTo;
+        const fileId = ctx.message.document.file_id;
+        const fileName = ctx.message.document.file_name;
+
+        console.log(`📁 Admin ${adminId} envía archivo ${fileName} a ${telegramId}`);
+
+        try {
+            const fileNameLower = fileName.toLowerCase();
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
+                await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
+                return;
+            }
+            
+            // Buscar si hay un pago aprobado para este usuario
+            const payments = await db.getUserPayments(telegramId);
+            let paymentId = null;
+            let approvedPayment = null;
+            
+            if (payments && payments.length > 0) {
+                approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
+                if (approvedPayment) {
+                    paymentId = approvedPayment.id;
+                }
+            }
+            
+            // Enviar archivo al usuario
+            await bot.telegram.sendDocument(telegramId, fileId, {
+                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                        `📁 *Archivo:* ${fileName}\n\n` +
+                        `*Instrucciones:*\n` +
+                        `1. Descarga este archivo\n` +
+                        `2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR'}\n` +
+                        `3. Importa el archivo .conf en WireGuard\n` +
+                        `4. Activa la conexión\n` +
+                        `5. ¡Disfruta de baja latencia! 🚀\n\n` +
+                        `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+                parse_mode: 'Markdown'
+            });
+
+            // Actualizar pago si existe
+            if (paymentId) {
+                await db.updatePayment(paymentId, {
+                    config_sent: true,
+                    config_sent_at: new Date().toISOString(),
+                    config_file: fileName,
+                    config_sent_by: adminId
+                });
+                
+                // Marcar usuario como VIP si aún no lo está
+                const user = await db.getUser(telegramId);
+                if (user && !user.vip && approvedPayment) {
+                    await db.makeUserVIP(telegramId, {
+                        plan: approvedPayment.plan,
+                        plan_price: approvedPayment.price,
+                        vip_since: new Date().toISOString()
+                    });
+                    console.log(`👑 Usuario ${telegramId} marcado como VIP`);
+                }
+            }
+
+            await ctx.reply(`✅ Archivo enviado al usuario ${telegramId}`);
+            
+            // Notificar al usuario
+            await bot.telegram.sendMessage(
+                telegramId,
+                '✅ *Configuración recibida*\n\n' +
+                'El administrador te ha enviado la configuración.\n' +
+                'Busca el archivo en este chat.\n' +
+                '¡Disfruta de baja latencia! 🚀',
+                { parse_mode: 'Markdown' }
+            );
+            
+        } catch (error) {
+            console.error('❌ Error enviando archivo:', error);
+            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+        }
+
+        delete ctx.session.waitingToSendTo;
+    }
 });
 
 // ==================== SERVIDOR ====================
@@ -2340,9 +2144,9 @@ app.listen(PORT, async () => {
     console.log(`📁 Uploads dir: ${UPLOADS_DIR}`);
     console.log(`🆘 Soporte: @L0quen2`);
     console.log(`📢 Broadcast: Disponible para admins`);
-    console.log(`🎯 Prueba gratuita: Disponible (1 hora) con información de juego/servidor`);
+    console.log(`🎯 Prueba gratuita: Disponible solo desde webapp (1 hora)`);
     console.log(`📊 Estadísticas de trial: /api/trial-stats`);
-    console.log(`📤 Envío de archivos de prueba: Desde web admin y bot`);
+    console.log(`📤 Envío de archivos de prueba: Desde web admin`);
     
     // Iniciar bot
     try {

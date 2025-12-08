@@ -1,46 +1,11 @@
 {
   "name": "vpn-cuba-simple",
-  "version": "2.0.0",
-  "description": "Sistema completo de VPN Cuba con bot de Telegram y panel de administración",
+  "version": "1.0.0",
+  "description": "Backend simple para VPN Cuba",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "bot": "node index.js",
-    
-    // Comandos PM2
-    "pm2-start": "pm2 start index.js --name vpn-bot --update-env",
-    "pm2-stop": "pm2 stop vpn-bot",
-    "pm2-restart": "pm2 restart vpn-bot",
-    "pm2-reload": "pm2 reload vpn-bot",
-    "pm2-status": "pm2 status",
-    "pm2-logs": "pm2 logs vpn-bot",
-    "pm2-monitor": "pm2 monit",
-    "pm2-delete": "pm2 delete vpn-bot",
-    "pm2-save": "pm2 save",
-    "pm2-startup": "pm2 startup",
-    "pm2-flush": "pm2 flush",
-    "pm2-list": "pm2 list",
-    
-    // Setup completo
-    "setup": "npm install && echo '✅ Dependencias instaladas'",
-    "setup-pm2": "npm install -g pm2@latest && pm2 startup && npm run pm2-start && pm2 save",
-    "setup-full": "npm run setup && npm run setup-pm2",
-    
-    // Monitoreo y mantenimiento
-    "health": "node -e \"fetch('http://localhost:3000/api/health').then(r => r.text()).then(d => console.log('Health:', d)).catch(e => console.log('Error:', e.message))\"",
-    "monitor": "node monitor.js",
-    "clean-logs": "rm -f logs/*.log 2>/dev/null || true && echo 'Logs limpiados'",
-    "backup": "mkdir -p backups && cp -r uploads backups/ 2>/dev/null || true && echo 'Backup creado'",
-    
-    // Despliegue
-    "deploy": "npm run pm2-stop && git pull && npm install && npm run pm2-start",
-    "quick-deploy": "git pull && npm run pm2-restart",
-    
-    // Tests
-    "test-health": "curl -s http://localhost:3000/api/health | python3 -m json.tool || curl -s http://localhost:3000/api/health",
-    "test-ping": "ping -c 1 localhost",
-    "test": "echo 'Ejecutando tests básicos...' && npm run test-health"
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -54,28 +19,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
-  },
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
-  },
-  "keywords": [
-    "vpn",
-    "cuba",
-    "telegram",
-    "bot",
-    "wireguard",
-    "vpn-service",
-    "admin-panel"
-  ],
-  "author": "VPN Cuba Team",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tuusuario/vpn-cuba.git"
-  },
-  "bugs": {
-    "url": "https://github.com/tuusuario/vpn-cuba/issues"
-  },
-  "homepage": "https://github.com/tuusuario/vpn-cuba#readme"
+  }
 }

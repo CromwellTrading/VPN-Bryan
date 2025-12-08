@@ -27,6 +27,8 @@
             --trial: #10b981;
             --trial-1h: #10b981;
             --trial-glow: rgba(16, 185, 129, 0.3);
+            --game-color: #8b5cf6;
+            --connection-color: #3b82f6;
             --shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.3);
         }
@@ -521,11 +523,24 @@
             background: linear-gradient(135deg, var(--trial-1h), #34d399);
             color: white;
             font-weight: 600;
+            animation: pulseTrial 2s infinite;
         }
 
         .purchase-button.trial:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 18px var(--trial-glow);
+        }
+
+        @keyframes pulseTrial {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
         }
 
         .button-icon {
@@ -634,6 +649,255 @@
             font-size: 0.8rem;
         }
 
+        /* MODAL PARA SOLICITUD DE PRUEBA */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid var(--trial-1h);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.8rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        /* FORMULARIO DE SOLICITUD DE PRUEBA */
+        .trial-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-label i {
+            color: var(--game-color);
+        }
+
+        .form-label.connection i {
+            color: var(--connection-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--trial-1h);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-hint {
+            margin-top: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .form-hint strong {
+            color: var(--trial-1h);
+        }
+
+        .form-example {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--game-color);
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .form-example-title {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .form-example-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        /* SELECT DE TIPO DE CONEXIÓN */
+        .connection-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .connection-option {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .connection-option.selected {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--connection-color);
+            color: var(--text);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .connection-icon {
+            font-size: 1.5rem;
+            color: var(--connection-color);
+        }
+
+        .connection-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .connection-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* BOTÓN DE ENVÍO */
+        .submit-trial-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-trial-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--trial-glow);
+        }
+
+        .submit-trial-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
         /* NOTIFICACIÓN */
         .notification {
             position: fixed;
@@ -645,7 +909,7 @@
             border-radius: 10px;
             color: var(--text);
             font-weight: 500;
-            z-index: 1000;
+            z-index: 3000;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -678,6 +942,28 @@
         .notification.warning {
             border-color: var(--warning);
             background: rgba(245, 158, 11, 0.1);
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* MEDIA QUERIES PARA RESPONSIVE */
@@ -736,6 +1022,19 @@
                 grid-template-columns: 1fr;
                 gap: 15px;
             }
+            
+            .modal-content {
+                padding: 20px;
+                max-height: 85vh;
+            }
+            
+            .modal-title {
+                font-size: 1.5rem;
+            }
+            
+            .connection-options {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 480px) {
@@ -770,6 +1069,100 @@
     <!-- Fondo futurista -->
     <div class="background-effect">
         <div class="grid-lines"></div>
+    </div>
+    
+    <!-- MODAL PARA SOLICITUD DE PRUEBA -->
+    <div id="trialModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeTrialModal()">&times;</button>
+            
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-gift"></i>
+                    Solicitar Prueba Gratuita
+                </h2>
+                <p class="modal-subtitle">
+                    ¡Perfecto! Para enviarte tu configuración de prueba y que experimentes la mejora de ping, necesitamos saber:
+                </p>
+            </div>
+            
+            <form id="trialRequestForm" class="trial-form">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-gamepad"></i>
+                        ¿A qué juego/servidor quieres conectarte?
+                    </label>
+                    <input type="text" 
+                           id="gameServer" 
+                           class="form-input" 
+                           placeholder="Ej: Free Fire - EE. UU., Call of Duty - Europa, Minecraft - Latinoamérica"
+                           required>
+                    <div class="form-hint">
+                        <strong>Ejemplos comunes:</strong> Free Fire, Call of Duty, Fortnite, Minecraft, Roblox, etc.
+                    </div>
+                    <div class="form-example">
+                        <div class="form-example-title">📋 Ejemplos de formato correcto:</div>
+                        <div class="form-example-text">
+                            • Free Fire - Servidor EE.UU.<br>
+                            • Call of Duty Mobile - Europa<br>
+                            • Minecraft - Latinoamérica<br>
+                            • Roblox - Miami Server
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label connection">
+                        <i class="fas fa-wifi"></i>
+                        ¿Estás conectado por WiFi o cable Ethernet, Datos Móviles?
+                    </label>
+                    <div class="connection-options">
+                        <div class="connection-option" data-value="WiFi">
+                            <i class="fas fa-wifi connection-icon"></i>
+                            <div class="connection-name">WiFi</div>
+                            <div class="connection-desc">Conexión inalámbrica</div>
+                        </div>
+                        <div class="connection-option" data-value="Cable Ethernet">
+                            <i class="fas fa-ethernet connection-icon"></i>
+                            <div class="connection-name">Cable Ethernet</div>
+                            <div class="connection-desc">Recomendado para gaming</div>
+                        </div>
+                        <div class="connection-option" data-value="Datos Móviles">
+                            <i class="fas fa-mobile-alt connection-icon"></i>
+                            <div class="connection-name">Datos Móviles</div>
+                            <div class="connection-desc">4G/5G desde celular</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="connectionType" required>
+                    <div class="form-hint">
+                        <strong>Recomendación:</strong> Para el mejor ping en gaming, usa <strong>Cable Ethernet</strong>.
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-info-circle"></i>
+                        Información adicional (opcional)
+                    </label>
+                    <textarea id="additionalInfo" 
+                              class="form-input form-textarea" 
+                              placeholder="¿Alguna configuración especial que necesites? ¿Problemas específicos que quieres resolver con la VPN?"></textarea>
+                    <div class="form-hint">
+                        Esta información nos ayuda a personalizar mejor tu configuración.
+                    </div>
+                </div>
+                
+                <div class="form-hint" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Importante:</strong> Esta configuración es una prueba y expirará automáticamente después de 1 hora para asegurar la disponibilidad de nuestros recursos.
+                </div>
+                
+                <button type="submit" class="submit-trial-btn" id="submitTrialBtn">
+                    <i class="fas fa-paper-plane"></i>
+                    Enviar Solicitud de Prueba
+                </button>
+            </form>
+        </div>
     </div>
     
     <div class="main-container">
@@ -827,7 +1220,7 @@
                     </div>
                 </div>
                 
-                <button class="purchase-button trial" onclick="requestTrial()">
+                <button class="purchase-button trial" onclick="openTrialModal()">
                     <i class="fas fa-gift button-icon"></i>
                     <span>Solicitar Prueba Gratuita</span>
                 </button>
@@ -1023,6 +1416,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         let userId = urlParams.get('userId');
         
+        // Variables de estado
+        let selectedConnection = null;
+        
         // Función para verificar si los términos fueron aceptados
         function checkTermsAccepted(userId) {
             if (!userId) return false;
@@ -1069,14 +1465,61 @@
             }, 800);
         }
         
-        // Función para solicitar prueba gratuita
-        async function requestTrial() {
+        // Función para abrir modal de prueba
+        function openTrialModal() {
             // Verificar términos primero
             if (!userId || !checkTermsAccepted(userId)) {
                 alert('Por favor, acepta los términos y condiciones primero.');
                 window.location.href = `/index.html?userId=${userId}`;
                 return;
             }
+            
+            console.log('🎮 Abriendo modal de solicitud de prueba');
+            document.getElementById('trialModal').classList.add('active');
+            
+            // Resetear formulario
+            document.getElementById('trialRequestForm').reset();
+            selectedConnection = null;
+            
+            // Resetear opciones de conexión
+            document.querySelectorAll('.connection-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Enfocar en el primer campo
+            setTimeout(() => {
+                document.getElementById('gameServer').focus();
+            }, 300);
+        }
+        
+        // Función para cerrar modal de prueba
+        function closeTrialModal() {
+            console.log('❌ Cerrando modal de solicitud de prueba');
+            document.getElementById('trialModal').classList.remove('active');
+        }
+        
+        // Función para solicitar prueba gratuita
+        async function requestTrial() {
+            const gameServer = document.getElementById('gameServer').value.trim();
+            const connectionType = document.getElementById('connectionType').value;
+            const additionalInfo = document.getElementById('additionalInfo').value.trim();
+            
+            // Validaciones
+            if (!gameServer) {
+                showNotification('❌ Por favor, ingresa el juego/servidor al que quieres conectarte', 'warning');
+                document.getElementById('gameServer').focus();
+                return false;
+            }
+            
+            if (!connectionType) {
+                showNotification('❌ Por favor, selecciona tu tipo de conexión', 'warning');
+                return false;
+            }
+            
+            console.log(`🎮 Solicitud de prueba con datos:`);
+            console.log(`  Juego/Servidor: ${gameServer}`);
+            console.log(`  Conexión: ${connectionType}`);
+            console.log(`  Info adicional: ${additionalInfo}`);
             
             // Obtener información del usuario
             let username = 'Sin usuario';
@@ -1087,14 +1530,14 @@
                 firstName = tg.initDataUnsafe.user.first_name || 'Usuario';
             }
             
-            // Efecto visual en el botón
-            const button = event.currentTarget;
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando solicitud...';
-            button.disabled = true;
+            // Deshabilitar botón de envío
+            const submitBtn = document.getElementById('submitTrialBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando solicitud...';
+            submitBtn.disabled = true;
             
-            // Mostrar notificación
-            showNotification('Solicitando prueba gratuita...');
+            // Mostrar notificación de procesamiento
+            showNotification('📤 Enviando solicitud de prueba...', 'info');
             
             try {
                 // Construir URL base
@@ -1113,7 +1556,9 @@
                         telegramId: userId,
                         username: username,
                         firstName: firstName,
-                        trialType: '1h'
+                        trialType: '1h',
+                        gameServer: gameServer,
+                        connectionType: connectionType
                     })
                 });
                 
@@ -1131,6 +1576,9 @@
                 if (response.ok && data.success) {
                     showNotification('✅ Solicitud enviada. Recibirás la configuración en minutos.', 'success');
                     
+                    // Cerrar modal
+                    closeTrialModal();
+                    
                     // Después de 3 segundos, redirigir o cerrar
                     setTimeout(() => {
                         if (tg && tg.platform !== 'unknown') {
@@ -1141,14 +1589,20 @@
                             window.location.href = telegramUrl;
                         }
                     }, 3000);
+                    
+                    return true;
                 } else {
                     throw new Error(data.error || 'Error en la solicitud');
                 }
             } catch (error) {
                 console.error('❌ Error solicitando prueba:', error);
                 showNotification('❌ Error: ' + error.message, 'error');
-                button.innerHTML = originalText;
-                button.disabled = false;
+                
+                // Restaurar botón
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                
+                return false;
             }
         }
         
@@ -1199,7 +1653,7 @@
             
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 3000);
+            }, 5000);
         }
         
         // Ejecutar verificación al cargar
@@ -1242,75 +1696,37 @@
                     card.style.opacity = '1';
                 });
             }, 100);
+            
+            // Configurar opciones de conexión
+            document.querySelectorAll('.connection-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remover selección previa
+                    document.querySelectorAll('.connection-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Seleccionar esta opción
+                    this.classList.add('selected');
+                    selectedConnection = this.getAttribute('data-value');
+                    document.getElementById('connectionType').value = selectedConnection;
+                    
+                    console.log(`📡 Tipo de conexión seleccionado: ${selectedConnection}`);
+                });
+            });
+            
+            // Configurar formulario de prueba
+            document.getElementById('trialRequestForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                requestTrial();
+            });
+            
+            // Cerrar modal con Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeTrialModal();
+                }
+            });
         });
-        
-        // Añadir estilos CSS para mejor visualización
-        const style = document.createElement('style');
-        style.textContent = `
-            /* Asegurar que el botón sea visible */
-            .plan-card {
-                display: flex !important;
-                flex-direction: column !important;
-            }
-            
-            .purchase-button {
-                margin-top: auto !important;
-            }
-            
-            /* Mejorar visibilidad en pantallas pequeñas */
-            @media (max-height: 700px) {
-                .global-features {
-                    margin: 20px auto !important;
-                    padding: 20px !important;
-                }
-                
-                .feature-card {
-                    padding: 15px !important;
-                }
-                
-                .footer {
-                    margin-top: 20px !important;
-                }
-            }
-            
-            /* Optimizar para pantallas muy pequeñas */
-            @media (max-height: 600px) {
-                .header {
-                    padding: 10px 15px !important;
-                    margin-bottom: 20px !important;
-                }
-                
-                .title {
-                    font-size: 1.8rem !important;
-                }
-                
-                .plan-card {
-                    padding: 12px !important;
-                }
-                
-                .features-list {
-                    max-height: 120px !important;
-                }
-            }
-            
-            /* Animación para botón de prueba */
-            .purchase-button.trial {
-                animation: pulseTrial 2s infinite;
-            }
-            
-            @keyframes pulseTrial {
-                0% {
-                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-                }
-                70% {
-                    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-                }
-                100% {
-                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>

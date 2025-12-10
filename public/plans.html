@@ -48,6 +48,7 @@
             min-height: 100vh;
             line-height: 1.4;
             position: relative;
+            overflow-x: hidden;
         }
 
         /* FONDO FUTURISTA - SIMPLIFICADO */
@@ -70,6 +71,90 @@
                 linear-gradient(to right, rgba(79, 70, 229, 0.03) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(79, 70, 229, 0.03) 1px, transparent 1px);
             background-size: 50px 50px;
+        }
+
+        /* BOTÓN FLOTANTE DE WHATSAPP */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--whatsapp);
+            border-radius: 50%;
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: float 3s ease-in-out infinite;
+            text-decoration: none;
+            border: none;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.6);
+            background-color: #1da851;
+        }
+
+        .whatsapp-float:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .whatsapp-icon {
+            font-size: 28px;
+            color: white;
+        }
+
+        /* TOOLTIP PARA EL BOTÓN */
+        .whatsapp-tooltip {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            background: rgba(25, 25, 60, 0.95);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            width: 180px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            z-index: 999;
+        }
+
+        .whatsapp-tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            right: 20px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid rgba(25, 25, 60, 0.95);
+        }
+
+        .whatsapp-float:hover .whatsapp-tooltip {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         /* CONTAINER PRINCIPAL COMPACTO */
@@ -992,6 +1077,17 @@
                 min-width: 280px;
                 max-width: 350px;
             }
+            
+            .whatsapp-float {
+                bottom: 20px;
+                right: 20px;
+                width: 55px;
+                height: 55px;
+            }
+            
+            .whatsapp-icon {
+                font-size: 25px;
+            }
         }
         
         @media (max-width: 768px) {
@@ -1036,6 +1132,23 @@
             .connection-options {
                 grid-template-columns: 1fr;
             }
+            
+            .whatsapp-float {
+                bottom: 15px;
+                right: 15px;
+                width: 50px;
+                height: 50px;
+            }
+            
+            .whatsapp-icon {
+                font-size: 22px;
+            }
+            
+            .whatsapp-tooltip {
+                width: 160px;
+                font-size: 0.8rem;
+                bottom: 60px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1063,6 +1176,23 @@
                 padding: 8px;
                 margin-bottom: 8px;
             }
+            
+            .whatsapp-float {
+                bottom: 10px;
+                right: 10px;
+                width: 45px;
+                height: 45px;
+            }
+            
+            .whatsapp-icon {
+                font-size: 20px;
+            }
+            
+            .whatsapp-tooltip {
+                width: 140px;
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
         }
     </style>
 </head>
@@ -1072,11 +1202,12 @@
         <div class="grid-lines"></div>
     </div>
     
+    <!-- BOTÓN FLOTANTE DE WHATSAPP -->
     <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc" target="_blank" class="whatsapp-float">
-    <i class="fab fa-whatsapp whatsapp-icon"></i>
-    <div class="whatsapp-tooltip">
-        ¿Tienes dudas? ¡Escríbenos por WhatsApp!
-    </div>
+        <i class="fab fa-whatsapp whatsapp-icon"></i>
+        <div class="whatsapp-tooltip">
+            ¿Tienes dudas? ¡Escríbenos por WhatsApp!
+        </div>
     </a>
     
     <!-- MODAL PARA SOLICITUD DE PRUEBA -->
@@ -1405,6 +1536,9 @@
         <footer class="footer">
             <p>© 2025 VPN Cuba. Todos los derechos reservados.</p>
             <p>Selecciona un plan para continuar con el proceso de pago seguro.</p>
+            <p style="margin-top: 10px; color: var(--accent-light);">
+                <i class="fab fa-whatsapp"></i> ¿Preguntas? <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc" target="_blank" style="color: var(--whatsapp); text-decoration: none; font-weight: 600;">Escríbenos por WhatsApp</a>
+            </p>
         </footer>
     </div>
 
@@ -1734,6 +1868,15 @@
                     closeTrialModal();
                 }
             });
+            
+            // Configurar enlace de WhatsApp para abrir en nueva pestaña
+            const whatsappBtn = document.querySelector('.whatsapp-float');
+            if (whatsappBtn) {
+                whatsappBtn.addEventListener('click', function(e) {
+                    console.log('📱 Abriendo grupo de WhatsApp');
+                    // El enlace ya tiene target="_blank" en el HTML
+                });
+            }
         });
     </script>
 </body>

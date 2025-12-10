@@ -23,7 +23,7 @@
             --border-hover: rgba(99, 102, 241, 0.4);
             --success: #10b981;
             --featured: #f59e0b;
-            --vip: #fbbf24;
+            --vip: #dc2626; /* CAMBIADO A ROJO */
             --trial: #10b981;
             --trial-1h: #10b981;
             --trial-glow: rgba(16, 185, 129, 0.3);
@@ -32,6 +32,9 @@
             --shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.3);
             --whatsapp: #25D366;
+            --premium-red: #dc2626; /* COLOR ROJO PARA PREMIUM */
+            --premium-red-light: #ef4444; /* ROJO CLARO */
+            --premium-red-dark: #b91c1c; /* ROJO OSCURO */
         }
 
         * {
@@ -273,8 +276,8 @@
             background: linear-gradient(90deg, var(--featured), #f59e0b);
         }
 
-        .plan-card.vip::before {
-            background: linear-gradient(90deg, var(--vip), #fbbf24);
+        .plan-card.premium::before {
+            background: linear-gradient(90deg, var(--premium-red), #ef4444); /* ROJO */
         }
 
         /* EFECTO HOVER COMPACTO */
@@ -312,9 +315,9 @@
             color: #000;
         }
 
-        .plan-card.vip .plan-badge {
-            background: linear-gradient(135deg, var(--vip), #fbbf24);
-            color: #000;
+        .plan-card.premium .plan-badge {
+            background: linear-gradient(135deg, var(--premium-red), #ef4444);
+            color: white;
             font-weight: 700;
         }
 
@@ -374,8 +377,8 @@
             background-clip: text;
         }
 
-        .plan-card.vip .price-amount {
-            background: linear-gradient(135deg, var(--vip), #f59e0b);
+        .plan-card.premium .price-amount {
+            background: linear-gradient(135deg, var(--premium-red), #ef4444);
             -webkit-background-clip: text;
             background-clip: text;
         }
@@ -410,9 +413,9 @@
             border-color: rgba(245, 158, 11, 0.2);
         }
 
-        .plan-card.vip .savings-section {
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
-            border-color: rgba(251, 191, 36, 0.2);
+        .plan-card.premium .savings-section {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(239, 68, 68, 0.1));
+            border-color: rgba(220, 38, 38, 0.2);
         }
 
         .savings-text {
@@ -429,12 +432,12 @@
             color: var(--featured);
         }
 
-        .plan-card.vip .savings-text {
-            color: var(--vip);
+        .plan-card.premium .savings-text {
+            color: var(--premium-red);
         }
 
-        /* SUBTÍTULO VIP COMPACTO */
-        .vip-subtitle {
+        /* SUBTÍTULO PREMIUM COMPACTO */
+        .premium-subtitle {
             text-align: center;
             font-size: 0.9rem;
             font-weight: 600;
@@ -446,6 +449,12 @@
             border: 1px solid rgba(16, 185, 129, 0.2);
             position: relative;
             overflow: hidden;
+        }
+
+        .plan-card.premium .premium-subtitle {
+            background: rgba(220, 38, 38, 0.1);
+            border-color: rgba(220, 38, 38, 0.2);
+            color: var(--premium-red);
         }
 
         /* LISTA DE CARACTERÍSTICAS COMPACTA */
@@ -479,8 +488,8 @@
             background: var(--featured);
         }
 
-        .plan-card.vip .features-list::-webkit-scrollbar-thumb {
-            background: var(--vip);
+        .plan-card.premium .features-list::-webkit-scrollbar-thumb {
+            background: var(--premium-red);
         }
 
         .feature-item {
@@ -503,8 +512,8 @@
             border-left-color: var(--featured);
         }
 
-        .plan-card.vip .feature-item {
-            border-left-color: var(--vip);
+        .plan-card.premium .feature-item {
+            border-left-color: var(--premium-red);
         }
 
         .feature-item:hover {
@@ -527,8 +536,8 @@
             color: var(--featured);
         }
 
-        .plan-card.vip .feature-icon {
-            color: var(--vip);
+        .plan-card.premium .feature-icon {
+            color: var(--premium-red);
         }
 
         .feature-text {
@@ -594,15 +603,15 @@
             box-shadow: 0 6px 18px rgba(245, 158, 11, 0.3);
         }
 
-        .purchase-button.vip {
-            background: linear-gradient(135deg, var(--vip), #fbbf24);
-            color: #000;
+        .purchase-button.premium {
+            background: linear-gradient(135deg, var(--premium-red), #ef4444);
+            color: white;
             font-weight: 700;
         }
 
-        .purchase-button.vip:hover {
+        .purchase-button.premium:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(251, 191, 36, 0.3);
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.3);
         }
 
         .purchase-button.trial {
@@ -1336,7 +1345,7 @@
                     <div class="savings-text">¡Prueba totalmente gratuita!</div>
                 </div>
                 
-                <div class="vip-subtitle">
+                <div class="premium-subtitle">
                     <i class="fas fa-gift"></i> Ideal para probar el servicio
                 </div>
                 
@@ -1406,12 +1415,12 @@
                 </button>
             </div>
             
-            <!-- PLAN PREMIUM -->
+            <!-- PLAN AVANZADO (antes Premium) -->
             <div class="plan-card featured">
                 <div class="plan-badge">Recomendado</div>
                 
                 <div class="plan-header">
-                    <h2 class="plan-title">Premium</h2>
+                    <h2 class="plan-title">Avanzado</h2>
                     <p class="plan-period">Acceso por 2 meses</p>
                 </div>
                 
@@ -1445,19 +1454,19 @@
                     </div>
                 </div>
                 
-                <button class="purchase-button featured" onclick="selectPlan('premium', 1300)">
+                <button class="purchase-button featured" onclick="selectPlan('avanzado', 1300)">
                     <i class="fas fa-crown button-icon"></i>
                     <span>Seleccionar Plan</span>
                 </button>
             </div>
             
-            <!-- PLAN VIP -->
-            <div class="plan-card vip">
-                <div class="plan-badge">Mejor Valor</div>
+            <!-- PLAN PREMIUM (antes VIP) - MODIFICADO -->
+            <div class="plan-card premium">
+                <div class="plan-badge">Exclusivo</div>
                 
                 <div class="plan-header">
-                    <h2 class="plan-title">VIP</h2>
-                    <p class="plan-period">Acceso por 6 meses</p>
+                    <h2 class="plan-title">Premium</h2>
+                    <p class="plan-period">Acceso por 1 mes</p>
                 </div>
                 
                 <div class="plan-price">
@@ -1468,35 +1477,35 @@
                 </div>
                 
                 <div class="savings-section">
-                    <div class="savings-text">¡Ahorras 1,800 CUP!</div>
+                    <div class="savings-text">Exclusivo</div>
                 </div>
                 
-                <div class="vip-subtitle" style="background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.2); color: var(--vip);">
-                    <i class="fas fa-star"></i> Solo 500 CUP/mes
+                <div class="premium-subtitle">
+                    <i class="fas fa-server"></i> Servidor privado
                 </div>
                 
                 <div class="features-list">
                     <div class="feature-item">
                         <i class="fas fa-check-double feature-icon"></i>
-                        <span class="feature-text">Todo lo del plan Premium</span>
+                        <span class="feature-text">Todo lo del plan Avanzado</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-tachometer-alt feature-icon"></i>
+                        <span class="feature-text">Menos latencia</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <span class="feature-text">Más velocidad</span>
                     </div>
                     <div class="feature-item">
                         <i class="fas fa-calendar-alt feature-icon"></i>
-                        <span class="feature-text">6 meses de servicio completo</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-sliders-h feature-icon"></i>
-                        <span class="feature-text">Configuración personalizada</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-user-shield feature-icon"></i>
-                        <span class="feature-text">Soporte dedicado VIP</span>
+                        <span class="feature-text">1 mes de servicio completo</span>
                     </div>
                 </div>
                 
-                <button class="purchase-button vip" onclick="selectPlan('vip', 3000)">
+                <button class="purchase-button premium" onclick="selectPlan('premium', 3000)">
                     <i class="fas fa-gem button-icon"></i>
-                    <span>Seleccionar VIP</span>
+                    <span>Seleccionar Premium</span>
                 </button>
             </div>
         </div>

@@ -72,90 +72,6 @@
             background-size: 50px 50px;
         }
 
-        /* BOTÓN FLOTANTE DE WHATSAPP */
-        .whatsapp-float {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            width: 60px;
-            height: 60px;
-            background-color: var(--whatsapp);
-            border-radius: 50%;
-            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            animation: float 3s ease-in-out infinite;
-            text-decoration: none;
-            border: none;
-        }
-
-        .whatsapp-float:hover {
-            transform: scale(1.1) translateY(-5px);
-            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.6);
-            background-color: #1da851;
-        }
-
-        .whatsapp-float:active {
-            transform: scale(0.95);
-        }
-
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-8px);
-            }
-        }
-
-        .whatsapp-icon {
-            font-size: 28px;
-            color: white;
-        }
-
-        /* TOOLTIP PARA EL BOTÓN */
-        .whatsapp-tooltip {
-            position: absolute;
-            bottom: 70px;
-            right: 0;
-            background: rgba(25, 25, 60, 0.95);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            width: 180px;
-            text-align: center;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
-            pointer-events: none;
-            backdrop-filter: blur(10px);
-            z-index: 999;
-        }
-
-        .whatsapp-tooltip::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            right: 20px;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid rgba(25, 25, 60, 0.95);
-        }
-
-        .whatsapp-float:hover .whatsapp-tooltip {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
         /* CONTAINER PRINCIPAL COMPACTO */
         .main-container {
             max-width: 1400px;
@@ -206,8 +122,6 @@
             line-height: 1.4;
         }
 
-        /* ... (el resto del CSS se mantiene igual, solo agregué las variables y estilos del botón de WhatsApp al principio) ... */
-
         /* PLANES HORIZONTALES - COMPACTOS */
         .plans-container {
             display: flex;
@@ -239,7 +153,819 @@
             max-height: 500px;
         }
 
-        /* ... (el resto del CSS se mantiene igual) ... */
+        .plan-card:nth-child(1) { animation-delay: 0.1s; }
+        .plan-card:nth-child(2) { animation-delay: 0.2s; }
+        .plan-card:nth-child(3) { animation-delay: 0.3s; }
+        .plan-card:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .plan-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--trial-1h), #34d399);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .plan-card.standard::before {
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+        }
+
+        .plan-card.featured::before {
+            background: linear-gradient(90deg, var(--featured), #f59e0b);
+        }
+
+        .plan-card.vip::before {
+            background: linear-gradient(90deg, var(--vip), #fbbf24);
+        }
+
+        /* EFECTO HOVER COMPACTO */
+        .plan-card:hover {
+            transform: translateY(-8px);
+            background: var(--card-hover);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--border-hover);
+        }
+
+        /* BADGE DE PLAN COMPACTO */
+        .plan-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 3px 8px var(--trial-glow);
+            z-index: 2;
+        }
+
+        .plan-card.standard .plan-badge {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+        }
+
+        .plan-card.featured .plan-badge {
+            background: linear-gradient(135deg, var(--featured), #f59e0b);
+            color: #000;
+        }
+
+        .plan-card.vip .plan-badge {
+            background: linear-gradient(135deg, var(--vip), #fbbf24);
+            color: #000;
+            font-weight: 700;
+        }
+
+        /* ENCABEZADO DEL PLAN COMPACTO */
+        .plan-header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .plan-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 5px;
+            transition: color 0.3s ease;
+        }
+
+        .plan-period {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        /* PRECIO COMPACTO */
+        .plan-price {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .price-container {
+            display: inline-block;
+            position: relative;
+        }
+
+        .price-amount {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .plan-card.standard .price-amount {
+            background: linear-gradient(135deg, var(--accent-light), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .plan-card.featured .price-amount {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .plan-card.vip .price-amount {
+            background: linear-gradient(135deg, var(--vip), #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .price-currency {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            vertical-align: top;
+            margin-left: 2px;
+        }
+
+        /* SECCIÓN DE AHORRO COMPACTA */
+        .savings-section {
+            text-align: center;
+            margin: 12px 0;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.1));
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card.standard .savings-section {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(139, 92, 246, 0.1));
+            border-color: rgba(79, 70, 229, 0.2);
+        }
+
+        .plan-card.featured .savings-section {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .plan-card.vip .savings-section {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+            border-color: rgba(251, 191, 36, 0.2);
+        }
+
+        .savings-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--trial-1h);
+        }
+
+        .plan-card.standard .savings-text {
+            color: var(--accent-light);
+        }
+
+        .plan-card.featured .savings-text {
+            color: var(--featured);
+        }
+
+        .plan-card.vip .savings-text {
+            color: var(--vip);
+        }
+
+        /* SUBTÍTULO VIP COMPACTO */
+        .vip-subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--trial-1h);
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* LISTA DE CARACTERÍSTICAS COMPACTA */
+        .features-list {
+            flex-grow: 1;
+            margin: 15px 0;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .features-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .features-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .features-list::-webkit-scrollbar-thumb {
+            background: var(--trial-1h);
+            border-radius: 2px;
+        }
+
+        .plan-card.standard .features-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+        }
+
+        .plan-card.featured .features-list::-webkit-scrollbar-thumb {
+            background: var(--featured);
+        }
+
+        .plan-card.vip .features-list::-webkit-scrollbar-thumb {
+            background: var(--vip);
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            border-left: 2px solid var(--trial-1h);
+        }
+
+        .plan-card.standard .feature-item {
+            border-left-color: var(--accent);
+        }
+
+        .plan-card.featured .feature-item {
+            border-left-color: var(--featured);
+        }
+
+        .plan-card.vip .feature-item {
+            border-left-color: var(--vip);
+        }
+
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(3px);
+        }
+
+        .feature-icon {
+            font-size: 0.9rem;
+            min-width: 20px;
+            text-align: center;
+            color: var(--trial-1h);
+        }
+
+        .plan-card.standard .feature-icon {
+            color: var(--accent);
+        }
+
+        .plan-card.featured .feature-icon {
+            color: var(--featured);
+        }
+
+        .plan-card.vip .feature-icon {
+            color: var(--vip);
+        }
+
+        .feature-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        /* BOTÓN DE COMPRA COMPACTO */
+        .purchase-button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 10px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .purchase-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .purchase-button:hover::before {
+            left: 100%;
+        }
+
+        .purchase-button.standard {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+        }
+
+        .purchase-button.standard:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.3);
+        }
+
+        .purchase-button.featured {
+            background: linear-gradient(135deg, var(--featured), #f59e0b);
+            color: #000;
+        }
+
+        .purchase-button.featured:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.3);
+        }
+
+        .purchase-button.vip {
+            background: linear-gradient(135deg, var(--vip), #fbbf24);
+            color: #000;
+            font-weight: 700;
+        }
+
+        .purchase-button.vip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(251, 191, 36, 0.3);
+        }
+
+        .purchase-button.trial {
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
+            color: white;
+            font-weight: 600;
+            animation: pulseTrial 2s infinite;
+        }
+
+        .purchase-button.trial:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px var(--trial-glow);
+        }
+
+        @keyframes pulseTrial {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .button-icon {
+            font-size: 0.9rem;
+        }
+
+        /* CARACTERÍSTICAS GLOBALES COMPACTAS */
+        .global-features {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 25px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .global-features::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+        }
+
+        .global-title {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text);
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .global-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+            border-radius: 2px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-card-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--accent);
+        }
+
+        .feature-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .feature-card-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        /* FOOTER COMPACTO */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* MODAL PARA SOLICITUD DE PRUEBA */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid var(--trial-1h);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.8rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        /* FORMULARIO DE SOLICITUD DE PRUEBA */
+        .trial-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-label i {
+            color: var(--game-color);
+        }
+
+        .form-label.connection i {
+            color: var(--connection-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--trial-1h);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-hint {
+            margin-top: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .form-hint strong {
+            color: var(--trial-1h);
+        }
+
+        .form-example {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--game-color);
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .form-example-title {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .form-example-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        /* SELECT DE TIPO DE CONEXIÓN */
+        .connection-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .connection-option {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .connection-option.selected {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--connection-color);
+            color: var(--text);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .connection-icon {
+            font-size: 1.5rem;
+            color: var(--connection-color);
+        }
+
+        .connection-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .connection-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* BOTÓN DE ENVÍO */
+        .submit-trial-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--trial-1h), #34d399);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-trial-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--trial-glow);
+        }
+
+        .submit-trial-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* NOTIFICACIÓN */
+        .notification {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 12px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            color: var(--text);
+            font-weight: 500;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+            font-size: 0.9rem;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-icon {
+            font-size: 1rem;
+            color: var(--accent);
+        }
+
+        .notification.success {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .notification.error {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .notification.warning {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
         /* MEDIA QUERIES PARA RESPONSIVE */
         @media (max-width: 1200px) {
@@ -265,17 +991,6 @@
             .plan-card {
                 min-width: 280px;
                 max-width: 350px;
-            }
-            
-            .whatsapp-float {
-                bottom: 20px;
-                right: 20px;
-                width: 55px;
-                height: 55px;
-            }
-            
-            .whatsapp-icon {
-                font-size: 25px;
             }
         }
         
@@ -321,23 +1036,6 @@
             .connection-options {
                 grid-template-columns: 1fr;
             }
-            
-            .whatsapp-float {
-                bottom: 15px;
-                right: 15px;
-                width: 50px;
-                height: 50px;
-            }
-            
-            .whatsapp-icon {
-                font-size: 22px;
-            }
-            
-            .whatsapp-tooltip {
-                width: 160px;
-                font-size: 0.8rem;
-                bottom: 60px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -365,23 +1063,6 @@
                 padding: 8px;
                 margin-bottom: 8px;
             }
-            
-            .whatsapp-float {
-                bottom: 10px;
-                right: 10px;
-                width: 45px;
-                height: 45px;
-            }
-            
-            .whatsapp-icon {
-                font-size: 20px;
-            }
-            
-            .whatsapp-tooltip {
-                width: 140px;
-                font-size: 0.75rem;
-                padding: 8px 10px;
-            }
         }
     </style>
 </head>
@@ -391,12 +1072,11 @@
         <div class="grid-lines"></div>
     </div>
     
-    <!-- BOTÓN FLOTANTE DE WHATSAPP -->
     <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc" target="_blank" class="whatsapp-float">
-        <i class="fab fa-whatsapp whatsapp-icon"></i>
-        <div class="whatsapp-tooltip">
-            ¿Tienes dudas? ¡Escríbenos por WhatsApp!
-        </div>
+    <i class="fab fa-whatsapp whatsapp-icon"></i>
+    <div class="whatsapp-tooltip">
+        ¿Tienes dudas? ¡Escríbenos por WhatsApp!
+    </div>
     </a>
     
     <!-- MODAL PARA SOLICITUD DE PRUEBA -->
@@ -725,9 +1405,6 @@
         <footer class="footer">
             <p>© 2025 VPN Cuba. Todos los derechos reservados.</p>
             <p>Selecciona un plan para continuar con el proceso de pago seguro.</p>
-            <p style="margin-top: 10px; color: var(--accent-light);">
-                <i class="fab fa-whatsapp"></i> ¿Preguntas? <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=hqrc" target="_blank" style="color: var(--whatsapp); text-decoration: none; font-weight: 600;">Escríbenos por WhatsApp</a>
-            </p>
         </footer>
     </div>
 
@@ -1057,15 +1734,6 @@
                     closeTrialModal();
                 }
             });
-            
-            // Configurar enlace de WhatsApp para abrir en nueva pestaña
-            const whatsappBtn = document.querySelector('.whatsapp-float');
-            if (whatsappBtn) {
-                whatsappBtn.addEventListener('click', function(e) {
-                    console.log('📱 Abriendo grupo de WhatsApp');
-                    // El enlace ya tiene target="_blank" en el HTML
-                });
-            }
         });
     </script>
 </body>

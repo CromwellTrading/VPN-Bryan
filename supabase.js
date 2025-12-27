@@ -4,13 +4,18 @@ require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Error: Faltan variables de entorno SUPABASE_URL o SUPABASE_KEY/SUPABASE_ANON_KEY');
   process.exit(1);
 }
 
+// Cliente para operaciones normales (usando anon key)
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Cliente para operaciones de administración (usando service role key) - solo para storage
+const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : supabase;
 
 const db = {
   // ========== STORAGE (IMÁGENES Y ARCHIVOS) ==========
@@ -23,7 +28,8 @@ const db = {
       
       console.log(`📁 Nombre del archivo en storage: ${fileName}`);
       
-      const { data, error } = await supabase.storage
+      // Usar el cliente admin para evitar problemas de RLS
+      const { data, error } = await supabaseAdmin.storage
         .from('payments-screenshots')
         .upload(fileName, fileBuffer, {
           contentType: 'image/jpeg',
@@ -38,7 +44,7 @@ const db = {
 
       console.log('✅ Imagen subida a storage. Obtener URL pública...');
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = supabaseAdmin.storage
         .from('payments-screenshots')
         .getPublicUrl(fileName);
 
@@ -64,7 +70,8 @@ const db = {
       
       const storageFileName = `plan_${plan}_${Date.now()}_${fileName}`;
       
-      const { data, error } = await supabase.storage
+      // Usar el cliente admin para evitar problemas de RLS
+      const { data, error } = await supabaseAdmin.storage
         .from('plan-files')
         .upload(storageFileName, fileBuffer, {
           contentType: contentType,
@@ -77,7 +84,7 @@ const db = {
         throw error;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = supabaseAdmin.storage
         .from('plan-files')
         .getPublicUrl(storageFileName);
 
@@ -98,7 +105,7 @@ const db = {
     try {
       if (!oldFileName) return;
       
-      const { error } = await supabase.storage
+      const { error } = await supabaseAdmin.storage
         .from('plan-files')
         .remove([oldFileName]);
       
@@ -1109,8 +1116,16 @@ const db = {
       
       const { data: fileData } = await this.getPlanFile(plan);
       if (fileData && fileData.storage_filename) {
-        // Eliminar del storage
-        await this.deleteOldPlanFile(fileData.storage_filename);
+        // Eliminar del storage usando el cliente admin
+        const { error: deleteError } = await supabaseAdmin.storage
+          .from('plan-files')
+          .remove([fileData.storage_filename]);
+        
+        if (deleteError) {
+          console.error('❌ Error eliminando archivo de storage:', deleteError);
+        } else {
+          console.log(`✅ Archivo eliminado de storage: ${fileData.storage_filename}`);
+        }
       }
       
       const { data, error } = await supabase

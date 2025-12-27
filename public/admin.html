@@ -1110,6 +1110,13 @@
             color: var(--text-secondary);
             margin-top: 5px;
         }
+        
+        /* BADGE ANUAL */
+        .plan-file-badge.anual {
+            background: rgba(57, 255, 20, 0.2);
+            color: var(--annual-green);
+            border: 1px solid rgba(57, 255, 20, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -2263,52 +2270,72 @@
                 const response = await fetch('/api/plan-files');
                 const planFiles = await response.json();
                 
+                // Mostrar área de carga mientras se obtienen los datos
+                document.getElementById('basicPlanFile').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+                document.getElementById('advancedPlanFile').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+                document.getElementById('premiumPlanFile').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+                document.getElementById('annualPlanFile').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+                
                 // Actualizar información de cada plan
-                if (planFiles) {
-                    // Plan Básico
-                    const basicFile = planFiles.find(f => f.plan === 'basico');
-                    if (basicFile) {
-                        document.getElementById('basicPlanFile').textContent = basicFile.filename;
-                        document.getElementById('basicPlanDate').textContent = new Date(basicFile.updated_at).toLocaleDateString('es-ES');
-                    }
+                if (planFiles && Array.isArray(planFiles)) {
+                    planFiles.forEach(file => {
+                        const planFileElement = document.getElementById(`${file.plan}PlanFile`);
+                        const planDateElement = document.getElementById(`${file.plan}PlanDate`);
+                        
+                        if (planFileElement) {
+                            planFileElement.textContent = file.filename || 'No subido';
+                        }
+                        if (planDateElement) {
+                            planDateElement.textContent = file.updated_at ? 
+                                new Date(file.updated_at).toLocaleDateString('es-ES') : 'N/A';
+                        }
+                    });
+                } else {
+                    console.warn('⚠️ No se recibieron datos de archivos de planes');
+                    // Resetear a valores por defecto
+                    document.getElementById('basicPlanFile').textContent = 'No subido';
+                    document.getElementById('advancedPlanFile').textContent = 'No subido';
+                    document.getElementById('premiumPlanFile').textContent = 'No subido';
+                    document.getElementById('annualPlanFile').textContent = 'No subido';
                     
-                    // Plan Avanzado
-                    const advancedFile = planFiles.find(f => f.plan === 'avanzado');
-                    if (advancedFile) {
-                        document.getElementById('advancedPlanFile').textContent = advancedFile.filename;
-                        document.getElementById('advancedPlanDate').textContent = new Date(advancedFile.updated_at).toLocaleDateString('es-ES');
-                    }
-                    
-                    // Plan Premium
-                    const premiumFile = planFiles.find(f => f.plan === 'premium');
-                    if (premiumFile) {
-                        document.getElementById('premiumPlanFile').textContent = premiumFile.filename;
-                        document.getElementById('premiumPlanDate').textContent = new Date(premiumFile.updated_at).toLocaleDateString('es-ES');
-                    }
-                    
-                    // Plan Anual
-                    const annualFile = planFiles.find(f => f.plan === 'anual');
-                    if (annualFile) {
-                        document.getElementById('annualPlanFile').textContent = annualFile.filename;
-                        document.getElementById('annualPlanDate').textContent = new Date(annualFile.updated_at).toLocaleDateString('es-ES');
-                    }
+                    document.getElementById('basicPlanDate').textContent = 'N/A';
+                    document.getElementById('advancedPlanDate').textContent = 'N/A';
+                    document.getElementById('premiumPlanDate').textContent = 'N/A';
+                    document.getElementById('annualPlanDate').textContent = 'N/A';
                 }
                 
             } catch (error) {
                 console.error('❌ Error cargando archivos de planes:', error);
                 showNotification('❌ Error cargando archivos de planes', 'error');
+                
+                // En caso de error, mostrar valores por defecto
+                document.getElementById('basicPlanFile').textContent = 'Error cargando';
+                document.getElementById('advancedPlanFile').textContent = 'Error cargando';
+                document.getElementById('premiumPlanFile').textContent = 'Error cargando';
+                document.getElementById('annualPlanFile').textContent = 'Error cargando';
             }
         }
 
-        // Abrir upload de archivo para plan
+        // Abrir upload de archivo para plan - CORREGIDA
         function openPlanFileUpload(plan) {
             currentPlanForUpload = plan;
             const fileInputId = plan + 'PlanFileInput';
-            document.getElementById(fileInputId).click();
+            
+            // Limpiar el input primero para permitir subir el mismo archivo otra vez
+            const fileInput = document.getElementById(fileInputId);
+            if (fileInput) {
+                fileInput.value = '';
+                
+                // Disparar el click en el input de archivo
+                fileInput.click();
+            } else {
+                console.error(`❌ No se encontró el input con ID: ${fileInputId}`);
+                showNotification('❌ Error al abrir el selector de archivos', 'error');
+            }
         }
 
-        // Subir archivo de plan
-        async function uploadPlanFile() {
+        // Subir archivo de plan - CORREGIDA
+        async function uploadPlanFile(event) {
             if (!currentPlanForUpload) {
                 showNotification('❌ Selecciona un plan primero', 'warning');
                 return;
@@ -2316,10 +2343,16 @@
             
             const fileInputId = currentPlanForUpload + 'PlanFileInput';
             const fileInput = document.getElementById(fileInputId);
+            
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                showNotification('❌ No se seleccionó ningún archivo', 'warning');
+                return;
+            }
+            
             const file = fileInput.files[0];
             
             if (!file) {
-                showNotification('❌ Selecciona un archivo', 'warning');
+                showNotification('❌ Selecciona un archivo válido', 'warning');
                 return;
             }
             
@@ -2329,10 +2362,22 @@
             
             if (!isValidFile) {
                 showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
+                fileInput.value = ''; // Limpiar el input
                 return;
             }
             
-            console.log(`📤 Subiendo archivo ${file.name} para plan ${currentPlanForUpload}...`);
+            // Validar tamaño del archivo (máximo 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB en bytes
+            if (file.size > maxSize) {
+                showNotification('❌ El archivo es demasiado grande (máximo 10MB)', 'warning');
+                fileInput.value = '';
+                return;
+            }
+            
+            console.log(`📤 Subiendo archivo ${file.name} (${formatBytes(file.size)}) para plan ${currentPlanForUpload}...`);
+            
+            // Mostrar mensaje de carga
+            showNotification(`⏳ Subiendo archivo ${file.name}...`, 'info');
             
             const formData = new FormData();
             formData.append('plan', currentPlanForUpload);
@@ -2345,18 +2390,53 @@
                     body: formData
                 });
                 
+                const result = await response.json();
+                
                 if (response.ok) {
                     showNotification(`✅ Archivo subido correctamente para plan ${getPlanName(currentPlanForUpload)}`, 'success');
-                    loadPlanFiles();
-                    currentPlanForUpload = null;
-                    fileInput.value = '';
+                    
+                    // Actualizar la visualización inmediatamente
+                    const planFileElement = document.getElementById(`${currentPlanForUpload}PlanFile`);
+                    const planDateElement = document.getElementById(`${currentPlanForUpload}PlanDate`);
+                    
+                    if (planFileElement) {
+                        planFileElement.textContent = file.name;
+                    }
+                    if (planDateElement) {
+                        planDateElement.textContent = new Date().toLocaleDateString('es-ES');
+                    }
+                    
+                    // Recargar la lista completa de archivos
+                    setTimeout(() => {
+                        loadPlanFiles();
+                    }, 1000);
+                    
                 } else {
-                    throw new Error('Error subiendo archivo');
+                    throw new Error(result.error || 'Error subiendo archivo');
                 }
             } catch (error) {
                 console.error('❌ Error subiendo archivo de plan:', error);
                 showNotification('❌ Error subiendo archivo: ' + error.message, 'error');
+            } finally {
+                // Resetear el input y la variable
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                currentPlanForUpload = null;
             }
+        }
+
+        // Función auxiliar para formatear bytes
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
 
         // Cargar estadísticas de juegos
@@ -2641,12 +2721,24 @@
                 return;
             }
             
+            // Validar que sea ZIP, RAR o CONF
+            const fileName = file.name.toLowerCase();
+            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
+            
+            if (!isValidFile) {
+                showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
+                fileInput.value = '';
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('configFile', file);
             formData.append('paymentId', currentPaymentId);
             formData.append('adminId', currentUserId);
             
             try {
+                showNotification('⏳ Enviando configuración...', 'info');
+                
                 const response = await fetch('/api/send-config', {
                     method: 'POST',
                     body: formData
@@ -2805,6 +2897,29 @@
             return text.substring(0, maxLength) + '...';
         }
 
+        // Manejar el cambio en inputs de archivo - NUEVA FUNCIÓN
+        function handleFileInputChange(event) {
+            const input = event.target;
+            if (input.files && input.files.length > 0) {
+                // Extraer el plan del ID del input
+                const inputId = input.id;
+                let plan = '';
+                
+                if (inputId.includes('basic')) plan = 'basico';
+                else if (inputId.includes('advanced')) plan = 'avanzado';
+                else if (inputId.includes('premium')) plan = 'premium';
+                else if (inputId.includes('annual')) plan = 'anual';
+                
+                if (plan) {
+                    currentPlanForUpload = plan;
+                    uploadPlanFile(event);
+                } else {
+                    console.error('❌ No se pudo determinar el plan del input:', inputId);
+                    showNotification('❌ Error al determinar el plan', 'error');
+                }
+            }
+        }
+
         // Configurar eventos de teclado
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -2813,26 +2928,38 @@
             }
         });
 
-        // Configurar eventos de archivos de planes
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', function() {
-                if (this.files.length > 0) {
-                    uploadPlanFile();
-                }
-            });
-        });
-
         // Inicializar página
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📄 Panel de administración cargado');
             
             checkAdminAccess();
             
+            // Configurar eventos de pestañas
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     const tabName = this.getAttribute('data-tab');
                     switchTab(tabName);
                 });
+            });
+            
+            // Configurar eventos de cambio para cada input de archivo
+            const fileInputs = [
+                'basicPlanFileInput',
+                'advancedPlanFileInput', 
+                'premiumPlanFileInput',
+                'annualPlanFileInput'
+            ];
+            
+            fileInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    // Remover cualquier listener previo para evitar duplicados
+                    const newInput = input.cloneNode(true);
+                    input.parentNode.replaceChild(newInput, input);
+                    
+                    // Agregar nuevo listener
+                    document.getElementById(inputId).addEventListener('change', handleFileInputChange);
+                }
             });
             
             // Auto-refresh cada 30 segundos

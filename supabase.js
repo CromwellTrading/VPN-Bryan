@@ -483,7 +483,8 @@ const db = {
           level2: { total: 0, paid: 0 },
           total_referrals: 0,
           total_paid: 0,
-          discount_percentage: 0
+          discount_percentage: 0,
+          paid_referrals: 0
         };
       }
       
@@ -501,16 +502,20 @@ const db = {
           level2: { total: 0, paid: 0 },
           total_referrals: level1?.length || 0,
           total_paid: 0,
-          discount_percentage: 0
+          discount_percentage: 0,
+          paid_referrals: 0
         };
       }
       
       // Contar referidos que han pagado
       const level1Paid = level1?.filter(r => r.has_paid).length || 0;
       const level2Paid = level2?.filter(r => r.has_paid).length || 0;
+      const totalReferrals = (level1?.length || 0) + (level2?.length || 0);
+      const totalPaid = level1Paid + level2Paid;
       
       // Calcular descuento (20% por nivel 1, 10% por nivel 2)
       const discount = (level1Paid * 20) + (level2Paid * 10);
+      const discountPercentage = discount > 100 ? 100 : discount;
       
       return {
         level1: {
@@ -521,10 +526,12 @@ const db = {
           total: level2?.length || 0,
           paid: level2Paid
         },
-        total_referrals: (level1?.length || 0) + (level2?.length || 0),
-        total_paid: level1Paid + level2Paid,
-        discount_percentage: discount > 100 ? 100 : discount
+        total_referrals: totalReferrals,
+        total_paid: totalPaid,
+        discount_percentage: discountPercentage,
+        paid_referrals: totalPaid
       };
+      
     } catch (error) {
       console.error('❌ Error obteniendo estadísticas de referidos:', error);
       return {
@@ -532,7 +539,8 @@ const db = {
         level2: { total: 0, paid: 0 },
         total_referrals: 0,
         total_paid: 0,
-        discount_percentage: 0
+        discount_percentage: 0,
+        paid_referrals: 0
       };
     }
   },
@@ -551,7 +559,12 @@ const db = {
           total_referrals: 0,
           total_paid: 0,
           top_referrers: [],
-          recent_referrals: []
+          recent_referrals: [],
+          paid_referrals: 0,
+          level1_referrals: 0,
+          level2_referrals: 0,
+          paid_level1: 0,
+          paid_level2: 0
         };
       }
       
@@ -587,19 +600,39 @@ const db = {
         ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 10) || [];
       
+      // Calcular estadísticas agregadas
+      const total_referrals = referrals?.length || 0;
+      const total_paid = referrals?.filter(r => r.has_paid).length || 0;
+      const level1_referrals = referrals?.filter(r => r.level === 1).length || 0;
+      const level2_referrals = referrals?.filter(r => r.level === 2).length || 0;
+      const paid_level1 = referrals?.filter(r => r.level === 1 && r.has_paid).length || 0;
+      const paid_level2 = referrals?.filter(r => r.level === 2 && r.has_paid).length || 0;
+      
       return {
-        total_referrals: referrals?.length || 0,
-        total_paid: referrals?.filter(r => r.has_paid).length || 0,
-        top_referrers,
-        recent_referrals
+        total_referrals: total_referrals,
+        total_paid: total_paid,
+        top_referrers: topReferrers,
+        recent_referrals: recentReferrals,
+        // Estadísticas adicionales para compatibilidad
+        paid_referrals: total_paid,
+        level1_referrals: level1_referrals,
+        level2_referrals: level2_referrals,
+        paid_level1: paid_level1,
+        paid_level2: paid_level2
       };
+      
     } catch (error) {
       console.error('❌ Error en getAllReferralsStats:', error);
       return {
         total_referrals: 0,
         total_paid: 0,
         top_referrers: [],
-        recent_referrals: []
+        recent_referrals: [],
+        paid_referrals: 0,
+        level1_referrals: 0,
+        level2_referrals: 0,
+        paid_level1: 0,
+        paid_level2: 0
       };
     }
   },
@@ -1269,7 +1302,12 @@ const db = {
           total_referrals: 0,
           total_paid: 0,
           top_referrers: [],
-          recent_referrals: []
+          recent_referrals: [],
+          paid_referrals: 0,
+          level1_referrals: 0,
+          level2_referrals: 0,
+          paid_level1: 0,
+          paid_level2: 0
         },
         usdt: {
           total: 0,
@@ -1763,6 +1801,80 @@ const db = {
     } catch (error) {
       console.error('❌ Error en getGamesStatistics:', error);
       return { games: [], connections: [] };
+    }
+  },
+
+  // ========== FUNCIONES DE DIAGNÓSTICO ==========
+  async checkStorageAccess() {
+    try {
+      console.log('🔍 Verificando acceso a storage...');
+      
+      const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
+      const results = [];
+      
+      for (const bucket of buckets) {
+        try {
+          const { data, error } = await supabaseAdmin.storage
+            .from(bucket)
+            .list();
+          
+          if (error) {
+            results.push({
+              bucket,
+              status: 'error',
+              message: error.message
+            });
+          } else {
+            results.push({
+              bucket,
+              status: 'ok',
+              fileCount: data?.length || 0
+            });
+          }
+        } catch (bucketError) {
+          results.push({
+            bucket,
+            status: 'error',
+            message: bucketError.message
+          });
+        }
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('❌ Error en checkStorageAccess:', error);
+      return [];
+    }
+  },
+
+  async testDatabaseConnection() {
+    try {
+      console.log('🔍 Probando conexión a la base de datos...');
+      
+      // Probar conexión a usuarios
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1);
+      
+      // Probar conexión a pagos
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('count')
+        .limit(1);
+      
+      return {
+        users: usersError ? `Error: ${usersError.message}` : '✅ Conectado',
+        payments: paymentsError ? `Error: ${paymentsError.message}` : '✅ Conectado',
+        storage: await this.checkStorageAccess()
+      };
+    } catch (error) {
+      console.error('❌ Error en testDatabaseConnection:', error);
+      return {
+        users: `Error: ${error.message}`,
+        payments: 'No probado',
+        storage: []
+      };
     }
   }
 };

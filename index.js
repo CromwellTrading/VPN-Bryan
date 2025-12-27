@@ -1937,7 +1937,7 @@ app.get('/api/usdt-payments/completed', async (req, res) => {
 // ==================== ARCHIVOS DE PLANES ====================
 
 // 39. Subir archivo de plan
-app.post('/api/upload-plan-file', upload.single('planFile'), async (req, res) => {
+app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
     

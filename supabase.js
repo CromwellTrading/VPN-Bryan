@@ -13,18 +13,16 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const db = {
-  // ========== STORAGE (IMÁGENES) ==========
+  // ========== STORAGE (IMÁGENES Y ARCHIVOS) ==========
   async uploadImage(filePath, telegramId) {
     try {
       console.log(`📤 Subiendo imagen para usuario ${telegramId}: ${filePath}`);
       
-      // Leer el archivo como buffer
       const fileBuffer = await fs.readFile(filePath);
       const fileName = `screenshot_${telegramId}_${Date.now()}.jpg`;
       
       console.log(`📁 Nombre del archivo en storage: ${fileName}`);
       
-      // Subir a Supabase Storage
       const { data, error } = await supabase.storage
         .from('payments-screenshots')
         .upload(fileName, fileBuffer, {
@@ -40,7 +38,6 @@ const db = {
 
       console.log('✅ Imagen subida a storage. Obtener URL pública...');
 
-      // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('payments-screenshots')
         .getPublicUrl(fileName);
@@ -51,6 +48,67 @@ const db = {
     } catch (error) {
       console.error('❌ Error en uploadImage:', error);
       throw error;
+    }
+  },
+
+  async uploadPlanFile(fileBuffer, plan, fileName) {
+    try {
+      console.log(`📤 Subiendo archivo para plan ${plan}: ${fileName}`);
+      
+      // Determinar content type
+      const extension = fileName.split('.').pop().toLowerCase();
+      let contentType = 'application/octet-stream';
+      if (extension === 'conf') contentType = 'text/plain';
+      if (extension === 'zip') contentType = 'application/zip';
+      if (extension === 'rar') contentType = 'application/x-rar-compressed';
+      
+      const storageFileName = `plan_${plan}_${Date.now()}_${fileName}`;
+      
+      const { data, error } = await supabase.storage
+        .from('plan-files')
+        .upload(storageFileName, fileBuffer, {
+          contentType: contentType,
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('❌ Error subiendo archivo de plan:', error);
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('plan-files')
+        .getPublicUrl(storageFileName);
+
+      console.log(`✅ Archivo de plan subido: ${publicUrl}`);
+      return {
+        filename: storageFileName,
+        publicUrl: publicUrl,
+        originalName: fileName
+      };
+
+    } catch (error) {
+      console.error('❌ Error en uploadPlanFile:', error);
+      throw error;
+    }
+  },
+
+  async deleteOldPlanFile(oldFileName) {
+    try {
+      if (!oldFileName) return;
+      
+      const { error } = await supabase.storage
+        .from('plan-files')
+        .remove([oldFileName]);
+      
+      if (error) {
+        console.error('❌ Error eliminando archivo antiguo:', error);
+      } else {
+        console.log(`✅ Archivo antiguo eliminado: ${oldFileName}`);
+      }
+    } catch (error) {
+      console.error('❌ Error en deleteOldPlanFile:', error);
     }
   },
 
@@ -110,19 +168,10 @@ const db = {
           updateData.trial_sent_at = new Date().toISOString();
         }
         
-        // Si se envía trial_plan_type, actualizarlo
-        if (userData.trial_plan_type) {
-          updateData.trial_plan_type = userData.trial_plan_type;
-        }
-        
-        // Si se envía trial_game_server, actualizarlo
-        if (userData.trial_game_server) {
-          updateData.trial_game_server = userData.trial_game_server;
-        }
-        
-        // Si se envía trial_connection_type, actualizarlo
-        if (userData.trial_connection_type) {
-          updateData.trial_connection_type = userData.trial_connection_type;
+        // Si se envía referrer_id, guardarlo
+        if (userData.referrer_id && !existingUser.referrer_id) {
+          updateData.referrer_id = userData.referrer_id;
+          updateData.referrer_username = userData.referrer_username;
         }
         
         const { data, error } = await supabase
@@ -150,12 +199,6 @@ const db = {
           updated_at: new Date().toISOString(),
           last_activity: new Date().toISOString()
         };
-        
-        // Si es solicitud de prueba, agregar fecha
-        if (userData.trial_requested) {
-          insertData.trial_requested_at = new Date().toISOString();
-          insertData.trial_plan_type = userData.trial_plan_type || '1h';
-        }
         
         const { data, error } = await supabase
           .from('users')
@@ -339,6 +382,262 @@ const db = {
       return data || [];
     } catch (error) {
       console.error('❌ Error obteniendo usuarios activos:', error);
+      return [];
+    }
+  },
+
+  // ========== REFERIDOS ==========
+  async createReferral(referrerId, referredId, referredUsername = null, referredName = null) {
+    try {
+      console.log(`🤝 Creando referido: ${referrerId} -> ${referredId}`);
+      
+      // Verificar si ya existe este referido
+      const { data: existing, error: checkError } = await supabase
+        .from('referrals')
+        .select('id')
+        .eq('referrer_id', referrerId)
+        .eq('referred_id', referredId)
+        .single();
+      
+      if (existing) {
+        console.log(`✅ Referido ya existe`);
+        return existing;
+      }
+      
+      // Crear nuevo referido (Nivel 1)
+      const { data, error } = await supabase
+        .from('referrals')
+        .insert([{
+          referrer_id: referrerId,
+          referred_id: referredId,
+          referred_username: referredUsername,
+          referred_name: referredName,
+          level: 1,
+          has_paid: false,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error creando referido:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Referido creado con ID: ${data.id}`);
+      
+      // Buscar referidor del referrer para crear nivel 2
+      const { data: referrerReferrals } = await supabase
+        .from('referrals')
+        .select('referrer_id')
+        .eq('referred_id', referrerId)
+        .eq('level', 1)
+        .single();
+      
+      if (referrerReferrals && referrerReferrals.referrer_id) {
+        // Crear referido nivel 2
+        await supabase
+          .from('referrals')
+          .insert([{
+            referrer_id: referrerReferrals.referrer_id,
+            referred_id: referredId,
+            referred_username: referredUsername,
+            referred_name: referredName,
+            level: 2,
+            has_paid: false,
+            created_at: new Date().toISOString()
+          }]);
+        
+        console.log(`✅ Referido nivel 2 creado`);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error creando referido:', error);
+      throw error;
+    }
+  },
+
+  async getReferralStats(telegramId) {
+    try {
+      console.log(`📊 Obteniendo estadísticas de referidos para ${telegramId}`);
+      
+      // Obtener referidos directos (nivel 1)
+      const { data: level1, error: error1 } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', telegramId)
+        .eq('level', 1);
+      
+      if (error1) {
+        console.error('❌ Error obteniendo referidos nivel 1:', error1);
+        return {
+          level1: { total: 0, paid: 0 },
+          level2: { total: 0, paid: 0 },
+          total_referrals: 0,
+          total_paid: 0,
+          discount_percentage: 0
+        };
+      }
+      
+      // Obtener referidos indirectos (nivel 2)
+      const { data: level2, error: error2 } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', telegramId)
+        .eq('level', 2);
+      
+      if (error2) {
+        console.error('❌ Error obteniendo referidos nivel 2:', error2);
+        return {
+          level1: { total: level1?.length || 0, paid: 0 },
+          level2: { total: 0, paid: 0 },
+          total_referrals: level1?.length || 0,
+          total_paid: 0,
+          discount_percentage: 0
+        };
+      }
+      
+      // Contar referidos que han pagado
+      const level1Paid = level1?.filter(r => r.has_paid).length || 0;
+      const level2Paid = level2?.filter(r => r.has_paid).length || 0;
+      
+      // Calcular descuento (20% por nivel 1, 10% por nivel 2)
+      const discount = (level1Paid * 20) + (level2Paid * 10);
+      
+      return {
+        level1: {
+          total: level1?.length || 0,
+          paid: level1Paid
+        },
+        level2: {
+          total: level2?.length || 0,
+          paid: level2Paid
+        },
+        total_referrals: (level1?.length || 0) + (level2?.length || 0),
+        total_paid: level1Paid + level2Paid,
+        discount_percentage: discount > 100 ? 100 : discount
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas de referidos:', error);
+      return {
+        level1: { total: 0, paid: 0 },
+        level2: { total: 0, paid: 0 },
+        total_referrals: 0,
+        total_paid: 0,
+        discount_percentage: 0
+      };
+    }
+  },
+
+  async getAllReferralsStats() {
+    try {
+      console.log('📊 Obteniendo estadísticas generales de referidos');
+      
+      const { data: referrals, error } = await supabase
+        .from('referrals')
+        .select('*');
+      
+      if (error) {
+        console.error('❌ Error obteniendo todos los referidos:', error);
+        return {
+          total_referrals: 0,
+          total_paid: 0,
+          top_referrers: [],
+          recent_referrals: []
+        };
+      }
+      
+      // Agrupar por referidor
+      const referrersMap = new Map();
+      
+      referrals?.forEach(referral => {
+        const referrerId = referral.referrer_id;
+        if (!referrersMap.has(referrerId)) {
+          referrersMap.set(referrerId, {
+            referrer_id: referrerId,
+            total: 0,
+            paid: 0,
+            level1: 0,
+            level2: 0
+          });
+        }
+        
+        const stats = referrersMap.get(referrerId);
+        stats.total++;
+        if (referral.has_paid) stats.paid++;
+        if (referral.level === 1) stats.level1++;
+        if (referral.level === 2) stats.level2++;
+      });
+      
+      // Convertir a array y ordenar
+      const topReferrers = Array.from(referrersMap.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+      
+      // Referidos recientes
+      const recentReferrals = referrals
+        ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 10) || [];
+      
+      return {
+        total_referrals: referrals?.length || 0,
+        total_paid: referrals?.filter(r => r.has_paid).length || 0,
+        top_referrers,
+        recent_referrals
+      };
+    } catch (error) {
+      console.error('❌ Error en getAllReferralsStats:', error);
+      return {
+        total_referrals: 0,
+        total_paid: 0,
+        top_referrers: [],
+        recent_referrals: []
+      };
+    }
+  },
+
+  async markReferralAsPaid(referredId) {
+    try {
+      console.log(`💰 Marcando referido ${referredId} como pagado`);
+      
+      const { data, error } = await supabase
+        .from('referrals')
+        .update({ has_paid: true })
+        .eq('referred_id', referredId)
+        .select();
+      
+      if (error) {
+        console.error('❌ Error marcando referido como pagado:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Referido ${referredId} marcado como pagado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en markReferralAsPaid:', error);
+      throw error;
+    }
+  },
+
+  async getReferralsByReferrer(referrerId) {
+    try {
+      console.log(`🔍 Obteniendo referidos de ${referrerId}`);
+      
+      const { data, error } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', referrerId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo referidos:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getReferralsByReferrer:', error);
       return [];
     }
   },
@@ -557,28 +856,279 @@ const db = {
     }
   },
 
-  async saveConfigFile(configData) {
+  // ========== PAGOS USDT ==========
+  async createUsdtPayment(usdtData) {
     try {
-      console.log(`💾 Guardando registro de archivo de configuración...`);
+      console.log('💸 Creando pago USDT...');
       
       const { data, error } = await supabase
-        .from('config_files')
+        .from('usdt_payments')
         .insert([{
-          ...configData,
-          created_at: new Date().toISOString()
+          ...usdtData,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }])
         .select()
         .single();
       
       if (error) {
-        console.error('❌ Error guardando configuración:', error);
+        console.error('❌ Error creando pago USDT:', error);
         throw error;
       }
       
-      console.log(`✅ Configuración guardada con ID: ${data.id}`);
+      console.log(`✅ Pago USDT creado con ID: ${data.id}`);
       return data;
     } catch (error) {
-      console.error('❌ Error guardando configuración:', error);
+      console.error('❌ Error creando pago USDT:', error);
+      throw error;
+    }
+  },
+
+  async getUsdtPaymentByAddress(address) {
+    try {
+      console.log(`🔍 Buscando pago USDT con dirección: ${address}`);
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .select('*')
+        .eq('usdt_address', address)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Pago USDT no encontrado`);
+        return null;
+      }
+      
+      if (error) {
+        console.error('❌ Error obteniendo pago USDT:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Pago USDT encontrado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error obteniendo pago USDT:', error);
+      return null;
+    }
+  },
+
+  async updateUsdtPaymentStatus(address, status, transactionHash = null) {
+    try {
+      console.log(`✏️ Actualizando pago USDT ${address} a ${status}`);
+      
+      const updateData = {
+        status: status,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (transactionHash) {
+        updateData.transaction_hash = transactionHash;
+      }
+      
+      if (status === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+      }
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .update(updateData)
+        .eq('usdt_address', address)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando pago USDT:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Pago USDT actualizado`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error actualizando pago USDT:', error);
+      throw error;
+    }
+  },
+
+  async getPendingUsdtPayments() {
+    try {
+      console.log('🔍 Buscando pagos USDT pendientes...');
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo pagos USDT pendientes:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} pagos USDT pendientes encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo pagos USDT pendientes:', error);
+      return [];
+    }
+  },
+
+  async getCompletedUsdtPayments() {
+    try {
+      console.log('🔍 Buscando pagos USDT completados...');
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .select('*')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo pagos USDT completados:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} pagos USDT completados encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo pagos USDT completados:', error);
+      return [];
+    }
+  },
+
+  // ========== ARCHIVOS DE PLANES ==========
+  async savePlanFile(planFileData) {
+    try {
+      console.log(`💾 Guardando información de archivo de plan...`);
+      
+      // Verificar si ya existe un archivo para este plan
+      const { data: existing } = await supabase
+        .from('plan_files')
+        .select('*')
+        .eq('plan', planFileData.plan)
+        .single();
+      
+      if (existing) {
+        // Actualizar archivo existente
+        const { data, error } = await supabase
+          .from('plan_files')
+          .update({
+            ...planFileData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('plan', planFileData.plan)
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('❌ Error actualizando archivo de plan:', error);
+          throw error;
+        }
+        
+        console.log(`✅ Archivo de plan actualizado: ${planFileData.plan}`);
+        return data;
+      } else {
+        // Crear nuevo registro
+        const { data, error } = await supabase
+          .from('plan_files')
+          .insert([{
+            ...planFileData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('❌ Error creando archivo de plan:', error);
+          throw error;
+        }
+        
+        console.log(`✅ Archivo de plan creado: ${planFileData.plan}`);
+        return data;
+      }
+    } catch (error) {
+      console.error('❌ Error guardando archivo de plan:', error);
+      throw error;
+    }
+  },
+
+  async getPlanFile(plan) {
+    try {
+      console.log(`🔍 Buscando archivo de plan: ${plan}`);
+      
+      const { data, error } = await supabase
+        .from('plan_files')
+        .select('*')
+        .eq('plan', plan)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Archivo de plan ${plan} no encontrado`);
+        return null;
+      }
+      
+      if (error) {
+        console.error('❌ Error obteniendo archivo de plan:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Archivo de plan encontrado: ${plan}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error obteniendo archivo de plan:', error);
+      return null;
+    }
+  },
+
+  async getAllPlanFiles() {
+    try {
+      console.log('🔍 Obteniendo todos los archivos de planes...');
+      
+      const { data, error } = await supabase
+        .from('plan_files')
+        .select('*')
+        .order('plan', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Error obteniendo archivos de planes:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} archivos de planes encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo archivos de planes:', error);
+      return [];
+    }
+  },
+
+  async deletePlanFile(plan) {
+    try {
+      console.log(`🗑️ Eliminando archivo de plan: ${plan}`);
+      
+      const { data: fileData } = await this.getPlanFile(plan);
+      if (fileData && fileData.storage_filename) {
+        // Eliminar del storage
+        await this.deleteOldPlanFile(fileData.storage_filename);
+      }
+      
+      const { data, error } = await supabase
+        .from('plan_files')
+        .delete()
+        .eq('plan', plan)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error eliminando archivo de plan:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Archivo de plan eliminado: ${plan}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error eliminando archivo de plan:', error);
       throw error;
     }
   },
@@ -591,7 +1141,7 @@ const db = {
       // Obtener estadísticas de usuarios
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('vip, created_at, trial_requested, trial_received');
+        .select('vip, created_at, trial_requested, trial_received, referrer_id');
       
       if (usersError) {
         console.error('❌ Error obteniendo usuarios para estadísticas:', usersError);
@@ -602,11 +1152,12 @@ const db = {
       const vipUsers = usersData?.filter(u => u.vip)?.length || 0;
       const trialRequests = usersData?.filter(u => u.trial_requested)?.length || 0;
       const trialReceived = usersData?.filter(u => u.trial_received)?.length || 0;
+      const usersWithReferrer = usersData?.filter(u => u.referrer_id)?.length || 0;
       
       // Obtener estadísticas de pagos
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
-        .select('status, price, plan');
+        .select('status, price, method');
       
       if (paymentsError) {
         console.error('❌ Error obteniendo pagos para estadísticas:', paymentsError);
@@ -617,72 +1168,63 @@ const db = {
       const pendingPayments = paymentsData?.filter(p => p.status === 'pending')?.length || 0;
       const approvedPayments = paymentsData?.filter(p => p.status === 'approved')?.length || 0;
       const rejectedPayments = paymentsData?.filter(p => p.status === 'rejected')?.length || 0;
+      const usdtPayments = paymentsData?.filter(p => p.method === 'usdt')?.length || 0;
       
       // Calcular ingresos totales
       const totalRevenue = paymentsData
         ?.filter(p => p.status === 'approved' && p.price)
         ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
       
-      // Calcular ingresos por plan
-      const revenueByPlan = {};
-      paymentsData?.forEach(p => {
-        if (p.status === 'approved' && p.price && p.plan) {
-          revenueByPlan[p.plan] = (revenueByPlan[p.plan] || 0) + (parseFloat(p.price) || 0);
-        }
-      });
+      // Obtener estadísticas de referidos
+      const referralsStats = await this.getAllReferralsStats();
       
-      // Calcular usuarios nuevos hoy
-      const today = new Date().toISOString().split('T')[0];
-      const newUsersToday = usersData?.filter(u => 
-        u.created_at && u.created_at.startsWith(today)
-      )?.length || 0;
+      // Obtener estadísticas de USDT
+      const { data: usdtData } = await supabase
+        .from('usdt_payments')
+        .select('status');
       
-      // Obtener pagos de hoy
-      const { data: todayPayments, error: todayPaymentsError } = await supabase
-        .from('payments')
-        .select('status, price, created_at')
-        .gte('created_at', today);
+      const totalUsdtPayments = usdtData?.length || 0;
+      const pendingUsdt = usdtData?.filter(p => p.status === 'pending')?.length || 0;
+      const completedUsdt = usdtData?.filter(p => p.status === 'completed')?.length || 0;
       
-      let revenueToday = 0;
-      let paymentsToday = 0;
+      // Obtener estadísticas de broadcasts
+      const { data: broadcastsData } = await supabase
+        .from('broadcasts')
+        .select('status');
       
-      if (!todayPaymentsError && todayPayments) {
-        revenueToday = todayPayments
-          .filter(p => p.status === 'approved' && p.price)
-          .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
-        
-        paymentsToday = todayPayments.length;
-      }
-      
-      // Obtener estadísticas de trial
-      const trialStats = await this.getTrialStats();
+      const totalBroadcasts = broadcastsData?.length || 0;
+      const completedBroadcasts = broadcastsData?.filter(b => b.status === 'completed')?.length || 0;
       
       return {
         users: {
           total: totalUsers,
           vip: vipUsers,
           regular: totalUsers - vipUsers,
-          new_today: newUsersToday,
-          trial_requests: trialStats.total_requests,
-          trial_received: trialStats.completed,
-          trial_pending: trialStats.pending
+          trial_requests: trialRequests,
+          trial_received: trialReceived,
+          trial_pending: trialRequests - trialReceived,
+          with_referrer: usersWithReferrer
         },
         payments: {
           total: totalPayments,
           pending: pendingPayments,
           approved: approvedPayments,
           rejected: rejectedPayments,
-          today: paymentsToday
+          usdt: usdtPayments
         },
         revenue: {
           total: totalRevenue,
-          average: approvedPayments > 0 ? totalRevenue / approvedPayments : 0,
-          today: revenueToday,
-          by_plan: revenueByPlan
+          average: approvedPayments > 0 ? totalRevenue / approvedPayments : 0
         },
-        charts: {
-          daily_payments: await this.getDailyPaymentsChart(),
-          plan_distribution: await this.getPlanDistribution()
+        referrals: referralsStats,
+        usdt: {
+          total: totalUsdtPayments,
+          pending: pendingUsdt,
+          completed: completedUsdt
+        },
+        broadcasts: {
+          total: totalBroadcasts,
+          completed: completedBroadcasts
         }
       };
     } catch (error) {
@@ -692,426 +1234,37 @@ const db = {
           total: 0, 
           vip: 0, 
           regular: 0, 
-          new_today: 0,
           trial_requests: 0,
           trial_received: 0,
-          trial_pending: 0
+          trial_pending: 0,
+          with_referrer: 0
         },
         payments: { 
           total: 0, 
           pending: 0, 
           approved: 0, 
-          rejected: 0, 
-          today: 0 
+          rejected: 0,
+          usdt: 0
         },
         revenue: { 
           total: 0, 
-          average: 0, 
-          today: 0,
-          by_plan: {}
+          average: 0
         },
-        charts: {
-          daily_payments: [],
-          plan_distribution: []
-        }
-      };
-    }
-  },
-
-  async getDailyPaymentsChart() {
-    try {
-      console.log('📈 Obteniendo datos para gráfico de pagos diarios...');
-      
-      // Obtener pagos de los últimos 7 días
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const { data, error } = await supabase
-        .from('payments')
-        .select('created_at, status, price')
-        .gte('created_at', sevenDaysAgo.toISOString())
-        .order('created_at', { ascending: true });
-      
-      if (error) {
-        console.error('❌ Error obteniendo datos para gráfico:', error);
-        return [];
-      }
-      
-      // Agrupar por día
-      const dailyData = {};
-      
-      data?.forEach(payment => {
-        const date = payment.created_at.split('T')[0];
-        if (!dailyData[date]) {
-          dailyData[date] = {
-            date,
-            total: 0,
-            approved: 0,
-            pending: 0,
-            revenue: 0
-          };
-        }
-        
-        dailyData[date].total += 1;
-        
-        if (payment.status === 'approved') {
-          dailyData[date].approved += 1;
-          dailyData[date].revenue += parseFloat(payment.price) || 0;
-        } else if (payment.status === 'pending') {
-          dailyData[date].pending += 1;
-        }
-      });
-      
-      // Convertir a array y ordenar por fecha
-      const result = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
-      
-      console.log(`✅ Datos para gráfico obtenidos: ${result.length} días`);
-      return result;
-    } catch (error) {
-      console.error('❌ Error en getDailyPaymentsChart:', error);
-      return [];
-    }
-  },
-
-  async getPlanDistribution() {
-    try {
-      console.log('📊 Obteniendo distribución de planes...');
-      
-      const { data, error } = await supabase
-        .from('payments')
-        .select('plan, status')
-        .eq('status', 'approved');
-      
-      if (error) {
-        console.error('❌ Error obteniendo distribución de planes:', error);
-        return [];
-      }
-      
-      const planCounts = {
-        'basico': 0,
-        'premium': 0,
-        'vip': 0
-      };
-      
-      data?.forEach(payment => {
-        if (planCounts[payment.plan] !== undefined) {
-          planCounts[payment.plan] += 1;
-        }
-      });
-      
-      // Convertir a array para gráfico
-      const result = Object.entries(planCounts).map(([plan, count]) => ({
-        plan: plan === 'basico' ? 'Básico' : plan === 'premium' ? 'Premium' : 'VIP',
-        count,
-        percentage: data.length > 0 ? (count / data.length * 100).toFixed(1) : 0
-      }));
-      
-      console.log('✅ Distribución de planes obtenida');
-      return result;
-    } catch (error) {
-      console.error('❌ Error en getPlanDistribution:', error);
-      return [];
-    }
-  },
-
-  async searchUsers(searchTerm) {
-    try {
-      console.log(`🔍 Buscando usuarios con término: ${searchTerm}`);
-      
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .or(`telegram_id.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (error) {
-        console.error('❌ Error buscando usuarios:', error);
-        return [];
-      }
-      
-      console.log(`✅ ${data?.length || 0} usuarios encontrados`);
-      return data || [];
-    } catch (error) {
-      console.error('❌ Error en searchUsers:', error);
-      return [];
-    }
-  },
-
-  async searchPayments(searchTerm) {
-    try {
-      console.log(`🔍 Buscando pagos con término: ${searchTerm}`);
-      
-      // Buscar por ID de pago o ID de usuario
-      const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .or(`id.eq.${searchTerm},telegram_id.ilike.%${searchTerm}%`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (error) {
-        console.error('❌ Error buscando pagos:', error);
-        return [];
-      }
-      
-      console.log(`✅ ${data?.length || 0} pagos encontrados`);
-      return data || [];
-    } catch (error) {
-      console.error('❌ Error en searchPayments:', error);
-      return [];
-    }
-  },
-
-  async getRecentActivity(limit = 20) {
-    try {
-      console.log(`📅 Obteniendo actividad reciente (${limit} items)...`);
-      
-      // Obtener pagos recientes
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      
-      if (paymentsError) {
-        console.error('❌ Error obteniendo pagos recientes:', paymentsError);
-        return [];
-      }
-      
-      // Obtener usuarios recientes
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      
-      if (usersError) {
-        console.error('❌ Error obteniendo usuarios recientes:', usersError);
-        return [];
-      }
-      
-      // Combinar y ordenar por fecha
-      const activity = [
-        ...payments.map(p => ({
-          type: 'payment',
-          id: p.id,
-          telegram_id: p.telegram_id,
-          status: p.status,
-          plan: p.plan,
-          price: p.price,
-          created_at: p.created_at,
-          updated_at: p.updated_at
-        })),
-        ...users.map(u => ({
-          type: 'user',
-          id: u.id,
-          telegram_id: u.telegram_id,
-          username: u.username,
-          first_name: u.first_name,
-          vip: u.vip,
-          trial_requested: u.trial_requested,
-          trial_received: u.trial_received,
-          created_at: u.created_at,
-          updated_at: u.updated_at
-        }))
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-       .slice(0, limit);
-      
-      console.log(`✅ ${activity.length} actividades recientes obtenidas`);
-      return activity;
-    } catch (error) {
-      console.error('❌ Error en getRecentActivity:', error);
-      return [];
-    }
-  },
-
-  async getPaymentStatsByUser(telegramId) {
-    try {
-      console.log(`📊 Obteniendo estadísticas de pagos para usuario ${telegramId}`);
-      
-      const { data, error } = await supabase
-        .from('payments')
-        .select('status, plan, price, created_at')
-        .eq('telegram_id', telegramId);
-      
-      if (error) {
-        console.error('❌ Error obteniendo estadísticas de usuario:', error);
-        return null;
-      }
-      
-      const totalPayments = data?.length || 0;
-      const approvedPayments = data?.filter(p => p.status === 'approved')?.length || 0;
-      const pendingPayments = data?.filter(p => p.status === 'pending')?.length || 0;
-      const rejectedPayments = data?.filter(p => p.status === 'rejected')?.length || 0;
-      
-      const totalSpent = data
-        ?.filter(p => p.status === 'approved' && p.price)
-        ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
-      
-      const lastPayment = data?.length > 0 
-        ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-        : null;
-      
-      const planDistribution = {};
-      data?.forEach(payment => {
-        if (payment.plan) {
-          planDistribution[payment.plan] = (planDistribution[payment.plan] || 0) + 1;
-        }
-      });
-      
-      return {
-        total_payments: totalPayments,
-        approved_payments: approvedPayments,
-        pending_payments: pendingPayments,
-        rejected_payments: rejectedPayments,
-        total_spent: totalSpent,
-        average_payment: approvedPayments > 0 ? totalSpent / approvedPayments : 0,
-        last_payment: lastPayment,
-        plan_distribution: planDistribution,
-        payment_history: data || []
-      };
-    } catch (error) {
-      console.error('❌ Error en getPaymentStatsByUser:', error);
-      return null;
-    }
-  },
-
-  async getAdminStats() {
-    try {
-      console.log('📈 Obteniendo estadísticas para administrador...');
-      
-      const [
-        usersStats,
-        paymentsStats,
-        revenueStats,
-        dailyChart,
-        planDistribution,
-        recentActivity
-      ] = await Promise.all([
-        this.getStats(),
-        this.getPaymentStats(),
-        this.getRevenueStats(),
-        this.getDailyPaymentsChart(),
-        this.getPlanDistribution(),
-        this.getRecentActivity(10)
-      ]);
-      
-      return {
-        ...usersStats,
-        payments: paymentsStats,
-        revenue: revenueStats,
-        charts: {
-          daily_payments: dailyChart,
-          plan_distribution: planDistribution
+        referrals: {
+          total_referrals: 0,
+          total_paid: 0,
+          top_referrers: [],
+          recent_referrals: []
         },
-        recent_activity: recentActivity
-      };
-    } catch (error) {
-      console.error('❌ Error en getAdminStats:', error);
-      return {
-        users: { 
-          total: 0, 
-          vip: 0, 
-          regular: 0, 
-          new_today: 0,
-          trial_requests: 0,
-          trial_received: 0,
-          trial_pending: 0
+        usdt: {
+          total: 0,
+          pending: 0,
+          completed: 0
         },
-        payments: { 
-          total: 0, 
-          pending: 0, 
-          approved: 0, 
-          rejected: 0, 
-          today: 0 
-        },
-        revenue: { 
-          total: 0, 
-          average: 0, 
-          today: 0,
-          by_plan: {}
-        },
-        charts: {
-          daily_payments: [],
-          plan_distribution: []
-        },
-        recent_activity: []
-      };
-    }
-  },
-
-  async getPaymentStats() {
-    try {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('status, created_at');
-      
-      if (error) {
-        throw error;
-      }
-      
-      const today = new Date().toISOString().split('T')[0];
-      const todayPayments = data?.filter(p => p.created_at?.startsWith(today))?.length || 0;
-      
-      return {
-        total: data?.length || 0,
-        pending: data?.filter(p => p.status === 'pending')?.length || 0,
-        approved: data?.filter(p => p.status === 'approved')?.length || 0,
-        rejected: data?.filter(p => p.status === 'rejected')?.length || 0,
-        today: todayPayments
-      };
-    } catch (error) {
-      console.error('❌ Error en getPaymentStats:', error);
-      return {
-        total: 0,
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        today: 0
-      };
-    }
-  },
-
-  async getRevenueStats() {
-    try {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('price, status, created_at, plan');
-      
-      if (error) {
-        throw error;
-      }
-      
-      const approvedPayments = data?.filter(p => p.status === 'approved' && p.price) || [];
-      const totalRevenue = approvedPayments.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
-      
-      const today = new Date().toISOString().split('T')[0];
-      const todayRevenue = approvedPayments
-        .filter(p => p.created_at?.startsWith(today))
-        .reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
-      
-      // Calcular ingresos por plan
-      const revenueByPlan = {};
-      approvedPayments.forEach(p => {
-        if (p.plan) {
-          revenueByPlan[p.plan] = (revenueByPlan[p.plan] || 0) + (parseFloat(p.price) || 0);
+        broadcasts: {
+          total: 0,
+          completed: 0
         }
-      });
-      
-      return {
-        total: totalRevenue,
-        average: approvedPayments.length > 0 ? totalRevenue / approvedPayments.length : 0,
-        today: todayRevenue,
-        by_plan: revenueByPlan
-      };
-    } catch (error) {
-      console.error('❌ Error en getRevenueStats:', error);
-      return {
-        total: 0,
-        average: 0,
-        today: 0,
-        by_plan: {}
       };
     }
   },
@@ -1276,56 +1429,6 @@ const db = {
     }
   },
 
-  async getUsersWithTrials() {
-    try {
-      console.log('👥 Obteniendo usuarios con solicitudes de prueba...');
-      
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('trial_requested', true)
-        .order('trial_requested_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Error obteniendo usuarios con pruebas:', error);
-        throw error;
-      }
-      
-      console.log(`✅ ${data?.length || 0} usuarios con pruebas encontrados`);
-      return data || [];
-    } catch (error) {
-      console.error('❌ Error en getUsersWithTrials:', error);
-      return [];
-    }
-  },
-
-  async updateUserTrial(telegramId, trialData) {
-    try {
-      console.log(`✏️ Actualizando datos de prueba para ${telegramId}...`);
-      
-      const { data, error } = await supabase
-        .from('users')
-        .update({
-          ...trialData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('telegram_id', telegramId)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Error actualizando datos de prueba:', error);
-        throw error;
-      }
-      
-      console.log(`✅ Datos de prueba actualizados para ${telegramId}`);
-      return data;
-    } catch (error) {
-      console.error('❌ Error actualizando datos de prueba:', error);
-      throw error;
-    }
-  },
-
   // ========== FUNCIONES DE BROADCAST ==========
   async createBroadcast(message, targetUsers = 'all', sentBy) {
     try {
@@ -1384,7 +1487,6 @@ const db = {
     try {
       console.log(`🔍 Obteniendo broadcast ${broadcastId}...`);
       
-      // Validar que broadcastId sea un número válido
       if (!broadcastId || isNaN(parseInt(broadcastId))) {
         console.log(`❌ ID de broadcast inválido: ${broadcastId}`);
         return null;
@@ -1410,32 +1512,6 @@ const db = {
       return data;
     } catch (error) {
       console.error('❌ Error obteniendo broadcast:', error);
-      return null;
-    }
-  },
-
-  async getBroadcastStats(broadcastId) {
-    try {
-      console.log(`📊 Obteniendo estadísticas de broadcast ${broadcastId}...`);
-      
-      const { data, error } = await supabase
-        .from('broadcast_stats')
-        .select('*')
-        .eq('broadcast_id', broadcastId)
-        .single();
-      
-      if (error && error.code === 'PGRST116') {
-        return null;
-      }
-      
-      if (error) {
-        console.error('❌ Error obteniendo stats de broadcast:', error);
-        throw error;
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('❌ Error en getBroadcastStats:', error);
       return null;
     }
   },
@@ -1471,48 +1547,11 @@ const db = {
         throw error;
       }
       
-      // Guardar estadísticas detalladas si están disponibles
-      if (stats.detailed_stats) {
-        await this.saveBroadcastStats(broadcastId, stats);
-      }
-      
       console.log(`✅ Broadcast ${broadcastId} actualizado a ${status}`);
       return data;
     } catch (error) {
       console.error('❌ Error actualizando broadcast:', error);
       throw error;
-    }
-  },
-
-  async saveBroadcastStats(broadcastId, stats) {
-    try {
-      console.log(`📊 Guardando estadísticas de broadcast ${broadcastId}...`);
-      
-      const { data, error } = await supabase
-        .from('broadcast_stats')
-        .insert([{
-          broadcast_id: broadcastId,
-          total_users: stats.total_users || 0,
-          sent_count: stats.sent_count || 0,
-          failed_count: stats.failed_count || 0,
-          vip_users: stats.vip_users || 0,
-          trial_users: stats.trial_users || 0,
-          active_users: stats.active_users || 0,
-          created_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Error guardando stats de broadcast:', error);
-        return null;
-      }
-      
-      console.log(`✅ Estadísticas de broadcast guardadas`);
-      return data;
-    } catch (error) {
-      console.error('❌ Error guardando stats de broadcast:', error);
-      return null;
     }
   },
 
@@ -1533,7 +1572,6 @@ const db = {
       } else if (targetUsers === 'trial_received') {
         query = query.eq('trial_received', true);
       } else if (targetUsers === 'active') {
-        // Usuarios que han interactuado en los últimos 30 días
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         query = query.gte('last_activity', thirtyDaysAgo.toISOString());
@@ -1554,111 +1592,111 @@ const db = {
     }
   },
 
-  async getBroadcastProgress(broadcastId) {
+  // ========== FUNCIONES ADICIONALES ==========
+  async searchUsers(searchTerm) {
     try {
-      console.log(`📈 Obteniendo progreso de broadcast ${broadcastId}...`);
-      
-      const broadcast = await this.getBroadcast(broadcastId);
-      if (!broadcast) {
-        return null;
-      }
-      
-      return {
-        status: broadcast.status,
-        sent_count: broadcast.sent_count || 0,
-        failed_count: broadcast.failed_count || 0,
-        total_users: broadcast.total_users || 0,
-        progress: broadcast.total_users > 0 ? 
-          Math.round((broadcast.sent_count / broadcast.total_users) * 100) : 0
-      };
-    } catch (error) {
-      console.error('❌ Error obteniendo progreso de broadcast:', error);
-      return null;
-    }
-  },
-
-  async retryFailedBroadcast(broadcastId) {
-    try {
-      console.log(`🔄 Reintentando broadcast fallido ${broadcastId}...`);
-      
-      const broadcast = await this.getBroadcast(broadcastId);
-      if (!broadcast) {
-        throw new Error('Broadcast no encontrado');
-      }
-      
-      if (broadcast.status !== 'failed') {
-        throw new Error('Solo se pueden reintentar broadcasts fallidos');
-      }
-      
-      // Resetear estadísticas
-      const { data, error } = await supabase
-        .from('broadcasts')
-        .update({
-          status: 'pending',
-          sent_count: 0,
-          failed_count: 0,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', broadcastId)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Error reintentando broadcast:', error);
-        throw error;
-      }
-      
-      console.log(`✅ Broadcast ${broadcastId} marcado para reintento`);
-      return data;
-    } catch (error) {
-      console.error('❌ Error en retryFailedBroadcast:', error);
-      throw error;
-    }
-  },
-
-  // ========== FUNCIONES ADICIONALES PARA EL PANEL ==========
-  async getUsersByGameServer(gameServer) {
-    try {
-      console.log(`🎮 Buscando usuarios por juego: ${gameServer}`);
+      console.log(`🔍 Buscando usuarios con término: ${searchTerm}`);
       
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .ilike('trial_game_server', `%${gameServer}%`)
-        .order('created_at', { ascending: false });
+        .or(`telegram_id.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
       
       if (error) {
-        console.error('❌ Error buscando usuarios por juego:', error);
+        console.error('❌ Error buscando usuarios:', error);
         return [];
       }
       
-      console.log(`✅ ${data?.length || 0} usuarios encontrados para el juego ${gameServer}`);
+      console.log(`✅ ${data?.length || 0} usuarios encontrados`);
       return data || [];
     } catch (error) {
-      console.error('❌ Error en getUsersByGameServer:', error);
+      console.error('❌ Error en searchUsers:', error);
       return [];
     }
   },
 
-  async getUsersByConnectionType(connectionType) {
+  async searchPayments(searchTerm) {
     try {
-      console.log(`📡 Buscando usuarios por conexión: ${connectionType}`);
+      console.log(`🔍 Buscando pagos con término: ${searchTerm}`);
       
       const { data, error } = await supabase
-        .from('users')
+        .from('payments')
         .select('*')
-        .ilike('trial_connection_type', `%${connectionType}%`)
-        .order('created_at', { ascending: false });
+        .or(`id.eq.${searchTerm},telegram_id.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
       
       if (error) {
-        console.error('❌ Error buscando usuarios por conexión:', error);
+        console.error('❌ Error buscando pagos:', error);
         return [];
       }
       
-      console.log(`✅ ${data?.length || 0} usuarios encontrados para conexión ${connectionType}`);
+      console.log(`✅ ${data?.length || 0} pagos encontrados`);
       return data || [];
     } catch (error) {
-      console.error('❌ Error en getUsersByConnectionType:', error);
+      console.error('❌ Error en searchPayments:', error);
+      return [];
+    }
+  },
+
+  async getRecentActivity(limit = 20) {
+    try {
+      console.log(`📅 Obteniendo actividad reciente (${limit} items)...`);
+      
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (paymentsError) {
+        console.error('❌ Error obteniendo pagos recientes:', paymentsError);
+        return [];
+      }
+      
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (usersError) {
+        console.error('❌ Error obteniendo usuarios recientes:', usersError);
+        return [];
+      }
+      
+      const activity = [
+        ...payments.map(p => ({
+          type: 'payment',
+          id: p.id,
+          telegram_id: p.telegram_id,
+          status: p.status,
+          plan: p.plan,
+          price: p.price,
+          created_at: p.created_at,
+          updated_at: p.updated_at
+        })),
+        ...users.map(u => ({
+          type: 'user',
+          id: u.id,
+          telegram_id: u.telegram_id,
+          username: u.username,
+          first_name: u.first_name,
+          vip: u.vip,
+          trial_requested: u.trial_requested,
+          trial_received: u.trial_received,
+          created_at: u.created_at,
+          updated_at: u.updated_at
+        }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+       .slice(0, limit);
+      
+      console.log(`✅ ${activity.length} actividades recientes obtenidas`);
+      return activity;
+    } catch (error) {
+      console.error('❌ Error en getRecentActivity:', error);
       return [];
     }
   },
@@ -1677,7 +1715,6 @@ const db = {
         return { games: [], connections: [] };
       }
       
-      // Agrupar por juego
       const gamesMap = new Map();
       const connectionsMap = new Map();
       
@@ -1685,7 +1722,6 @@ const db = {
         const game = user.trial_game_server || 'No especificado';
         const connection = user.trial_connection_type || 'No especificado';
         
-        // Contar juegos
         if (!gamesMap.has(game)) {
           gamesMap.set(game, { game, count: 0, lastRequest: user.trial_requested_at });
         }
@@ -1695,14 +1731,12 @@ const db = {
           gameData.lastRequest = user.trial_requested_at;
         }
         
-        // Contar conexiones
         if (!connectionsMap.has(connection)) {
           connectionsMap.set(connection, { connection, count: 0 });
         }
         connectionsMap.get(connection).count += 1;
       });
       
-      // Convertir a arrays y ordenar
       const games = Array.from(gamesMap.values())
         .sort((a, b) => b.count - a.count);
       

@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { Telegraf } = require('telegraf');
+const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js'); // Añadir esto
 require('dotenv').config();
 
 const app = express();
@@ -12,10 +14,24 @@ const db = require('./supabase');
 
 const PORT = process.env.PORT || 3000;
 
+// Cliente Supabase Admin para crear buckets (usando service_role)
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 // IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
     ['6373481979', '5376388604'];
+
+// Configuración de USDT
+const USDT_PRICES = {
+    'basico': '1.6',
+    'avanzado': '2.7',
+    'premium': '2.5',
+    'anual': '30'
+};
 
 // Verificar si es administrador
 function isAdmin(userId) {
@@ -49,7 +65,7 @@ const upload = multer({
       } else {
         cb(new Error('Solo se permiten imágenes JPG, PNG, GIF o WebP'));
       }
-    } else if (file.fieldname === 'configFile' || file.fieldname === 'trialConfigFile') {
+    } else if (file.fieldname === 'configFile' || file.fieldname === 'trialConfigFile' || file.fieldname === 'planFile') {
       const allowedExtensions = ['.conf', '.zip', '.rar'];
       const allowedMimeTypes = [
         'application/zip', 
@@ -82,10 +98,125 @@ if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 function getPlanName(planType) {
   const plans = {
     'basico': 'Básico (1 mes)',
-    'premium': 'Premium (2 meses)',
-    'vip': 'VIP (6 meses)'
+    'avanzado': 'Avanzado (2 meses)',
+    'premium': 'Premium (1 mes)',
+    'anual': 'Anual (12 meses)'
   };
   return plans[planType] || planType;
+}
+
+// Función para generar dirección USDT única
+function generateUniqueUsdtAddress() {
+  return '0x' + Array.from({length: 40}, () => 
+    Math.floor(Math.random() * 16).toString(16)
+  ).join('');
+}
+
+// Función para generar monto USDT único
+function generateUniqueUsdtAmount() {
+  // Generar un monto entre 0.01 y 0.15 USDT
+  return (Math.random() * 0.14 + 0.01).toFixed(2);
+}
+
+// ==================== NUEVA FUNCIÓN: CREAR BUCKETS ====================
+async function createStorageBucket(bucketName, isPublic = true) {
+  try {
+    console.log(`📦 Intentando crear bucket: ${bucketName}`);
+    
+    // Verificar si el bucket ya existe
+    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+    
+    if (listError) {
+      console.error('❌ Error listando buckets:', listError.message);
+      return { success: false, error: listError.message };
+    }
+    
+    const bucketExists = buckets?.some(b => b.name === bucketName);
+    
+    if (bucketExists) {
+      console.log(`✅ Bucket ${bucketName} ya existe`);
+      return { success: true, exists: true };
+    }
+    
+    // Crear el nuevo bucket
+    const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
+      public: isPublic,
+      allowedMimeTypes: null, // Permitir todos los tipos
+      fileSizeLimit: 20971520, // 20MB
+      avifAutodetection: false
+    });
+    
+    if (error) {
+      console.error(`❌ Error creando bucket ${bucketName}:`, error.message);
+      
+      // Intentar método alternativo usando fetch directo
+      return await createBucketViaAPI(bucketName, isPublic);
+    }
+    
+    console.log(`✅ Bucket ${bucketName} creado exitosamente`);
+    return { success: true, data };
+    
+  } catch (error) {
+    console.error(`❌ Error en createStorageBucket para ${bucketName}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Método alternativo usando API REST directa
+async function createBucketViaAPI(bucketName, isPublic = true) {
+  try {
+    console.log(`🔄 Intentando crear bucket via API REST: ${bucketName}`);
+    
+    const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY
+      },
+      body: JSON.stringify({
+        name: bucketName,
+        public: isPublic,
+        allowed_mime_types: null,
+        file_size_limit: 20971520
+      })
+    });
+    
+    if (response.ok) {
+      console.log(`✅ Bucket ${bucketName} creado via API REST`);
+      return { success: true };
+    } else {
+      const errorText = await response.text();
+      console.error(`❌ Error API REST para ${bucketName}:`, errorText);
+      return { success: false, error: errorText };
+    }
+  } catch (error) {
+    console.error(`❌ Error en createBucketViaAPI:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Función para inicializar todos los buckets necesarios
+async function initializeStorageBuckets() {
+  console.log('🚀 Inicializando buckets de almacenamiento...');
+  
+  const buckets = [
+    { name: 'payments-screenshots', public: true },
+    { name: 'plan-files', public: true },
+    { name: 'trial-files', public: true }
+  ];
+  
+  for (const bucket of buckets) {
+    const result = await createStorageBucket(bucket.name, bucket.public);
+    
+    if (result.success) {
+      console.log(`✅ Bucket ${bucket.name} listo`);
+    } else {
+      console.log(`⚠️ Bucket ${bucket.name} no pudo crearse: ${result.error}`);
+    }
+  }
+  
+  console.log('✅ Inicialización de buckets completada');
 }
 
 // ==================== FUNCIONES AUXILIARES DEL BOT ====================
@@ -104,11 +235,14 @@ function calcularDiasRestantes(user) {
         case 'basico':
             duracionDias = 30;
             break;
-        case 'premium':
+        case 'avanzado':
             duracionDias = 60;
             break;
-        case 'vip':
-            duracionDias = 180;
+        case 'premium':
+            duracionDias = 30;
+            break;
+        case 'anual':
+            duracionDias = 365;
             break;
         default:
             duracionDias = 30;
@@ -186,15 +320,31 @@ app.get('/api/check-admin/:telegramId', (req, res) => {
 // 2. Aceptar términos
 app.post('/api/accept-terms', async (req, res) => {
   try {
-    const { telegramId, username, firstName } = req.body;
+    const { telegramId, username, firstName, referrerId, referrerUsername } = req.body;
     
-    const user = await db.saveUser(telegramId, {
+    const userData = {
       telegram_id: telegramId,
       username: username,
       first_name: firstName,
       accepted_terms: true,
       terms_date: new Date().toISOString()
-    });
+    };
+
+    // Si hay referidor, guardarlo
+    if (referrerId) {
+      userData.referrer_id = referrerId;
+      userData.referrer_username = referrerUsername;
+      
+      // Crear registro de referido
+      try {
+        await db.createReferral(referrerId, telegramId, username, firstName);
+        console.log(`✅ Referido creado: ${referrerId} -> ${telegramId}`);
+      } catch (refError) {
+        console.log('⚠️ Error creando referido, continuando...', refError.message);
+      }
+    }
+
+    const user = await db.saveUser(telegramId, userData);
 
     res.json({ success: true, user });
   } catch (error) {
@@ -223,28 +373,32 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     console.log('📥 Pago recibido:', {
       telegramId: req.body.telegramId,
       plan: req.body.plan,
-      price: req.body.price
+      price: req.body.price,
+      method: req.body.method
     });
     
-    const { telegramId, plan, price, notes } = req.body;
+    const { telegramId, plan, price, notes, method } = req.body;
     
     if (!telegramId || !plan || !price) {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 
-    if (!req.file) {
+    // Para métodos que no sean USDT, requerir captura
+    if (method !== 'usdt' && !req.file) {
       return res.status(400).json({ error: 'Captura de pantalla requerida' });
     }
 
-    // Subir imagen a Supabase Storage
     let screenshotUrl = '';
-    try {
-      screenshotUrl = await db.uploadImage(req.file.path, telegramId);
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error eliminando archivo local:', err);
-      });
-    } catch (uploadError) {
-      screenshotUrl = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      // Subir imagen a Supabase Storage
+      try {
+        screenshotUrl = await db.uploadImage(req.file.path, telegramId);
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('❌ Error eliminando archivo local:', err);
+        });
+      } catch (uploadError) {
+        screenshotUrl = `/uploads/${req.file.filename}`;
+      }
     }
 
     // Obtener información del usuario
@@ -257,6 +411,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       telegram_id: telegramId,
       plan: plan,
       price: parseFloat(price),
+      method: method || 'transfer',
       screenshot_url: screenshotUrl,
       notes: notes || '',
       status: 'pending',
@@ -274,7 +429,8 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
         `📱 *Telegram:* ${username}\n` +
         `🆔 *ID:* ${telegramId}\n` +
         `📋 *Plan:* ${getPlanName(plan)}\n` +
-        `💰 *Monto:* $${price} CUP\n` +
+        `💰 *Monto:* $${price} ${method === 'usdt' ? 'USDT' : 'CUP'}\n` +
+        `💳 *Método:* ${method === 'usdt' ? 'USDT (BEP20)' : (method === 'transfer' ? 'BPA' : method === 'metropolitan' ? 'Metropolitana' : method === 'mitransfer' ? 'MITRANSFER' : 'Saldo Móvil')}\n` +
         `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
         `📝 *Estado:* ⏳ Pendiente`;
       
@@ -289,9 +445,49 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       console.log('❌ Error al notificar a los admins:', adminError.message);
     }
 
+    // Si es pago USDT, notificar al usuario con información específica
+    if (method === 'usdt') {
+      try {
+        // Generar información única para USDT
+        const usdtAddress = generateUniqueUsdtAddress();
+        const usdtAmount = USDT_PRICES[plan] || '1.6';
+        
+        await bot.telegram.sendMessage(
+          telegramId,
+          `💸 *INFORMACIÓN DE PAGO USDT*\n\n` +
+          `📋 *Plan:* ${getPlanName(plan)}\n` +
+          `💰 *Monto exacto:* ${usdtAmount} USDT\n` +
+          `🏦 *Dirección:* \`${usdtAddress}\`\n` +
+          `🌐 *Red:* BEP20 (Binance Smart Chain)\n\n` +
+          `*Instrucciones importantes:*\n` +
+          `1. Envía *exactamente* ${usdtAmount} USDT\n` +
+          `2. Usa *solo* la red BEP20\n` +
+          `3. El sistema detectará tu pago automáticamente\n` +
+          `4. Puede tardar hasta 15 minutos\n\n` +
+          `Una vez detectado el pago, recibirás el archivo de configuración automáticamente.`,
+          { parse_mode: 'Markdown' }
+        );
+        
+        // Guardar pago USDT en base de datos
+        await db.createUsdtPayment({
+          telegram_id: telegramId,
+          plan: plan,
+          usdt_amount: usdtAmount,
+          usdt_address: usdtAddress,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        });
+        
+      } catch (usdtError) {
+        console.log('❌ Error enviando información USDT:', usdtError.message);
+      }
+    }
+
     res.json({ 
       success: true, 
-      message: 'Pago recibido. Te notificaremos cuando sea aprobado.',
+      message: method === 'usdt' ? 
+        'Información de pago USDT enviada. Verifica el chat del bot.' : 
+        'Pago recibido. Te notificaremos cuando sea aprobado.',
       payment 
     });
   } catch (error) {
@@ -369,10 +565,167 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
 
+    // Verificar si hay archivo de plan disponible para enviar automáticamente
+    try {
+      const planFile = await db.getPlanFile(payment.plan);
+      if (planFile && planFile.public_url) {
+        // Enviar archivo automáticamente
+        const fileName = planFile.original_name || `config_${payment.plan}.conf`;
+        
+        await bot.telegram.sendDocument(
+          payment.telegram_id,
+          planFile.public_url,
+          {
+            caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                    `📁 *Archivo:* ${fileName}\n` +
+                    `📋 *Plan:* ${getPlanName(payment.plan)}\n\n` +
+                    `*Instrucciones:*\n` +
+                    `1. Descarga este archivo\n` +
+                    `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                    `3. Activa la conexión\n` +
+                    `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                    `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+            parse_mode: 'Markdown'
+          }
+        );
+
+        // Actualizar pago con configuración enviada
+        await db.updatePayment(payment.id, {
+          config_sent: true,
+          config_sent_at: new Date().toISOString(),
+          config_file: fileName,
+          config_sent_by: 'auto-system'
+        });
+
+        console.log(`✅ Archivo de plan enviado automáticamente a ${payment.telegram_id}`);
+      }
+    } catch (fileError) {
+      console.log('⚠️ No se pudo enviar archivo automáticamente:', fileError.message);
+    }
+
+    // Marcar usuario como VIP
+    const user = await db.getUser(payment.telegram_id);
+    if (!user.vip) {
+      await db.makeUserVIP(payment.telegram_id, {
+        plan: payment.plan,
+        plan_price: payment.price,
+        vip_since: new Date().toISOString()
+      });
+    }
+
+    // Verificar si el usuario fue referido y actualizar referidos pagados
+    if (user.referrer_id) {
+      try {
+        await db.markReferralAsPaid(payment.telegram_id);
+        console.log(`✅ Referido ${payment.telegram_id} marcado como pagado`);
+      } catch (refError) {
+        console.log('⚠️ Error marcando referido como pagado:', refError.message);
+      }
+    }
+
     res.json({ success: true, payment });
   } catch (error) {
     console.error('❌ Error aprobando pago:', error);
     res.status(500).json({ error: 'Error aprobando pago' });
+  }
+});
+
+// 7b. Aprobar pago USDT manualmente
+app.post('/api/payments/:id/approve-usdt', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    const payment = await db.approvePayment(req.params.id);
+    
+    if (!payment) {
+      return res.status(404).json({ error: 'Pago no encontrado' });
+    }
+
+    // Verificar si hay archivo de plan disponible para enviar automáticamente
+    try {
+      const planFile = await db.getPlanFile(payment.plan);
+      if (planFile && planFile.public_url) {
+        // Enviar archivo automáticamente
+        const fileName = planFile.original_name || `config_${payment.plan}.conf`;
+        
+        await bot.telegram.sendDocument(
+          payment.telegram_id,
+          planFile.public_url,
+          {
+            caption: `🎉 *¡Tu pago USDT ha sido aprobado!*\n\n` +
+                    `📁 *Archivo:* ${fileName}\n` +
+                    `📋 *Plan:* ${getPlanName(payment.plan)}\n` +
+                    `💰 *Método:* USDT (BEP20)\n\n` +
+                    `*Instrucciones:*\n` +
+                    `1. Descarga este archivo\n` +
+                    `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                    `3. Activa la conexión\n` +
+                    `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                    `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+            parse_mode: 'Markdown'
+          }
+        );
+
+        // Actualizar pago con configuración enviada
+        await db.updatePayment(payment.id, {
+          config_sent: true,
+          config_sent_at: new Date().toISOString(),
+          config_file: fileName,
+          config_sent_by: adminId
+        });
+
+        console.log(`✅ Archivo de plan enviado automáticamente a ${payment.telegram_id}`);
+      } else {
+        // Notificar al usuario que el pago fue aprobado pero hay que enviar manualmente
+        await bot.telegram.sendMessage(
+          payment.telegram_id,
+          '🎉 *¡Tu pago USDT ha sido aprobado!*\n\n' +
+          'El administrador te enviará el archivo de configuración en breve.',
+          { parse_mode: 'Markdown' }
+        );
+      }
+    } catch (fileError) {
+      console.log('⚠️ Error enviando archivo:', fileError.message);
+      await bot.telegram.sendMessage(
+        payment.telegram_id,
+        '🎉 *¡Tu pago USDT ha sido aprobado!*\n\n' +
+        'El administrador te enviará el archivo de configuración en breve.',
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    // Marcar usuario como VIP
+    const user = await db.getUser(payment.telegram_id);
+    if (!user.vip) {
+      await db.makeUserVIP(payment.telegram_id, {
+        plan: payment.plan,
+        plan_price: payment.price,
+        vip_since: new Date().toISOString()
+      });
+    }
+
+    // Verificar si el usuario fue referido y actualizar referidos pagados
+    if (user.referrer_id) {
+      try {
+        await db.markReferralAsPaid(payment.telegram_id);
+        console.log(`✅ Referido ${payment.telegram_id} marcado como pagado`);
+      } catch (refError) {
+        console.log('⚠️ Error marcando referido como pagado:', refError.message);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Pago USDT aprobado y archivo enviado automáticamente',
+      payment 
+    });
+  } catch (error) {
+    console.error('❌ Error aprobando pago USDT:', error);
+    res.status(500).json({ error: 'Error aprobando pago USDT' });
   }
 });
 
@@ -599,9 +952,16 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     
     const admin = isAdmin(req.params.telegramId);
     
+    // Obtener estadísticas de referidos
+    let referralStats = null;
+    if (user.referrer_id) {
+      referralStats = await db.getReferralStats(req.params.telegramId);
+    }
+    
     res.json({
       ...user,
-      isAdmin: admin
+      isAdmin: admin,
+      referral_stats: referralStats
     });
   } catch (error) {
     console.error('❌ Error obteniendo información del usuario:', error);
@@ -809,127 +1169,76 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
 });
 
 // 22. Enviar archivo de configuración de prueba
-app.post('/api/send-trial-config', upload.single('trialConfigFile'), async (req, res) => {
+app.post('/api/send-trial-config', async (req, res) => {
   try {
-    const { telegramId, adminId, trialType = '1h' } = req.body;
+    const { telegramId, adminId } = req.body;
     
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
-    if (!req.file) {
-      return res.status(400).json({ error: 'Archivo de configuración requerido' });
-    }
-    
-    const fileName = req.file.originalname.toLowerCase();
-    const isValidFile = fileName.endsWith('.conf') || fileName.endsWith('.zip') || fileName.endsWith('.rar');
-    
-    if (!isValidFile) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
-    }
-    
     const user = await db.getUser(telegramId);
     
     if (!user) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     
     if (!user.trial_requested) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
       return res.status(400).json({ error: 'El usuario no solicitó prueba' });
     }
     
     if (user.trial_received) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
       return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
     }
     
-    const gameServer = user.trial_game_server || 'No especificado';
-    const connectionType = user.trial_connection_type || 'No especificado';
+    // Buscar si hay archivo de prueba disponible
+    const planFile = await db.getPlanFile('trial');
     
-    try {
+    if (planFile && planFile.public_url) {
+      // Enviar archivo automáticamente
+      const fileName = planFile.original_name || 'config_trial.conf';
+      const gameServer = user.trial_game_server || 'No especificado';
+      const connectionType = user.trial_connection_type || 'No especificado';
+      
       await bot.telegram.sendDocument(
         telegramId,
-        { source: req.file.path, filename: req.file.originalname },
+        planFile.public_url,
         {
           caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
-                  `📁 *Archivo de configuración para ${trialType} de prueba*\n\n` +
+                  `📁 *Archivo de configuración para 1 hora de prueba*\n\n` +
                   `🎮 *Juego/Servidor:* ${gameServer}\n` +
                   `📡 *Conexión:* ${connectionType}\n\n` +
                   `*Instrucciones de instalación:*\n` +
                   `1. Descarga este archivo\n` +
-                  `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
-                  `3. Importa el archivo .conf en tu cliente WireGuard\n` +
-                  `4. Activa la conexión\n` +
-                  `5. ¡Disfruta de ${trialType} de prueba gratis! 🎉\n\n` +
-                  `⏰ *Duración:* ${trialType}\n` +
-                  `*Importante:* Esta configuración expirará en ${trialType}.`,
+                  `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                  `3. Activa la conexión\n` +
+                  `4. ¡Disfruta de 1 hora de prueba gratis! 🎉\n\n` +
+                  `⏰ *Duración:* 1 hora\n` +
+                  `*Importante:* Esta configuración expirará en 1 hora.`,
           parse_mode: 'Markdown'
         }
       );
       
       await db.markTrialAsSent(telegramId, adminId);
       
-      if (trialType && trialType !== user.trial_plan_type) {
-        await db.updateUserTrial(telegramId, {
-          trial_plan_type: trialType
-        });
-      }
-      
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
-      });
-      
       res.json({ 
         success: true, 
-        message: 'Configuración de prueba enviada correctamente',
-        filename: req.file.filename,
-        trialType: trialType,
+        message: 'Configuración de prueba enviada automáticamente',
+        filename: fileName,
+        trialType: '1h',
         gameServer: gameServer,
         connectionType: connectionType
       });
       
-    } catch (telegramError) {
-      console.error('❌ Error enviando archivo de prueba por Telegram:', telegramError);
-      
-      if (telegramError.description && telegramError.description.includes('blocked')) {
-        console.log(`⚠️ Usuario ${telegramId} bloqueó al bot`);
-        
-        fs.unlink(req.file.path, (err) => {
-          if (err) console.error('❌ Error al eliminar archivo:', err);
-        });
-        
-        return res.status(400).json({ 
-          error: 'No se puede enviar mensaje al usuario. Posiblemente el usuario bloqueó al bot.' 
-        });
-      }
-      
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
+    } else {
+      // Notificar al admin que no hay archivo de prueba disponible
+      res.status(404).json({ 
+        error: 'No hay archivo de prueba disponible. Sube uno primero en "Archivos de Planes".' 
       });
-      
-      res.status(500).json({ error: 'Error enviando archivo por Telegram: ' + telegramError.message });
     }
     
   } catch (error) {
     console.error('❌ Error en send-trial-config:', error);
-    
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-    }
-    
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
@@ -943,7 +1252,8 @@ app.get('/api/health', (req, res) => {
     admins: ADMIN_IDS,
     port: PORT,
     bot_token: process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado',
-    supabase_url: process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'
+    supabase_url: process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado',
+    supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'
   });
 });
 
@@ -964,10 +1274,63 @@ app.get('/api/image/:filename', (req, res) => {
   }
 });
 
+// 24b. Obtener estado de almacenamiento
+app.get('/api/storage-status', async (req, res) => {
+  try {
+    const buckets = [];
+    
+    // Verificar payments-screenshots
+    try {
+      const { data: screenshots } = await supabaseAdmin.storage
+        .from('payments-screenshots')
+        .list();
+      buckets.push({
+        name: 'payments-screenshots',
+        status: '✅ Existe',
+        fileCount: screenshots?.length || 0
+      });
+    } catch (e) {
+      buckets.push({
+        name: 'payments-screenshots', 
+        status: '❌ No existe o error: ' + e.message
+      });
+    }
+    
+    // Verificar plan-files
+    try {
+      const { data: planFiles } = await supabaseAdmin.storage
+        .from('plan-files')
+        .list();
+      buckets.push({
+        name: 'plan-files',
+        status: '✅ Existe',
+        fileCount: planFiles?.length || 0
+      });
+    } catch (e) {
+      buckets.push({
+        name: 'plan-files', 
+        status: '❌ No existe o error: ' + e.message
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      buckets,
+      service_key_configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      service_key_configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    });
+  }
+});
+
 // ==================== API DE BROADCASTS (para admin web) ====================
 
 // 25. Crear broadcast
-app.post('/api/broadcast/create', async (req, res) => {
+app.post('/api/broadcast/send', async (req, res) => {
   try {
     const { message, target, adminId } = req.body;
     
@@ -981,7 +1344,7 @@ app.post('/api/broadcast/create', async (req, res) => {
     }
     
     // Validar que target sea válido
-    const validTargets = ['all', 'vip', 'non_vip', 'trial_pending', 'trial_received', 'active'];
+    const validTargets = ['all', 'vip', 'non_vip', 'trial_pending', 'trial_received', 'active', 'with_referrals', 'usdt_payers'];
     if (!validTargets.includes(target)) {
       return res.status(400).json({ error: 'Target de broadcast inválido' });
     }
@@ -1129,13 +1492,7 @@ app.get('/api/broadcast/:id', async (req, res) => {
       return res.status(404).json({ error: 'Broadcast no encontrado' });
     }
     
-    // Obtener estadísticas detalladas si existen
-    const stats = await db.getBroadcastStats(broadcastId);
-    
-    res.json({
-      ...broadcast,
-      stats: stats || null
-    });
+    res.json(broadcast);
   } catch (error) {
     console.error('❌ Error obteniendo broadcast:', error);
     res.status(500).json({ error: 'Error obteniendo broadcast' });
@@ -1236,6 +1593,515 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   }
 }
 
+// ==================== SISTEMA DE REFERIDOS ====================
+
+// 31. Obtener estadísticas generales de referidos
+app.get('/api/referrals/stats', async (req, res) => {
+  try {
+    const stats = await db.getAllReferralsStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de referidos:', error);
+    res.status(500).json({ error: 'Error obteniendo estadísticas de referidos' });
+  }
+});
+
+// 32. Obtener top referidores
+app.get('/api/referrals/top', async (req, res) => {
+  try {
+    const stats = await db.getAllReferralsStats();
+    const topReferrers = stats.top_referrers || [];
+    
+    // Obtener información de usuario para cada referidor
+    const referrersWithInfo = await Promise.all(topReferrers.map(async (referrer) => {
+      const user = await db.getUser(referrer.referrer_id);
+      return {
+        ...referrer,
+        first_name: user?.first_name || 'Usuario',
+        username: user?.username || 'sin_usuario'
+      };
+    }));
+    
+    res.json(referrersWithInfo);
+  } catch (error) {
+    console.error('❌ Error obteniendo top referidores:', error);
+    res.status(500).json({ error: 'Error obteniendo top referidores' });
+  }
+});
+
+// 33. Obtener lista de referidos con información
+app.get('/api/referrals/list', async (req, res) => {
+  try {
+    const stats = await db.getAllReferralsStats();
+    const referrals = stats.recent_referrals || [];
+    
+    // Obtener información de usuario para cada referido
+    const referralsWithInfo = await Promise.all(referrals.map(async (referral) => {
+      const user = await db.getUser(referral.referred_id);
+      const referrer = await db.getUser(referral.referrer_id);
+      
+      return {
+        ...referral,
+        user_name: user?.first_name || 'Usuario',
+        user_id: user?.telegram_id,
+        referrer_name: referrer?.first_name || 'Usuario',
+        referrer_id: referrer?.telegram_id
+      };
+    }));
+    
+    res.json(referralsWithInfo);
+  } catch (error) {
+    console.error('❌ Error obteniendo lista de referidos:', error);
+    res.status(500).json({ error: 'Error obteniendo lista de referidos' });
+  }
+});
+
+// 34. Obtener estadísticas de referidos por usuario
+app.get('/api/referrals/user/:telegramId', async (req, res) => {
+  try {
+    const stats = await db.getReferralStats(req.params.telegramId);
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de referidos por usuario:', error);
+    res.status(500).json({ error: 'Error obteniendo estadísticas de referidos por usuario' });
+  }
+});
+
+// ==================== PAGOS USDT ====================
+
+// 35. Crear pago USDT
+app.post('/api/usdt-payment', async (req, res) => {
+  try {
+    const { telegramId, plan, usdtAmount, usdtAddress, method } = req.body;
+    
+    if (!telegramId || !plan || !usdtAmount) {
+      return res.status(400).json({ error: 'Datos incompletos' });
+    }
+    
+    // Obtener información del usuario
+    const user = await db.getUser(telegramId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    // Generar dirección única si no se proporciona
+    const uniqueAddress = usdtAddress || generateUniqueUsdtAddress();
+    
+    // Guardar pago USDT en base de datos
+    const usdtPayment = await db.createUsdtPayment({
+      telegram_id: telegramId,
+      plan: plan,
+      usdt_amount: usdtAmount,
+      usdt_address: uniqueAddress,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    });
+    
+    // También crear un pago regular para seguimiento
+    const payment = await db.createPayment({
+      telegram_id: telegramId,
+      plan: plan,
+      price: parseFloat(usdtAmount),
+      method: 'usdt',
+      screenshot_url: '',
+      notes: 'Pago USDT pendiente',
+      status: 'pending',
+      created_at: new Date().toISOString()
+    });
+    
+    // Notificar a admins
+    try {
+      const adminMessage = `💸 *NUEVO PAGO USDT SOLICITADO*\n\n` +
+        `👤 *Usuario:* ${user.first_name || 'Usuario'}\n` +
+        `📱 *Telegram:* ${user.username ? `@${user.username}` : 'Sin usuario'}\n` +
+        `🆔 *ID:* ${telegramId}\n` +
+        `📋 *Plan:* ${getPlanName(plan)}\n` +
+        `💰 *Monto:* ${usdtAmount} USDT\n` +
+        `🏦 *Dirección:* \`${uniqueAddress}\`\n` +
+        `🌐 *Red:* BEP20\n` +
+        `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
+        `📝 *Estado:* ⏳ Pendiente`;
+      
+      for (const adminId of ADMIN_IDS) {
+        try {
+          await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
+        } catch (adminError) {
+          console.log(`❌ No se pudo notificar al admin ${adminId}`);
+        }
+      }
+    } catch (adminError) {
+      console.log('❌ Error al notificar a los admins:', adminError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Pago USDT creado',
+      usdtPayment,
+      payment,
+      usdtAddress: uniqueAddress
+    });
+  } catch (error) {
+    console.error('❌ Error creando pago USDT:', error);
+    res.status(500).json({ error: 'Error creando pago USDT: ' + error.message });
+  }
+});
+
+// 36. Webhook para verificar pagos USDT (esto sería llamado por un servicio externo)
+app.post('/api/usdt-webhook', async (req, res) => {
+  try {
+    const { address, amount, transactionHash } = req.body;
+    
+    if (!address || !amount || !transactionHash) {
+      return res.status(400).json({ error: 'Datos incompletos' });
+    }
+    
+    // Buscar pago USDT por dirección
+    const usdtPayment = await db.getUsdtPaymentByAddress(address);
+    
+    if (!usdtPayment) {
+      return res.status(404).json({ error: 'Pago USDT no encontrado' });
+    }
+    
+    if (usdtPayment.status !== 'pending') {
+      return res.status(400).json({ error: 'Pago ya procesado' });
+    }
+    
+    // Verificar que el monto sea correcto
+    const expectedAmount = parseFloat(usdtPayment.usdt_amount);
+    const receivedAmount = parseFloat(amount);
+    
+    if (Math.abs(receivedAmount - expectedAmount) > 0.001) {
+      // Monto incorrecto
+      await db.updateUsdtPaymentStatus(address, 'failed', transactionHash);
+      
+      // Notificar al usuario
+      try {
+        await bot.telegram.sendMessage(
+          usdtPayment.telegram_id,
+          `❌ *PAGO USDT RECHAZADO*\n\n` +
+          `Enviaste ${receivedAmount} USDT, pero el monto exacto es ${expectedAmount} USDT.\n` +
+          `Por favor, contacta con soporte para más información.`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (botError) {
+        console.log('❌ No se pudo notificar al usuario:', botError.message);
+      }
+      
+      return res.json({ success: false, error: 'Monto incorrecto' });
+    }
+    
+    // Actualizar estado del pago USDT
+    await db.updateUsdtPaymentStatus(address, 'completed', transactionHash);
+    
+    // Buscar pago regular correspondiente
+    const payments = await db.getUserPayments(usdtPayment.telegram_id);
+    const regularPayment = payments?.find(p => 
+      p.method === 'usdt' && 
+      p.status === 'pending' &&
+      Math.abs(parseFloat(p.price) - expectedAmount) < 0.001
+    );
+    
+    if (regularPayment) {
+      // Aprobar pago regular
+      await db.approvePayment(regularPayment.id);
+      
+      // Verificar si hay archivo de plan disponible para enviar automáticamente
+      try {
+        const planFile = await db.getPlanFile(usdtPayment.plan);
+        if (planFile && planFile.public_url) {
+          // Enviar archivo automáticamente
+          const fileName = planFile.original_name || `config_${usdtPayment.plan}.conf`;
+          
+          await bot.telegram.sendDocument(
+            usdtPayment.telegram_id,
+            planFile.public_url,
+            {
+              caption: `🎉 *¡Tu pago USDT ha sido confirmado!*\n\n` +
+                      `📁 *Archivo:* ${fileName}\n` +
+                      `📋 *Plan:* ${getPlanName(usdtPayment.plan)}\n` +
+                      `💰 *Método:* USDT (BEP20)\n` +
+                      `🏦 *Transacción:* \`${transactionHash.substring(0, 20)}...\`\n\n` +
+                      `*Instrucciones:*\n` +
+                      `1. Descarga este archivo\n` +
+                      `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                      `3. Activa la conexión\n` +
+                      `4. ¡Disfruta de baja latencia! 🚀\n\n` +
+                      `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+              parse_mode: 'Markdown'
+            }
+          );
+
+          // Actualizar pago con configuración enviada
+          await db.updatePayment(regularPayment.id, {
+            config_sent: true,
+            config_sent_at: new Date().toISOString(),
+            config_file: fileName,
+            config_sent_by: 'auto-usdt-system'
+          });
+
+          console.log(`✅ Archivo de plan enviado automáticamente a ${usdtPayment.telegram_id} via USDT`);
+        } else {
+          // Notificar al usuario que el pago fue aprobado pero hay que enviar manualmente
+          await bot.telegram.sendMessage(
+            usdtPayment.telegram_id,
+            '🎉 *¡Tu pago USDT ha sido confirmado!*\n\n' +
+            'El administrador te enviará el archivo de configuración en breve.',
+            { parse_mode: 'Markdown' }
+          );
+        }
+      } catch (fileError) {
+        console.log('⚠️ Error enviando archivo:', fileError.message);
+        await bot.telegram.sendMessage(
+          usdtPayment.telegram_id,
+          '🎉 *¡Tu pago USDT ha sido confirmado!*\n\n' +
+          'El administrador te enviará el archivo de configuración en breve.',
+          { parse_mode: 'Markdown' }
+        );
+      }
+
+      // Marcar usuario como VIP
+      const user = await db.getUser(usdtPayment.telegram_id);
+      if (!user.vip) {
+        await db.makeUserVIP(usdtPayment.telegram_id, {
+          plan: usdtPayment.plan,
+          plan_price: expectedAmount,
+          vip_since: new Date().toISOString()
+        });
+      }
+
+      // Verificar si el usuario fue referido y actualizar referidos pagados
+      if (user.referrer_id) {
+        try {
+          await db.markReferralAsPaid(usdtPayment.telegram_id);
+          console.log(`✅ Referido ${usdtPayment.telegram_id} marcado como pagado`);
+        } catch (refError) {
+          console.log('⚠️ Error marcando referido como pagado:', refError.message);
+        }
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Pago USDT procesado automáticamente',
+      usdtPayment: {
+        ...usdtPayment,
+        status: 'completed'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error procesando webhook USDT:', error);
+    res.status(500).json({ error: 'Error procesando webhook USDT: ' + error.message });
+  }
+});
+
+// 37. Obtener pagos USDT pendientes
+app.get('/api/usdt-payments/pending', async (req, res) => {
+  try {
+    const payments = await db.getPendingUsdtPayments();
+    
+    const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
+      const user = await db.getUser(payment.telegram_id);
+      return {
+        ...payment,
+        user: user || null
+      };
+    }));
+    
+    res.json(paymentsWithUsers);
+  } catch (error) {
+    console.error('❌ Error obteniendo pagos USDT pendientes:', error);
+    res.status(500).json({ error: 'Error obteniendo pagos USDT pendientes' });
+  }
+});
+
+// 38. Obtener pagos USDT completados
+app.get('/api/usdt-payments/completed', async (req, res) => {
+  try {
+    const payments = await db.getCompletedUsdtPayments();
+    
+    const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
+      const user = await db.getUser(payment.telegram_id);
+      return {
+        ...payment,
+        user: user || null
+      };
+    }));
+    
+    res.json(paymentsWithUsers);
+  } catch (error) {
+    console.error('❌ Error obteniendo pagos USDT completados:', error);
+    res.status(500).json({ error: 'Error obteniendo pagos USDT completados' });
+  }
+});
+
+// ==================== ARCHIVOS DE PLANES ====================
+
+// 39. Subir archivo de plan
+app.post('/api/upload-plan-file', upload.single('planFile'), async (req, res) => {
+  try {
+    const { plan, adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'Archivo de configuración requerido' });
+    }
+    
+    if (!plan || !['basico', 'avanzado', 'premium', 'anual', 'trial'].includes(plan)) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'Plan inválido' });
+    }
+    
+    const fileName = req.file.originalname.toLowerCase();
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
+    }
+    
+    // Leer archivo
+    const fileBuffer = fs.readFileSync(req.file.path);
+    
+    // Subir archivo a Supabase Storage
+    const uploadResult = await db.uploadPlanFile(fileBuffer, plan, req.file.originalname);
+    
+    // Eliminar archivo local
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error('❌ Error al eliminar archivo local:', err);
+    });
+    
+    // Guardar información del archivo en la base de datos
+    const planFileData = {
+      plan: plan,
+      storage_filename: uploadResult.filename,
+      original_name: uploadResult.originalName,
+      public_url: uploadResult.publicUrl,
+      uploaded_by: adminId,
+      uploaded_at: new Date().toISOString()
+    };
+    
+    const savedFile = await db.savePlanFile(planFileData);
+    
+    res.json({ 
+      success: true, 
+      message: `Archivo de plan ${getPlanName(plan)} subido correctamente`,
+      file: savedFile
+    });
+    
+  } catch (error) {
+    console.error('❌ Error subiendo archivo de plan:', error);
+    
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+    }
+    
+    res.status(500).json({ error: 'Error subiendo archivo de plan: ' + error.message });
+  }
+});
+
+// 40. Obtener todos los archivos de planes
+app.get('/api/plan-files', async (req, res) => {
+  try {
+    const planFiles = await db.getAllPlanFiles();
+    res.json(planFiles);
+  } catch (error) {
+    console.error('❌ Error obteniendo archivos de planes:', error);
+    res.status(500).json({ error: 'Error obteniendo archivos de planes' });
+  }
+});
+
+// 41. Obtener archivo de plan específico
+app.get('/api/plan-files/:plan', async (req, res) => {
+  try {
+    const planFile = await db.getPlanFile(req.params.plan);
+    
+    if (!planFile) {
+      return res.status(404).json({ error: 'Archivo de plan no encontrado' });
+    }
+    
+    res.json(planFile);
+  } catch (error) {
+    console.error('❌ Error obteniendo archivo de plan:', error);
+    res.status(500).json({ error: 'Error obteniendo archivo de plan' });
+  }
+});
+
+// 42. Eliminar archivo de plan
+app.delete('/api/plan-files/:plan', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const deletedFile = await db.deletePlanFile(req.params.plan);
+    
+    res.json({ 
+      success: true, 
+      message: `Archivo de plan ${getPlanName(req.params.plan)} eliminado`,
+      file: deletedFile
+    });
+  } catch (error) {
+    console.error('❌ Error eliminando archivo de plan:', error);
+    res.status(500).json({ error: 'Error eliminando archivo de plan: ' + error.message });
+  }
+});
+
+// ==================== ESTADÍSTICAS DE JUEGOS ====================
+
+// 43. Obtener estadísticas de juegos/servidores
+app.get('/api/games-stats', async (req, res) => {
+  try {
+    const stats = await db.getGamesStatistics();
+    res.json(stats.games || []);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de juegos:', error);
+    res.status(500).json({ error: 'Error obteniendo estadísticas de juegos' });
+  }
+});
+
+// 44. Obtener detalles de usuario (para admin)
+app.get('/api/user/:telegramId/details', async (req, res) => {
+  try {
+    const user = await db.getUser(req.params.telegramId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    // Obtener estadísticas de referidos
+    const referralStats = await db.getReferralStats(req.params.telegramId);
+    
+    // Obtener pagos del usuario
+    const payments = await db.getUserPayments(req.params.telegramId);
+    
+    // Obtener referidos del usuario
+    const referrals = await db.getReferralsByReferrer(req.params.telegramId);
+    
+    res.json({
+      user: user,
+      referral_stats: referralStats,
+      payments: payments || [],
+      referrals: referrals || [],
+      level1_referrals: referrals?.filter(r => r.level === 1).length || 0,
+      level2_referrals: referrals?.filter(r => r.level === 2).length || 0,
+      level1_paid: referrals?.filter(r => r.level === 1 && r.has_paid).length || 0,
+      level2_paid: referrals?.filter(r => r.level === 2 && r.has_paid).length || 0
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo detalles de usuario:', error);
+    res.status(500).json({ error: 'Error obteniendo detalles de usuario' });
+  }
+});
+
 // ==================== SERVIR ARCHIVOS HTML ====================
 
 // Ruta principal
@@ -1260,33 +2126,79 @@ app.get('/admin.html', (req, res) => {
 
 // ==================== BOT DE TELEGRAM - ACTUALIZADO ====================
 
-// Comando /start
+// Comando /start con sistema de referidos
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
     
+    // Verificar si hay referidor en el comando (ej: /start ref123456)
+    const startPayload = ctx.startPayload;
+    let referrerId = null;
+    let referrerUsername = null;
+    
+    if (startPayload && startPayload.startsWith('ref')) {
+        referrerId = startPayload.replace('ref', '');
+        console.log(`🔗 Usuario ${userId} referido por ${referrerId}`);
+        
+        // Obtener información del referidor
+        try {
+            const referrer = await db.getUser(referrerId);
+            if (referrer) {
+                referrerUsername = referrer.username;
+                console.log(`✅ Referidor encontrado: ${referrer.first_name} (@${referrer.username})`);
+            }
+        } catch (error) {
+            console.log('❌ Error obteniendo información del referidor:', error.message);
+        }
+    }
+    
     // Guardar/actualizar usuario en la base de datos
     try {
-        await db.saveUser(userId.toString(), {
+        const userData = {
             telegram_id: userId.toString(),
             username: ctx.from.username,
             first_name: firstName,
             last_name: ctx.from.last_name,
             created_at: new Date().toISOString()
-        });
+        };
+        
+        // Si hay referidor, guardarlo
+        if (referrerId) {
+            userData.referrer_id = referrerId;
+            userData.referrer_username = referrerUsername;
+            
+            // Crear registro de referido
+            try {
+                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
+                console.log(`✅ Referido creado: ${referrerId} -> ${userId}`);
+            } catch (refError) {
+                console.log('⚠️ Error creando referido, continuando...', refError.message);
+            }
+        }
+        
+        await db.saveUser(userId.toString(), userData);
     } catch (error) {
         console.error('❌ Error guardando usuario:', error);
     }
     
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
     
-    await ctx.reply(
-        `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
+    let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
         `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-        `Conéctate con la mejor latencia para gaming y navegación.\n\n` +
-        `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
-        `*Selecciona una opción:*`,
+        `Conéctate con la mejor latencia para gaming y navegación.\n\n`;
+    
+    // Informar sobre referido si aplica
+    if (referrerId) {
+        welcomeMessage += `👥 *¡Te invitó un amigo!*\n` +
+            `Obtendrás beneficios especiales por ser referido.\n\n`;
+    }
+    
+    welcomeMessage += `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
+        `*Selecciona una opción:*`;
+    
+    await ctx.reply(
+        welcomeMessage,
         {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -1413,14 +2325,20 @@ bot.action('view_plans', async (ctx) => {
             `💵 $0 CUP\n` +
             `🎁 ¡Prueba completamente gratis!\n\n` +
             `*BÁSICO (1 mes)*\n` +
-            `💵 $800 CUP\n\n` +
-            `*PREMIUM (2 meses)*\n` +
+            `💵 $800 CUP\n` +
+            `💰 1.6 USDT\n\n` +
+            `*AVANZADO (2 meses)*\n` +
             `💵 $1,300 CUP\n` +
-            `💰 ¡Ahorras $300 CUP!\n\n` +
-            `*VIP (6 meses)*\n` +
-            `💵 $3,000 CUP\n` +
-            `👑 ¡MEJOR OFERTA!\n` +
-            `💰 ¡Ahorras $1,800 CUP!\n\n` +
+            `💰 2.7 USDT\n` +
+            `🎯 ¡Recomendado!\n\n` +
+            `*PREMIUM (1 mes)*\n` +
+            `💵 $1,200 CUP\n` +
+            `💰 2.5 USDT\n` +
+            `👑 Servidor privado\n\n` +
+            `*ANUAL (12 meses)*\n` +
+            `💵 $15,000 CUP\n` +
+            `💰 30 USDT\n` +
+            `🏆 ¡El mejor valor!\n\n` +
             `Selecciona una opción:`,
             {
                 parse_mode: 'Markdown',
@@ -1479,6 +2397,14 @@ bot.action('check_status', async (ctx) => {
             mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
             mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
             mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
+            
+            // Mostrar información de referidos si tiene
+            if (user.referrer_id) {
+                const referralStats = await db.getReferralStats(userId);
+                if (referralStats.discount_percentage > 0) {
+                    mensajeEstado += `👥 *Descuento por referidos:* ${referralStats.discount_percentage}%\n`;
+                }
+            }
             
             if (diasRestantes <= 7) {
                 mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
@@ -1908,9 +2834,12 @@ app.listen(PORT, async () => {
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
-    console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
-    console.log(`📊 Estadísticas completas: /api/stats`);
+    
+    // Inicializar buckets de almacenamiento
+    console.log('📦 Inicializando buckets de almacenamiento...');
+    await initializeStorageBuckets();
     
     // Iniciar bot
     try {
@@ -1935,6 +2864,13 @@ app.listen(PORT, async () => {
 
     // Iniciar keep-alive
     startKeepAlive();
+    
+    console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
+    console.log(`📊 Estadísticas completas: /api/stats`);
+    console.log(`💰 Sistema USDT: Habilitado`);
+    console.log(`👥 Sistema de referidos: Habilitado`);
+    console.log(`📁 Archivos automáticos: Habilitado`);
+    console.log(`📦 Buckets de almacenamiento: Inicializados`);
 });
 
 // Manejar cierre
@@ -1967,5 +2903,6 @@ function startKeepAlive() {
 module.exports = {
     app,
     isAdmin,
-    ADMIN_IDS
+    ADMIN_IDS,
+    initializeStorageBuckets
 };

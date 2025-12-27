@@ -161,6 +161,49 @@ async function createStorageBucket(bucketName, isPublic = true) {
     return { success: false, error: error.message };
   }
 }
+// Función para verificar y crear buckets automáticamente
+async function verifyStorageBuckets() {
+  try {
+    console.log('🔍 Verificando buckets de almacenamiento...');
+    
+    const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
+    
+    for (const bucketName of buckets) {
+      try {
+        // Intentar listar archivos para verificar si el bucket existe
+        const { data, error } = await supabaseAdmin.storage
+          .from(bucketName)
+          .list();
+        
+        if (error && error.message.includes('not found')) {
+          console.log(`📦 Bucket ${bucketName} no existe, creando...`);
+          
+          // Intentar crear el bucket
+          const { data: bucketData, error: createError } = await supabaseAdmin.storage
+            .createBucket(bucketName, {
+              public: true,
+              allowedMimeTypes: null,
+              fileSizeLimit: 20971520 // 20MB
+            });
+          
+          if (createError) {
+            console.error(`❌ Error creando bucket ${bucketName}:`, createError.message);
+          } else {
+            console.log(`✅ Bucket ${bucketName} creado exitosamente`);
+          }
+        } else if (error) {
+          console.error(`⚠️ Error verificando bucket ${bucketName}:`, error.message);
+        } else {
+          console.log(`✅ Bucket ${bucketName} existe y es accesible`);
+        }
+      } catch (bucketError) {
+        console.error(`⚠️ Error procesando bucket ${bucketName}:`, bucketError.message);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error en verifyStorageBuckets:', error.message);
+  }
+        }
 
 // Método alternativo usando API REST directa
 async function createBucketViaAPI(bucketName, isPublic = true) {
@@ -2005,7 +2048,7 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: 'Error subiendo archivo de plan: ' + error.message });
   }
 });
-
+  
 // 40. Obtener todos los archivos de planes
 app.get('/api/plan-files', async (req, res) => {
   try {
@@ -2829,6 +2872,7 @@ bot.on('document', async (ctx) => {
 // ==================== SERVIDOR ====================
 
 // Iniciar servidor
+// Iniciar servidor
 app.listen(PORT, async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
@@ -2836,6 +2880,10 @@ app.listen(PORT, async () => {
     console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
+    
+    // Verificar buckets primero
+    console.log('🔍 Verificando buckets de almacenamiento...');
+    await verifyStorageBuckets();
     
     // Inicializar buckets de almacenamiento
     console.log('📦 Inicializando buckets de almacenamiento...');
@@ -2870,7 +2918,7 @@ app.listen(PORT, async () => {
     console.log(`💰 Sistema USDT: Habilitado`);
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: Habilitado`);
-    console.log(`📦 Buckets de almacenamiento: Inicializados`);
+    console.log(`📦 Buckets de almacenamiento: Verificados`);
 });
 
 // Manejar cierre

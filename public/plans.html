@@ -23,7 +23,7 @@
             --border-hover: rgba(99, 102, 241, 0.4);
             --success: #10b981;
             --featured: #f59e0b;
-            --vip: #dc2626; /* CAMBIADO A ROJO */
+            --vip: #dc2626;
             --trial: #10b981;
             --trial-1h: #10b981;
             --trial-glow: rgba(16, 185, 129, 0.3);
@@ -32,9 +32,12 @@
             --shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.3);
             --whatsapp: #25D366;
-            --premium-red: #dc2626; /* COLOR ROJO PARA PREMIUM */
-            --premium-red-light: #ef4444; /* ROJO CLARO */
-            --premium-red-dark: #b91c1c; /* ROJO OSCURO */
+            --premium-red: #dc2626;
+            --premium-red-light: #ef4444;
+            --premium-red-dark: #b91c1c;
+            --annual-green: #39ff14; /* VERDE FLUORESCENTE */
+            --annual-green-dark: #00cc00;
+            --annual-glow: rgba(57, 255, 20, 0.3);
         }
 
         * {
@@ -238,13 +241,14 @@
             animation: fadeInUp 0.4s ease forwards;
             opacity: 0;
             height: auto;
-            max-height: 500px;
+            max-height: 520px;
         }
 
         .plan-card:nth-child(1) { animation-delay: 0.1s; }
         .plan-card:nth-child(2) { animation-delay: 0.2s; }
         .plan-card:nth-child(3) { animation-delay: 0.3s; }
         .plan-card:nth-child(4) { animation-delay: 0.4s; }
+        .plan-card:nth-child(5) { animation-delay: 0.5s; }
 
         @keyframes fadeInUp {
             from {
@@ -277,7 +281,11 @@
         }
 
         .plan-card.premium::before {
-            background: linear-gradient(90deg, var(--premium-red), #ef4444); /* ROJO */
+            background: linear-gradient(90deg, var(--premium-red), #ef4444);
+        }
+
+        .plan-card.annual::before {
+            background: linear-gradient(90deg, var(--annual-green), var(--annual-green-dark));
         }
 
         /* EFECTO HOVER COMPACTO */
@@ -319,6 +327,22 @@
             background: linear-gradient(135deg, var(--premium-red), #ef4444);
             color: white;
             font-weight: 700;
+        }
+
+        .plan-card.annual .plan-badge {
+            background: linear-gradient(135deg, var(--annual-green), var(--annual-green-dark));
+            color: #000;
+            font-weight: 700;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 5px var(--annual-green);
+            }
+            50% {
+                box-shadow: 0 0 15px var(--annual-green);
+            }
         }
 
         /* ENCABEZADO DEL PLAN COMPACTO */
@@ -383,12 +407,32 @@
             background-clip: text;
         }
 
+        .plan-card.annual .price-amount {
+            background: linear-gradient(135deg, var(--annual-green), var(--annual-green-dark));
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
         .price-currency {
             font-size: 1.2rem;
             color: var(--text-secondary);
             font-weight: 600;
             vertical-align: top;
             margin-left: 2px;
+        }
+
+        /* PRECIO EN USDT */
+        .usdt-price {
+            text-align: center;
+            margin: 5px 0 15px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .usdt-price .usdt-amount {
+            color: #f0b90b;
+            font-weight: 700;
         }
 
         /* SECCIÓN DE AHORRO COMPACTA */
@@ -418,6 +462,11 @@
             border-color: rgba(220, 38, 38, 0.2);
         }
 
+        .plan-card.annual .savings-section {
+            background: linear-gradient(135deg, rgba(57, 255, 20, 0.1), rgba(0, 204, 0, 0.1));
+            border-color: rgba(57, 255, 20, 0.2);
+        }
+
         .savings-text {
             font-size: 0.95rem;
             font-weight: 600;
@@ -434,6 +483,11 @@
 
         .plan-card.premium .savings-text {
             color: var(--premium-red);
+        }
+
+        .plan-card.annual .savings-text {
+            color: var(--annual-green);
+            font-weight: 700;
         }
 
         /* SUBTÍTULO PREMIUM COMPACTO */
@@ -455,6 +509,13 @@
             background: rgba(220, 38, 38, 0.1);
             border-color: rgba(220, 38, 38, 0.2);
             color: var(--premium-red);
+        }
+
+        .plan-card.annual .premium-subtitle {
+            background: rgba(57, 255, 20, 0.1);
+            border-color: rgba(57, 255, 20, 0.2);
+            color: var(--annual-green);
+            font-weight: 700;
         }
 
         /* LISTA DE CARACTERÍSTICAS COMPACTA */
@@ -492,6 +553,10 @@
             background: var(--premium-red);
         }
 
+        .plan-card.annual .features-list::-webkit-scrollbar-thumb {
+            background: var(--annual-green);
+        }
+
         .feature-item {
             display: flex;
             align-items: center;
@@ -516,6 +581,10 @@
             border-left-color: var(--premium-red);
         }
 
+        .plan-card.annual .feature-item {
+            border-left-color: var(--annual-green);
+        }
+
         .feature-item:hover {
             background: rgba(255, 255, 255, 0.05);
             transform: translateX(3px);
@@ -538,6 +607,10 @@
 
         .plan-card.premium .feature-icon {
             color: var(--premium-red);
+        }
+
+        .plan-card.annual .feature-icon {
+            color: var(--annual-green);
         }
 
         .feature-text {
@@ -614,6 +687,18 @@
             box-shadow: 0 6px 18px rgba(220, 38, 38, 0.3);
         }
 
+        .purchase-button.annual {
+            background: linear-gradient(135deg, var(--annual-green), var(--annual-green-dark));
+            color: #000;
+            font-weight: 700;
+            animation: pulseAnnual 2s infinite;
+        }
+
+        .purchase-button.annual:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(57, 255, 20, 0.3);
+        }
+
         .purchase-button.trial {
             background: linear-gradient(135deg, var(--trial-1h), #34d399);
             color: white;
@@ -635,6 +720,18 @@
             }
             100% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        @keyframes pulseAnnual {
+            0% {
+                box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(57, 255, 20, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(57, 255, 20, 0);
             }
         }
 
@@ -1390,6 +1487,10 @@
                     </div>
                 </div>
                 
+                <div class="usdt-price">
+                    <span class="usdt-amount">1.6 USDT</span>
+                </div>
+                
                 <div class="features-list">
                     <div class="feature-item">
                         <i class="fas fa-bolt feature-icon"></i>
@@ -1415,7 +1516,7 @@
                 </button>
             </div>
             
-            <!-- PLAN AVANZADO (antes Premium) -->
+            <!-- PLAN AVANZADO -->
             <div class="plan-card featured">
                 <div class="plan-badge">Recomendado</div>
                 
@@ -1429,6 +1530,10 @@
                         <span class="price-amount">1,300</span>
                         <span class="price-currency">CUP</span>
                     </div>
+                </div>
+                
+                <div class="usdt-price">
+                    <span class="usdt-amount">2.7 USDT</span>
                 </div>
                 
                 <div class="savings-section">
@@ -1460,7 +1565,7 @@
                 </button>
             </div>
             
-            <!-- PLAN PREMIUM (antes VIP) - MODIFICADO -->
+            <!-- PLAN PREMIUM -->
             <div class="plan-card premium">
                 <div class="plan-badge">Exclusivo</div>
                 
@@ -1474,6 +1579,10 @@
                         <span class="price-amount">1,200</span>
                         <span class="price-currency">CUP</span>
                     </div>
+                </div>
+                
+                <div class="usdt-price">
+                    <span class="usdt-amount">2.5 USDT</span>
                 </div>
                 
                 <div class="savings-section">
@@ -1506,6 +1615,59 @@
                 <button class="purchase-button premium" onclick="selectPlan('premium', 1200)">
                     <i class="fas fa-gem button-icon"></i>
                     <span>Seleccionar Premium</span>
+                </button>
+            </div>
+            
+            <!-- NUEVO PLAN ANUAL -->
+            <div class="plan-card annual">
+                <div class="plan-badge">Anual</div>
+                
+                <div class="plan-header">
+                    <h2 class="plan-title">Plan Anual</h2>
+                    <p class="plan-period">Acceso por 12 meses</p>
+                </div>
+                
+                <div class="plan-price">
+                    <div class="price-container">
+                        <span class="price-amount">15,000</span>
+                        <span class="price-currency">CUP</span>
+                    </div>
+                </div>
+                
+                <div class="usdt-price">
+                    <span class="usdt-amount">30 USDT</span>
+                </div>
+                
+                <div class="savings-section">
+                    <div class="savings-text">¡El mejor valor!</div>
+                </div>
+                
+                <div class="premium-subtitle">
+                    <i class="fas fa-crown"></i> Servidor privado todo el año
+                </div>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-server feature-icon"></i>
+                        <span class="feature-text">Servidor privado exclusivo</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-headset feature-icon"></i>
+                        <span class="feature-text">Atención 24/7 prioritaria</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <span class="feature-text">Máxima seguridad y velocidad</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt feature-icon"></i>
+                        <span class="feature-text">12 meses de servicio completo</span>
+                    </div>
+                </div>
+                
+                <button class="purchase-button annual" onclick="selectPlan('anual', 15000)">
+                    <i class="fas fa-calendar-check button-icon"></i>
+                    <span>Seleccionar Anual</span>
                 </button>
             </div>
         </div>

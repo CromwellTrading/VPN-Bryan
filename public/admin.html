@@ -29,6 +29,9 @@
             --connection-color: #3b82f6;
             --broadcast-color: #8b5cf6;
             --broadcast-glow: rgba(139, 92, 246, 0.4);
+            --referral-color: #8b5cf6;
+            --usdt-color: #f0b90b;
+            --annual-green: #39ff14;
         }
 
         * {
@@ -231,6 +234,12 @@
         .stat-card.broadcast .stat-value { color: var(--broadcast-color); }
         .stat-card.broadcast .stat-icon { color: var(--broadcast-color); }
 
+        .stat-card.referrals .stat-value { color: var(--referral-color); }
+        .stat-card.referrals .stat-icon { color: var(--referral-color); }
+
+        .stat-card.usdt .stat-value { color: var(--usdt-color); }
+        .stat-card.usdt .stat-icon { color: var(--usdt-color); }
+
         /* TABLAS */
         .table-container {
             overflow-x: auto;
@@ -352,6 +361,42 @@
             background: rgba(239, 68, 68, 0.2);
             color: #f87171;
             border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge.referral-level-1 {
+            background: rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.4);
+        }
+
+        .badge.referral-level-2 {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.25);
+        }
+
+        .badge.paid {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge.unpaid {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .badge.usdt {
+            background: rgba(240, 185, 11, 0.2);
+            color: #f0b90b;
+            border: 1px solid rgba(240, 185, 11, 0.3);
+        }
+
+        .badge.annual {
+            background: rgba(57, 255, 20, 0.2);
+            color: var(--annual-green);
+            border: 1px solid rgba(57, 255, 20, 0.3);
         }
 
         @keyframes pulse {
@@ -704,38 +749,182 @@
             background: rgba(79, 70, 229, 0.1);
         }
         
-        /* SECCIÓN DE PRUEBAS */
-        .trial-stats {
+        /* SECCIÓN DE REFERIDOS */
+        .referrals-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
             margin-bottom: 30px;
         }
         
-        .trial-stats-grid {
+        .referral-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .referral-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        }
+        
+        .referral-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .referral-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
-        .trial-stat {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            border-radius: 10px;
-            padding: 15px;
+        .referral-stat {
             text-align: center;
+            padding: 10px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 8px;
         }
         
-        .trial-stat-value {
-            font-size: 1.8rem;
+        .referral-stat-value {
+            font-size: 1.5rem;
             font-weight: 700;
-            color: var(--trial);
+            color: #a78bfa;
             margin-bottom: 5px;
         }
         
-        .trial-stat-label {
-            font-size: 0.85rem;
+        .referral-stat-label {
+            font-size: 0.8rem;
             color: var(--text-secondary);
         }
-
+        
+        .referral-discount {
+            background: rgba(139, 92, 246, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .discount-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #a78bfa;
+            margin-bottom: 8px;
+        }
+        
+        .discount-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .discount-level {
+            color: var(--text-secondary);
+        }
+        
+        .discount-percent {
+            color: #34d399;
+            font-weight: 600;
+        }
+        
+        /* PANEL DE ARCHIVOS DE PLANES */
+        .plan-files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .plan-file-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .plan-file-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .plan-file-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .plan-file-badge {
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--accent-light);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .plan-file-info {
+            margin-bottom: 15px;
+        }
+        
+        .plan-file-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .plan-file-label {
+            color: var(--text-secondary);
+        }
+        
+        .plan-file-value {
+            color: var(--text);
+            font-weight: 500;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed rgba(79, 70, 229, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        
+        .file-upload-area:hover {
+            border-color: rgba(79, 70, 229, 0.6);
+            background: rgba(79, 70, 229, 0.05);
+        }
+        
+        .file-upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+        
+        .file-upload-text {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text);
+        }
+        
+        .file-upload-subtext {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        
         /* INFO BOX */
         .info-box {
             padding: 15px;
@@ -761,95 +950,25 @@
         .info-box.broadcast i {
             color: #a78bfa;
         }
-
-        /* INFORMACIÓN ADICIONAL DE PRUEBAS */
-        .trial-info-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
+        
+        .info-box.referral {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
         }
-
-        .trial-info-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            border-left: 3px solid;
+        
+        .info-box.referral i {
+            color: #a78bfa;
         }
-
-        .trial-info-item.game {
-            border-left-color: var(--game-color);
+        
+        .info-box.usdt {
+            background: rgba(240, 185, 11, 0.1);
+            border: 1px solid rgba(240, 185, 11, 0.2);
+            color: #f0b90b;
         }
-
-        .trial-info-item.connection {
-            border-left-color: var(--connection-color);
-        }
-
-        .trial-info-icon {
-            font-size: 1.2rem;
-            width: 30px;
-            text-align: center;
-        }
-
-        .trial-info-text {
-            flex: 1;
-            font-size: 0.9rem;
-        }
-
-        .trial-info-label {
-            font-weight: 600;
-            color: var(--text);
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .trial-info-value {
-            color: var(--text-secondary);
-            display: block;
-        }
-
-        /* ENCABEZADO DE INFORMACIÓN DE PRUEBA */
-        .trial-detail-header {
-            padding: 15px;
-            background: rgba(16, 185, 129, 0.1);
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-
-        .trial-detail-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            color: var(--trial-light);
-            font-size: 1.1rem;
-        }
-
-        .trial-detail-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .trial-detail-item {
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
-
-        .trial-detail-label {
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 2px;
-        }
-
-        .trial-detail-value {
-            color: var(--text-secondary);
+        
+        .info-box.usdt i {
+            color: #f0b90b;
         }
 
         /* PROGRESS BAR */
@@ -1001,21 +1120,23 @@
                 <i class="fas fa-shield-alt logo-icon"></i>
                 <h1 class="title">VPN CUBA ADMIN</h1>
             </div>
-            <p class="subtitle">Panel de administración - Gestión de usuarios, pagos y pruebas gratuitas</p>
+            <p class="subtitle">Panel de administración - Gestión de usuarios, pagos, referidos y archivos de planes</p>
         </header>
 
-        <!-- TABS -->
+        <!-- TABS - ACTUALIZADAS -->
         <div class="tabs">
             <div class="tab active" data-tab="stats">📊 Estadísticas</div>
             <div class="tab" data-tab="pending">⏳ Pagos Pendientes</div>
             <div class="tab" data-tab="trial-pending">🎯 Pruebas Pendientes</div>
             <div class="tab" data-tab="approved">✅ Pagos Aprobados</div>
             <div class="tab" data-tab="users">👥 Usuarios</div>
+            <div class="tab" data-tab="referrals">🤝 Referidos</div>
+            <div class="tab" data-tab="plan-files">📁 Archivos de Planes</div>
             <div class="tab" data-tab="games">🎮 Juegos/Servidores</div>
             <div class="tab" data-tab="broadcast">📢 Broadcast</div>
         </div>
 
-        <!-- ESTADÍSTICAS -->
+        <!-- ESTADÍSTICAS - ACTUALIZADAS -->
         <div id="statsContent" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card users">
@@ -1054,58 +1175,22 @@
                     <div class="stat-label">Ingresos Totales (CUP)</div>
                 </div>
                 
-                <div class="stat-card games">
-                    <i class="fas fa-gamepad stat-icon"></i>
-                    <div class="stat-value" id="totalGames">0</div>
-                    <div class="stat-label">Juegos Registrados</div>
+                <div class="stat-card referrals">
+                    <i class="fas fa-users stat-icon"></i>
+                    <div class="stat-value" id="totalReferrals">0</div>
+                    <div class="stat-label">Referidos Totales</div>
                 </div>
                 
-                <div class="stat-card connections">
-                    <i class="fas fa-wifi stat-icon"></i>
-                    <div class="stat-value" id="totalConnections">0</div>
-                    <div class="stat-label">Tipos de Conexión</div>
+                <div class="stat-card usdt">
+                    <i class="fab fa-usd stat-icon"></i>
+                    <div class="stat-value" id="usdtPayments">0</div>
+                    <div class="stat-label">Pagos USDT</div>
                 </div>
 
                 <div class="stat-card broadcast">
                     <i class="fas fa-bullhorn stat-icon"></i>
                     <div class="stat-value" id="broadcastCount">0</div>
                     <div class="stat-label">Broadcasts Enviados</div>
-                </div>
-            </div>
-            
-            <!-- ESTADÍSTICAS DE PRUEBAS -->
-            <div class="card trial-stats">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i class="fas fa-gift"></i>
-                        Estadísticas de Pruebas Gratuitas
-                    </h2>
-                    <button class="refresh-btn" onclick="loadTrialStats()">
-                        <i class="fas fa-sync-alt"></i>
-                        Actualizar
-                    </button>
-                </div>
-                
-                <div class="trial-stats-grid">
-                    <div class="trial-stat">
-                        <div class="trial-stat-value" id="totalTrialRequests">0</div>
-                        <div class="trial-stat-label">Total Solicitudes</div>
-                    </div>
-                    
-                    <div class="trial-stat">
-                        <div class="trial-stat-value" id="completedTrials">0</div>
-                        <div class="trial-stat-label">Pruebas Completadas</div>
-                    </div>
-                    
-                    <div class="trial-stat">
-                        <div class="trial-stat-value" id="pendingTrials">0</div>
-                        <div class="trial-stat-label">Pendientes de Enviar</div>
-                    </div>
-                    
-                    <div class="trial-stat">
-                        <div class="trial-stat-value" id="todayTrialRequests">0</div>
-                        <div class="trial-stat-label">Solicitudes Hoy</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1136,6 +1221,7 @@
                                 <th>ID</th>
                                 <th>Usuario</th>
                                 <th>Plan</th>
+                                <th>Método</th>
                                 <th>Monto</th>
                                 <th>Fecha</th>
                                 <th>Estado</th>
@@ -1172,7 +1258,6 @@
                 <div class="info-box">
                     <i class="fas fa-info-circle"></i>
                     Estos usuarios solicitaron una prueba gratuita y están esperando el archivo de configuración.
-                    Cada solicitud incluye información del juego/servidor y tipo de conexión.
                 </div>
                 
                 <div class="loading" id="trialLoading">
@@ -1189,9 +1274,6 @@
                                 <th>🎮 Juego/Servidor</th>
                                 <th>📡 Conexión</th>
                                 <th>Solicitado</th>
-                                <th>Tipo</th>
-                                <th>Estado</th>
-                                <th>Días Esperando</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -1234,6 +1316,7 @@
                                 <th>ID</th>
                                 <th>Usuario</th>
                                 <th>Plan</th>
+                                <th>Método</th>
                                 <th>Monto</th>
                                 <th>Aprobado</th>
                                 <th>Configuración</th>
@@ -1279,10 +1362,8 @@
                                 <th>ID</th>
                                 <th>Nombre</th>
                                 <th>Usuario</th>
-                                <th>VIP</th>
-                                <th>Prueba</th>
-                                <th>🎮 Juego</th>
-                                <th>📡 Conexión</th>
+                                <th>Plan</th>
+                                <th>Referidor</th>
                                 <th>Registro</th>
                                 <th>Acciones</th>
                             </tr>
@@ -1300,6 +1381,288 @@
             </div>
         </div>
 
+        <!-- SISTEMA DE REFERIDOS - NUEVA SECCIÓN -->
+        <div id="referralsContent" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-users"></i>
+                        Sistema de Referidos
+                    </h2>
+                    <button class="refresh-btn" onclick="loadReferrals()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div class="info-box referral">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Descuentos por referidos:</strong><br>
+                    • Nivel 1 (referido directo): 20% de descuento por cada referido que pague.<br>
+                    • Nivel 2 (referido del referido): 10% de descuento por cada referido que pague.<br>
+                    Solo se aplica descuento si el referido ha pagado su plan. Los referidos que no pagan solo cuentan como número, no como descuento.
+                </div>
+                
+                <div class="referrals-container">
+                    <div class="referral-card">
+                        <div class="referral-header">
+                            <i class="fas fa-user-friends" style="color: #a78bfa;"></i>
+                            <div class="referral-title">Resumen de Referidos</div>
+                        </div>
+                        
+                        <div class="referral-stats">
+                            <div class="referral-stat">
+                                <div class="referral-stat-value" id="totalReferralsCount">0</div>
+                                <div class="referral-stat-label">Referidos Totales</div>
+                            </div>
+                            <div class="referral-stat">
+                                <div class="referral-stat-value" id="paidReferrals">0</div>
+                                <div class="referral-stat-label">Referidos Pagados</div>
+                            </div>
+                            <div class="referral-stat">
+                                <div class="referral-stat-value" id="level1Referrals">0</div>
+                                <div class="referral-stat-label">Nivel 1</div>
+                            </div>
+                            <div class="referral-stat">
+                                <div class="referral-stat-value" id="level2Referrals">0</div>
+                                <div class="referral-stat-label">Nivel 2</div>
+                            </div>
+                        </div>
+                        
+                        <div class="referral-discount">
+                            <div class="discount-title">Descuentos Aplicables</div>
+                            <div class="discount-item">
+                                <span class="discount-level">Nivel 1 (20%):</span>
+                                <span class="discount-percent" id="level1Discount">0%</span>
+                            </div>
+                            <div class="discount-item">
+                                <span class="discount-level">Nivel 2 (10%):</span>
+                                <span class="discount-percent" id="level2Discount">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="referral-card">
+                        <div class="referral-header">
+                            <i class="fas fa-chart-line" style="color: #a78bfa;"></i>
+                            <div class="referral-title">Top Referidores</div>
+                        </div>
+                        
+                        <div class="loading" id="topReferrersLoading">
+                            <div class="loading-spinner"></div>
+                            <p>Cargando top referidores...</p>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="topReferrersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Referidos</th>
+                                        <th>Pagados</th>
+                                        <th>Descuento</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topReferrersTableBody">
+                                    <!-- Datos se cargarán aquí -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i>
+                            Lista de Referidos
+                        </h3>
+                    </div>
+                    
+                    <div class="loading" id="referralsListLoading">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando lista de referidos...</p>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="referralsListTable">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Referidor</th>
+                                    <th>Nivel</th>
+                                    <th>Plan</th>
+                                    <th>Estado Pago</th>
+                                    <th>Descuento</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody id="referralsListTableBody">
+                                <!-- Datos se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ARCHIVOS DE PLANES - NUEVA SECCIÓN -->
+        <div id="plan-filesContent" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-file-upload"></i>
+                        Gestión de Archivos de Planes
+                    </h2>
+                    <button class="refresh-btn" onclick="loadPlanFiles()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    Sube aquí los archivos de configuración para cada plan. Cuando un usuario pague (manualmente o por USDT), se le enviará automáticamente el archivo correspondiente a su plan.
+                </div>
+                
+                <div class="plan-files-grid">
+                    <!-- PLAN BÁSICO -->
+                    <div class="plan-file-card">
+                        <div class="plan-file-header">
+                            <div class="plan-file-title">Plan Básico</div>
+                            <span class="plan-file-badge">1 mes</span>
+                        </div>
+                        
+                        <div class="plan-file-info">
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Precio:</span>
+                                <span class="plan-file-value">800 CUP / 1.6 USDT</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Archivo actual:</span>
+                                <span class="plan-file-value" id="basicPlanFile">No subido</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Última actualización:</span>
+                                <span class="plan-file-value" id="basicPlanDate">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div class="file-upload-area" onclick="openPlanFileUpload('basico')" id="basicUploadArea">
+                            <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                            <div class="file-upload-text">Subir archivo para Básico</div>
+                            <div class="file-upload-subtext">Archivo .conf, .zip o .rar</div>
+                        </div>
+                        
+                        <input type="file" id="basicPlanFileInput" accept=".conf,.zip,.rar" hidden>
+                    </div>
+                    
+                    <!-- PLAN AVANZADO -->
+                    <div class="plan-file-card">
+                        <div class="plan-file-header">
+                            <div class="plan-file-title">Plan Avanzado</div>
+                            <span class="plan-file-badge">2 meses</span>
+                        </div>
+                        
+                        <div class="plan-file-info">
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Precio:</span>
+                                <span class="plan-file-value">1,300 CUP / 2.7 USDT</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Archivo actual:</span>
+                                <span class="plan-file-value" id="advancedPlanFile">No subido</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Última actualización:</span>
+                                <span class="plan-file-value" id="advancedPlanDate">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div class="file-upload-area" onclick="openPlanFileUpload('avanzado')" id="advancedUploadArea">
+                            <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                            <div class="file-upload-text">Subir archivo para Avanzado</div>
+                            <div class="file-upload-subtext">Archivo .conf, .zip o .rar</div>
+                        </div>
+                        
+                        <input type="file" id="advancedPlanFileInput" accept=".conf,.zip,.rar" hidden>
+                    </div>
+                    
+                    <!-- PLAN PREMIUM -->
+                    <div class="plan-file-card">
+                        <div class="plan-file-header">
+                            <div class="plan-file-title">Plan Premium</div>
+                            <span class="plan-file-badge">1 mes</span>
+                        </div>
+                        
+                        <div class="plan-file-info">
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Precio:</span>
+                                <span class="plan-file-value">1,200 CUP / 2.5 USDT</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Archivo actual:</span>
+                                <span class="plan-file-value" id="premiumPlanFile">No subido</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Última actualización:</span>
+                                <span class="plan-file-value" id="premiumPlanDate">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div class="file-upload-area" onclick="openPlanFileUpload('premium')" id="premiumUploadArea">
+                            <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                            <div class="file-upload-text">Subir archivo para Premium</div>
+                            <div class="file-upload-subtext">Archivo .conf, .zip o .rar</div>
+                        </div>
+                        
+                        <input type="file" id="premiumPlanFileInput" accept=".conf,.zip,.rar" hidden>
+                    </div>
+                    
+                    <!-- PLAN ANUAL -->
+                    <div class="plan-file-card">
+                        <div class="plan-file-header">
+                            <div class="plan-file-title">Plan Anual</div>
+                            <span class="plan-file-badge anual">12 meses</span>
+                        </div>
+                        
+                        <div class="plan-file-info">
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Precio:</span>
+                                <span class="plan-file-value">15,000 CUP / 30 USDT</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Archivo actual:</span>
+                                <span class="plan-file-value" id="annualPlanFile">No subido</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Última actualización:</span>
+                                <span class="plan-file-value" id="annualPlanDate">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div class="file-upload-area" onclick="openPlanFileUpload('anual')" id="annualUploadArea">
+                            <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                            <div class="file-upload-text">Subir archivo para Anual</div>
+                            <div class="file-upload-subtext">Archivo .conf, .zip o .rar</div>
+                        </div>
+                        
+                        <input type="file" id="annualPlanFileInput" accept=".conf,.zip,.rar" hidden>
+                    </div>
+                </div>
+                
+                <div class="info-box usdt" style="margin-top: 20px;">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Sistema de detección de pagos USDT:</strong><br>
+                    • Se genera un monto único (0.01 a 0.15 USDT) para cada usuario<br>
+                    • El usuario debe enviar la cantidad exacta<br>
+                    • El sistema detecta automáticamente el pago<br>
+                    • Se envía el archivo correspondiente al plan pagado<br>
+                    • Si no se detecta pago en 15 minutos, el munto se libera para otro usuario
+                </div>
+            </div>
+        </div>
+
         <!-- JUEGOS/SERVIDORES -->
         <div id="gamesContent" class="tab-content" style="display: none;">
             <div class="card">
@@ -1312,11 +1675,6 @@
                         <i class="fas fa-sync-alt"></i>
                         Actualizar
                     </button>
-                </div>
-
-                <div class="info-box">
-                    <i class="fas fa-info-circle"></i>
-                    Estadísticas de juegos y servidores más solicitados por los usuarios para pruebas gratuitas.
                 </div>
                 
                 <div class="loading" id="gamesLoading">
@@ -1332,7 +1690,6 @@
                                 <th>Solicitudes</th>
                                 <th>📡 Tipo de Conexión</th>
                                 <th>Última Solicitud</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="gamesTableBody">
@@ -1375,6 +1732,8 @@
                             <option value="trial_pending">⏳ Usuarios con prueba pendiente</option>
                             <option value="trial_received">✅ Usuarios que recibieron prueba</option>
                             <option value="active">📱 Usuarios activos (últimos 30 días)</option>
+                            <option value="with_referrals">🤝 Usuarios con referidos</option>
+                            <option value="usdt_payers">💰 Usuarios que pagaron con USDT</option>
                         </select>
                     </div>
                     
@@ -1382,59 +1741,13 @@
                         <label class="form-label">
                             <i class="fas fa-comment-alt"></i> Mensaje:
                         </label>
-                        <textarea id="broadcastMessage" class="form-textarea" placeholder="Escribe tu mensaje aquí... Puedes usar formato Markdown:
-*Negrita*, _cursiva_, `código`
-[Texto](URL) para enlaces
-Emojis: 🎮 📱 🔥"></textarea>
-                        <div style="margin-top: 5px; color: var(--text-secondary); font-size: 0.85rem;">
-                            <i class="fas fa-info-circle"></i> Se permite formato Markdown básico
-                        </div>
-                    </div>
-                    
-                    <div class="stats-mini-grid">
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="broadcastTotalUsers">0</div>
-                            <div class="stat-mini-label">Total Usuarios</div>
-                        </div>
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="broadcastVIPUsers">0</div>
-                            <div class="stat-mini-label">Usuarios VIP</div>
-                        </div>
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="broadcastTrialUsers">0</div>
-                            <div class="stat-mini-label">Con Prueba</div>
-                        </div>
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="broadcastActiveUsers">0</div>
-                            <div class="stat-mini-label">Activos</div>
-                        </div>
+                        <textarea id="broadcastMessage" class="form-textarea" placeholder="Escribe tu mensaje aquí..."></textarea>
                     </div>
                     
                     <button class="submit-broadcast" onclick="sendBroadcast()" id="broadcastButton">
                         <i class="fas fa-paper-plane"></i>
                         Enviar Broadcast
                     </button>
-                    
-                    <div class="broadcast-progress" id="broadcastProgress">
-                        <div class="broadcast-progress-header">
-                            <i class="fas fa-spinner fa-spin" style="color: var(--broadcast-color);"></i>
-                            <div class="broadcast-progress-title">Enviando mensajes...</div>
-                        </div>
-                        
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="broadcastProgressBar"></div>
-                            </div>
-                            <div class="progress-info">
-                                <div class="progress-text" id="broadcastProgressText">Preparando...</div>
-                                <div class="progress-percent" id="broadcastProgressPercent">0%</div>
-                            </div>
-                        </div>
-                        
-                        <div class="broadcast-progress-details" id="broadcastProgressDetails">
-                            Obteniendo lista de usuarios...
-                        </div>
-                    </div>
                 </div>
             </div>
             
@@ -1463,10 +1776,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                                 <th>ID</th>
                                 <th>Mensaje</th>
                                 <th>Destinatarios</th>
-                                <th>Estadísticas</th>
+                                <th>Enviados</th>
                                 <th>Estado</th>
                                 <th>Fecha</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="broadcastTableBody">
@@ -1510,7 +1822,7 @@ Emojis: 🎮 📱 🔥"></textarea>
         </div>
     </div>
 
-    <!-- MODAL PARA ENVIAR CONFIGURACIÓN DE PAGO -->
+    <!-- MODAL PARA ENVIAR CONFIGURACIÓN -->
     <div id="configModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1522,7 +1834,7 @@ Emojis: 🎮 📱 🔥"></textarea>
                 <p><strong>Plan:</strong> <span id="configPlan"></span></p>
                 <p><strong>Pago ID:</strong> <span id="configPaymentId"></span></p>
                 
-                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <div style="margin-bottom: 15px;">
                     <p style="color: #a5b4fc; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i>
                         Se permiten archivos .conf, .zip o .rar
@@ -1534,78 +1846,6 @@ Emojis: 🎮 📱 🔥"></textarea>
                 <button class="submit-config" onclick="sendConfigFile()">
                     <i class="fas fa-paper-plane"></i>
                     Enviar Configuración
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL PARA ENVIAR CONFIGURACIÓN DE PRUEBA -->
-    <div id="trialConfigModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Enviar Configuración de Prueba</h3>
-                <button class="close-modal" onclick="closeTrialConfigModal()">&times;</button>
-            </div>
-            <div class="config-form">
-                <div class="trial-detail-header">
-                    <div class="trial-detail-title">
-                        <i class="fas fa-gift"></i>
-                        Información de la Prueba
-                    </div>
-                    <div class="trial-detail-content">
-                        <div class="trial-detail-item">
-                            <div class="trial-detail-label">Usuario:</div>
-                            <div class="trial-detail-value" id="trialConfigUserId"></div>
-                        </div>
-                        <div class="trial-detail-item">
-                            <div class="trial-detail-label">Nombre:</div>
-                            <div class="trial-detail-value" id="trialConfigName"></div>
-                        </div>
-                        <div class="trial-detail-item">
-                            <div class="trial-detail-label">Solicitado:</div>
-                            <div class="trial-detail-value" id="trialConfigDate"></div>
-                        </div>
-                        <div class="trial-detail-item">
-                            <div class="trial-detail-label">Tipo:</div>
-                            <div class="trial-detail-value" id="trialConfigType"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="trial-info-container">
-                    <div class="trial-info-item game">
-                        <div class="trial-info-icon">
-                            <i class="fas fa-gamepad"></i>
-                        </div>
-                        <div class="trial-info-text">
-                            <span class="trial-info-label">Juego/Servidor:</span>
-                            <span class="trial-info-value" id="trialConfigGame"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="trial-info-item connection">
-                        <div class="trial-info-icon">
-                            <i class="fas fa-wifi"></i>
-                        </div>
-                        <div class="trial-info-text">
-                            <span class="trial-info-label">Tipo de Conexión:</span>
-                            <span class="trial-info-value" id="trialConfigConnection"></span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
-                    <p style="color: #34d399; font-size: 0.9rem;">
-                        <i class="fas fa-info-circle"></i>
-                        Archivo .conf, .zip o .rar para 1 hora de prueba
-                    </p>
-                </div>
-                
-                <input type="file" id="trialConfigFile" class="file-input" accept=".conf,.zip,.rar">
-                
-                <button class="submit-trial" onclick="sendTrialConfigFile()">
-                    <i class="fas fa-gift"></i>
-                    Enviar Configuración de Prueba
                 </button>
             </div>
         </div>
@@ -1624,8 +1864,7 @@ Emojis: 🎮 📱 🔥"></textarea>
         let currentUserId = null;
         let currentTrialUserId = null;
         let isAdminUser = false;
-        let broadcastInterval = null;
-        let currentBroadcastId = null;
+        let currentPlanForUpload = null;
 
         // Inicializar Telegram WebApp
         const tg = window.Telegram.WebApp;
@@ -1655,8 +1894,6 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch(`/api/check-admin/${userId}`);
                 const data = await response.json();
                 
-                console.log('📊 Respuesta de verificación admin:', data);
-                
                 if (!data.isAdmin) {
                     console.log('❌ Usuario no es administrador');
                     showNotification('❌ No eres administrador', 'error');
@@ -1670,7 +1907,7 @@ Emojis: 🎮 📱 🔥"></textarea>
                 currentUserId = userId;
                 console.log('✅ Usuario es administrador');
                 loadStats();
-                loadTrialStats();
+                loadPlanFiles();
             } catch (error) {
                 console.error('❌ Error verificando admin:', error);
                 showNotification('❌ Error verificando permisos', 'error');
@@ -1684,110 +1921,18 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch('/api/stats');
                 const stats = await response.json();
                 
-                console.log('📈 Estadísticas recibidas:', stats);
-                
                 document.getElementById('totalUsers').textContent = stats.users?.total || 0;
                 document.getElementById('vipUsers').textContent = stats.users?.vip || 0;
                 document.getElementById('trialRequests').textContent = stats.users?.trial_requests || 0;
                 document.getElementById('pendingPaymentsCount').textContent = stats.payments?.pending || 0;
                 document.getElementById('totalRevenue').textContent = stats.revenue?.total || 0;
                 document.getElementById('trialPendingCount').textContent = stats.users?.trial_pending || 0;
+                document.getElementById('totalReferrals').textContent = stats.referrals?.total || 0;
+                document.getElementById('usdtPayments').textContent = stats.payments?.usdt || 0;
+                document.getElementById('broadcastCount').textContent = stats.broadcasts?.total || 0;
                 
-                // Cargar estadísticas de juegos y conexiones
-                loadGamesAndConnectionsStats();
-                
-                // Cargar estadísticas de broadcasts
-                loadBroadcastCount();
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
-            }
-        }
-
-        // Cargar estadísticas de juegos y conexiones
-        async function loadGamesAndConnectionsStats() {
-            try {
-                console.log('🎮 Cargando estadísticas de juegos y conexiones...');
-                const response = await fetch('/api/trials/pending');
-                const trials = await response.json();
-                
-                if (!trials || trials.length === 0) {
-                    document.getElementById('totalGames').textContent = '0';
-                    document.getElementById('totalConnections').textContent = '0';
-                    return;
-                }
-                
-                // Contar juegos únicos
-                const uniqueGames = new Set();
-                const uniqueConnections = new Set();
-                
-                trials.forEach(trial => {
-                    if (trial.trial_info?.game_server) {
-                        uniqueGames.add(trial.trial_info.game_server);
-                    }
-                    if (trial.trial_info?.connection_type) {
-                        uniqueConnections.add(trial.trial_info.connection_type);
-                    }
-                });
-                
-                document.getElementById('totalGames').textContent = uniqueGames.size;
-                document.getElementById('totalConnections').textContent = uniqueConnections.size;
-                
-            } catch (error) {
-                console.error('❌ Error cargando estadísticas de juegos:', error);
-            }
-        }
-
-        // Cargar estadísticas de pruebas
-        async function loadTrialStats() {
-            try {
-                console.log('🎯 Cargando estadísticas de pruebas...');
-                const response = await fetch('/api/trial-stats');
-                const stats = await response.json();
-                
-                console.log('📈 Estadísticas de prueba recibidas:', stats);
-                
-                document.getElementById('totalTrialRequests').textContent = stats.total_requests || 0;
-                document.getElementById('completedTrials').textContent = stats.completed || 0;
-                document.getElementById('pendingTrials').textContent = stats.pending || 0;
-                document.getElementById('todayTrialRequests').textContent = stats.today_requests || 0;
-            } catch (error) {
-                console.error('❌ Error cargando estadísticas de prueba:', error);
-            }
-        }
-
-        // Cargar estadísticas de broadcast
-        async function loadBroadcastCount() {
-            try {
-                console.log('📢 Cargando estadísticas de broadcast...');
-                const response = await fetch('/api/broadcasts');
-                const broadcasts = await response.json();
-                
-                const completedBroadcasts = broadcasts.filter(b => b.status === 'completed').length;
-                document.getElementById('broadcastCount').textContent = completedBroadcasts;
-                
-                // Actualizar estadísticas para broadcast
-                await updateBroadcastStats();
-            } catch (error) {
-                console.error('❌ Error cargando estadísticas de broadcast:', error);
-            }
-        }
-
-        // Actualizar estadísticas para broadcast
-        async function updateBroadcastStats() {
-            try {
-                const statsResponse = await fetch('/api/stats');
-                const stats = await statsResponse.json();
-                
-                const activeResponse = await fetch('/api/users/active');
-                const activeUsers = await activeResponse.json();
-                
-                document.getElementById('broadcastTotalUsers').textContent = stats.users?.total || 0;
-                document.getElementById('broadcastVIPUsers').textContent = stats.users?.vip || 0;
-                document.getElementById('broadcastTrialUsers').textContent = stats.users?.trial_requests || 0;
-                document.getElementById('broadcastActiveUsers').textContent = activeUsers.length || 0;
-                
-            } catch (error) {
-                console.error('❌ Error actualizando estadísticas de broadcast:', error);
             }
         }
 
@@ -1802,12 +1947,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch('/api/payments/pending');
                 const payments = await response.json();
                 
-                console.log(`📊 Pagos pendientes recibidos (${payments.length}):`, payments);
-                
                 document.getElementById('pendingLoading').style.display = 'none';
                 
                 if (!payments || payments.length === 0) {
-                    console.log('📭 No hay pagos pendientes');
                     document.getElementById('pendingNoData').style.display = 'block';
                     return;
                 }
@@ -1821,17 +1963,22 @@ Emojis: 🎮 📱 🔥"></textarea>
                         <td>${payment.id || 'N/A'}</td>
                         <td>
                             <strong>${payment.user?.first_name || payment.user?.username || 'Usuario'}</strong><br>
-                            <small>@${payment.user?.username || 'sin_usuario'}</small><br>
-                            <small>ID: ${payment.telegram_id || 'N/A'}</small>
+                            <small>@${payment.user?.username || 'sin_usuario'}</small>
                         </td>
                         <td>${getPlanName(payment.plan)}</td>
-                        <td>$${payment.price || 0} CUP</td>
+                        <td>${getPaymentMethodBadge(payment.method)}</td>
+                        <td>$${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
                         <td>${payment.created_at ? new Date(payment.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td><span class="badge pending">Pendiente</span></td>
                         <td>
-                            <button class="action-btn approve" onclick="viewScreenshot('${payment.id}', '${payment.telegram_id}', '${payment.plan}', '${payment.price}', '${payment.created_at}', '${payment.screenshot_url}')">
-                                <i class="fas fa-eye"></i> Ver
-                            </button>
+                            ${payment.method !== 'usdt' ? 
+                                `<button class="action-btn approve" onclick="viewScreenshot('${payment.id}', '${payment.telegram_id}', '${payment.plan}', '${payment.price}', '${payment.created_at}', '${payment.screenshot_url}')">
+                                    <i class="fas fa-eye"></i> Ver
+                                </button>` : 
+                                `<button class="action-btn approve" onclick="approveUsdtPayment('${payment.id}')">
+                                    <i class="fas fa-check"></i> Aprobar USDT
+                                </button>`
+                            }
                         </td>
                     `;
                     tableBody.appendChild(row);
@@ -1842,7 +1989,7 @@ Emojis: 🎮 📱 🔥"></textarea>
             } catch (error) {
                 console.error('❌ Error cargando pagos pendientes:', error);
                 document.getElementById('pendingLoading').style.display = 'none';
-                showNotification('❌ Error cargando pagos pendientes: ' + error.message, 'error');
+                showNotification('❌ Error cargando pagos pendientes', 'error');
             }
         }
 
@@ -1857,12 +2004,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch('/api/trials/pending');
                 const trials = await response.json();
                 
-                console.log(`📊 Pruebas pendientes recibidas (${trials.length}):`, trials);
-                
                 document.getElementById('trialLoading').style.display = 'none';
                 
                 if (!trials || trials.length === 0) {
-                    console.log('📭 No hay pruebas pendientes');
                     document.getElementById('trialNoData').style.display = 'block';
                     return;
                 }
@@ -1871,11 +2015,6 @@ Emojis: 🎮 📱 🔥"></textarea>
                 tableBody.innerHTML = '';
                 
                 trials.forEach(trial => {
-                    const daysAgo = trial.trial_info?.days_ago || 0;
-                    const trialDate = trial.trial_requested_at ? new Date(trial.trial_requested_at).toLocaleDateString('es-ES') : 'N/A';
-                    const gameServer = trial.trial_info?.game_server || 'No especificado';
-                    const connectionType = trial.trial_info?.connection_type || 'No especificado';
-                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${trial.telegram_id || 'N/A'}</td>
@@ -1883,33 +2022,12 @@ Emojis: 🎮 📱 🔥"></textarea>
                             <strong>${trial.first_name || trial.username || 'Usuario'}</strong><br>
                             <small>@${trial.username || 'sin_usuario'}</small>
                         </td>
+                        <td>${trial.trial_info?.game_server || 'No especificado'}</td>
+                        <td>${trial.trial_info?.connection_type || 'No especificado'}</td>
+                        <td>${trial.trial_requested_at ? new Date(trial.trial_requested_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
-                            <span class="badge game" title="${gameServer}">
-                                <i class="fas fa-gamepad"></i> ${truncateText(gameServer, 20)}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge connection" title="${connectionType}">
-                                <i class="fas fa-wifi"></i> ${truncateText(connectionType, 15)}
-                            </span>
-                        </td>
-                        <td>${trialDate}</td>
-                        <td>${trial.trial_plan_type || '1h'}</td>
-                        <td><span class="badge trial-pending">Pendiente</span></td>
-                        <td>${daysAgo} días</td>
-                        <td>
-                            <button class="action-btn send-trial" onclick="openTrialConfigModal(
-                                '${trial.telegram_id}', 
-                                '${trial.first_name || trial.username || 'Usuario'}', 
-                                '${trialDate}', 
-                                '${trial.trial_plan_type || '1h'}',
-                                '${escapeText(gameServer)}',
-                                '${escapeText(connectionType)}'
-                            )">
+                            <button class="action-btn send-trial" onclick="sendTrialConfig('${trial.telegram_id}', '${trial.first_name || trial.username || 'Usuario'}')">
                                 <i class="fas fa-gift"></i> Enviar
-                            </button>
-                            <button class="action-btn message" onclick="sendMessageToUser('${trial.telegram_id}')">
-                                <i class="fas fa-comment"></i> Mensaje
                             </button>
                         </td>
                     `;
@@ -1921,7 +2039,7 @@ Emojis: 🎮 📱 🔥"></textarea>
             } catch (error) {
                 console.error('❌ Error cargando pruebas pendientes:', error);
                 document.getElementById('trialLoading').style.display = 'none';
-                showNotification('❌ Error cargando pruebas pendientes: ' + error.message, 'error');
+                showNotification('❌ Error cargando pruebas pendientes', 'error');
             }
         }
 
@@ -1936,12 +2054,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch('/api/payments/approved');
                 const payments = await response.json();
                 
-                console.log(`📊 Pagos aprobados recibidos (${payments.length}):`, payments);
-                
                 document.getElementById('approvedLoading').style.display = 'none';
                 
                 if (!payments || payments.length === 0) {
-                    console.log('📭 No hay pagos aprobados');
                     document.getElementById('approvedNoData').style.display = 'block';
                     return;
                 }
@@ -1958,7 +2073,8 @@ Emojis: 🎮 📱 🔥"></textarea>
                             <small>@${payment.user?.username || 'sin_usuario'}</small>
                         </td>
                         <td>${getPlanName(payment.plan)}</td>
-                        <td>$${payment.price || 0} CUP</td>
+                        <td>${getPaymentMethodBadge(payment.method)}</td>
+                        <td>$${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
                         <td>${payment.approved_at ? new Date(payment.approved_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             ${payment.config_sent ? 
@@ -1983,7 +2099,7 @@ Emojis: 🎮 📱 🔥"></textarea>
             } catch (error) {
                 console.error('❌ Error cargando pagos aprobados:', error);
                 document.getElementById('approvedLoading').style.display = 'none';
-                showNotification('❌ Error cargando pagos aprobados: ' + error.message, 'error');
+                showNotification('❌ Error cargando pagos aprobados', 'error');
             }
         }
 
@@ -1998,12 +2114,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch('/api/all-users');
                 const users = await response.json();
                 
-                console.log(`📊 Usuarios recibidos (${users.length}):`, users);
-                
                 document.getElementById('usersLoading').style.display = 'none';
                 
                 if (!users || users.length === 0) {
-                    console.log('📭 No hay usuarios registrados');
                     document.getElementById('usersNoData').style.display = 'block';
                     return;
                 }
@@ -2012,55 +2125,18 @@ Emojis: 🎮 📱 🔥"></textarea>
                 tableBody.innerHTML = '';
                 
                 users.forEach(user => {
-                    const trialBadge = user.trial_requested ? 
-                        (user.trial_received ? 
-                            '<span class="badge trial">Prueba Enviada</span>' : 
-                            '<span class="badge trial-pending">Prueba Pendiente</span>') : 
-                        '';
-                    
-                    const gameServer = user.trial_game_server || '';
-                    const connectionType = user.trial_connection_type || '';
-                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${user.telegram_id || 'N/A'}</td>
                         <td>${user.first_name || 'Usuario'}</td>
                         <td>@${user.username || 'sin_usuario'}</td>
-                        <td>
-                            ${user.vip ? 
-                                `<span class="badge vip">VIP</span><br>
-                                <small>Desde: ${user.vip_since ? new Date(user.vip_since).toLocaleDateString('es-ES') : 'N/A'}</small>` : 
-                                '<span class="badge non-vip">No VIP</span>'
-                            }
-                        </td>
-                        <td>${trialBadge}</td>
-                        <td>
-                            ${gameServer ? 
-                                `<span class="badge game" title="${gameServer}">
-                                    <i class="fas fa-gamepad"></i> ${truncateText(gameServer, 15)}
-                                </span>` : 
-                                '-'
-                            }
-                        </td>
-                        <td>
-                            ${connectionType ? 
-                                `<span class="badge connection" title="${connectionType}">
-                                    <i class="fas fa-wifi"></i> ${truncateText(connectionType, 10)}
-                                </span>` : 
-                                '-'
-                            }
-                        </td>
+                        <td>${user.current_plan ? getPlanName(user.current_plan) : 'Sin plan'}</td>
+                        <td>${user.referrer_id ? '@' + (user.referrer_username || user.referrer_id) : 'Directo'}</td>
                         <td>${user.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
-                            <button class="action-btn message" onclick="sendMessageToUser('${user.telegram_id}')">
-                                <i class="fas fa-comment"></i> Mensaje
+                            <button class="action-btn view-details" onclick="viewUserDetails('${user.telegram_id}')">
+                                <i class="fas fa-eye"></i> Ver
                             </button>
-                            ${user.vip ? 
-                                `<button class="action-btn remove-vip" onclick="removeVIP('${user.telegram_id}')">
-                                    <i class="fas fa-crown"></i> Quitar VIP
-                                </button>` : 
-                                ''
-                            }
                         </td>
                     `;
                     tableBody.appendChild(row);
@@ -2071,7 +2147,215 @@ Emojis: 🎮 📱 🔥"></textarea>
             } catch (error) {
                 console.error('❌ Error cargando usuarios:', error);
                 document.getElementById('usersLoading').style.display = 'none';
-                showNotification('❌ Error cargando usuarios: ' + error.message, 'error');
+                showNotification('❌ Error cargando usuarios', 'error');
+            }
+        }
+
+        // Cargar sistema de referidos
+        async function loadReferrals() {
+            try {
+                document.getElementById('referralsListLoading').style.display = 'block';
+                document.getElementById('topReferrersLoading').style.display = 'block';
+                
+                console.log('🤝 Cargando sistema de referidos...');
+                
+                // Cargar estadísticas generales
+                const statsResponse = await fetch('/api/referrals/stats');
+                const stats = await statsResponse.json();
+                
+                document.getElementById('totalReferralsCount').textContent = stats.total_referrals || 0;
+                document.getElementById('paidReferrals').textContent = stats.paid_referrals || 0;
+                document.getElementById('level1Referrals').textContent = stats.level1_referrals || 0;
+                document.getElementById('level2Referrals').textContent = stats.level2_referrals || 0;
+                
+                // Calcular descuentos
+                const level1Discount = (stats.paid_level1 || 0) * 20;
+                const level2Discount = (stats.paid_level2 || 0) * 10;
+                document.getElementById('level1Discount').textContent = level1Discount + '%';
+                document.getElementById('level2Discount').textContent = level2Discount + '%';
+                
+                // Cargar top referidores
+                const topResponse = await fetch('/api/referrals/top');
+                const topReferrers = await topResponse.json();
+                
+                document.getElementById('topReferrersLoading').style.display = 'none';
+                
+                const topTableBody = document.getElementById('topReferrersTableBody');
+                topTableBody.innerHTML = '';
+                
+                if (topReferrers && topReferrers.length > 0) {
+                    topReferrers.forEach(referrer => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <strong>${referrer.first_name || 'Usuario'}</strong><br>
+                                <small>@${referrer.username || 'sin_usuario'}</small>
+                            </td>
+                            <td>${referrer.total_referrals || 0}</td>
+                            <td>${referrer.paid_referrals || 0}</td>
+                            <td>${(referrer.paid_referrals || 0) * 20}%</td>
+                        `;
+                        topTableBody.appendChild(row);
+                    });
+                }
+                
+                // Cargar lista completa de referidos
+                const listResponse = await fetch('/api/referrals/list');
+                const referralsList = await listResponse.json();
+                
+                document.getElementById('referralsListLoading').style.display = 'none';
+                
+                const listTableBody = document.getElementById('referralsListTableBody');
+                listTableBody.innerHTML = '';
+                
+                if (referralsList && referralsList.length > 0) {
+                    referralsList.forEach(referral => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <strong>${referral.user_name || 'Usuario'}</strong><br>
+                                <small>ID: ${referral.user_id || 'N/A'}</small>
+                            </td>
+                            <td>
+                                ${referral.referrer_name ? 
+                                    `<strong>${referral.referrer_name}</strong><br>
+                                     <small>ID: ${referral.referrer_id || 'N/A'}</small>` : 
+                                    'Directo'
+                                }
+                            </td>
+                            <td>
+                                ${referral.level === 1 ? 
+                                    '<span class="badge referral-level-1">Nivel 1</span>' : 
+                                    '<span class="badge referral-level-2">Nivel 2</span>'
+                                }
+                            </td>
+                            <td>${getPlanName(referral.plan) || 'Sin plan'}</td>
+                            <td>
+                                ${referral.has_paid ? 
+                                    '<span class="badge paid">Pagado</span>' : 
+                                    '<span class="badge unpaid">No pagado</span>'
+                                }
+                            </td>
+                            <td>
+                                ${referral.has_paid ? 
+                                    (referral.level === 1 ? '20%' : '10%') : 
+                                    '0%'
+                                }
+                            </td>
+                            <td>${referral.referred_at ? new Date(referral.referred_at).toLocaleDateString('es-ES') : 'N/A'}</td>
+                        `;
+                        listTableBody.appendChild(row);
+                    });
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cargando sistema de referidos:', error);
+                document.getElementById('referralsListLoading').style.display = 'none';
+                document.getElementById('topReferrersLoading').style.display = 'none';
+                showNotification('❌ Error cargando sistema de referidos', 'error');
+            }
+        }
+
+        // Cargar archivos de planes
+        async function loadPlanFiles() {
+            try {
+                console.log('📁 Cargando archivos de planes...');
+                const response = await fetch('/api/plan-files');
+                const planFiles = await response.json();
+                
+                // Actualizar información de cada plan
+                if (planFiles) {
+                    // Plan Básico
+                    const basicFile = planFiles.find(f => f.plan === 'basico');
+                    if (basicFile) {
+                        document.getElementById('basicPlanFile').textContent = basicFile.filename;
+                        document.getElementById('basicPlanDate').textContent = new Date(basicFile.updated_at).toLocaleDateString('es-ES');
+                    }
+                    
+                    // Plan Avanzado
+                    const advancedFile = planFiles.find(f => f.plan === 'avanzado');
+                    if (advancedFile) {
+                        document.getElementById('advancedPlanFile').textContent = advancedFile.filename;
+                        document.getElementById('advancedPlanDate').textContent = new Date(advancedFile.updated_at).toLocaleDateString('es-ES');
+                    }
+                    
+                    // Plan Premium
+                    const premiumFile = planFiles.find(f => f.plan === 'premium');
+                    if (premiumFile) {
+                        document.getElementById('premiumPlanFile').textContent = premiumFile.filename;
+                        document.getElementById('premiumPlanDate').textContent = new Date(premiumFile.updated_at).toLocaleDateString('es-ES');
+                    }
+                    
+                    // Plan Anual
+                    const annualFile = planFiles.find(f => f.plan === 'anual');
+                    if (annualFile) {
+                        document.getElementById('annualPlanFile').textContent = annualFile.filename;
+                        document.getElementById('annualPlanDate').textContent = new Date(annualFile.updated_at).toLocaleDateString('es-ES');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cargando archivos de planes:', error);
+                showNotification('❌ Error cargando archivos de planes', 'error');
+            }
+        }
+
+        // Abrir upload de archivo para plan
+        function openPlanFileUpload(plan) {
+            currentPlanForUpload = plan;
+            const fileInputId = plan + 'PlanFileInput';
+            document.getElementById(fileInputId).click();
+        }
+
+        // Subir archivo de plan
+        async function uploadPlanFile() {
+            if (!currentPlanForUpload) {
+                showNotification('❌ Selecciona un plan primero', 'warning');
+                return;
+            }
+            
+            const fileInputId = currentPlanForUpload + 'PlanFileInput';
+            const fileInput = document.getElementById(fileInputId);
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('❌ Selecciona un archivo', 'warning');
+                return;
+            }
+            
+            // Validar que sea ZIP, RAR o CONF
+            const fileName = file.name.toLowerCase();
+            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
+            
+            if (!isValidFile) {
+                showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
+                return;
+            }
+            
+            console.log(`📤 Subiendo archivo ${file.name} para plan ${currentPlanForUpload}...`);
+            
+            const formData = new FormData();
+            formData.append('plan', currentPlanForUpload);
+            formData.append('file', file);
+            formData.append('adminId', currentUserId);
+            
+            try {
+                const response = await fetch('/api/upload-plan-file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showNotification(`✅ Archivo subido correctamente para plan ${getPlanName(currentPlanForUpload)}`, 'success');
+                    loadPlanFiles();
+                    currentPlanForUpload = null;
+                    fileInput.value = '';
+                } else {
+                    throw new Error('Error subiendo archivo');
+                }
+            } catch (error) {
+                console.error('❌ Error subiendo archivo de plan:', error);
+                showNotification('❌ Error subiendo archivo: ' + error.message, 'error');
             }
         }
 
@@ -2083,77 +2367,26 @@ Emojis: 🎮 📱 🔥"></textarea>
                 document.getElementById('gamesNoData').style.display = 'none';
                 
                 console.log('🎮 Cargando estadísticas de juegos...');
-                const response = await fetch('/api/trials/pending');
-                const trials = await response.json();
-                
-                console.log(`📊 Pruebas recibidas para estadísticas (${trials.length}):`);
+                const response = await fetch('/api/games-stats');
+                const games = await response.json();
                 
                 document.getElementById('gamesLoading').style.display = 'none';
                 
-                if (!trials || trials.length === 0) {
-                    console.log('📭 No hay datos de juegos');
+                if (!games || games.length === 0) {
                     document.getElementById('gamesNoData').style.display = 'block';
                     return;
                 }
                 
-                // Agrupar por juego/servidor
-                const gamesMap = new Map();
-                
-                trials.forEach(trial => {
-                    const gameServer = trial.trial_info?.game_server || 'No especificado';
-                    const connectionType = trial.trial_info?.connection_type || 'No especificado';
-                    const requestedAt = trial.trial_requested_at;
-                    
-                    if (!gamesMap.has(gameServer)) {
-                        gamesMap.set(gameServer, {
-                            game: gameServer,
-                            requests: 0,
-                            connections: new Set(),
-                            lastRequest: requestedAt
-                        });
-                    }
-                    
-                    const gameData = gamesMap.get(gameServer);
-                    gameData.requests++;
-                    gameData.connections.add(connectionType);
-                    
-                    // Actualizar última solicitud si es más reciente
-                    if (requestedAt && gameData.lastRequest && new Date(requestedAt) > new Date(gameData.lastRequest)) {
-                        gameData.lastRequest = requestedAt;
-                    }
-                });
-                
-                // Convertir a array y ordenar por número de solicitudes
-                const gamesArray = Array.from(gamesMap.values()).sort((a, b) => b.requests - a.requests);
-                
                 const tableBody = document.getElementById('gamesTableBody');
                 tableBody.innerHTML = '';
                 
-                gamesArray.forEach(game => {
-                    const lastRequest = game.lastRequest ? new Date(game.lastRequest).toLocaleDateString('es-ES') : 'N/A';
-                    const connections = Array.from(game.connections).join(', ');
-                    
+                games.forEach(game => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>
-                            <strong>${truncateText(game.game, 30)}</strong>
-                        </td>
-                        <td>
-                            <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #a78bfa;">
-                                ${game.requests} solicitudes
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge connection" title="${connections}">
-                                <i class="fas fa-wifi"></i> ${truncateText(connections, 20)}
-                            </span>
-                        </td>
-                        <td>${lastRequest}</td>
-                        <td>
-                            <button class="action-btn message" onclick="searchUsersByGame('${escapeText(game.game)}')">
-                                <i class="fas fa-search"></i> Buscar
-                            </button>
-                        </td>
+                        <td>${game.game_server || 'No especificado'}</td>
+                        <td>${game.request_count || 0}</td>
+                        <td>${game.connection_types?.join(', ') || 'No especificado'}</td>
+                        <td>${game.last_request ? new Date(game.last_request).toLocaleDateString('es-ES') : 'N/A'}</td>
                     `;
                     tableBody.appendChild(row);
                 });
@@ -2163,7 +2396,7 @@ Emojis: 🎮 📱 🔥"></textarea>
             } catch (error) {
                 console.error('❌ Error cargando estadísticas de juegos:', error);
                 document.getElementById('gamesLoading').style.display = 'none';
-                showNotification('❌ Error cargando estadísticas de juegos: ' + error.message, 'error');
+                showNotification('❌ Error cargando estadísticas de juegos', 'error');
             }
         }
 
@@ -2178,12 +2411,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                 const response = await fetch('/api/broadcasts');
                 const broadcasts = await response.json();
                 
-                console.log(`📊 Broadcasts recibidos (${broadcasts.length}):`, broadcasts);
-                
                 document.getElementById('broadcastLoading').style.display = 'none';
                 
                 if (!broadcasts || broadcasts.length === 0) {
-                    console.log('📭 No hay broadcasts en el historial');
                     document.getElementById('broadcastNoData').style.display = 'block';
                     return;
                 }
@@ -2192,33 +2422,21 @@ Emojis: 🎮 📱 🔥"></textarea>
                 tableBody.innerHTML = '';
                 
                 broadcasts.forEach(broadcast => {
-                    const statusBadge = getBroadcastStatusBadge(broadcast.status);
-                    const targetName = getBroadcastTargetName(broadcast.target_users);
-                    const stats = broadcast.sent_count ? 
-                        `${broadcast.sent_count}/${broadcast.total_users || broadcast.sent_count + broadcast.failed_count} enviados` : 
-                        'No enviado';
-                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${broadcast.id || 'N/A'}</td>
-                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${broadcast.message}">
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${broadcast.message}">
                             ${truncateText(broadcast.message, 50)}
                         </td>
-                        <td>${targetName}</td>
-                        <td>${stats}</td>
-                        <td>${statusBadge}</td>
-                        <td>${broadcast.created_at ? new Date(broadcast.created_at).toLocaleString('es-ES') : 'N/A'}</td>
+                        <td>${getBroadcastTargetName(broadcast.target)}</td>
+                        <td>${broadcast.sent_count || 0}/${broadcast.total_users || 0}</td>
                         <td>
-                            <button class="action-btn view-details" onclick="viewBroadcastDetails('${broadcast.id}')" title="Ver detalles">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            ${broadcast.status === 'pending' ? 
-                                `<button class="action-btn approve" onclick="retryBroadcast('${broadcast.id}')" title="Reintentar">
-                                    <i class="fas fa-redo"></i>
-                                </button>` : 
-                                ''
+                            ${broadcast.status === 'completed' ? 
+                                '<span class="badge completed">Completado</span>' : 
+                                '<span class="badge pending">Pendiente</span>'
                             }
                         </td>
+                        <td>${broadcast.created_at ? new Date(broadcast.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                     `;
                     tableBody.appendChild(row);
                 });
@@ -2228,11 +2446,11 @@ Emojis: 🎮 📱 🔥"></textarea>
             } catch (error) {
                 console.error('❌ Error cargando broadcasts:', error);
                 document.getElementById('broadcastLoading').style.display = 'none';
-                showNotification('❌ Error cargando broadcasts: ' + error.message, 'error');
+                showNotification('❌ Error cargando broadcasts', 'error');
             }
         }
 
-        // Enviar broadcast - CORREGIDA
+        // Enviar broadcast
         async function sendBroadcast() {
             const message = document.getElementById('broadcastMessage').value.trim();
             const target = document.getElementById('broadcastTarget').value;
@@ -2242,33 +2460,16 @@ Emojis: 🎮 📱 🔥"></textarea>
                 return;
             }
             
-            const targetName = getBroadcastTargetName(target);
-            if (!confirm(`¿Estás seguro de enviar este mensaje a ${targetName}?\n\nMensaje: "${truncateText(message, 100)}"`)) {
+            if (!confirm(`¿Estás seguro de enviar este broadcast a ${getBroadcastTargetName(target)}?`)) {
                 return;
             }
             
-            console.log(`📢 Enviando broadcast a ${target}: ${message.substring(0, 100)}...`);
-            
             const button = document.getElementById('broadcastButton');
-            const progressDiv = document.getElementById('broadcastProgress');
-            const progressBar = document.getElementById('broadcastProgressBar');
-            const progressText = document.getElementById('broadcastProgressText');
-            const progressPercent = document.getElementById('broadcastProgressPercent');
-            const progressDetails = document.getElementById('broadcastProgressDetails');
-            
-            // Deshabilitar botón y mostrar progreso
             button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-            progressDiv.classList.add('active');
             
             try {
-                // Validar que currentUserId existe
-                if (!currentUserId) {
-                    throw new Error('ID de usuario no válido. Recarga la página.');
-                }
-                
-                // Crear broadcast
-                const createResponse = await fetch('/api/broadcast/create', {
+                const response = await fetch('/api/broadcast/send', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -2280,264 +2481,25 @@ Emojis: 🎮 📱 🔥"></textarea>
                     })
                 });
                 
-                if (!createResponse.ok) {
-                    const errorText = await createResponse.text();
-                    console.error('❌ Error creando broadcast:', errorText);
-                    throw new Error(`Error ${createResponse.status}: ${errorText.substring(0, 100)}`);
-                }
-                
-                const broadcastData = await createResponse.json();
-                const broadcastId = broadcastData.broadcast?.id || broadcastData.id;
-                
-                if (!broadcastId) {
-                    throw new Error('No se recibió un ID de broadcast válido');
-                }
-                
-                console.log(`✅ Broadcast creado con ID: ${broadcastId}`);
-                showNotification('✅ Broadcast creado. Enviando mensajes en segundo plano...', 'success');
-                
-                // Iniciar monitoreo de progreso
-                progressDetails.textContent = 'Obteniendo lista de usuarios...';
-                progressBar.style.width = '10%';
-                progressPercent.textContent = '10%';
-                progressText.textContent = 'Preparando...';
-                
-                currentBroadcastId = broadcastId;
-                
-                // Iniciar el polling de progreso
-                startBroadcastProgressPolling(broadcastId);
-                
-                // Recargar historial después de 3 segundos
-                setTimeout(() => {
+                if (response.ok) {
+                    showNotification('✅ Broadcast enviado correctamente', 'success');
+                    document.getElementById('broadcastMessage').value = '';
                     loadBroadcasts();
-                }, 3000);
-                
+                } else {
+                    throw new Error('Error enviando broadcast');
+                }
             } catch (error) {
                 console.error('❌ Error enviando broadcast:', error);
                 showNotification('❌ Error enviando broadcast: ' + error.message, 'error');
-                
-                // Restaurar UI
-                resetBroadcastUI();
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Broadcast';
             }
-        }
-
-        // Monitorear progreso de broadcast - CORREGIDA
-        async function startBroadcastProgressPolling(broadcastId) {
-            if (broadcastInterval) {
-                clearInterval(broadcastInterval);
-            }
-            
-            // Validar que broadcastId existe
-            if (!broadcastId || broadcastId === 'undefined') {
-                console.error('❌ Broadcast ID inválido:', broadcastId);
-                showNotification('❌ Error: ID de broadcast inválido', 'error');
-                resetBroadcastUI();
-                return;
-            }
-            
-            console.log(`🔍 Iniciando polling para broadcast: ${broadcastId}`);
-            
-            let attempts = 0;
-            const maxAttempts = 300; // 5 minutos máximo
-            
-            broadcastInterval = setInterval(async () => {
-                attempts++;
-                
-                if (attempts > maxAttempts) {
-                    clearInterval(broadcastInterval);
-                    broadcastInterval = null;
-                    showNotification('⚠️ Broadcast tardó mucho tiempo. Verifica manualmente.', 'warning');
-                    resetBroadcastUI();
-                    return;
-                }
-                
-                try {
-                    console.log(`📡 Polling broadcast ${broadcastId}, intento ${attempts}`);
-                    
-                    const response = await fetch(`/api/broadcast/status/${broadcastId}`);
-                    
-                    if (!response.ok) {
-                        if (response.status === 404) {
-                            console.log(`📭 Broadcast ${broadcastId} no encontrado, deteniendo polling`);
-                            clearInterval(broadcastInterval);
-                            broadcastInterval = null;
-                            updateBroadcastProgressUI(100, 'Error', 'Broadcast no encontrado');
-                            setTimeout(resetBroadcastUI, 3000);
-                            return;
-                        }
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                    const status = await response.json();
-                    console.log(`📊 Estado broadcast:`, status);
-                    
-                    if (status.status === 'completed') {
-                        clearInterval(broadcastInterval);
-                        broadcastInterval = null;
-                        
-                        // Actualizar UI final
-                        updateBroadcastProgressUI(100, 'Completado', 
-                            `✅ ${status.sent_count || 0} mensajes enviados, ${status.failed_count || 0} fallidos`);
-                        
-                        showNotification(`✅ Broadcast completado: ${status.sent_count || 0} mensajes enviados`, 'success');
-                        
-                        // Restaurar UI después de 5 segundos
-                        setTimeout(() => {
-                            resetBroadcastUI();
-                            loadBroadcasts();
-                            loadBroadcastCount();
-                        }, 5000);
-                        
-                    } else if (status.status === 'sending') {
-                        // Actualizar progreso
-                        const sent = status.sent_count || 0;
-                        const total = status.total_users || 1;
-                        const percent = Math.min(10 + Math.floor((sent / total) * 80), 95);
-                        updateBroadcastProgressUI(percent, 'Enviando...', 
-                            `Enviando a ${sent} de ${total} usuarios`);
-                        
-                    } else if (status.status === 'failed') {
-                        clearInterval(broadcastInterval);
-                        broadcastInterval = null;
-                        
-                        updateBroadcastProgressUI(100, 'Error', 'Error en el envío');
-                        showNotification('❌ Error enviando broadcast', 'error');
-                        
-                        setTimeout(resetBroadcastUI, 3000);
-                        
-                    } else if (status.status === 'pending') {
-                        // Aún no comenzó, mantener en 10%
-                        updateBroadcastProgressUI(10, 'En cola...', 'Esperando para comenzar el envío');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Error monitoreando progreso:', error);
-                    
-                    // Si hay muchos errores consecutivos, detener
-                    if (attempts > 10) {
-                        clearInterval(broadcastInterval);
-                        broadcastInterval = null;
-                        updateBroadcastProgressUI(100, 'Error', 'Error de conexión');
-                        showNotification('❌ Error de conexión monitoreando broadcast', 'error');
-                        setTimeout(resetBroadcastUI, 3000);
-                    }
-                }
-            }, 2000); // Poll cada 2 segundos
-        }
-
-        // Actualizar UI de progreso de broadcast
-        function updateBroadcastProgressUI(percent, text, details) {
-            const progressBar = document.getElementById('broadcastProgressBar');
-            const progressText = document.getElementById('broadcastProgressText');
-            const progressPercent = document.getElementById('broadcastProgressPercent');
-            const progressDetails = document.getElementById('broadcastProgressDetails');
-            
-            progressBar.style.width = `${percent}%`;
-            progressPercent.textContent = `${percent}%`;
-            progressText.textContent = text;
-            progressDetails.textContent = details;
-        }
-
-        // Resetear UI de broadcast
-        function resetBroadcastUI() {
-            const button = document.getElementById('broadcastButton');
-            const progressDiv = document.getElementById('broadcastProgress');
-            
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Broadcast';
-            progressDiv.classList.remove('active');
-            document.getElementById('broadcastMessage').value = '';
-            
-            // Resetear progreso
-            updateBroadcastProgressUI(0, 'Preparando...', 'Obteniendo lista de usuarios...');
-            
-            if (broadcastInterval) {
-                clearInterval(broadcastInterval);
-                broadcastInterval = null;
-            }
-            
-            currentBroadcastId = null;
-        }
-
-        // Ver detalles de broadcast
-        async function viewBroadcastDetails(broadcastId) {
-            try {
-                const response = await fetch(`/api/broadcast/${broadcastId}`);
-                if (!response.ok) {
-                    throw new Error('Error obteniendo detalles');
-                }
-                
-                const broadcast = await response.json();
-                
-                const details = `📋 *Detalles del Broadcast #${broadcast.id}*\n\n` +
-                    `*Mensaje:* ${broadcast.message}\n` +
-                    `*Destinatarios:* ${getBroadcastTargetName(broadcast.target_users)}\n` +
-                    `*Estado:* ${broadcast.status}\n` +
-                    `*Creado por:* ${broadcast.sent_by}\n` +
-                    `*Fecha creación:* ${new Date(broadcast.created_at).toLocaleString('es-ES')}\n` +
-                    `*Total usuarios:* ${broadcast.total_users || 'N/A'}\n` +
-                    `*Enviados:* ${broadcast.sent_count || 'N/A'}\n` +
-                    `*Fallidos:* ${broadcast.failed_count || 'N/A'}`;
-                
-                showNotification(details, 'info');
-                
-            } catch (error) {
-                console.error('❌ Error obteniendo detalles de broadcast:', error);
-                showNotification('❌ Error obteniendo detalles del broadcast', 'error');
-            }
-        }
-
-        // Reintentar broadcast
-        async function retryBroadcast(broadcastId) {
-            if (!confirm('¿Reintentar envío de este broadcast?')) return;
-            
-            try {
-                // Validar que currentUserId existe
-                if (!currentUserId) {
-                    showNotification('❌ Error: ID de usuario no válido', 'error');
-                    return;
-                }
-                
-                const response = await fetch(`/api/broadcast/retry/${broadcastId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        adminId: currentUserId
-                    })
-                });
-                
-                if (response.ok) {
-                    showNotification('✅ Broadcast programado para reintento', 'success');
-                    loadBroadcasts();
-                } else {
-                    throw new Error('Error programando reintento');
-                }
-            } catch (error) {
-                console.error('❌ Error reintentando broadcast:', error);
-                showNotification('❌ Error reintentando broadcast', 'error');
-            }
-        }
-
-        // Buscar usuarios por juego
-        async function searchUsersByGame(game) {
-            // Cambiar a pestaña de usuarios
-            switchTab('users');
-            
-            // Mostrar mensaje de búsqueda
-            showNotification(`🔍 Buscando usuarios con juego: ${game}`, 'info');
-            
-            // Aquí podrías implementar una búsqueda más específica si la API lo permite
-            // Por ahora, simplemente cargamos todos los usuarios
-            loadUsers();
         }
 
         // Ver captura de pantalla
         function viewScreenshot(paymentId, telegramId, plan, amount, date, screenshotUrl) {
             currentPaymentId = paymentId;
-            
-            console.log(`👁️ Viendo captura de pago ${paymentId}`);
             
             document.getElementById('screenshotImage').src = screenshotUrl;
             document.getElementById('modalUserId').textContent = telegramId;
@@ -2548,11 +2510,9 @@ Emojis: 🎮 📱 🔥"></textarea>
             document.getElementById('screenshotModal').classList.add('active');
         }
 
-        // Abrir modal de configuración para pago
+        // Abrir modal de configuración
         function openConfigModal(paymentId, telegramId, plan) {
             currentPaymentId = paymentId;
-            
-            console.log(`📤 Abriendo modal para enviar configuración a ${telegramId}`);
             
             document.getElementById('configPaymentId').textContent = paymentId;
             document.getElementById('configUserId').textContent = telegramId;
@@ -2561,47 +2521,67 @@ Emojis: 🎮 📱 🔥"></textarea>
             document.getElementById('configModal').classList.add('active');
         }
 
-        // Abrir modal de configuración para prueba
-        function openTrialConfigModal(telegramId, name, date, trialType, gameServer, connectionType) {
-            currentTrialUserId = telegramId;
+        // Enviar configuración de prueba
+        async function sendTrialConfig(telegramId, userName) {
+            if (!confirm(`¿Enviar configuración de prueba a ${userName}?`)) return;
             
-            console.log(`🎁 Abriendo modal para enviar configuración de prueba a ${telegramId}`);
-            console.log(`🎮 Juego/Servidor: ${gameServer}`);
-            console.log(`📡 Conexión: ${connectionType}`);
-            
-            document.getElementById('trialConfigUserId').textContent = telegramId;
-            document.getElementById('trialConfigName').textContent = name;
-            document.getElementById('trialConfigDate').textContent = date;
-            document.getElementById('trialConfigType').textContent = trialType;
-            document.getElementById('trialConfigGame').textContent = gameServer;
-            document.getElementById('trialConfigConnection').textContent = connectionType;
-            
-            document.getElementById('trialConfigModal').classList.add('active');
+            try {
+                const response = await fetch('/api/send-trial-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        telegramId: telegramId,
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification(`✅ Configuración de prueba enviada a ${userName}`, 'success');
+                    loadPendingTrials();
+                } else {
+                    throw new Error('Error enviando configuración de prueba');
+                }
+            } catch (error) {
+                console.error('❌ Error enviando configuración de prueba:', error);
+                showNotification('❌ Error enviando configuración de prueba', 'error');
+            }
         }
 
-        // Cerrar modales
-        function closeModal() {
-            console.log('❌ Cerrando modal de captura');
-            document.getElementById('screenshotModal').classList.remove('active');
-        }
-
-        function closeConfigModal() {
-            console.log('❌ Cerrando modal de configuración');
-            document.getElementById('configModal').classList.remove('active');
-            document.getElementById('configFile').value = '';
-        }
-
-        function closeTrialConfigModal() {
-            console.log('❌ Cerrando modal de configuración de prueba');
-            document.getElementById('trialConfigModal').classList.remove('active');
-            document.getElementById('trialConfigFile').value = '';
+        // Aprobar pago USDT
+        async function approveUsdtPayment(paymentId) {
+            if (!confirm('¿Aprobar este pago USDT?')) return;
+            
+            try {
+                const response = await fetch(`/api/payments/${paymentId}/approve-usdt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showNotification('✅ Pago USDT aprobado. Se enviará el archivo automáticamente.', 'success');
+                    loadPendingPayments();
+                    loadApprovedPayments();
+                    loadStats();
+                } else {
+                    throw new Error('Error aprobando pago USDT');
+                }
+            } catch (error) {
+                console.error('❌ Error aprobando pago USDT:', error);
+                showNotification('❌ Error aprobando pago USDT', 'error');
+            }
         }
 
         // Aprobar pago
         async function approvePayment(paymentId) {
             if (!confirm('¿Estás seguro de aprobar este pago?')) return;
-            
-            console.log(`✅ Aprobando pago ${paymentId}...`);
             
             try {
                 const response = await fetch(`/api/payments/${paymentId}/approve`, {
@@ -2609,21 +2589,12 @@ Emojis: 🎮 📱 🔥"></textarea>
                 });
                 
                 if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Pago aprobado:', data);
                     showNotification('✅ Pago aprobado correctamente', 'success');
                     closeModal();
                     loadPendingPayments();
                     loadApprovedPayments();
                     loadStats();
-                    
-                    // Abrir modal para enviar configuración
-                    setTimeout(() => {
-                        openConfigModal(paymentId, data.payment?.telegram_id || '', 
-                            data.payment?.plan || '');
-                    }, 1000);
                 } else {
-                    console.error('❌ Error aprobando pago:', response.status);
                     throw new Error('Error aprobando pago');
                 }
             } catch (error) {
@@ -2637,8 +2608,6 @@ Emojis: 🎮 📱 🔥"></textarea>
             const reason = prompt('Ingresa el motivo del rechazo:');
             if (!reason) return;
             
-            console.log(`❌ Rechazando pago ${paymentId} con motivo: ${reason}`);
-            
             try {
                 const response = await fetch(`/api/payments/${paymentId}/reject`, {
                     method: 'POST',
@@ -2649,13 +2618,11 @@ Emojis: 🎮 📱 🔥"></textarea>
                 });
                 
                 if (response.ok) {
-                    console.log('✅ Pago rechazado');
                     showNotification('✅ Pago rechazado correctamente', 'success');
                     closeModal();
                     loadPendingPayments();
                     loadStats();
                 } else {
-                    console.error('❌ Error rechazando pago:', response.status);
                     throw new Error('Error rechazando pago');
                 }
             } catch (error) {
@@ -2664,7 +2631,7 @@ Emojis: 🎮 📱 🔥"></textarea>
             }
         }
 
-        // Enviar archivo de configuración (ZIP/RAR/CONF) para pago
+        // Enviar archivo de configuración
         async function sendConfigFile() {
             const fileInput = document.getElementById('configFile');
             const file = fileInput.files[0];
@@ -2674,21 +2641,9 @@ Emojis: 🎮 📱 🔥"></textarea>
                 return;
             }
             
-            // Validar que sea ZIP, RAR o CONF
-            const fileName = file.name.toLowerCase();
-            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
-            
-            if (!isValidFile) {
-                showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
-                return;
-            }
-            
-            console.log(`📤 Enviando archivo ${file.name} a usuario...`);
-            
             const formData = new FormData();
             formData.append('configFile', file);
             formData.append('paymentId', currentPaymentId);
-            formData.append('telegramId', document.getElementById('configUserId').textContent);
             formData.append('adminId', currentUserId);
             
             try {
@@ -2697,219 +2652,76 @@ Emojis: 🎮 📱 🔥"></textarea>
                     body: formData
                 });
                 
-                const responseText = await response.text();
-                console.log('📥 Respuesta del servidor:', responseText);
-                
                 if (response.ok) {
-                    try {
-                        const data = JSON.parse(responseText);
-                        console.log('✅ Configuración enviada:', data);
-                        showNotification('✅ Configuración enviada correctamente', 'success');
-                        closeConfigModal();
-                        loadApprovedPayments();
-                        loadStats();
-                    } catch (jsonError) {
-                        console.error('❌ Error parseando JSON:', jsonError);
-                        showNotification('✅ Archivo enviado (respuesta no JSON)', 'success');
-                    }
+                    showNotification('✅ Configuración enviada correctamente', 'success');
+                    closeConfigModal();
+                    loadApprovedPayments();
+                    fileInput.value = '';
                 } else {
-                    console.error('❌ Error del servidor:', response.status, responseText);
-                    
-                    try {
-                        const errorData = JSON.parse(responseText);
-                        throw new Error(errorData.error || 'Error enviando configuración');
-                    } catch (parseError) {
-                        throw new Error(`Error ${response.status}: ${responseText.substring(0, 100)}`);
-                    }
+                    throw new Error('Error enviando configuración');
                 }
             } catch (error) {
                 console.error('❌ Error enviando configuración:', error);
-                showNotification('❌ ' + error.message, 'error');
+                showNotification('❌ Error enviando configuración', 'error');
             }
         }
 
-        // Enviar archivo de configuración de prueba
-        async function sendTrialConfigFile() {
-            const fileInput = document.getElementById('trialConfigFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showNotification('❌ Selecciona un archivo de configuración', 'warning');
-                return;
-            }
-            
-            // Validar que sea ZIP, RAR o CONF
-            const fileName = file.name.toLowerCase();
-            const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
-            
-            if (!isValidFile) {
-                showNotification('❌ Solo se permiten archivos .conf, .zip o .rar', 'warning');
-                return;
-            }
-            
-            console.log(`🎁 Enviando archivo de prueba ${file.name} a ${currentTrialUserId}...`);
-            
-            const gameServer = document.getElementById('trialConfigGame').textContent;
-            const connectionType = document.getElementById('trialConfigConnection').textContent;
-            const trialType = document.getElementById('trialConfigType').textContent;
-            
-            const formData = new FormData();
-            formData.append('trialConfigFile', file);
-            formData.append('telegramId', currentTrialUserId);
-            formData.append('adminId', currentUserId);
-            formData.append('trialType', trialType);
-            
+        // Ver detalles de usuario
+        async function viewUserDetails(telegramId) {
             try {
-                const response = await fetch('/api/send-trial-config', {
-                    method: 'POST',
-                    body: formData
-                });
+                const response = await fetch(`/api/user/${telegramId}/details`);
+                const user = await response.json();
                 
-                const responseText = await response.text();
-                console.log('📥 Respuesta del servidor:', responseText);
+                const details = `👤 *Detalles del Usuario*\n\n` +
+                    `*ID:* ${user.telegram_id}\n` +
+                    `*Nombre:* ${user.first_name}\n` +
+                    `*Usuario:* @${user.username}\n` +
+                    `*Plan actual:* ${getPlanName(user.current_plan)}\n` +
+                    `*Referidor:* ${user.referrer_id ? '@' + user.referrer_username : 'Directo'}\n` +
+                    `*Referidos directos:* ${user.level1_referrals || 0}\n` +
+                    `*Referidos nivel 2:* ${user.level2_referrals || 0}\n` +
+                    `*Descuento aplicable:* ${((user.level1_paid || 0) * 20) + ((user.level2_paid || 0) * 10)}%\n` +
+                    `*Registro:* ${new Date(user.created_at).toLocaleDateString('es-ES')}`;
                 
-                if (response.ok) {
-                    try {
-                        const data = JSON.parse(responseText);
-                        console.log('✅ Configuración de prueba enviada:', data);
-                        
-                        const successMessage = `✅ Configuración de prueba enviada correctamente\n\n` +
-                                             `🎮 *Juego/Servidor:* ${gameServer}\n` +
-                                             `📡 *Conexión:* ${connectionType}\n` +
-                                             `⏰ *Duración:* ${trialType}`;
-                        
-                        showNotification(successMessage, 'success');
-                        closeTrialConfigModal();
-                        loadPendingTrials();
-                        loadTrialStats();
-                        loadStats();
-                        loadGamesAndConnectionsStats();
-                    } catch (jsonError) {
-                        console.error('❌ Error parseando JSON:', jsonError);
-                        showNotification('✅ Archivo de prueba enviado', 'success');
-                    }
-                } else {
-                    console.error('❌ Error del servidor:', response.status, responseText);
-                    
-                    try {
-                        const errorData = JSON.parse(responseText);
-                        throw new Error(errorData.error || 'Error enviando configuración de prueba');
-                    } catch (parseError) {
-                        throw new Error(`Error ${response.status}: ${responseText.substring(0, 100)}`);
-                    }
-                }
+                showNotification(details, 'info');
             } catch (error) {
-                console.error('❌ Error enviando configuración de prueba:', error);
-                showNotification('❌ ' + error.message, 'error');
+                console.error('❌ Error obteniendo detalles de usuario:', error);
+                showNotification('❌ Error obteniendo detalles del usuario', 'error');
             }
         }
 
-        // Enviar mensaje a usuario
-        async function sendMessageToUser(telegramId) {
-            const message = prompt('Ingresa el mensaje a enviar:');
-            if (!message) return;
-            
-            console.log(`📨 Enviando mensaje a ${telegramId}: ${message.substring(0, 50)}...`);
-            
-            try {
-                const response = await fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        telegramId: telegramId,
-                        message: message,
-                        adminId: currentUserId
-                    })
-                });
-                
-                if (response.ok) {
-                    console.log('✅ Mensaje enviado');
-                    showNotification('✅ Mensaje enviado correctamente', 'success');
-                } else {
-                    console.error('❌ Error enviando mensaje:', response.status);
-                    throw new Error('Error enviando mensaje');
-                }
-            } catch (error) {
-                console.error('❌ Error enviando mensaje:', error);
-                showNotification('❌ Error enviando mensaje', 'error');
-            }
+        // Cerrar modales
+        function closeModal() {
+            document.getElementById('screenshotModal').classList.remove('active');
         }
 
-        // Remover VIP de usuario
-        async function removeVIP(telegramId) {
-            if (!confirm('¿Estás seguro de quitar el VIP a este usuario?')) return;
-            
-            console.log(`👑 Removiendo VIP de ${telegramId}...`);
-            
-            try {
-                const response = await fetch('/api/remove-vip', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        telegramId: telegramId,
-                        adminId: currentUserId
-                    })
-                });
-                
-                if (response.ok) {
-                    console.log('✅ VIP removido');
-                    showNotification('✅ VIP removido correctamente', 'success');
-                    loadUsers();
-                    loadStats();
-                } else {
-                    console.error('❌ Error removiendo VIP:', response.status);
-                    throw new Error('Error removiendo VIP');
-                }
-            } catch (error) {
-                console.error('❌ Error removiendo VIP:', error);
-                showNotification('❌ Error removiendo VIP', 'error');
-            }
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('active');
+            document.getElementById('configFile').value = '';
         }
 
         // Mostrar notificación
         function showNotification(message, type = 'info') {
-            console.log(`📢 Notificación (${type}): ${message}`);
-            
             const notification = document.getElementById('notification');
             const notificationText = document.getElementById('notificationText');
             
-            // Si el mensaje es muy largo, truncarlo
-            const displayMessage = message.length > 200 ? message.substring(0, 200) + '...' : message;
-            notificationText.textContent = displayMessage;
-            
-            // Establecer clase según el tipo
-            notification.className = 'notification';
-            if (type) {
-                notification.classList.add(type);
-            }
-            
-            // Mostrar notificación
+            notificationText.textContent = message;
+            notification.className = 'notification ' + type;
             notification.classList.add('show');
             
-            // Ocultar después de 5 segundos (o 10 si es error)
-            const duration = type === 'error' ? 10000 : 5000;
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, duration);
+            }, type === 'error' ? 10000 : 5000);
         }
 
         // Cambiar pestañas
         function switchTab(tabName) {
-            console.log(`📂 Cambiando a pestaña: ${tabName}`);
-            
-            // Ocultar todas las pestañas
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.style.display = 'none';
             });
             
-            // Mostrar pestaña seleccionada
             document.getElementById(tabName + 'Content').style.display = 'block';
             
-            // Actualizar clase activa en tabs
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -2917,7 +2729,6 @@ Emojis: 🎮 📱 🔥"></textarea>
             
             currentTab = tabName;
             
-            // Cargar datos de la pestaña
             switch(tabName) {
                 case 'pending':
                     loadPendingPayments();
@@ -2931,16 +2742,20 @@ Emojis: 🎮 📱 🔥"></textarea>
                 case 'users':
                     loadUsers();
                     break;
+                case 'referrals':
+                    loadReferrals();
+                    break;
+                case 'plan-files':
+                    loadPlanFiles();
+                    break;
                 case 'games':
                     loadGamesStats();
                     break;
                 case 'broadcast':
-                    updateBroadcastStats();
                     loadBroadcasts();
                     break;
                 case 'stats':
                     loadStats();
-                    loadTrialStats();
                     break;
             }
         }
@@ -2949,10 +2764,23 @@ Emojis: 🎮 📱 🔥"></textarea>
         function getPlanName(planType) {
             const plans = {
                 'basico': 'Básico (1 mes)',
-                'premium': 'Premium (2 meses)',
-                'vip': 'VIP (6 meses)'
+                'avanzado': 'Avanzado (2 meses)',
+                'premium': 'Premium (1 mes)',
+                'anual': 'Anual (12 meses)'
             };
             return plans[planType] || planType;
+        }
+
+        // Obtener badge de método de pago
+        function getPaymentMethodBadge(method) {
+            const badges = {
+                'transfer': '<span class="badge">BPA</span>',
+                'metropolitan': '<span class="badge">Metropolitana</span>',
+                'mitransfer': '<span class="badge">MITRANSFER</span>',
+                'mobile': '<span class="badge">Saldo Móvil</span>',
+                'usdt': '<span class="badge usdt">USDT</span>'
+            };
+            return badges[method] || `<span class="badge">${method}</span>`;
         }
 
         // Obtener nombre del target de broadcast
@@ -2963,20 +2791,11 @@ Emojis: 🎮 📱 🔥"></textarea>
                 'non_vip': '👤 Usuarios no VIP',
                 'trial_pending': '⏳ Pruebas pendientes',
                 'trial_received': '✅ Pruebas recibidas',
-                'active': '📱 Usuarios activos'
+                'active': '📱 Usuarios activos',
+                'with_referrals': '🤝 Con referidos',
+                'usdt_payers': '💰 Pagaron con USDT'
             };
             return targets[target] || target;
-        }
-
-        // Obtener badge de estado de broadcast
-        function getBroadcastStatusBadge(status) {
-            const badges = {
-                'pending': '<span class="badge pending">Pendiente</span>',
-                'sending': '<span class="badge sending">Enviando</span>',
-                'completed': '<span class="badge completed">Completado</span>',
-                'failed': '<span class="badge failed">Fallido</span>'
-            };
-            return badges[status] || `<span class="badge">${status}</span>`;
         }
 
         // Truncar texto
@@ -2986,25 +2805,29 @@ Emojis: 🎮 📱 🔥"></textarea>
             return text.substring(0, maxLength) + '...';
         }
 
-        // Escapar texto para uso en atributos HTML
-        function escapeText(text) {
-            if (!text) return '';
-            return text
-                .replace(/'/g, "\\'")
-                .replace(/"/g, '\\"')
-                .replace(/\n/g, ' ')
-                .replace(/\r/g, ' ')
-                .replace(/\t/g, ' ');
-        }
+        // Configurar eventos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeConfigModal();
+            }
+        });
+
+        // Configurar eventos de archivos de planes
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    uploadPlanFile();
+                }
+            });
+        });
 
         // Inicializar página
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📄 Panel de administración cargado');
             
-            // Verificar acceso de administrador
             checkAdminAccess();
             
-            // Configurar eventos de tabs
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     const tabName = this.getAttribute('data-tab');
@@ -3012,23 +2835,10 @@ Emojis: 🎮 📱 🔥"></textarea>
                 });
             });
             
-            // Configurar eventos de teclado
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    closeModal();
-                    closeConfigModal();
-                    closeTrialConfigModal();
-                }
-            });
-            
-            // Configurar auto-refresh de estadísticas cada 30 segundos
+            // Auto-refresh cada 30 segundos
             setInterval(() => {
                 if (currentTab === 'stats') {
                     loadStats();
-                }
-                if (currentTab === 'broadcast' && currentBroadcastId) {
-                    // Si hay un broadcast en progreso, actualizar estadísticas
-                    updateBroadcastStats();
                 }
             }, 30000);
         });

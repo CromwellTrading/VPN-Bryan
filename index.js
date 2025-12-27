@@ -309,13 +309,13 @@ function formatearFecha(fecha) {
     });
 }
 
-// En la función crearMenuPrincipal, quitar la fila del botón de WhatsApp
+// En la función crearMenuPrincipal, agregar botón de referidos
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
-    // Crear teclado BASE para TODOS los usuarios (SIN BOTÓN DE WHATSAPP)
+    // Crear teclado BASE para TODOS los usuarios
     const keyboard = [
         [
             { 
@@ -335,6 +335,12 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             {
                 text: '🆘 SOPORTE',
                 url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🤝 REFERIDOS',
+                callback_data: 'referral_info'
             }
         ]
     ];
@@ -2636,6 +2642,134 @@ bot.action('check_status', async (ctx) => {
     }
 });
 
+// Botón: Información de Referidos
+bot.action('referral_info', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const userName = ctx.from.first_name;
+    
+    // Obtener información del usuario para ver si ya tiene referidos
+    const user = await db.getUser(userId);
+    let referralStats = null;
+    if (user) {
+        referralStats = await db.getReferralStats(userId);
+    }
+    
+    const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+    
+    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
+    message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
+    message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
+    message += `*Cómo funciona:*\n`;
+    message += `1. Comparte este enlace con amigos\n`;
+    message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
+    message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
+    message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
+    message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
+    
+    if (referralStats) {
+        message += `*Tus estadísticas:*\n`;
+        message += `• Referidos directos (Nivel 1): ${referralStats.level1.total} (${referralStats.level1.paid} pagados)\n`;
+        message += `• Referidos nivel 2: ${referralStats.level2.total} (${referralStats.level2.paid} pagados)\n`;
+        message += `• Descuento total acumulado: ${referralStats.discount_percentage}%\n\n`;
+    }
+    
+    message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
+    
+    const keyboard = [
+        [
+            {
+                text: '📋 COPIAR ENLACE',
+                callback_data: 'copy_referral_link'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+    
+    try {
+        await ctx.editMessageText(
+            message,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        throw error;
+    }
+});
+
+// Botón: Copiar enlace de referido
+bot.action('copy_referral_link', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+    
+    await ctx.answerCbQuery(); // Cerrar el alert del botón
+    
+    // Enviar un mensaje con el enlace
+    await ctx.reply(
+        `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\n` +
+        `Para copiar, mantén presionado el enlace y selecciona "Copiar".`,
+        { 
+            parse_mode: 'Markdown',
+            reply_to_message_id: ctx.message.message_id
+        }
+    );
+});
+
+// Comando /referidos - para obtener el enlace directamente
+bot.command('referidos', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+    
+    const user = await db.getUser(userId);
+    let referralStats = null;
+    if (user) {
+        referralStats = await db.getReferralStats(userId);
+    }
+    
+    let message = `🤝 *TU ENLACE DE REFERIDOS*\n\n`;
+    message += `\`${referralLink}\`\n\n`;
+    message += `*Instrucciones:*\n`;
+    message += `1. Comparte este enlace con amigos\n`;
+    message += `2. Cuando se registren, serán tus referidos\n`;
+    message += `3. Ganas descuentos cuando paguen\n\n`;
+    
+    if (referralStats) {
+        message += `*Tus estadísticas:*\n`;
+        message += `• Referidos totales: ${referralStats.total_referrals}\n`;
+        message += `• Referidos que han pagado: ${referralStats.total_paid}\n`;
+        message += `• Descuento actual: ${referralStats.discount_percentage}%\n`;
+    }
+    
+    await ctx.reply(
+        message,
+        { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: '🏠 MENÚ PRINCIPAL',
+                            callback_data: 'main_menu'
+                        }
+                    ]
+                ]
+            }
+        }
+    );
+});
+
 // Comando /admin solo para admins
 bot.command('admin', async (ctx) => {
     if (!isAdmin(ctx.from.id.toString())) {
@@ -2681,7 +2815,7 @@ bot.command('admin', async (ctx) => {
     );
 });
 
-// Comando /help
+// Comando /help (actualizado)
 bot.command('help', async (ctx) => {
     const userId = ctx.from.id.toString();
     const esAdmin = isAdmin(userId);
@@ -2694,8 +2828,15 @@ bot.command('help', async (ctx) => {
         `📋 VER PLANES - Ver y comprar planes\n` +
         `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
         `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
+        `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
         `🆘 SOPORTE - Contactar con soporte técnico\n` +
         `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
+        `\n*COMANDOS DISPONIBLES:*\n` +
+        `/start - Iniciar el bot\n` +
+        `/referidos - Obtener tu enlace de referidos\n` +
+        `/trialstatus - Ver estado de prueba gratuita\n` +
+        `/help - Mostrar esta ayuda\n` +
+        `${esAdmin ? '/admin - Panel de administración\n/enviar - Enviar configuración\n' : ''}` +
         `\n¡Todo está disponible en los botones! 🚀`,
         {
             parse_mode: 'Markdown',
@@ -2872,7 +3013,6 @@ bot.on('document', async (ctx) => {
 // ==================== SERVIDOR ====================
 
 // Iniciar servidor
-// Iniciar servidor
 app.listen(PORT, async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
@@ -2894,12 +3034,13 @@ app.listen(PORT, async () => {
         await bot.launch();
         console.log('🤖 Bot de Telegram iniciado');
         
-        // Configurar comandos del bot
+        // Configurar comandos del bot (actualizado)
         const commands = [
             { command: 'start', description: 'Iniciar el bot' },
             { command: 'help', description: 'Mostrar ayuda' },
-            { command: 'admin', description: 'Panel de administración (solo admins)' },
+            { command: 'referidos', description: 'Obtener enlace de referidos' },
             { command: 'trialstatus', description: 'Ver estado de prueba gratuita' },
+            { command: 'admin', description: 'Panel de administración (solo admins)' },
             { command: 'enviar', description: 'Enviar configuración (solo admins)' }
         ];
         

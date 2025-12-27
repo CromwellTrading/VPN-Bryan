@@ -5,7 +5,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { Telegraf } = require('telegraf');
 const crypto = require('crypto');
-const { createClient } = require('@supabase/supabase-js'); // Añadir esto
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
@@ -2709,22 +2709,41 @@ bot.action('referral_info', async (ctx) => {
     }
 });
 
-// Botón: Copiar enlace de referido
+// Botón: Copiar enlace de referido - CORREGIDO
 bot.action('copy_referral_link', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
-    
-    await ctx.answerCbQuery(); // Cerrar el alert del botón
-    
-    // Enviar un mensaje con el enlace
-    await ctx.reply(
-        `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\n` +
-        `Para copiar, mantén presionado el enlace y selecciona "Copiar".`,
-        { 
-            parse_mode: 'Markdown',
-            reply_to_message_id: ctx.message.message_id
+    try {
+        const userId = ctx.from.id.toString();
+        const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+        
+        // Primero responder a la callback query
+        await ctx.answerCbQuery('📋 Enlace listo para copiar');
+        
+        // Determinar el message_id de manera segura
+        let replyToMessageId = null;
+        if (ctx.callbackQuery && ctx.callbackQuery.message) {
+            replyToMessageId = ctx.callbackQuery.message.message_id;
         }
-    );
+        
+        // Enviar mensaje con el enlace
+        await ctx.reply(
+            `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\n` +
+            `Para copiar, mantén presionado el enlace y selecciona "Copiar".`,
+            { 
+                parse_mode: 'Markdown',
+                reply_to_message_id: replyToMessageId
+            }
+        );
+        
+    } catch (error) {
+        console.error('❌ Error en copy_referral_link:', error);
+        
+        // Intentar respuesta alternativa
+        try {
+            await ctx.answerCbQuery('❌ Error, intenta nuevamente');
+        } catch (e) {
+            // Ignorar error secundario
+        }
+    }
 });
 
 // Comando /referidos - para obtener el enlace directamente
@@ -3060,6 +3079,24 @@ app.listen(PORT, async () => {
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: Habilitado`);
     console.log(`📦 Buckets de almacenamiento: Verificados`);
+});
+
+// Manejar errores no capturados para reiniciar el bot
+process.on('uncaughtException', async (error) => {
+    console.error('❌ Error no capturado:', error);
+    
+    try {
+        // Intentar reiniciar el bot
+        bot.stop();
+        await bot.launch();
+        console.log('🤖 Bot reiniciado después de error no capturado');
+    } catch (restartError) {
+        console.error('❌ No se pudo reiniciar el bot:', restartError);
+    }
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+    console.error('❌ Promesa rechazada no manejada:', reason);
 });
 
 // Manejar cierre

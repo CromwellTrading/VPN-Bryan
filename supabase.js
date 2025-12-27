@@ -1141,7 +1141,7 @@ const db = {
       // Obtener estadísticas de usuarios
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('vip, created_at, trial_requested, trial_received, referrer_id');
+        .select('vip, created_at, trial_requested, trial_received, referrer_id, referrer_username');
       
       if (usersError) {
         console.error('❌ Error obteniendo usuarios para estadísticas:', usersError);

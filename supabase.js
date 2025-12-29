@@ -273,7 +273,8 @@ const db = {
           plan: vipData.plan || 'vip',
           plan_price: vipData.plan_price || 0,
           vip_since: vipData.vip_since || new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          payment_method: vipData.payment_method || null
         })
         .eq('telegram_id', telegramId)
         .select()
@@ -390,6 +391,269 @@ const db = {
     } catch (error) {
       console.error('❌ Error obteniendo usuarios activos:', error);
       return [];
+    }
+  },
+
+  // ========== FUNCIONES USDT PARA VERIFICACIÓN AUTOMÁTICA ==========
+
+  // Obtener pago USDT por hash de transacción
+  async getUsdtPaymentByHash(transactionHash) {
+    try {
+      console.log(`🔍 Buscando pago USDT por hash: ${transactionHash}`);
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .select('*')
+        .eq('transaction_hash', transactionHash)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error obteniendo pago USDT por hash:', error);
+        throw error;
+      }
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Pago USDT con hash ${transactionHash} no encontrado`);
+        return null;
+      }
+      
+      console.log(`✅ Pago USDT encontrado por hash`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getUsdtPaymentByHash:', error);
+      return null;
+    }
+  },
+
+  // Obtener pagos USDT pendientes
+  async getPendingUsdtPayments() {
+    try {
+      console.log('🔍 Obteniendo pagos USDT pendientes...');
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Error obteniendo pagos USDT pendientes:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} pagos USDT pendientes encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getPendingUsdtPayments:', error);
+      return [];
+    }
+  },
+
+  // Obtener pago USDT de usuario por plan
+  async getUserUsdtPayment(telegramId, plan) {
+    try {
+      console.log(`🔍 Buscando pago USDT de usuario ${telegramId}, plan ${plan}`);
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .eq('plan', plan)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error obteniendo pago USDT de usuario:', error);
+        throw error;
+      }
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Pago USDT no encontrado para usuario ${telegramId}, plan ${plan}`);
+        return null;
+      }
+      
+      console.log(`✅ Pago USDT encontrado para usuario ${telegramId}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getUserUsdtPayment:', error);
+      return null;
+    }
+  },
+
+  // Actualizar estado de pago USDT con más detalles
+  async updateUsdtPaymentStatus(paymentId, status, transactionHash, senderAddress, amount) {
+    try {
+      console.log(`✏️ Actualizando estado de pago USDT ${paymentId} a ${status}`);
+      
+      const updateData = {
+        status: status,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (transactionHash) {
+        updateData.transaction_hash = transactionHash;
+      }
+      
+      if (senderAddress) {
+        updateData.sender_address = senderAddress;
+      }
+      
+      if (amount) {
+        updateData.confirmed_amount = amount;
+      }
+      
+      if (status === 'completed') {
+        updateData.confirmed_at = new Date().toISOString();
+      }
+      
+      const { data, error } = await supabase
+        .from('usdt_payments')
+        .update(updateData)
+        .eq('id', paymentId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando estado de pago USDT:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Pago USDT ${paymentId} actualizado a ${status}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateUsdtPaymentStatus:', error);
+      throw error;
+    }
+  },
+
+  // Crear transacción USDT no asignada
+  async createUnassignedUsdtTransaction(transactionData) {
+    try {
+      console.log(`📝 Creando transacción USDT no asignada: ${transactionData.transaction_hash}`);
+      
+      const { data, error } = await supabase
+        .from('unassigned_usdt_transactions')
+        .insert([{
+          transaction_hash: transactionData.transaction_hash,
+          sender_address: transactionData.sender_address,
+          amount: transactionData.amount,
+          timestamp: transactionData.timestamp,
+          raw_data: transactionData.raw_data,
+          status: 'unassigned',
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error creando transacción no asignada:', error);
+        
+        // Si ya existe, actualizar
+        if (error.code === '23505') { // Unique violation
+          console.log(`⚠️ Transacción ${transactionData.transaction_hash} ya existe, actualizando...`);
+          
+          const { data: existing } = await supabase
+            .from('unassigned_usdt_transactions')
+            .select('*')
+            .eq('transaction_hash', transactionData.transaction_hash)
+            .single();
+          
+          return existing;
+        }
+        throw error;
+      }
+      
+      console.log(`✅ Transacción no asignada creada: ${data.id}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createUnassignedUsdtTransaction:', error);
+      throw error;
+    }
+  },
+
+  // Obtener transacciones no asignadas
+  async getUnassignedUsdtTransactions() {
+    try {
+      console.log('🔍 Obteniendo transacciones USDT no asignadas...');
+      
+      const { data, error } = await supabase
+        .from('unassigned_usdt_transactions')
+        .select('*')
+        .eq('status', 'unassigned')
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo transacciones no asignadas:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} transacciones no asignadas encontradas`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getUnassignedUsdtTransactions:', error);
+      return [];
+    }
+  },
+
+  // Obtener transacción no asignada específica
+  async getUnassignedTransaction(transactionHash) {
+    try {
+      console.log(`🔍 Buscando transacción no asignada: ${transactionHash}`);
+      
+      const { data, error } = await supabase
+        .from('unassigned_usdt_transactions')
+        .select('*')
+        .eq('transaction_hash', transactionHash)
+        .eq('status', 'unassigned')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error obteniendo transacción no asignada:', error);
+        throw error;
+      }
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Transacción no asignada ${transactionHash} no encontrada`);
+        return null;
+      }
+      
+      console.log(`✅ Transacción no asignada encontrada`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getUnassignedTransaction:', error);
+      return null;
+    }
+  },
+
+  // Marcar transacción como asignada
+  async markTransactionAsAssigned(transactionHash, assignedBy) {
+    try {
+      console.log(`✅ Marcando transacción ${transactionHash} como asignada por ${assignedBy}`);
+      
+      const { data, error } = await supabase
+        .from('unassigned_usdt_transactions')
+        .update({
+          status: 'assigned',
+          assigned_to: assignedBy,
+          assigned_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('transaction_hash', transactionHash)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error marcando transacción como asignada:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Transacción ${transactionHash} marcada como asignada`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en markTransactionAsAssigned:', error);
+      throw error;
     }
   },
 
@@ -899,7 +1163,11 @@ const db = {
   // ========== PAGOS USDT ==========
   async createUsdtPayment(usdtData) {
     try {
-      console.log('💸 Creando pago USDT...');
+      console.log('💸 Creando pago USDT...', {
+        telegram_id: usdtData.telegram_id,
+        plan: usdtData.plan,
+        usdt_amount: usdtData.usdt_amount
+      });
       
       const { data, error } = await supabase
         .from('usdt_payments')
@@ -953,7 +1221,8 @@ const db = {
     }
   },
 
-  async updateUsdtPaymentStatus(address, status, transactionHash = null) {
+  // Función actualizada para compatibilidad
+  async updateUsdtPaymentStatus(address, status, transactionHash = null, sender = null) {
     try {
       console.log(`✏️ Actualizando pago USDT ${address} a ${status}`);
       
@@ -964,6 +1233,10 @@ const db = {
       
       if (transactionHash) {
         updateData.transaction_hash = transactionHash;
+      }
+      
+      if (sender) {
+        updateData.sender_address = sender;
       }
       
       if (status === 'completed') {
@@ -1863,9 +2136,23 @@ const db = {
         .select('count')
         .limit(1);
       
+      // Probar conexión a pagos USDT
+      const { data: usdtPayments, error: usdtError } = await supabase
+        .from('usdt_payments')
+        .select('count')
+        .limit(1);
+      
+      // Probar conexión a transacciones no asignadas
+      const { data: unassignedTx, error: unassignedError } = await supabase
+        .from('unassigned_usdt_transactions')
+        .select('count')
+        .limit(1);
+      
       return {
         users: usersError ? `Error: ${usersError.message}` : '✅ Conectado',
         payments: paymentsError ? `Error: ${paymentsError.message}` : '✅ Conectado',
+        usdt_payments: usdtError ? `Error: ${usdtError.message}` : '✅ Conectado',
+        unassigned_transactions: unassignedError ? `Error: ${unassignedError.message}` : '✅ Conectado',
         storage: await this.checkStorageAccess()
       };
     } catch (error) {
@@ -1873,6 +2160,8 @@ const db = {
       return {
         users: `Error: ${error.message}`,
         payments: 'No probado',
+        usdt_payments: 'No probado',
+        unassigned_transactions: 'No probado',
         storage: []
       };
     }

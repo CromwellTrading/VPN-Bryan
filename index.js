@@ -25,7 +25,21 @@ const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ?
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
     ['6373481979', '5376388604'];
 
-// Configuración de USDT
+// ==================== CONFIGURACIÓN USDT ====================
+const USDT_CONFIG = {
+    // Dirección fija USDT (BEP20)
+    WALLET_ADDRESS: '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2',
+    // API Key de BSCScan
+    BSCSCAN_API_KEY: 'WS9VPU5VY7M9B7S3HFBKUMDHQ6QK5ESG5D',
+    // Contrato USDT en BSC (BEP20)
+    USDT_CONTRACT_ADDRESS: '0x55d398326f99059ff775485246999027b3197955',
+    // Tiempo de verificación (5 minutos)
+    CHECK_INTERVAL: 5 * 60 * 1000,
+    // Mínimo de confirmaciones requeridas
+    MIN_CONFIRMATIONS: 3
+};
+
+// Precios USDT por plan
 const USDT_PRICES = {
     'basico': '1.6',
     'avanzado': '2.7',
@@ -105,20 +119,434 @@ function getPlanName(planType) {
   return plans[planType] || planType;
 }
 
-// Función para generar dirección USDT única
+// Función para generar dirección USDT fija
 function generateUniqueUsdtAddress() {
-  return '0x' + Array.from({length: 40}, () => 
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
+    return USDT_CONFIG.WALLET_ADDRESS;
 }
 
-// Función para generar monto USDT único
-function generateUniqueUsdtAmount() {
-  // Generar un monto entre 0.01 y 0.15 USDT
-  return (Math.random() * 0.14 + 0.01).toFixed(2);
+// Función para formatear fecha
+function formatearFecha(fecha) {
+    return new Date(fecha).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
 }
 
-// ==================== NUEVA FUNCIÓN: CREAR BUCKETS ====================
+// En la función crearMenuPrincipal, agregar botón de referidos
+function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
+    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
+    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
+    
+    // Crear teclado BASE para TODOS los usuarios
+    const keyboard = [
+        [
+            { 
+                text: '📋 VER PLANES', 
+                web_app: { url: plansUrl }
+            },
+            {
+                text: '👑 MI ESTADO',
+                callback_data: 'check_status'
+            }
+        ],
+        [
+            {
+                text: '💻 DESCARGAR WIREGUARD',
+                callback_data: 'download_wireguard'
+            },
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🤝 REFERIDOS',
+                callback_data: 'referral_info'
+            }
+        ]
+    ];
+
+    // Si es ADMIN, agregar botón de panel admin
+    if (esAdmin) {
+        keyboard.push([
+            { 
+                text: '🔧 PANEL ADMIN', 
+                web_app: { url: adminUrl }
+            }
+        ]);
+    }
+
+    return keyboard;
+}
+
+// ==================== FUNCIONES DE VERIFICACIÓN USDT ====================
+
+// Función para verificar transacciones USDT en BSCScan
+async function checkUsdtTransactions() {
+    console.log('🔍 Verificando transacciones USDT en BSCScan...');
+    
+    try {
+        const apiKey = USDT_CONFIG.BSCSCAN_API_KEY;
+        const walletAddress = USDT_CONFIG.WALLET_ADDRESS;
+        
+        // URL para obtener transacciones de tokens (USDT)
+        const apiUrl = `https://api.bscscan.com/api?module=account&action=tokentx&contractaddress=${USDT_CONFIG.USDT_CONTRACT_ADDRESS}&address=${walletAddress}&page=1&offset=100&sort=desc&apikey=${apiKey}`;
+        
+        console.log(`📡 Consultando BSCScan: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data.status === "1" && data.message === "OK") {
+            const transactions = data.result;
+            console.log(`📊 ${transactions.length} transacciones USDT encontradas`);
+            
+            // Procesar cada transacción
+            for (const tx of transactions) {
+                await processUsdtTransaction(tx);
+            }
+            
+            return { success: true, transactions: transactions.length };
+        } else {
+            console.error('❌ Error en respuesta de BSCScan:', data.message);
+            return { success: false, error: data.message };
+        }
+    } catch (error) {
+        console.error('❌ Error verificando transacciones USDT:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+// Función para procesar una transacción USDT
+async function processUsdtTransaction(tx) {
+    try {
+        // Verificar si es una transacción entrante (TO nuestra dirección)
+        const isIncoming = tx.to.toLowerCase() === USDT_CONFIG.WALLET_ADDRESS.toLowerCase();
+        
+        if (!isIncoming) {
+            return; // Solo procesar transacciones entrantes
+        }
+        
+        console.log(`💰 Transacción USDT detectada:`, {
+            hash: tx.hash,
+            from: tx.from,
+            value: tx.value,
+            timestamp: tx.timeStamp
+        });
+        
+        // Convertir valor de Wei a USDT (USDT tiene 18 decimales)
+        const amountUsdt = (parseInt(tx.value) / 10**18).toFixed(2);
+        const transactionHash = tx.hash;
+        const senderAddress = tx.from;
+        const timestamp = new Date(parseInt(tx.timeStamp) * 1000);
+        
+        // Verificar si ya procesamos esta transacción
+        const existingPayment = await db.getUsdtPaymentByHash(transactionHash);
+        if (existingPayment) {
+            console.log(`⏭️ Transacción ${transactionHash} ya procesada, saltando...`);
+            return;
+        }
+        
+        // Buscar pagos USDT pendientes por monto
+        const pendingPayments = await db.getPendingUsdtPayments();
+        const matchingPayment = pendingPayments.find(p => {
+            const expectedAmount = parseFloat(p.usdt_amount);
+            const receivedAmount = parseFloat(amountUsdt);
+            // Comparar con margen de 0.01 USDT
+            return Math.abs(expectedAmount - receivedAmount) <= 0.01;
+        });
+        
+        if (matchingPayment) {
+            console.log(`✅ Pago encontrado para transacción ${transactionHash}: Usuario ${matchingPayment.telegram_id}, Plan ${matchingPayment.plan}`);
+            
+            // Procesar el pago encontrado
+            await processMatchingUsdtPayment(matchingPayment, transactionHash, senderAddress, amountUsdt);
+        } else {
+            console.log(`⚠️ Transacción ${transactionHash} no coincide con ningún pago pendiente`);
+            console.log(`   Monto recibido: ${amountUsdt} USDT`);
+            
+            // Crear registro de transacción no asignada
+            await db.createUnassignedUsdtTransaction({
+                transaction_hash: transactionHash,
+                sender_address: senderAddress,
+                amount: amountUsdt,
+                timestamp: timestamp.toISOString(),
+                raw_data: JSON.stringify(tx)
+            });
+            
+            // Notificar a admins sobre transacción no asignada
+            notifyAdminsUnassignedTransaction(tx, amountUsdt);
+        }
+    } catch (error) {
+        console.error(`❌ Error procesando transacción ${tx.hash}:`, error.message);
+    }
+}
+
+// Función para procesar pago USDT coincidente
+async function processMatchingUsdtPayment(usdtPayment, transactionHash, senderAddress, amountUsdt) {
+    try {
+        // Actualizar pago USDT
+        await db.updateUsdtPaymentStatus(
+            usdtPayment.id,
+            'completed',
+            transactionHash,
+            senderAddress,
+            amountUsdt
+        );
+        
+        // Buscar pago regular correspondiente
+        const regularPayment = await db.getUserUsdtPayment(usdtPayment.telegram_id, usdtPayment.plan);
+        
+        if (regularPayment) {
+            // Aprobar pago regular
+            await db.approvePayment(regularPayment.id);
+            
+            // Enviar archivo automáticamente si está disponible
+            await sendUsdtPaymentConfiguration(
+                usdtPayment.telegram_id,
+                usdtPayment.plan,
+                transactionHash,
+                senderAddress,
+                amountUsdt
+            );
+            
+            // Marcar usuario como VIP
+            const user = await db.getUser(usdtPayment.telegram_id);
+            if (!user.vip) {
+                await db.makeUserVIP(usdtPayment.telegram_id, {
+                    plan: usdtPayment.plan,
+                    plan_price: amountUsdt,
+                    vip_since: new Date().toISOString(),
+                    payment_method: 'usdt'
+                });
+            }
+            
+            // Verificar referidos
+            if (user.referrer_id) {
+                await db.markReferralAsPaid(usdtPayment.telegram_id);
+            }
+            
+            console.log(`✅ Pago USDT procesado exitosamente para usuario ${usdtPayment.telegram_id}`);
+            
+            // Notificar a admins
+            notifyAdminsUsdtPaymentSuccess(usdtPayment, transactionHash, amountUsdt);
+        }
+    } catch (error) {
+        console.error(`❌ Error procesando pago USDT:`, error.message);
+    }
+}
+
+// Función para enviar configuración automáticamente
+async function sendUsdtPaymentConfiguration(telegramId, plan, transactionHash, senderAddress, amountUsdt) {
+    try {
+        const planFile = await db.getPlanFile(plan);
+        
+        if (planFile && planFile.public_url) {
+            const fileName = planFile.original_name || `config_${plan}.conf`;
+            const shortHash = transactionHash.substring(0, 20) + '...';
+            const shortSender = senderAddress.substring(0, 10) + '...' + senderAddress.substring(senderAddress.length - 8);
+            
+            await bot.telegram.sendDocument(
+                telegramId,
+                planFile.public_url,
+                {
+                    caption: `🎉 *¡Tu pago USDT ha sido confirmado automáticamente!*\n\n` +
+                            `📁 *Archivo:* ${fileName}\n` +
+                            `📋 *Plan:* ${getPlanName(plan)}\n` +
+                            `💰 *Monto:* ${amountUsdt} USDT\n` +
+                            `🏦 *Transacción:* \`${shortHash}\`\n` +
+                            `👤 *Remitente:* \`${shortSender}\`\n\n` +
+                            `*¡Tu configuración está lista!* 🚀\n\n` +
+                            `1. Descarga este archivo\n` +
+                            `2. Importa el archivo .conf en WireGuard\n` +
+                            `3. Activa la conexión\n` +
+                            `4. ¡Disfruta de baja latencia!\n\n` +
+                            `*Verificar en BSCScan:*\n` +
+                            `https://bscscan.com/tx/${transactionHash}\n\n` +
+                            `*Soporte:* @L0quen2`,
+                    parse_mode: 'Markdown'
+                }
+            );
+            
+            // Actualizar pago con configuración enviada
+            const payments = await db.getUserPayments(telegramId);
+            const payment = payments?.find(p => p.method === 'usdt' && p.status === 'approved');
+            
+            if (payment) {
+                await db.updatePayment(payment.id, {
+                    config_sent: true,
+                    config_sent_at: new Date().toISOString(),
+                    config_file: fileName,
+                    config_sent_by: 'auto-usdt-system'
+                });
+            }
+            
+            console.log(`✅ Configuración enviada automáticamente a ${telegramId}`);
+            return true;
+        } else {
+            // Notificar al usuario que el pago fue aprobado pero hay que enviar manualmente
+            await bot.telegram.sendMessage(
+                telegramId,
+                `🎉 *¡Tu pago USDT ha sido confirmado!*\n\n` +
+                `💰 *Monto:* ${amountUsdt} USDT\n` +
+                `🏦 *Transacción:* \`${transactionHash.substring(0, 20)}...\`\n` +
+                `👤 *Remitente:* \`${senderAddress.substring(0, 10)}...\`\n\n` +
+                `El administrador te enviará el archivo de configuración en breve.\n\n` +
+                `*Verificar en BSCScan:*\n` +
+                `https://bscscan.com/tx/${transactionHash}`,
+                { parse_mode: 'Markdown' }
+            );
+            return false;
+        }
+    } catch (error) {
+        console.error(`❌ Error enviando configuración USDT:`, error.message);
+        return false;
+    }
+}
+
+// Notificar a admins sobre pago USDT exitoso
+async function notifyAdminsUsdtPaymentSuccess(usdtPayment, transactionHash, amountUsdt) {
+    const user = await db.getUser(usdtPayment.telegram_id);
+    const username = user?.username ? `@${user.username}` : 'Sin usuario';
+    const firstName = user?.first_name || 'Usuario';
+    
+    const adminMessage = `✅ *PAGO USDT CONFIRMADO AUTOMÁTICAMENTE*\n\n` +
+        `👤 *Usuario:* ${firstName}\n` +
+        `📱 *Telegram:* ${username}\n` +
+        `🆔 *ID:* ${usdtPayment.telegram_id}\n` +
+        `📋 *Plan:* ${getPlanName(usdtPayment.plan)}\n` +
+        `💰 *Monto:* ${amountUsdt} USDT\n` +
+        `🏦 *Transacción:* \`${transactionHash}\`\n` +
+        `👤 *Remitente:* \`${usdtPayment.sender_address}\`\n` +
+        `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
+        `📁 *Configuración:* Enviada automáticamente ✅`;
+    
+    for (const adminId of ADMIN_IDS) {
+        try {
+            await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
+        } catch (adminError) {
+            console.log(`❌ No se pudo notificar al admin ${adminId}`);
+        }
+    }
+}
+
+// Notificar a admins sobre transacción no asignada
+async function notifyAdminsUnassignedTransaction(tx, amountUsdt) {
+    const adminMessage = `⚠️ *TRANSACCIÓN USDT NO ASIGNADA*\n\n` +
+        `💰 *Monto:* ${amountUsdt} USDT\n` +
+        `👤 *Remitente:* \`${tx.from}\`\n` +
+        `🏦 *Transacción:* \`${tx.hash}\`\n` +
+        `⏰ *Fecha:* ${new Date(parseInt(tx.timeStamp) * 1000).toLocaleString('es-ES')}\n\n` +
+        `Esta transacción no coincide con ningún pago pendiente.\n` +
+        `*Verificar en BSCScan:*\n` +
+        `https://bscscan.com/tx/${tx.hash}`;
+    
+    for (const adminId of ADMIN_IDS) {
+        try {
+            await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
+        } catch (adminError) {
+            console.log(`❌ No se pudo notificar al admin ${adminId}`);
+        }
+    }
+}
+
+// Verificar saldo de dirección USDT
+async function checkUsdtWalletBalance() {
+    try {
+        const apiKey = USDT_CONFIG.BSCSCAN_API_KEY;
+        const walletAddress = USDT_CONFIG.WALLET_ADDRESS;
+        const usdtContract = USDT_CONFIG.USDT_CONTRACT_ADDRESS;
+        
+        const apiUrl = `https://api.bscscan.com/api?module=account&action=tokenbalance&contractaddress=${usdtContract}&address=${walletAddress}&tag=latest&apikey=${apiKey}`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data.status === "1" && data.message === "OK") {
+            const balanceWei = data.result;
+            const balanceUsdt = (parseInt(balanceWei) / 10**18).toFixed(2);
+            return { success: true, balance: balanceUsdt };
+        } else {
+            return { success: false, error: data.message };
+        }
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Verificar detalles de una transacción específica
+async function verifyUsdtTransaction(transactionHash) {
+    try {
+        const apiKey = USDT_CONFIG.BSCSCAN_API_KEY;
+        const apiUrl = `https://api.bscscan.com/api?module=transaction&action=gettxreceiptstatus&txhash=${transactionHash}&apikey=${apiKey}`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data.status === "1") {
+            return {
+                success: true,
+                status: data.result.status === "1" ? "success" : "failed",
+                confirmations: "N/A"
+            };
+        } else {
+            return { success: false, error: data.message };
+        }
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Iniciar verificación periódica de pagos USDT
+function startUsdtPaymentVerification() {
+    console.log('🚀 Iniciando verificación automática de pagos USDT...');
+    
+    // Ejecutar inmediatamente al inicio
+    setTimeout(() => checkUsdtTransactions(), 10000);
+    
+    // Configurar intervalo periódico (5 minutos)
+    setInterval(() => {
+        checkUsdtTransactions();
+    }, USDT_CONFIG.CHECK_INTERVAL);
+    
+    console.log(`✅ Verificación USDT programada cada ${USDT_CONFIG.CHECK_INTERVAL / 60000} minutos`);
+}
+
+// Inicializar sistema USDT
+async function initializeUsdtSystem() {
+    console.log('💸 Inicializando sistema USDT...');
+    
+    // Verificar configuración
+    if (!USDT_CONFIG.BSCSCAN_API_KEY) {
+        console.log('⚠️ API Key de BSCScan no configurada. La verificación automática no funcionará.');
+    }
+    
+    if (!USDT_CONFIG.WALLET_ADDRESS) {
+        console.log('⚠️ Dirección USDT no configurada.');
+    }
+    
+    // Verificar conexión con BSCScan
+    try {
+        const balance = await checkUsdtWalletBalance();
+        if (balance.success) {
+            console.log(`💰 Saldo USDT en wallet: ${balance.balance} USDT`);
+        } else {
+            console.log(`⚠️ No se pudo verificar saldo USDT: ${balance.error}`);
+        }
+    } catch (error) {
+        console.log('⚠️ Error inicializando sistema USDT:', error.message);
+    }
+    
+    // Iniciar verificación periódica
+    startUsdtPaymentVerification();
+    
+    console.log('✅ Sistema USDT inicializado');
+}
+
+// ==================== CREACIÓN DE BUCKETS ====================
 async function createStorageBucket(bucketName, isPublic = true) {
   try {
     console.log(`📦 Intentando crear bucket: ${bucketName}`);
@@ -161,6 +589,7 @@ async function createStorageBucket(bucketName, isPublic = true) {
     return { success: false, error: error.message };
   }
 }
+
 // Función para verificar y crear buckets automáticamente
 async function verifyStorageBuckets() {
   try {
@@ -203,7 +632,7 @@ async function verifyStorageBuckets() {
   } catch (error) {
     console.error('❌ Error en verifyStorageBuckets:', error.message);
   }
-        }
+}
 
 // Método alternativo usando API REST directa
 async function createBucketViaAPI(bucketName, isPublic = true) {
@@ -298,64 +727,6 @@ function calcularDiasRestantes(user) {
     const diasRestantes = Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
     
     return diasRestantes;
-}
-
-// Función para formatear fecha
-function formatearFecha(fecha) {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
-
-// En la función crearMenuPrincipal, agregar botón de referidos
-function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
-    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
-    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
-    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
-    
-    // Crear teclado BASE para TODOS los usuarios
-    const keyboard = [
-        [
-            { 
-                text: '📋 VER PLANES', 
-                web_app: { url: plansUrl }
-            },
-            {
-                text: '👑 MI ESTADO',
-                callback_data: 'check_status'
-            }
-        ],
-        [
-            {
-                text: '💻 DESCARGAR WIREGUARD',
-                callback_data: 'download_wireguard'
-            },
-            {
-                text: '🆘 SOPORTE',
-                url: 'https://t.me/L0quen2'
-            }
-        ],
-        [
-            {
-                text: '🤝 REFERIDOS',
-                callback_data: 'referral_info'
-            }
-        ]
-    ];
-
-    // Si es ADMIN, agregar botón de panel admin
-    if (esAdmin) {
-        keyboard.push([
-            { 
-                text: '🔧 PANEL ADMIN', 
-                web_app: { url: adminUrl }
-            }
-        ]);
-    }
-
-    return keyboard;
 }
 
 // ==================== RUTAS DE LA API ====================
@@ -494,11 +865,11 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       console.log('❌ Error al notificar a los admins:', adminError.message);
     }
 
-    // Si es pago USDT, notificar al usuario con información específica
+    // Si es pago USDT, usar la nueva lógica
     if (method === 'usdt') {
       try {
-        // Generar información única para USDT
-        const usdtAddress = generateUniqueUsdtAddress();
+        // Usar dirección fija
+        const usdtAddress = USDT_CONFIG.WALLET_ADDRESS;
         const usdtAmount = USDT_PRICES[plan] || '1.6';
         
         await bot.telegram.sendMessage(
@@ -507,24 +878,34 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
           `📋 *Plan:* ${getPlanName(plan)}\n` +
           `💰 *Monto exacto:* ${usdtAmount} USDT\n` +
           `🏦 *Dirección:* \`${usdtAddress}\`\n` +
-          `🌐 *Red:* BEP20 (Binance Smart Chain)\n\n` +
+          `🌐 *Red:* BEP20 (Binance Smart Chain)\n` +
+          `🔍 *Verificar en BSCScan:* https://bscscan.com/address/${usdtAddress}\n\n` +
           `*Instrucciones importantes:*\n` +
           `1. Envía *exactamente* ${usdtAmount} USDT\n` +
           `2. Usa *solo* la red BEP20\n` +
-          `3. El sistema detectará tu pago automáticamente\n` +
-          `4. Puede tardar hasta 15 minutos\n\n` +
-          `Una vez detectado el pago, recibirás el archivo de configuración automáticamente.`,
+          `3. No envíes desde exchanges (Binance, etc.)\n` +
+          `4. Usa una wallet personal (Trust Wallet, MetaMask)\n` +
+          `5. El sistema detectará automáticamente en 5-15 minutos\n` +
+          `6. Recibirás la configuración automáticamente\n\n` +
+          `*Verificación automática habilitada* ✅\n` +
+          `No necesitas enviar comprobante.`,
           { parse_mode: 'Markdown' }
         );
         
         // Guardar pago USDT en base de datos
-        await db.createUsdtPayment({
+        const usdtPayment = await db.createUsdtPayment({
           telegram_id: telegramId,
           plan: plan,
           usdt_amount: usdtAmount,
           usdt_address: usdtAddress,
           status: 'pending',
           created_at: new Date().toISOString()
+        });
+        
+        // Actualizar pago regular con referencia al pago USDT
+        await db.updatePayment(payment.id, {
+          usdt_payment_id: usdtPayment.id,
+          notes: 'Pago USDT pendiente - Verificación automática'
         });
         
       } catch (usdtError) {
@@ -535,7 +916,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     res.json({ 
       success: true, 
       message: method === 'usdt' ? 
-        'Información de pago USDT enviada. Verifica el chat del bot.' : 
+        'Información de pago USDT enviada. El sistema detectará automáticamente tu pago en 5-15 minutos.' : 
         'Pago recibido. Te notificaremos cuando sea aprobado.',
       payment 
     });
@@ -679,105 +1060,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
   }
 });
 
-// 7b. Aprobar pago USDT manualmente
-app.post('/api/payments/:id/approve-usdt', async (req, res) => {
-  try {
-    const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-
-    const payment = await db.approvePayment(req.params.id);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-
-    // Verificar si hay archivo de plan disponible para enviar automáticamente
-    try {
-      const planFile = await db.getPlanFile(payment.plan);
-      if (planFile && planFile.public_url) {
-        // Enviar archivo automáticamente
-        const fileName = planFile.original_name || `config_${payment.plan}.conf`;
-        
-        await bot.telegram.sendDocument(
-          payment.telegram_id,
-          planFile.public_url,
-          {
-            caption: `🎉 *¡Tu pago USDT ha sido aprobado!*\n\n` +
-                    `📁 *Archivo:* ${fileName}\n` +
-                    `📋 *Plan:* ${getPlanName(payment.plan)}\n` +
-                    `💰 *Método:* USDT (BEP20)\n\n` +
-                    `*Instrucciones:*\n` +
-                    `1. Descarga este archivo\n` +
-                    `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                    `3. Activa la conexión\n` +
-                    `4. ¡Disfruta de baja latencia! 🚀\n\n` +
-                    `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
-            parse_mode: 'Markdown'
-          }
-        );
-
-        // Actualizar pago con configuración enviada
-        await db.updatePayment(payment.id, {
-          config_sent: true,
-          config_sent_at: new Date().toISOString(),
-          config_file: fileName,
-          config_sent_by: adminId
-        });
-
-        console.log(`✅ Archivo de plan enviado automáticamente a ${payment.telegram_id}`);
-      } else {
-        // Notificar al usuario que el pago fue aprobado pero hay que enviar manualmente
-        await bot.telegram.sendMessage(
-          payment.telegram_id,
-          '🎉 *¡Tu pago USDT ha sido aprobado!*\n\n' +
-          'El administrador te enviará el archivo de configuración en breve.',
-          { parse_mode: 'Markdown' }
-        );
-      }
-    } catch (fileError) {
-      console.log('⚠️ Error enviando archivo:', fileError.message);
-      await bot.telegram.sendMessage(
-        payment.telegram_id,
-        '🎉 *¡Tu pago USDT ha sido aprobado!*\n\n' +
-        'El administrador te enviará el archivo de configuración en breve.',
-        { parse_mode: 'Markdown' }
-      );
-    }
-
-    // Marcar usuario como VIP
-    const user = await db.getUser(payment.telegram_id);
-    if (!user.vip) {
-      await db.makeUserVIP(payment.telegram_id, {
-        plan: payment.plan,
-        plan_price: payment.price,
-        vip_since: new Date().toISOString()
-      });
-    }
-
-    // Verificar si el usuario fue referido y actualizar referidos pagados
-    if (user.referrer_id) {
-      try {
-        await db.markReferralAsPaid(payment.telegram_id);
-        console.log(`✅ Referido ${payment.telegram_id} marcado como pagado`);
-      } catch (refError) {
-        console.log('⚠️ Error marcando referido como pagado:', refError.message);
-      }
-    }
-
-    res.json({ 
-      success: true, 
-      message: 'Pago USDT aprobado y archivo enviado automáticamente',
-      payment 
-    });
-  } catch (error) {
-    console.error('❌ Error aprobando pago USDT:', error);
-    res.status(500).json({ error: 'Error aprobando pago USDT' });
-  }
-});
-
 // 8. Rechazar pago
 app.post('/api/payments/:id/reject', async (req, res) => {
   try {
@@ -820,6 +1102,9 @@ app.get('/api/stats', async (req, res) => {
     const broadcasts = await db.getBroadcasts();
     const completedBroadcasts = broadcasts.filter(b => b.status === 'completed').length;
     
+    // Verificar saldo USDT
+    const usdtBalance = await checkUsdtWalletBalance();
+    
     // Agregar estadísticas de broadcasts a las estadísticas generales
     stats.broadcasts = {
       total: broadcasts.length,
@@ -827,6 +1112,14 @@ app.get('/api/stats', async (req, res) => {
       pending: broadcasts.filter(b => b.status === 'pending').length,
       sending: broadcasts.filter(b => b.status === 'sending').length,
       failed: broadcasts.filter(b => b.status === 'failed').length
+    };
+    
+    // Agregar información USDT
+    stats.usdt = {
+      wallet_address: USDT_CONFIG.WALLET_ADDRESS,
+      balance: usdtBalance.success ? `${usdtBalance.balance} USDT` : 'Error obteniendo saldo',
+      verification_enabled: !!USDT_CONFIG.BSCSCAN_API_KEY,
+      check_interval: `${USDT_CONFIG.CHECK_INTERVAL / 60000} minutos`
     };
     
     res.json(stats);
@@ -1302,7 +1595,13 @@ app.get('/api/health', (req, res) => {
     port: PORT,
     bot_token: process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado',
     supabase_url: process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado',
-    supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'
+    supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado',
+    usdt_system: {
+      enabled: true,
+      wallet_address: USDT_CONFIG.WALLET_ADDRESS,
+      bscscan_api_key: USDT_CONFIG.BSCSCAN_API_KEY ? '✅ Configurado' : '❌ No configurado',
+      verification_interval: `${USDT_CONFIG.CHECK_INTERVAL / 60000} minutos`
+    }
   });
 });
 
@@ -1323,7 +1622,7 @@ app.get('/api/image/:filename', (req, res) => {
   }
 });
 
-// 24b. Obtener estado de almacenamiento
+// 25. Obtener estado de almacenamiento
 app.get('/api/storage-status', async (req, res) => {
   try {
     const buckets = [];
@@ -1376,9 +1675,7 @@ app.get('/api/storage-status', async (req, res) => {
   }
 });
 
-// ==================== API DE BROADCASTS (para admin web) ====================
-
-// 25. Crear broadcast
+// 26. Crear broadcast
 app.post('/api/broadcast/send', async (req, res) => {
   try {
     const { message, target, adminId } = req.body;
@@ -1440,111 +1737,6 @@ app.post('/api/broadcast/send', async (req, res) => {
   } catch (error) {
     console.error('❌ Error creando broadcast:', error);
     res.status(500).json({ error: 'Error creando broadcast: ' + error.message });
-  }
-});
-
-// 26. Obtener todos los broadcasts
-app.get('/api/broadcasts', async (req, res) => {
-  try {
-    const broadcasts = await db.getBroadcasts();
-    res.json(broadcasts);
-  } catch (error) {
-    console.error('❌ Error obteniendo broadcasts:', error);
-    res.status(500).json({ error: 'Error obteniendo broadcasts' });
-  }
-});
-
-// 27. Obtener estado de un broadcast
-app.get('/api/broadcast/status/:id', async (req, res) => {
-  try {
-    const broadcastId = req.params.id;
-    
-    // Validar que broadcastId sea un número
-    if (!broadcastId || isNaN(parseInt(broadcastId))) {
-      console.error(`❌ ID de broadcast inválido: ${broadcastId}`);
-      return res.status(400).json({ error: 'ID de broadcast inválido' });
-    }
-    
-    const broadcast = await db.getBroadcast(broadcastId);
-    
-    if (!broadcast) {
-      console.log(`📭 Broadcast ${broadcastId} no encontrado`);
-      return res.status(404).json({ error: 'Broadcast no encontrado' });
-    }
-    
-    res.json(broadcast);
-  } catch (error) {
-    console.error('❌ Error obteniendo estado de broadcast:', error);
-    res.status(500).json({ error: 'Error obteniendo estado de broadcast' });
-  }
-});
-
-// 28. Reintentar broadcast fallido
-app.post('/api/broadcast/retry/:id', async (req, res) => {
-  try {
-    const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    const broadcast = await db.retryFailedBroadcast(req.params.id);
-    
-    if (!broadcast) {
-      return res.status(404).json({ error: 'Broadcast no encontrado' });
-    }
-    
-    // Obtener usuarios para el broadcast
-    const users = await db.getUsersForBroadcast(broadcast.target_users);
-    
-    // Iniciar el envío en segundo plano
-    setTimeout(() => {
-      sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId);
-    }, 100);
-    
-    res.json({ 
-      success: true, 
-      message: 'Broadcast programado para reintento',
-      broadcast
-    });
-    
-  } catch (error) {
-    console.error('❌ Error reintentando broadcast:', error);
-    res.status(500).json({ error: 'Error reintentando broadcast: ' + error.message });
-  }
-});
-
-// 29. Obtener usuarios activos
-app.get('/api/users/active', async (req, res) => {
-  try {
-    const users = await db.getActiveUsers(30);
-    res.json(users);
-  } catch (error) {
-    console.error('❌ Error obteniendo usuarios activos:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios activos' });
-  }
-});
-
-// 30. Obtener un broadcast específico
-app.get('/api/broadcast/:id', async (req, res) => {
-  try {
-    const broadcastId = req.params.id;
-    
-    // Validar que broadcastId sea un número
-    if (!broadcastId || isNaN(parseInt(broadcastId))) {
-      return res.status(400).json({ error: 'ID de broadcast inválido' });
-    }
-    
-    const broadcast = await db.getBroadcast(broadcastId);
-    
-    if (!broadcast) {
-      return res.status(404).json({ error: 'Broadcast no encontrado' });
-    }
-    
-    res.json(broadcast);
-  } catch (error) {
-    console.error('❌ Error obteniendo broadcast:', error);
-    res.status(500).json({ error: 'Error obteniendo broadcast' });
   }
 });
 
@@ -1642,9 +1834,112 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   }
 }
 
-// ==================== SISTEMA DE REFERIDOS ====================
+// 27. Obtener todos los broadcasts
+app.get('/api/broadcasts', async (req, res) => {
+  try {
+    const broadcasts = await db.getBroadcasts();
+    res.json(broadcasts);
+  } catch (error) {
+    console.error('❌ Error obteniendo broadcasts:', error);
+    res.status(500).json({ error: 'Error obteniendo broadcasts' });
+  }
+});
 
-// 31. Obtener estadísticas generales de referidos
+// 28. Obtener estado de un broadcast
+app.get('/api/broadcast/status/:id', async (req, res) => {
+  try {
+    const broadcastId = req.params.id;
+    
+    // Validar que broadcastId sea un número
+    if (!broadcastId || isNaN(parseInt(broadcastId))) {
+      console.error(`❌ ID de broadcast inválido: ${broadcastId}`);
+      return res.status(400).json({ error: 'ID de broadcast inválido' });
+    }
+    
+    const broadcast = await db.getBroadcast(broadcastId);
+    
+    if (!broadcast) {
+      console.log(`📭 Broadcast ${broadcastId} no encontrado`);
+      return res.status(404).json({ error: 'Broadcast no encontrado' });
+    }
+    
+    res.json(broadcast);
+  } catch (error) {
+    console.error('❌ Error obteniendo estado de broadcast:', error);
+    res.status(500).json({ error: 'Error obteniendo estado de broadcast' });
+  }
+});
+
+// 29. Reintentar broadcast fallido
+app.post('/api/broadcast/retry/:id', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const broadcast = await db.retryFailedBroadcast(req.params.id);
+    
+    if (!broadcast) {
+      return res.status(404).json({ error: 'Broadcast no encontrado' });
+    }
+    
+    // Obtener usuarios para el broadcast
+    const users = await db.getUsersForBroadcast(broadcast.target_users);
+    
+    // Iniciar el envío en segundo plano
+    setTimeout(() => {
+      sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId);
+    }, 100);
+    
+    res.json({ 
+      success: true, 
+      message: 'Broadcast programado para reintento',
+      broadcast
+    });
+    
+  } catch (error) {
+    console.error('❌ Error reintentando broadcast:', error);
+    res.status(500).json({ error: 'Error reintentando broadcast: ' + error.message });
+  }
+});
+
+// 30. Obtener usuarios activos
+app.get('/api/users/active', async (req, res) => {
+  try {
+    const users = await db.getActiveUsers(30);
+    res.json(users);
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios activos:', error);
+    res.status(500).json({ error: 'Error obteniendo usuarios activos' });
+  }
+});
+
+// 31. Obtener un broadcast específico
+app.get('/api/broadcast/:id', async (req, res) => {
+  try {
+    const broadcastId = req.params.id;
+    
+    // Validar que broadcastId sea un número
+    if (!broadcastId || isNaN(parseInt(broadcastId))) {
+      return res.status(400).json({ error: 'ID de broadcast inválido' });
+    }
+    
+    const broadcast = await db.getBroadcast(broadcastId);
+    
+    if (!broadcast) {
+      return res.status(404).json({ error: 'Broadcast no encontrado' });
+    }
+    
+    res.json(broadcast);
+  } catch (error) {
+    console.error('❌ Error obteniendo broadcast:', error);
+    res.status(500).json({ error: 'Error obteniendo broadcast' });
+  }
+});
+
+// 32. Obtener estadísticas generales de referidos
 app.get('/api/referrals/stats', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
@@ -1655,7 +1950,7 @@ app.get('/api/referrals/stats', async (req, res) => {
   }
 });
 
-// 32. Obtener top referidores
+// 33. Obtener top referidores
 app.get('/api/referrals/top', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
@@ -1678,7 +1973,7 @@ app.get('/api/referrals/top', async (req, res) => {
   }
 });
 
-// 33. Obtener lista de referidos con información
+// 34. Obtener lista de referidos con información
 app.get('/api/referrals/list', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
@@ -1705,7 +2000,7 @@ app.get('/api/referrals/list', async (req, res) => {
   }
 });
 
-// 34. Obtener estadísticas de referidos por usuario
+// 35. Obtener estadísticas de referidos por usuario
 app.get('/api/referrals/user/:telegramId', async (req, res) => {
   try {
     const stats = await db.getReferralStats(req.params.telegramId);
@@ -1716,276 +2011,163 @@ app.get('/api/referrals/user/:telegramId', async (req, res) => {
   }
 });
 
-// ==================== PAGOS USDT ====================
+// 36. RUTAS API PARA USDT
 
-// 35. Crear pago USDT
-app.post('/api/usdt-payment', async (req, res) => {
+// Verificar estado de wallet USDT
+app.get('/api/usdt/wallet-status', async (req, res) => {
   try {
-    const { telegramId, plan, usdtAmount, usdtAddress, method } = req.body;
+    const balance = await checkUsdtWalletBalance();
+    const lastCheck = new Date().toISOString();
     
-    if (!telegramId || !plan || !usdtAmount) {
-      return res.status(400).json({ error: 'Datos incompletos' });
+    res.json({
+      success: true,
+      wallet_address: USDT_CONFIG.WALLET_ADDRESS,
+      network: 'BEP20 (Binance Smart Chain)',
+      usdt_contract: USDT_CONFIG.USDT_CONTRACT_ADDRESS,
+      balance: balance.success ? `${balance.balance} USDT` : 'Error obteniendo saldo',
+      bscscan_url: `https://bscscan.com/address/${USDT_CONFIG.WALLET_ADDRESS}`,
+      last_check: lastCheck,
+      check_interval: `${USDT_CONFIG.CHECK_INTERVAL / 60000} minutos`
+    });
+  } catch (error) {
+    console.error('❌ Error verificando estado de wallet:', error);
+    res.status(500).json({ error: 'Error verificando estado de wallet' });
+  }
+});
+
+// Verificar transacción específica
+app.get('/api/usdt/verify-transaction/:hash', async (req, res) => {
+  try {
+    const verification = await verifyUsdtTransaction(req.params.hash);
+    res.json(verification);
+  } catch (error) {
+    console.error('❌ Error verificando transacción:', error);
+    res.status(500).json({ error: 'Error verificando transacción' });
+  }
+});
+
+// Forzar verificación de transacciones (para admins)
+app.post('/api/usdt/force-check', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
     }
     
-    // Obtener información del usuario
+    const result = await checkUsdtTransactions();
+    
+    res.json({
+      success: true,
+      message: 'Verificación forzada completada',
+      result: result
+    });
+  } catch (error) {
+    console.error('❌ Error en verificación forzada:', error);
+    res.status(500).json({ error: 'Error en verificación forzada' });
+  }
+});
+
+// Obtener transacciones no asignadas
+app.get('/api/usdt/unassigned-transactions', async (req, res) => {
+  try {
+    const transactions = await db.getUnassignedUsdtTransactions();
+    res.json(transactions);
+  } catch (error) {
+    console.error('❌ Error obteniendo transacciones no asignadas:', error);
+    res.status(500).json({ error: 'Error obteniendo transacciones no asignadas' });
+  }
+});
+
+// Asignar transacción manualmente (para admins)
+app.post('/api/usdt/assign-transaction', async (req, res) => {
+  try {
+    const { adminId, transactionHash, telegramId, plan } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    // Obtener transacción no asignada
+    const unassignedTx = await db.getUnassignedTransaction(transactionHash);
+    
+    if (!unassignedTx) {
+      return res.status(404).json({ error: 'Transacción no encontrada' });
+    }
+    
+    // Verificar usuario
     const user = await db.getUser(telegramId);
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     
-    // Generar dirección única si no se proporciona
-    const uniqueAddress = usdtAddress || generateUniqueUsdtAddress();
-    
-    // Guardar pago USDT en base de datos
+    // Crear pago USDT
+    const usdtAmount = parseFloat(unassignedTx.amount);
     const usdtPayment = await db.createUsdtPayment({
       telegram_id: telegramId,
       plan: plan,
-      usdt_amount: usdtAmount,
-      usdt_address: uniqueAddress,
-      status: 'pending',
-      created_at: new Date().toISOString()
+      usdt_amount: usdtAmount.toFixed(2),
+      usdt_address: USDT_CONFIG.WALLET_ADDRESS,
+      status: 'completed',
+      transaction_hash: transactionHash,
+      sender_address: unassignedTx.sender_address,
+      created_at: unassignedTx.timestamp
     });
     
-    // También crear un pago regular para seguimiento
+    // Crear pago regular
     const payment = await db.createPayment({
       telegram_id: telegramId,
       plan: plan,
-      price: parseFloat(usdtAmount),
+      price: usdtAmount,
       method: 'usdt',
       screenshot_url: '',
-      notes: 'Pago USDT pendiente',
-      status: 'pending',
-      created_at: new Date().toISOString()
+      notes: `Pago USDT asignado manualmente desde transacción ${transactionHash}`,
+      status: 'approved',
+      created_at: unassignedTx.timestamp
     });
     
-    // Notificar a admins
-    try {
-      const adminMessage = `💸 *NUEVO PAGO USDT SOLICITADO*\n\n` +
-        `👤 *Usuario:* ${user.first_name || 'Usuario'}\n` +
-        `📱 *Telegram:* ${user.username ? `@${user.username}` : 'Sin usuario'}\n` +
-        `🆔 *ID:* ${telegramId}\n` +
-        `📋 *Plan:* ${getPlanName(plan)}\n` +
-        `💰 *Monto:* ${usdtAmount} USDT\n` +
-        `🏦 *Dirección:* \`${uniqueAddress}\`\n` +
-        `🌐 *Red:* BEP20\n` +
-        `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
-        `📝 *Estado:* ⏳ Pendiente`;
-      
-      for (const adminId of ADMIN_IDS) {
-        try {
-          await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
-        } catch (adminError) {
-          console.log(`❌ No se pudo notificar al admin ${adminId}`);
-        }
-      }
-    } catch (adminError) {
-      console.log('❌ Error al notificar a los admins:', adminError.message);
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Pago USDT creado',
-      usdtPayment,
-      payment,
-      usdtAddress: uniqueAddress
-    });
-  } catch (error) {
-    console.error('❌ Error creando pago USDT:', error);
-    res.status(500).json({ error: 'Error creando pago USDT: ' + error.message });
-  }
-});
-
-// 36. Webhook para verificar pagos USDT (esto sería llamado por un servicio externo)
-app.post('/api/usdt-webhook', async (req, res) => {
-  try {
-    const { address, amount, transactionHash } = req.body;
-    
-    if (!address || !amount || !transactionHash) {
-      return res.status(400).json({ error: 'Datos incompletos' });
-    }
-    
-    // Buscar pago USDT por dirección
-    const usdtPayment = await db.getUsdtPaymentByAddress(address);
-    
-    if (!usdtPayment) {
-      return res.status(404).json({ error: 'Pago USDT no encontrado' });
-    }
-    
-    if (usdtPayment.status !== 'pending') {
-      return res.status(400).json({ error: 'Pago ya procesado' });
-    }
-    
-    // Verificar que el monto sea correcto
-    const expectedAmount = parseFloat(usdtPayment.usdt_amount);
-    const receivedAmount = parseFloat(amount);
-    
-    if (Math.abs(receivedAmount - expectedAmount) > 0.001) {
-      // Monto incorrecto
-      await db.updateUsdtPaymentStatus(address, 'failed', transactionHash);
-      
-      // Notificar al usuario
-      try {
-        await bot.telegram.sendMessage(
-          usdtPayment.telegram_id,
-          `❌ *PAGO USDT RECHAZADO*\n\n` +
-          `Enviaste ${receivedAmount} USDT, pero el monto exacto es ${expectedAmount} USDT.\n` +
-          `Por favor, contacta con soporte para más información.`,
-          { parse_mode: 'Markdown' }
-        );
-      } catch (botError) {
-        console.log('❌ No se pudo notificar al usuario:', botError.message);
-      }
-      
-      return res.json({ success: false, error: 'Monto incorrecto' });
-    }
-    
-    // Actualizar estado del pago USDT
-    await db.updateUsdtPaymentStatus(address, 'completed', transactionHash);
-    
-    // Buscar pago regular correspondiente
-    const payments = await db.getUserPayments(usdtPayment.telegram_id);
-    const regularPayment = payments?.find(p => 
-      p.method === 'usdt' && 
-      p.status === 'pending' &&
-      Math.abs(parseFloat(p.price) - expectedAmount) < 0.001
+    // Enviar configuración
+    const configSent = await sendUsdtPaymentConfiguration(
+      telegramId,
+      plan,
+      transactionHash,
+      unassignedTx.sender_address,
+      usdtAmount.toFixed(2)
     );
     
-    if (regularPayment) {
-      // Aprobar pago regular
-      await db.approvePayment(regularPayment.id);
-      
-      // Verificar si hay archivo de plan disponible para enviar automáticamente
-      try {
-        const planFile = await db.getPlanFile(usdtPayment.plan);
-        if (planFile && planFile.public_url) {
-          // Enviar archivo automáticamente
-          const fileName = planFile.original_name || `config_${usdtPayment.plan}.conf`;
-          
-          await bot.telegram.sendDocument(
-            usdtPayment.telegram_id,
-            planFile.public_url,
-            {
-              caption: `🎉 *¡Tu pago USDT ha sido confirmado!*\n\n` +
-                      `📁 *Archivo:* ${fileName}\n` +
-                      `📋 *Plan:* ${getPlanName(usdtPayment.plan)}\n` +
-                      `💰 *Método:* USDT (BEP20)\n` +
-                      `🏦 *Transacción:* \`${transactionHash.substring(0, 20)}...\`\n\n` +
-                      `*Instrucciones:*\n` +
-                      `1. Descarga este archivo\n` +
-                      `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                      `3. Activa la conexión\n` +
-                      `4. ¡Disfruta de baja latencia! 🚀\n\n` +
-                      `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
-              parse_mode: 'Markdown'
-            }
-          );
-
-          // Actualizar pago con configuración enviada
-          await db.updatePayment(regularPayment.id, {
-            config_sent: true,
-            config_sent_at: new Date().toISOString(),
-            config_file: fileName,
-            config_sent_by: 'auto-usdt-system'
-          });
-
-          console.log(`✅ Archivo de plan enviado automáticamente a ${usdtPayment.telegram_id} via USDT`);
-        } else {
-          // Notificar al usuario que el pago fue aprobado pero hay que enviar manualmente
-          await bot.telegram.sendMessage(
-            usdtPayment.telegram_id,
-            '🎉 *¡Tu pago USDT ha sido confirmado!*\n\n' +
-            'El administrador te enviará el archivo de configuración en breve.',
-            { parse_mode: 'Markdown' }
-          );
-        }
-      } catch (fileError) {
-        console.log('⚠️ Error enviando archivo:', fileError.message);
-        await bot.telegram.sendMessage(
-          usdtPayment.telegram_id,
-          '🎉 *¡Tu pago USDT ha sido confirmado!*\n\n' +
-          'El administrador te enviará el archivo de configuración en breve.',
-          { parse_mode: 'Markdown' }
-        );
-      }
-
-      // Marcar usuario como VIP
-      const user = await db.getUser(usdtPayment.telegram_id);
-      if (!user.vip) {
-        await db.makeUserVIP(usdtPayment.telegram_id, {
-          plan: usdtPayment.plan,
-          plan_price: expectedAmount,
-          vip_since: new Date().toISOString()
-        });
-      }
-
-      // Verificar si el usuario fue referido y actualizar referidos pagados
-      if (user.referrer_id) {
-        try {
-          await db.markReferralAsPaid(usdtPayment.telegram_id);
-          console.log(`✅ Referido ${usdtPayment.telegram_id} marcado como pagado`);
-        } catch (refError) {
-          console.log('⚠️ Error marcando referido como pagado:', refError.message);
-        }
-      }
+    // Marcar usuario como VIP
+    if (!user.vip) {
+      await db.makeUserVIP(telegramId, {
+        plan: plan,
+        plan_price: usdtAmount,
+        vip_since: new Date().toISOString(),
+        payment_method: 'usdt'
+      });
     }
     
-    res.json({ 
-      success: true, 
-      message: 'Pago USDT procesado automáticamente',
-      usdtPayment: {
-        ...usdtPayment,
-        status: 'completed'
-      }
+    // Marcar transacción como asignada
+    await db.markTransactionAsAssigned(transactionHash, adminId);
+    
+    // Verificar referidos
+    if (user.referrer_id) {
+      await db.markReferralAsPaid(telegramId);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Transacción asignada exitosamente',
+      payment: payment,
+      usdtPayment: usdtPayment,
+      config_sent: configSent
     });
+    
   } catch (error) {
-    console.error('❌ Error procesando webhook USDT:', error);
-    res.status(500).json({ error: 'Error procesando webhook USDT: ' + error.message });
+    console.error('❌ Error asignando transacción:', error);
+    res.status(500).json({ error: 'Error asignando transacción: ' + error.message });
   }
 });
 
-// 37. Obtener pagos USDT pendientes
-app.get('/api/usdt-payments/pending', async (req, res) => {
-  try {
-    const payments = await db.getPendingUsdtPayments();
-    
-    const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
-      const user = await db.getUser(payment.telegram_id);
-      return {
-        ...payment,
-        user: user || null
-      };
-    }));
-    
-    res.json(paymentsWithUsers);
-  } catch (error) {
-    console.error('❌ Error obteniendo pagos USDT pendientes:', error);
-    res.status(500).json({ error: 'Error obteniendo pagos USDT pendientes' });
-  }
-});
-
-// 38. Obtener pagos USDT completados
-app.get('/api/usdt-payments/completed', async (req, res) => {
-  try {
-    const payments = await db.getCompletedUsdtPayments();
-    
-    const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
-      const user = await db.getUser(payment.telegram_id);
-      return {
-        ...payment,
-        user: user || null
-      };
-    }));
-    
-    res.json(paymentsWithUsers);
-  } catch (error) {
-    console.error('❌ Error obteniendo pagos USDT completados:', error);
-    res.status(500).json({ error: 'Error obteniendo pagos USDT completados' });
-  }
-});
-
-// ==================== ARCHIVOS DE PLANES ====================
-
-// 39. Subir archivo de plan
+// 37. Subir archivo de plan
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
@@ -2055,7 +2237,7 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   }
 });
   
-// 40. Obtener todos los archivos de planes
+// 38. Obtener todos los archivos de planes
 app.get('/api/plan-files', async (req, res) => {
   try {
     const planFiles = await db.getAllPlanFiles();
@@ -2066,7 +2248,7 @@ app.get('/api/plan-files', async (req, res) => {
   }
 });
 
-// 41. Obtener archivo de plan específico
+// 39. Obtener archivo de plan específico
 app.get('/api/plan-files/:plan', async (req, res) => {
   try {
     const planFile = await db.getPlanFile(req.params.plan);
@@ -2082,7 +2264,7 @@ app.get('/api/plan-files/:plan', async (req, res) => {
   }
 });
 
-// 42. Eliminar archivo de plan
+// 40. Eliminar archivo de plan
 app.delete('/api/plan-files/:plan', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2104,9 +2286,7 @@ app.delete('/api/plan-files/:plan', async (req, res) => {
   }
 });
 
-// ==================== ESTADÍSTICAS DE JUEGOS ====================
-
-// 43. Obtener estadísticas de juegos/servidores
+// 41. Obtener estadísticas de juegos/servidores
 app.get('/api/games-stats', async (req, res) => {
   try {
     const stats = await db.getGamesStatistics();
@@ -2117,7 +2297,7 @@ app.get('/api/games-stats', async (req, res) => {
   }
 });
 
-// 44. Obtener detalles de usuario (para admin)
+// 42. Obtener detalles de usuario (para admin)
 app.get('/api/user/:telegramId/details', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
@@ -2173,7 +2353,7 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// ==================== BOT DE TELEGRAM - ACTUALIZADO ====================
+// ==================== BOT DE TELEGRAM ====================
 
 // Comando /start con sistema de referidos
 bot.start(async (ctx) => {
@@ -2709,7 +2889,7 @@ bot.action('referral_info', async (ctx) => {
     }
 });
 
-// Botón: Copiar enlace de referido - CORREGIDO
+// Botón: Copiar enlace de referido
 bot.action('copy_referral_link', async (ctx) => {
     try {
         const userId = ctx.from.id.toString();
@@ -2746,7 +2926,7 @@ bot.action('copy_referral_link', async (ctx) => {
     }
 });
 
-// Comando /referidos - para obtener el enlace directamente
+// Comando /referidos
 bot.command('referidos', async (ctx) => {
     const userId = ctx.from.id.toString();
     const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
@@ -2834,7 +3014,7 @@ bot.command('admin', async (ctx) => {
     );
 });
 
-// Comando /help (actualizado)
+// Comando /help
 bot.command('help', async (ctx) => {
     const userId = ctx.from.id.toString();
     const esAdmin = isAdmin(userId);
@@ -3048,12 +3228,16 @@ app.listen(PORT, async () => {
     console.log('📦 Inicializando buckets de almacenamiento...');
     await initializeStorageBuckets();
     
+    // Iniciar sistema USDT
+    console.log('💸 Inicializando sistema USDT...');
+    await initializeUsdtSystem();
+    
     // Iniciar bot
     try {
         await bot.launch();
         console.log('🤖 Bot de Telegram iniciado');
         
-        // Configurar comandos del bot (actualizado)
+        // Configurar comandos del bot
         const commands = [
             { command: 'start', description: 'Iniciar el bot' },
             { command: 'help', description: 'Mostrar ayuda' },
@@ -3076,6 +3260,8 @@ app.listen(PORT, async () => {
     console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
     console.log(`📊 Estadísticas completas: /api/stats`);
     console.log(`💰 Sistema USDT: Habilitado`);
+    console.log(`   • Dirección: ${USDT_CONFIG.WALLET_ADDRESS}`);
+    console.log(`   • Verificación cada: ${USDT_CONFIG.CHECK_INTERVAL / 60000} minutos`);
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: Habilitado`);
     console.log(`📦 Buckets de almacenamiento: Verificados`);
@@ -3130,5 +3316,7 @@ module.exports = {
     app,
     isAdmin,
     ADMIN_IDS,
-    initializeStorageBuckets
+    initializeStorageBuckets,
+    initializeUsdtSystem,
+    checkUsdtTransactions
 };

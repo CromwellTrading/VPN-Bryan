@@ -2929,7 +2929,7 @@ bot.action('copy_referral_link', async (ctx) => {
 // Comando /referidos
 bot.command('referidos', async (ctx) => {
     const userId = ctx.from.id.toString();
-    const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
     
     const user = await db.getUser(userId);
     let referralStats = null;

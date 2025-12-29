@@ -1318,6 +1318,95 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        
+        /* ESTILOS ADICIONALES PARA ESTADÍSTICAS DE ARCHIVOS */
+        .stat-card.file-stats {
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card.file-stats:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-card.file-stats:nth-child(1) {
+            border-color: rgba(79, 70, 229, 0.3);
+        }
+
+        .stat-card.file-stats:nth-child(2) {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .stat-card.file-stats:nth-child(3) {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .stat-card.file-stats:nth-child(4) {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        /* Progress bar colors */
+        .progress-fill.high-usage {
+            background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+        }
+
+        .progress-fill.medium-usage {
+            background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+        }
+
+        .progress-fill.low-usage {
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+        }
+
+        /* Badge para métodos de entrega */
+        .badge.auto {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge.manual {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        /* FILENAME DISPLAY */
+        .filename-display {
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+            word-break: break-all;
+            font-size: 0.9rem;
+        }
+        
+        .file-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .file-info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .file-info-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+        
+        .file-info-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+        }
     </style>
 </head>
 <body>
@@ -1896,10 +1985,14 @@
                         <i class="fas fa-file-upload"></i>
                         Gestión de Archivos de Planes y Pruebas
                     </h2>
-                    <button class="refresh-btn" onclick="loadPlanFiles()">
-                        <i class="fas fa-sync-alt"></i>
-                        Actualizar
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="refresh-btn" onclick="loadPlanFiles()">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
+                        <button class="refresh-btn" onclick="showFilesStatsModal()" style="background: rgba(139, 92, 246, 0.2);">
+                            <i class="fas fa-chart-bar"></i> Estadísticas
+                        </button>
+                    </div>
                 </div>
 
                 <div class="info-box">
@@ -1935,6 +2028,10 @@
                             <span class="plan-file-label">Usuarios que recibieron:</span>
                             <span class="plan-file-value" id="trialUsersCount">0</span>
                         </div>
+                        <div class="plan-file-row">
+                            <span class="plan-file-label">Nombre del archivo:</span>
+                            <span class="plan-file-value filename-display" id="trialFileName">Ninguno</span>
+                        </div>
                     </div>
                     
                     <div class="file-upload-area" onclick="openTrialFileUpload()" id="trialUploadArea">
@@ -1968,6 +2065,10 @@
                                 <span class="plan-file-label">Última actualización:</span>
                                 <span class="plan-file-value" id="basicPlanDate">N/A</span>
                             </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Nombre del archivo:</span>
+                                <span class="plan-file-value filename-display" id="basicFileName">Ninguno</span>
+                            </div>
                         </div>
                         
                         <div class="file-upload-area" onclick="openPlanFileUpload('basico')" id="basicUploadArea">
@@ -1998,6 +2099,10 @@
                             <div class="plan-file-row">
                                 <span class="plan-file-label">Última actualización:</span>
                                 <span class="plan-file-value" id="advancedPlanDate">N/A</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Nombre del archivo:</span>
+                                <span class="plan-file-value filename-display" id="advancedFileName">Ninguno</span>
                             </div>
                         </div>
                         
@@ -2030,6 +2135,10 @@
                                 <span class="plan-file-label">Última actualización:</span>
                                 <span class="plan-file-value" id="premiumPlanDate">N/A</span>
                             </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Nombre del archivo:</span>
+                                <span class="plan-file-value filename-display" id="premiumFileName">Ninguno</span>
+                            </div>
                         </div>
                         
                         <div class="file-upload-area" onclick="openPlanFileUpload('premium')" id="premiumUploadArea">
@@ -2060,6 +2169,10 @@
                             <div class="plan-file-row">
                                 <span class="plan-file-label">Última actualización:</span>
                                 <span class="plan-file-value" id="annualPlanDate">N/A</span>
+                            </div>
+                            <div class="plan-file-row">
+                                <span class="plan-file-label">Nombre del archivo:</span>
+                                <span class="plan-file-value filename-display" id="annualFileName">Ninguno</span>
                             </div>
                         </div>
                         
@@ -2338,6 +2451,133 @@
                         <i class="fas fa-envelope"></i>
                         Enviar Mensaje
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA ESTADÍSTICAS DE ARCHIVOS -->
+    <div id="filesStatsModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Estadísticas Detalladas de Archivos
+                </h3>
+                <button class="close-modal" onclick="closeFilesStatsModal()">&times;</button>
+            </div>
+            
+            <div class="loading" id="filesStatsLoading">
+                <div class="loading-spinner"></div>
+                <p>Cargando estadísticas...</p>
+            </div>
+            
+            <div id="filesStatsContent" style="display: none;">
+                <!-- RESUMEN GENERAL -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h4 class="card-title">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Resumen General
+                        </h4>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card file-stats">
+                            <i class="fas fa-file-upload stat-icon"></i>
+                            <div class="stat-value" id="totalFilesUploaded">0</div>
+                            <div class="stat-label">Archivos Subidos</div>
+                        </div>
+                        
+                        <div class="stat-card file-stats">
+                            <i class="fas fa-paper-plane stat-icon"></i>
+                            <div class="stat-value" id="totalFilesSent">0</div>
+                            <div class="stat-label">Archivos Enviados</div>
+                        </div>
+                        
+                        <div class="stat-card file-stats">
+                            <i class="fas fa-box-open stat-icon"></i>
+                            <div class="stat-value" id="totalAvailableFiles">0</div>
+                            <div class="stat-label">Archivos Disponibles</div>
+                        </div>
+                        
+                        <div class="stat-card file-stats">
+                            <i class="fas fa-users stat-icon"></i>
+                            <div class="stat-value" id="totalUsersWithFiles">0</div>
+                            <div class="stat-label">Usuarios Con Archivos</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- DETALLES POR PLAN -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">
+                            <i class="fas fa-list-alt"></i>
+                            Detalles por Plan
+                        </h4>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="filesStatsTable">
+                            <thead>
+                                <tr>
+                                    <th>Plan</th>
+                                    <th>Archivo</th>
+                                    <th>Subido</th>
+                                    <th>Envíos</th>
+                                    <th>Disponibles</th>
+                                    <th>Último Envío</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="filesStatsTableBody">
+                                <!-- Datos se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="no-data" id="filesStatsNoData" style="display: none; text-align: center; padding: 20px; color: var(--text-secondary);">
+                        <i class="fas fa-file-alt" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>No hay estadísticas disponibles</p>
+                    </div>
+                </div>
+                
+                <!-- HISTORIAL DE ENVÍOS RECIENTES -->
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h4 class="card-title">
+                            <i class="fas fa-history"></i>
+                            Historial de Envíos Recientes
+                        </h4>
+                        <button class="refresh-btn" onclick="loadFilesStats()">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="filesHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Plan</th>
+                                    <th>Archivo</th>
+                                    <th>Fecha Envío</th>
+                                    <th>Método</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="filesHistoryTableBody">
+                                <!-- Datos se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="no-data" id="filesHistoryNoData" style="display: none; text-align: center; padding: 20px; color: var(--text-secondary);">
+                        <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>No hay historial de envíos</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3261,9 +3501,11 @@
                             document.getElementById('trialPlanDate').textContent = file.updated_at ? 
                                 new Date(file.updated_at).toLocaleDateString('es-ES') : 'N/A';
                             document.getElementById('trialUsersCount').textContent = file.users_count || 0;
+                            document.getElementById('trialFileName').textContent = file.filename || 'Ninguno';
                         } else {
                             const planFileElement = document.getElementById(`${file.plan}PlanFile`);
                             const planDateElement = document.getElementById(`${file.plan}PlanDate`);
+                            const fileNameElement = document.getElementById(`${file.plan}FileName`);
                             
                             if (planFileElement) {
                                 planFileElement.textContent = file.filename || 'No subido';
@@ -3271,6 +3513,9 @@
                             if (planDateElement) {
                                 planDateElement.textContent = file.updated_at ? 
                                     new Date(file.updated_at).toLocaleDateString('es-ES') : 'N/A';
+                            }
+                            if (fileNameElement) {
+                                fileNameElement.textContent = file.filename || 'Ninguno';
                             }
                         }
                     });
@@ -3288,6 +3533,12 @@
                     document.getElementById('advancedPlanDate').textContent = 'N/A';
                     document.getElementById('premiumPlanDate').textContent = 'N/A';
                     document.getElementById('annualPlanDate').textContent = 'N/A';
+                    
+                    document.getElementById('trialFileName').textContent = 'Ninguno';
+                    document.getElementById('basicFileName').textContent = 'Ninguno';
+                    document.getElementById('advancedFileName').textContent = 'Ninguno';
+                    document.getElementById('premiumFileName').textContent = 'Ninguno';
+                    document.getElementById('annualFileName').textContent = 'Ninguno';
                 }
                 
             } catch (error) {
@@ -3301,6 +3552,534 @@
                 document.getElementById('premiumPlanFile').textContent = 'Error cargando';
                 document.getElementById('annualPlanFile').textContent = 'Error cargando';
             }
+        }
+
+        // Mostrar modal de estadísticas de archivos
+        async function showFilesStatsModal() {
+            document.getElementById('filesStatsModal').classList.add('active');
+            loadFilesStats();
+        }
+
+        // Cerrar modal de estadísticas
+        function closeFilesStatsModal() {
+            document.getElementById('filesStatsModal').classList.remove('active');
+        }
+
+        // Cargar estadísticas de archivos
+        async function loadFilesStats() {
+            try {
+                document.getElementById('filesStatsLoading').style.display = 'block';
+                document.getElementById('filesStatsContent').style.display = 'none';
+                document.getElementById('filesStatsNoData').style.display = 'none';
+                document.getElementById('filesHistoryNoData').style.display = 'none';
+                
+                console.log('📊 Cargando estadísticas de archivos...');
+                
+                // Aquí deberías hacer una llamada a tu API
+                // Por ahora, usaremos datos de ejemplo
+                const exampleStats = {
+                    total_files: 5,
+                    total_sent: 150,
+                    total_available: 350,
+                    total_users: 120,
+                    files: [
+                        {
+                            plan: 'trial',
+                            filename: 'config_trial_v2.zip',
+                            uploaded_at: '2024-01-15T10:30:00Z',
+                            sent_count: 50,
+                            available_count: 'Ilimitado',
+                            max_uses: null,
+                            file_size: 2048576,
+                            last_sent: '2024-01-20T14:25:00Z',
+                            last_sent_to: 'Usuario Ejemplo',
+                            uploaded_by: 'Admin'
+                        },
+                        {
+                            plan: 'basico',
+                            filename: 'config_basico_v3.conf',
+                            uploaded_at: '2024-01-18T09:15:00Z',
+                            sent_count: 45,
+                            available_count: 5,
+                            max_uses: 50,
+                            file_size: 3145728,
+                            last_sent: '2024-01-19T16:45:00Z',
+                            last_sent_to: 'Juan Pérez',
+                            uploaded_by: 'Admin'
+                        },
+                        {
+                            plan: 'avanzado',
+                            filename: 'config_avanzado_v2.rar',
+                            uploaded_at: '2024-01-17T14:20:00Z',
+                            sent_count: 30,
+                            available_count: 20,
+                            max_uses: 50,
+                            file_size: 5242880,
+                            last_sent: '2024-01-20T11:30:00Z',
+                            last_sent_to: 'María López',
+                            uploaded_by: 'Admin'
+                        },
+                        {
+                            plan: 'premium',
+                            filename: 'config_premium_v1.zip',
+                            uploaded_at: '2024-01-16T11:45:00Z',
+                            sent_count: 20,
+                            available_count: 30,
+                            max_uses: 50,
+                            file_size: 4194304,
+                            last_sent: '2024-01-19T09:15:00Z',
+                            last_sent_to: 'Carlos Rodríguez',
+                            uploaded_by: 'Admin'
+                        },
+                        {
+                            plan: 'anual',
+                            filename: 'config_anual_2024.conf',
+                            uploaded_at: '2024-01-10T08:30:00Z',
+                            sent_count: 5,
+                            available_count: 45,
+                            max_uses: 50,
+                            file_size: 6291456,
+                            last_sent: '2024-01-18T15:20:00Z',
+                            last_sent_to: 'Ana García',
+                            uploaded_by: 'Admin'
+                        }
+                    ],
+                    history: [
+                        {
+                            user_name: 'Juan Pérez',
+                            username: 'juanperez',
+                            plan: 'basico',
+                            filename: 'config_basico_v3.conf',
+                            sent_at: '2024-01-19T16:45:00Z',
+                            method: 'auto',
+                            status: 'success'
+                        },
+                        {
+                            user_name: 'María López',
+                            username: 'marialopez',
+                            plan: 'avanzado',
+                            filename: 'config_avanzado_v2.rar',
+                            sent_at: '2024-01-20T11:30:00Z',
+                            method: 'manual',
+                            status: 'success'
+                        },
+                        {
+                            user_name: 'Carlos Rodríguez',
+                            username: 'carlosrod',
+                            plan: 'premium',
+                            filename: 'config_premium_v1.zip',
+                            sent_at: '2024-01-19T09:15:00Z',
+                            method: 'usdt',
+                            status: 'success'
+                        },
+                        {
+                            user_name: 'Pedro Sánchez',
+                            username: 'pedrosan',
+                            plan: 'trial',
+                            filename: 'config_trial_v2.zip',
+                            sent_at: '2024-01-20T14:25:00Z',
+                            method: 'trial',
+                            status: 'success'
+                        },
+                        {
+                            user_name: 'Ana García',
+                            username: 'anagarcia',
+                            plan: 'anual',
+                            filename: 'config_anual_2024.conf',
+                            sent_at: '2024-01-18T15:20:00Z',
+                            method: 'auto',
+                            status: 'success'
+                        }
+                    ]
+                };
+                
+                document.getElementById('filesStatsLoading').style.display = 'none';
+                document.getElementById('filesStatsContent').style.display = 'block';
+                
+                // Actualizar resumen general
+                updateFilesSummary(exampleStats);
+                
+                // Actualizar tabla de detalles por plan
+                updateFilesStatsTable(exampleStats.files || []);
+                
+                // Actualizar historial de envíos
+                updateFilesHistory(exampleStats.history || []);
+                
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas de archivos:', error);
+                document.getElementById('filesStatsLoading').style.display = 'none';
+                showNotification('❌ Error cargando estadísticas de archivos', 'error');
+            }
+        }
+
+        // Actualizar resumen general
+        function updateFilesSummary(stats) {
+            document.getElementById('totalFilesUploaded').textContent = stats.total_files || 0;
+            document.getElementById('totalFilesSent').textContent = stats.total_sent || 0;
+            document.getElementById('totalAvailableFiles').textContent = stats.total_available || 0;
+            document.getElementById('totalUsersWithFiles').textContent = stats.total_users || 0;
+        }
+
+        // Actualizar tabla de detalles por plan
+        function updateFilesStatsTable(files) {
+            const tableBody = document.getElementById('filesStatsTableBody');
+            tableBody.innerHTML = '';
+            
+            if (!files || files.length === 0) {
+                document.getElementById('filesStatsNoData').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('filesStatsNoData').style.display = 'none';
+            
+            files.forEach(file => {
+                const row = document.createElement('tr');
+                const sentCount = file.sent_count || 0;
+                const availableCount = file.available_count || 'Ilimitado';
+                const usagePercentage = file.max_uses ? 
+                    Math.round((sentCount / file.max_uses) * 100) : 
+                    0;
+                
+                // Determinar estado basado en uso
+                let statusBadge = '';
+                
+                if (file.max_uses) {
+                    if (sentCount >= file.max_uses) {
+                        statusBadge = '<span class="badge error">Agotado</span>';
+                    } else if (usagePercentage >= 80) {
+                        statusBadge = '<span class="badge warning">Por Agotarse</span>';
+                    } else {
+                        statusBadge = '<span class="badge success">Disponible</span>';
+                    }
+                } else {
+                    statusBadge = '<span class="badge">Ilimitado</span>';
+                }
+                
+                // Determinar color de la barra de progreso
+                let progressColor = '';
+                if (usagePercentage >= 90) {
+                    progressColor = '#ef4444';
+                } else if (usagePercentage >= 75) {
+                    progressColor = '#f59e0b';
+                } else if (usagePercentage >= 50) {
+                    progressColor = '#3b82f6';
+                } else {
+                    progressColor = '#10b981';
+                }
+                
+                row.innerHTML = `
+                    <td>
+                        <strong>${getPlanName(file.plan)}</strong>
+                        ${file.plan === 'trial' ? '<br><span class="badge trial-file">PRUEBA</span>' : ''}
+                        ${file.plan === 'anual' ? '<br><span class="badge anual">ANUAL</span>' : ''}
+                    </td>
+                    <td>
+                        <div class="filename-display">${file.filename || 'No subido'}</div>
+                        ${file.file_size ? `<small style="color: #888;">${formatFileSize(file.file_size)}</small>` : ''}
+                    </td>
+                    <td>
+                        ${file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString('es-ES') : 'N/A'}
+                        ${file.uploaded_by ? `<br><small style="color: #888;">Por: ${file.uploaded_by}</small>` : ''}
+                    </td>
+                    <td>
+                        <strong>${sentCount}</strong> envíos
+                        ${file.max_uses ? `<br><small style="color: #888;">Máximo: ${file.max_uses}</small>` : ''}
+                    </td>
+                    <td>
+                        ${availableCount}
+                        ${file.max_uses ? 
+                            `<div class="progress-container" style="margin-top: 5px;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${usagePercentage}%; background: ${progressColor}"></div>
+                                </div>
+                                <div class="progress-info">
+                                    <span class="progress-text">Uso</span>
+                                    <span class="progress-percent">${usagePercentage}%</span>
+                                </div>
+                            </div>` : 
+                            ''
+                        }
+                    </td>
+                    <td>
+                        ${file.last_sent ? new Date(file.last_sent).toLocaleDateString('es-ES') : 'Nunca'}
+                        ${file.last_sent_to ? `<br><small style="color: #888;">A: ${file.last_sent_to}</small>` : ''}
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="action-btn view-details" onclick="viewFileDetails('${file.plan}')" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${file.plan !== 'trial' ? 
+                            `<button class="action-btn message" onclick="renewFile('${file.plan}')" title="Renovar archivo">
+                                <i class="fas fa-redo"></i>
+                            </button>` : 
+                            ''
+                        }
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Actualizar historial de envíos
+        function updateFilesHistory(history) {
+            const tableBody = document.getElementById('filesHistoryTableBody');
+            tableBody.innerHTML = '';
+            
+            if (!history || history.length === 0) {
+                document.getElementById('filesHistoryNoData').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('filesHistoryNoData').style.display = 'none';
+            
+            // Mostrar solo los últimos 20 envíos
+            const recentHistory = history.slice(0, 20);
+            
+            recentHistory.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <strong>${item.user_name || 'Usuario'}</strong>
+                        ${item.username ? `<br><small>@${item.username}</small>` : ''}
+                    </td>
+                    <td>${getPlanName(item.plan)}</td>
+                    <td>
+                        <div class="filename-display" style="font-size: 0.85rem;">${item.filename || 'N/A'}</div>
+                    </td>
+                    <td>${item.sent_at ? new Date(item.sent_at).toLocaleString('es-ES') : 'N/A'}</td>
+                    <td>${getDeliveryMethodBadge(item.method)}</td>
+                    <td>
+                        ${item.status === 'success' ? 
+                            '<span class="badge success">Entregado</span>' : 
+                            '<span class="badge error">Fallido</span>'
+                        }
+                        ${item.error ? `<br><small style="color: #f87171;">${item.error}</small>` : ''}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Ver detalles de un archivo específico
+        async function viewFileDetails(plan) {
+            try {
+                // Datos de ejemplo
+                const details = {
+                    plan: plan,
+                    filename: `config_${plan}_v2.zip`,
+                    file_size: 3145728,
+                    uploaded_at: '2024-01-18T09:15:00Z',
+                    sent_count: 45,
+                    available_count: 5,
+                    max_uses: 50,
+                    recent_sent: [
+                        {
+                            user_name: 'Juan Pérez',
+                            sent_at: '2024-01-19T16:45:00Z',
+                            method: 'auto',
+                            status: 'success'
+                        },
+                        {
+                            user_name: 'María López',
+                            sent_at: '2024-01-18T14:30:00Z',
+                            method: 'manual',
+                            status: 'success'
+                        },
+                        {
+                            user_name: 'Carlos Rodríguez',
+                            sent_at: '2024-01-17T11:20:00Z',
+                            method: 'usdt',
+                            status: 'success'
+                        }
+                    ],
+                    usage_stats: {
+                        'Enero 2024': 25,
+                        'Diciembre 2023': 20,
+                        'Total mensual': 45
+                    }
+                };
+                
+                // Crear modal con detalles
+                const modalContent = `
+                    <div style="padding: 20px;">
+                        <h3 style="margin-bottom: 15px; color: var(--text);">
+                            <i class="fas fa-file-alt"></i> Detalles de ${getPlanName(plan)}
+                        </h3>
+                        
+                        <div class="file-info-grid">
+                            <div class="file-info-item">
+                                <div class="file-info-label">Archivo</div>
+                                <div class="file-info-value filename-display">${details.filename || 'No subido'}</div>
+                            </div>
+                            <div class="file-info-item">
+                                <div class="file-info-label">Tamaño</div>
+                                <div class="file-info-value">${details.file_size ? formatFileSize(details.file_size) : 'N/A'}</div>
+                            </div>
+                            <div class="file-info-item">
+                                <div class="file-info-label">Envíos Totales</div>
+                                <div class="file-info-value">${details.sent_count || 0}</div>
+                            </div>
+                            <div class="file-info-item">
+                                <div class="file-info-label">Disponibles</div>
+                                <div class="file-info-value">${details.available_count || 'Ilimitado'}</div>
+                            </div>
+                            <div class="file-info-item">
+                                <div class="file-info-label">Subido</div>
+                                <div class="file-info-value">${details.uploaded_at ? new Date(details.uploaded_at).toLocaleDateString('es-ES') : 'N/A'}</div>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 15px 0 10px 0; color: var(--text);">Últimos 10 envíos:</h4>
+                        
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Fecha</th>
+                                        <th>Método</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${details.recent_sent && details.recent_sent.length > 0 ? 
+                                        details.recent_sent.map(sent => `
+                                            <tr>
+                                                <td>${sent.user_name || 'Usuario'}</td>
+                                                <td>${new Date(sent.sent_at).toLocaleString('es-ES')}</td>
+                                                <td>${getDeliveryMethodBadge(sent.method)}</td>
+                                                <td>${sent.status === 'success' ? 
+                                                    '<span class="badge success">✓</span>' : 
+                                                    '<span class="badge error">✗</span>'
+                                                }</td>
+                                            </tr>
+                                        `).join('') : 
+                                        `<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">No hay envíos recientes</td></tr>`
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+                            <button class="action-btn send-config" onclick="downloadFileStats('${plan}')" style="width: 100%;">
+                                <i class="fas fa-download"></i> Descargar Reporte
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Mostrar en modal personalizado
+                showCustomModal(`Detalles de ${getPlanName(plan)}`, modalContent);
+                
+            } catch (error) {
+                console.error('❌ Error cargando detalles del archivo:', error);
+                showNotification('❌ Error cargando detalles del archivo', 'error');
+            }
+        }
+
+        // Renovar archivo (subir nueva versión)
+        function renewFile(plan) {
+            if (confirm(`¿Subir nueva versión del archivo para ${getPlanName(plan)}?\n\nEl archivo actual seguirá disponible para usuarios que ya lo recibieron.`)) {
+                openPlanFileUpload(plan);
+            }
+        }
+
+        // Descargar reporte de archivo
+        async function downloadFileStats(plan) {
+            try {
+                // Crear contenido para descarga
+                const report = `
+REPORTE DE ARCHIVO - ${getPlanName(plan).toUpperCase()}
+Fecha: ${new Date().toLocaleDateString('es-ES')}
+==============================================
+
+INFORMACIÓN DEL ARCHIVO:
+- Nombre: config_${plan}_v2.zip
+- Plan: ${getPlanName(plan)}
+- Subido: ${new Date().toLocaleString('es-ES')}
+- Tamaño: ${formatFileSize(3145728)}
+- Envíos totales: 45
+- Disponibles: 5
+
+ESTADÍSTICAS DE USO:
+- Enero 2024: 25
+- Diciembre 2023: 20
+- Total mensual: 45
+
+ÚLTIMOS ENVÍOS:
+- ${new Date('2024-01-19T16:45:00Z').toLocaleString('es-ES')} | Juan Pérez | auto | success
+- ${new Date('2024-01-18T14:30:00Z').toLocaleString('es-ES')} | María López | manual | success
+- ${new Date('2024-01-17T11:20:00Z').toLocaleString('es-ES')} | Carlos Rodríguez | usdt | success
+
+==============================================
+Generado por VPN Cuba Admin Panel
+`;
+                
+                // Crear y descargar archivo
+                const blob = new Blob([report], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte-${plan}-${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('✅ Reporte descargado', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error descargando reporte:', error);
+                showNotification('❌ Error descargando reporte', 'error');
+            }
+        }
+
+        // Mostrar modal personalizado
+        function showCustomModal(title, content) {
+            const modalId = 'customModal';
+            let modal = document.getElementById(modalId);
+            
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = modalId;
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h3 class="modal-title">${title}</h3>
+                            <button class="close-modal" onclick="document.getElementById('${modalId}').classList.remove('active')">&times;</button>
+                        </div>
+                        <div id="${modalId}Content"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            document.getElementById(`${modalId}Content`).innerHTML = content;
+            modal.classList.add('active');
+        }
+
+        // Función auxiliar para formatear tamaño de archivo
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 Bytes';
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Función para obtener badge de método de entrega
+        function getDeliveryMethodBadge(method) {
+            const badges = {
+                'manual': '<span class="badge manual">Manual</span>',
+                'auto': '<span class="badge auto">Automático</span>',
+                'trial': '<span class="badge trial">Prueba</span>',
+                'usdt': '<span class="badge usdt">USDT</span>',
+                'broadcast': '<span class="badge broadcast">Broadcast</span>'
+            };
+            return badges[method] || `<span class="badge">${method}</span>`;
         }
 
         // Abrir upload de archivo para plan
@@ -3477,23 +4256,28 @@
             const planToUI = {
                 'trial': {
                     file: 'trialPlanFile',
-                    date: 'trialPlanDate'
+                    date: 'trialPlanDate',
+                    fileName: 'trialFileName'
                 },
                 'basico': {
                     file: 'basicPlanFile',
-                    date: 'basicPlanDate'
+                    date: 'basicPlanDate',
+                    fileName: 'basicFileName'
                 },
                 'avanzado': {
                     file: 'advancedPlanFile',
-                    date: 'advancedPlanDate'
+                    date: 'advancedPlanDate',
+                    fileName: 'advancedFileName'
                 },
                 'premium': {
                     file: 'premiumPlanFile',
-                    date: 'premiumPlanDate'
+                    date: 'premiumPlanDate',
+                    fileName: 'premiumFileName'
                 },
                 'anual': {
                     file: 'annualPlanFile',
-                    date: 'annualPlanDate'
+                    date: 'annualPlanDate',
+                    fileName: 'annualFileName'
                 }
             };
             
@@ -3501,12 +4285,16 @@
             if (uiElements) {
                 const fileElement = document.getElementById(uiElements.file);
                 const dateElement = document.getElementById(uiElements.date);
+                const fileNameElement = document.getElementById(uiElements.fileName);
                 
                 if (fileElement) {
                     fileElement.textContent = fileName;
                 }
                 if (dateElement) {
                     dateElement.textContent = new Date().toLocaleDateString('es-ES');
+                }
+                if (fileNameElement) {
+                    fileNameElement.textContent = fileName;
                 }
             }
         }
@@ -4067,6 +4855,9 @@
                 closeModal();
                 closeConfigModal();
                 closeUserDetailsModal();
+                closeFilesStatsModal();
+                const customModal = document.getElementById('customModal');
+                if (customModal) customModal.classList.remove('active');
             }
         });
 

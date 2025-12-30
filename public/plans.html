@@ -1510,7 +1510,7 @@
                     </div>
                 </div>
                 
-                <button class="purchase-button standard" onclick="selectPlan('basico', 800)">
+                <button class="purchase-button standard" onclick="selectPlan('basico', 800, 1.6)">
                     <i class="fas fa-shopping-cart button-icon"></i>
                     <span>Seleccionar Plan</span>
                 </button>
@@ -1559,7 +1559,7 @@
                     </div>
                 </div>
                 
-                <button class="purchase-button featured" onclick="selectPlan('avanzado', 1300)">
+                <button class="purchase-button featured" onclick="selectPlan('avanzado', 1300, 2.7)">
                     <i class="fas fa-crown button-icon"></i>
                     <span>Seleccionar Plan</span>
                 </button>
@@ -1612,7 +1612,7 @@
                     </div>
                 </div>
                 
-                <button class="purchase-button premium" onclick="selectPlan('premium', 1200)">
+                <button class="purchase-button premium" onclick="selectPlan('premium', 1200, 2.5)">
                     <i class="fas fa-gem button-icon"></i>
                     <span>Seleccionar Premium</span>
                 </button>
@@ -1665,7 +1665,7 @@
                     </div>
                 </div>
                 
-                <button class="purchase-button annual" onclick="selectPlan('anual', 15000)">
+                <button class="purchase-button annual" onclick="selectPlan('anual', 15000, 30)">
                     <i class="fas fa-calendar-check button-icon"></i>
                     <span>Seleccionar Anual</span>
                 </button>
@@ -1732,6 +1732,9 @@
         // Variables de estado
         let selectedConnection = null;
         
+        // DIRECCIÓN USDT FIJA
+        const USDT_ADDRESS = '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2';
+        
         // Función para verificar si los términos fueron aceptados
         function checkTermsAccepted(userId) {
             if (!userId) return false;
@@ -1747,7 +1750,7 @@
         }
         
         // Función para seleccionar plan
-        function selectPlan(planType, price) {
+        function selectPlan(planType, price, usdtAmount) {
             // Verificar términos primero
             if (!userId || !checkTermsAccepted(userId)) {
                 alert('Por favor, acepta los términos y condiciones primero.');
@@ -1768,13 +1771,15 @@
             localStorage.setItem('selectedPlan', JSON.stringify({
                 type: planType,
                 price: price,
+                usdtAmount: usdtAmount,
+                usdtAddress: USDT_ADDRESS, // Dirección USDT fija
                 userId: userId,
                 timestamp: new Date().toISOString()
             }));
             
             // Redirigir a página de pago
             setTimeout(() => {
-                window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}`;
+                window.location.href = `/payment.html?userId=${userId}&plan=${planType}&price=${price}&usdtAmount=${usdtAmount}&usdtAddress=${USDT_ADDRESS}`;
             }, 800);
         }
         
@@ -2048,6 +2053,9 @@
                     // El enlace ya tiene target="_blank" en el HTML
                 });
             }
+            
+            // Mostrar la dirección USDT en consola para depuración
+            console.log('📍 Dirección USDT fija:', USDT_ADDRESS);
         });
     </script>
 </body>

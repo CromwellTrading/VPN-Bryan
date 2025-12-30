@@ -1282,20 +1282,20 @@
                             <li><i class="fas fa-check-circle"></i> Envía <strong>exactamente</strong> el monto mostrado arriba</li>
                             <li><i class="fas fa-check-circle"></i> Usa <strong>solo la red BEP20</strong> (Binance Smart Chain)</li>
                             <li><i class="fas fa-check-circle"></i> No envíes desde exchanges centralizados</li>
-                            <li><i class="fas fa-check-circle"></i> El sistema detectará automáticamente tu pago</li>
-                            <li><i class="fas fa-check-circle"></i> El proceso puede tardar hasta 15 minutos</li>
+                            <li><i class="fas fa-check-circle"></i> Realiza la transacción y toma captura del comprobante</li>
+                            <li><i class="fas fa-check-circle"></i> Sube el comprobante para verificación manual</li>
                         </ul>
                     </div>
                     
                     <div class="upload-note">
                         <i class="fas fa-exclamation-circle"></i>
-                        <strong>Nota:</strong> Para pagos en USDT no es necesario subir comprobante. El sistema detecta automáticamente tu transacción.
+                        <strong>Importante:</strong> Debes subir el comprobante de la transacción en la blockchain para verificar tu pago.
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- SUBIDA DE COMPROBANTE (solo para métodos no USDT) -->
+        <!-- SUBIDA DE COMPROBANTE (para TODOS los métodos) -->
         <div id="uploadSection" class="upload-card fade-in delay-3">
             <div class="card-header">
                 <i class="fas fa-camera card-icon"></i>
@@ -1303,7 +1303,7 @@
             </div>
             
             <div class="step-container">
-                <div class="step-number">1</div>
+                <div class="step-number">2</div>
                 <div class="step-content">
                     <h3 class="step-title">Captura del comprobante</h3>
                     <p class="step-description">
@@ -1315,6 +1315,7 @@
                         <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: var(--success); margin-right: 10px;"></i> Número de confirmación</li>
                         <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: var(--success); margin-right: 10px;"></i> Fecha y hora de la operación</li>
                         <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: var(--success); margin-right: 10px;"></i> Destinatario de la transferencia</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: var(--success); margin-right: 10px;"></i><strong>Para USDT:</strong> Hash de transacción y dirección de envío</li>
                     </ul>
                     
                     <div class="upload-section">
@@ -1404,7 +1405,7 @@
             'metropolitan': 'Transfiere el monto exacto a la tarjeta Metropolitana. Incluye el número de confirmación.',
             'mitransfer': 'Envía el pago al monedero MITRANSFER usando el número de teléfono proporcionado.',
             'mobile': 'Recarga saldo móvil al número indicado. El precio varía según tu plan.',
-            'usdt': 'Envía USDT por la red BEP20. El sistema detectará automáticamente tu pago.'
+            'usdt': 'Envía USDT por la red BEP20. Sube el comprobante de la transacción para verificación.'
         };
         
         // Función para verificar si los términos fueron aceptados
@@ -1563,24 +1564,25 @@
             // Actualizar descripción
             document.getElementById('methodDescription').textContent = methodDescriptions[currentMethod] || '';
             
-            // Mostrar/ocultar sección de upload según el método
-            const uploadSection = document.getElementById('uploadSection');
-            const submitBtn = document.getElementById('submitBtn');
+            // Actualizar texto del botón según el método
             const submitBtnText = document.getElementById('submitBtnText');
             
             if (currentMethod === 'usdt') {
-                // Para USDT, ocultar upload y cambiar texto del botón
-                uploadSection.style.display = 'none';
-                submitBtnText.textContent = 'Confirmar pago USDT';
-                submitBtn.disabled = false; // Para USDT no necesita comprobante
+                submitBtnText.textContent = 'Enviar comprobante USDT';
             } else {
-                // Para otros métodos, mostrar upload
-                uploadSection.style.display = 'block';
                 submitBtnText.textContent = 'Enviar comprobante';
-                submitBtn.disabled = !selectedFile;
             }
             
+            // Actualizar estado del botón basado en si hay archivo
+            updateSubmitButtonState();
+            
             console.log(`💰 Método de pago cambiado a: ${currentMethod}`);
+        }
+        
+        // Actualizar estado del botón de envío
+        function updateSubmitButtonState() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = !selectedFile;
         }
         
         // Configurar área de upload
@@ -1589,7 +1591,6 @@
             const fileInput = document.getElementById('screenshotInput');
             const previewContainer = document.getElementById('previewContainer');
             const removeBtn = document.getElementById('removeBtn');
-            const submitBtn = document.getElementById('submitBtn');
             
             uploadArea.addEventListener('click', function() {
                 fileInput.click();
@@ -1652,10 +1653,8 @@
                 document.getElementById('progressBar').style.width = '66%';
                 document.querySelectorAll('.step')[1].classList.add('active');
                 
-                // Habilitar botón solo si no es USDT
-                if (currentMethod !== 'usdt') {
-                    document.getElementById('submitBtn').disabled = false;
-                }
+                // Habilitar botón
+                updateSubmitButtonState();
                 
                 showNotification('Imagen cargada correctamente.', 'success');
             };
@@ -1668,10 +1667,8 @@
             document.getElementById('previewContainer').style.display = 'none';
             document.getElementById('screenshotInput').value = '';
             
-            // Deshabilitar botón solo si no es USDT
-            if (currentMethod !== 'usdt') {
-                document.getElementById('submitBtn').disabled = true;
-            }
+            // Deshabilitar botón
+            updateSubmitButtonState();
             
             document.getElementById('progressBar').style.width = '33%';
             document.querySelectorAll('.step')[1].classList.remove('active');
@@ -1685,83 +1682,12 @@
             const originalContent = button.innerHTML;
             
             button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando...</span>';
             
-            if (currentMethod === 'usdt') {
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Procesando pago USDT...</span>';
-                
-                // Para USDT, enviar confirmación
-                await processUsdtPayment();
-            } else {
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando...</span>';
-                
-                // Para otros métodos, enviar comprobante
-                await processRegularPayment();
-            }
-            
-            // Restaurar botón en caso de error
-            setTimeout(() => {
-                button.disabled = false;
-                button.innerHTML = originalContent;
-            }, 5000);
-        }
-        
-        // Procesar pago USDT
-        async function processUsdtPayment() {
-            console.log(`🔄 Procesando pago USDT para usuario ${currentUserId}`);
-            
-            try {
-                // Obtener monto USDT
-                const usdtAmount = document.getElementById('usdtAmount').textContent;
-                
-                // Enviar datos al servidor
-                const response = await fetch('/api/usdt-payment', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        telegramId: currentUserId,
-                        plan: planType,
-                        usdtAmount: usdtAmount,
-                        usdtAddress: FIXED_USDT_ADDRESS,
-                        method: 'usdt_bep20'
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Error en el servidor');
-                }
-                
-                const data = await response.json();
-                console.log('✅ Respuesta del servidor:', data);
-                
-                // Actualizar progreso
-                document.getElementById('progressBar').style.width = '100%';
-                document.querySelectorAll('.step')[2].classList.add('active');
-                
-                showNotification('✅ Pago USDT registrado. Sube el comprobante de la transacción en Telegram para verificación manual.', 'success');
-                
-                // Redirigir o cerrar después de un tiempo
-                setTimeout(function() {
-                    if (tg && tg.platform !== 'unknown') {
-                        tg.close();
-                    } else {
-                        // Abrir bot de Telegram con mensaje predefinido
-                        const telegramUrl = `https://t.me/vpncubabot?start=usdt_payment_${currentUserId}`;
-                        window.location.href = telegramUrl;
-                    }
-                }, 3000);
-                
-            } catch (error) {
-                console.error('❌ Error procesando pago USDT:', error);
-                showNotification('❌ Error al procesar el pago USDT: ' + error.message, 'error');
-            }
-        }
-        
-        // Procesar pago regular
-        async function processRegularPayment() {
             if (!selectedFile) {
                 showNotification('Debes subir la captura del comprobante para continuar.', 'warning');
+                button.disabled = false;
+                button.innerHTML = originalContent;
                 return;
             }
             
@@ -1776,6 +1702,13 @@
                 formData.append('price', price);
                 formData.append('method', currentMethod);
                 formData.append('screenshot', selectedFile);
+                
+                // Para USDT, agregar información adicional
+                if (currentMethod === 'usdt') {
+                    const usdtAmount = document.getElementById('usdtAmount').textContent;
+                    formData.append('usdtAmount', usdtAmount);
+                    formData.append('usdtAddress', FIXED_USDT_ADDRESS);
+                }
                 
                 // Enviar a la API
                 console.log(`📤 Enviando a /api/payment...`);
@@ -1810,6 +1743,8 @@
             } catch (error) {
                 console.error('❌ Error enviando pago:', error);
                 showNotification('❌ Error al enviar el comprobante: ' + error.message, 'error');
+                button.disabled = false;
+                button.innerHTML = originalContent;
             }
         }
         

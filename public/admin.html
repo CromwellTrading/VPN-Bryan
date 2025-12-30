@@ -1997,7 +1997,7 @@
 
                 <div class="info-box">
                     <i class="fas fa-info-circle"></i>
-                    Sube aquí los archivos de configuración para cada plan. Cuando un usuario pague (manualmente o por USDT), se le enviará automáticamente el archivo correspondiente a su plan.
+                    Sube aquí los archivos de configuración para cada plan. Cuando un usuario pague (manualmente o por USDT), el admin debe aprobar el pago y luego enviar manualmente el archivo correspondiente desde la pestaña "Pagos Aprobados".
                 </div>
                 
                 <!-- ARCHIVOS DE PRUEBA -->
@@ -2188,12 +2188,11 @@
                 
                 <div class="info-box usdt" style="margin-top: 20px;">
                     <i class="fas fa-info-circle"></i>
-                    <strong>Sistema de detección de pagos USDT:</strong><br>
-                    • Se genera un monto único (0.01 a 0.15 USDT) para cada usuario<br>
-                    • El usuario debe enviar la cantidad exacta<br>
-                    • El sistema detecta automáticamente el pago<br>
-                    • Se envía el archivo correspondiente al plan pagado<br>
-                    • Si no se detecta pago en 15 minutos, el munto se libera para otro usuario
+                    <strong>Para pagos USDT:</strong><br>
+                    • El usuario debe enviar captura de pantalla mostrando la wallet destino y los datos de la transacción<br>
+                    • El admin aprueba manualmente el pago después de verificar la captura<br>
+                    • Luego el admin envía manualmente el archivo desde la pestaña "Pagos Aprobados"<br>
+                    • # Sistema de detección automática de pagos USDT desactivado
                 </div>
             </div>
         </div>
@@ -2334,15 +2333,16 @@
     <div id="screenshotModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Captura de Pantalla</h3>
+                <h3 class="modal-title">Captura de Pantalla del Pago</h3>
                 <button class="close-modal" onclick="closeModal()">&times;</button>
             </div>
             <img id="screenshotImage" class="screenshot-preview" src="" alt="Captura de pantalla">
             <div class="payment-info">
                 <p><strong>Usuario:</strong> <span id="modalUserId"></span></p>
                 <p><strong>Plan:</strong> <span id="modalPlan"></span></p>
-                <p><strong>Monto:</strong> $<span id="modalAmount"></span> CUP</p>
+                <p><strong>Monto:</strong> <span id="modalAmount"></span> <span id="modalCurrency"></span></p>
                 <p><strong>Fecha:</strong> <span id="modalDate"></span></p>
+                <p><strong>Método:</strong> <span id="modalMethod"></span></p>
             </div>
             <div class="action-buttons">
                 <button class="action-btn approve" onclick="approvePayment(currentPaymentId)">
@@ -2361,7 +2361,7 @@
     <div id="configModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Enviar Configuración</h3>
+                <h3 class="modal-title">Enviar Configuración Manualmente</h3>
                 <button class="close-modal" onclick="closeConfigModal()">&times;</button>
             </div>
             <div class="config-form">
@@ -2372,7 +2372,8 @@
                 <div style="margin-bottom: 15px;">
                     <p style="color: #a5b4fc; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i>
-                        Se permiten archivos .conf, .zip o .rar
+                        # Sistema de envío automático desactivado<br>
+                        Sube el archivo y envíalo manualmente al usuario
                     </p>
                 </div>
                 
@@ -2380,7 +2381,7 @@
                 
                 <button class="submit-config" onclick="sendConfigFile()">
                     <i class="fas fa-paper-plane"></i>
-                    Enviar Configuración
+                    Enviar Configuración Manualmente
                 </button>
             </div>
         </div>
@@ -2592,6 +2593,7 @@
     <script>
         // Variables globales
         let currentPaymentId = null;
+        let currentPaymentMethod = null;
         let currentTab = 'stats';
         let currentUserId = null;
         let currentTrialUserId = null;
@@ -2677,7 +2679,7 @@
             }
         }
 
-        // Cargar pagos pendientes
+        // Cargar pagos pendientes - MODIFICADO PARA USDT CON CAPTURA
         async function loadPendingPayments() {
             try {
                 document.getElementById('pendingLoading').style.display = 'block';
@@ -2708,18 +2710,13 @@
                         </td>
                         <td>${getPlanName(payment.plan)}</td>
                         <td>${getPaymentMethodBadge(payment.method)}</td>
-                        <td>$${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
+                        <td>${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
                         <td>${payment.created_at ? new Date(payment.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td><span class="badge pending">Pendiente</span></td>
                         <td>
-                            ${payment.method !== 'usdt' ? 
-                                `<button class="action-btn approve" onclick="viewScreenshot('${payment.id}', '${payment.telegram_id}', '${payment.plan}', '${payment.price}', '${payment.created_at}', '${payment.screenshot_url}')">
-                                    <i class="fas fa-eye"></i> Ver
-                                </button>` : 
-                                `<button class="action-btn approve" onclick="approveUsdtPayment('${payment.id}')">
-                                    <i class="fas fa-check"></i> Aprobar USDT
-                                </button>`
-                            }
+                            <button class="action-btn approve" onclick="viewScreenshot('${payment.id}', '${payment.telegram_id}', '${payment.plan}', '${payment.price}', '${payment.created_at}', '${payment.screenshot_url}', '${payment.method}')">
+                                <i class="fas fa-eye"></i> Ver Captura
+                            </button>
                         </td>
                     `;
                     tableBody.appendChild(row);
@@ -2732,6 +2729,22 @@
                 document.getElementById('pendingLoading').style.display = 'none';
                 showNotification('❌ Error cargando pagos pendientes', 'error');
             }
+        }
+
+        // Ver captura de pantalla - MODIFICADO PARA MOSTRAR MÉTODO
+        function viewScreenshot(paymentId, telegramId, plan, amount, date, screenshotUrl, method) {
+            currentPaymentId = paymentId;
+            currentPaymentMethod = method;
+            
+            document.getElementById('screenshotImage').src = screenshotUrl;
+            document.getElementById('modalUserId').textContent = telegramId;
+            document.getElementById('modalPlan').textContent = getPlanName(plan);
+            document.getElementById('modalAmount').textContent = amount;
+            document.getElementById('modalCurrency').textContent = method === 'usdt' ? 'USDT' : 'CUP';
+            document.getElementById('modalDate').textContent = new Date(date).toLocaleDateString('es-ES');
+            document.getElementById('modalMethod').innerHTML = getPaymentMethodBadge(method);
+            
+            document.getElementById('screenshotModal').classList.add('active');
         }
 
         // Cargar pruebas pendientes
@@ -2815,7 +2828,7 @@
                         </td>
                         <td>${getPlanName(payment.plan)}</td>
                         <td>${getPaymentMethodBadge(payment.method)}</td>
-                        <td>$${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
+                        <td>${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
                         <td>${payment.approved_at ? new Date(payment.approved_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             ${payment.config_sent ? 
@@ -2826,9 +2839,9 @@
                         <td>
                             ${!payment.config_sent ? 
                                 `<button class="action-btn send-config" onclick="openConfigModal('${payment.id}', '${payment.telegram_id}', '${payment.plan}')">
-                                    <i class="fas fa-paper-plane"></i> Enviar
+                                    <i class="fas fa-paper-plane"></i> Enviar Manual
                                 </button>` : 
-                                ''
+                                '<span class="badge approved">Archivo enviado</span>'
                             }
                         </td>
                     `;
@@ -3651,7 +3664,7 @@
                             plan: 'basico',
                             filename: 'config_basico_v3.conf',
                             sent_at: '2024-01-19T16:45:00Z',
-                            method: 'auto',
+                            method: 'manual',
                             status: 'success'
                         },
                         {
@@ -3669,7 +3682,7 @@
                             plan: 'premium',
                             filename: 'config_premium_v1.zip',
                             sent_at: '2024-01-19T09:15:00Z',
-                            method: 'usdt',
+                            method: 'manual',
                             status: 'success'
                         },
                         {
@@ -3687,7 +3700,7 @@
                             plan: 'anual',
                             filename: 'config_anual_2024.conf',
                             sent_at: '2024-01-18T15:20:00Z',
-                            method: 'auto',
+                            method: 'manual',
                             status: 'success'
                         }
                     ]
@@ -3877,7 +3890,7 @@
                         {
                             user_name: 'Juan Pérez',
                             sent_at: '2024-01-19T16:45:00Z',
-                            method: 'auto',
+                            method: 'manual',
                             status: 'success'
                         },
                         {
@@ -3889,7 +3902,7 @@
                         {
                             user_name: 'Carlos Rodríguez',
                             sent_at: '2024-01-17T11:20:00Z',
-                            method: 'usdt',
+                            method: 'manual',
                             status: 'success'
                         }
                     ],
@@ -4008,9 +4021,9 @@ ESTADÍSTICAS DE USO:
 - Total mensual: 45
 
 ÚLTIMOS ENVÍOS:
-- ${new Date('2024-01-19T16:45:00Z').toLocaleString('es-ES')} | Juan Pérez | auto | success
+- ${new Date('2024-01-19T16:45:00Z').toLocaleString('es-ES')} | Juan Pérez | manual | success
 - ${new Date('2024-01-18T14:30:00Z').toLocaleString('es-ES')} | María López | manual | success
-- ${new Date('2024-01-17T11:20:00Z').toLocaleString('es-ES')} | Carlos Rodríguez | usdt | success
+- ${new Date('2024-01-17T11:20:00Z').toLocaleString('es-ES')} | Carlos Rodríguez | manual | success
 
 ==============================================
 Generado por VPN Cuba Admin Panel
@@ -4450,19 +4463,6 @@ Generado por VPN Cuba Admin Panel
             }
         }
 
-        // Ver captura de pantalla
-        function viewScreenshot(paymentId, telegramId, plan, amount, date, screenshotUrl) {
-            currentPaymentId = paymentId;
-            
-            document.getElementById('screenshotImage').src = screenshotUrl;
-            document.getElementById('modalUserId').textContent = telegramId;
-            document.getElementById('modalPlan').textContent = getPlanName(plan);
-            document.getElementById('modalAmount').textContent = amount;
-            document.getElementById('modalDate').textContent = new Date(date).toLocaleDateString('es-ES');
-            
-            document.getElementById('screenshotModal').classList.add('active');
-        }
-
         // Abrir modal de configuración
         function openConfigModal(paymentId, telegramId, plan) {
             currentPaymentId = paymentId;
@@ -4510,42 +4510,9 @@ Generado por VPN Cuba Admin Panel
             }
         }
 
-        // Aprobar pago USDT
-        async function approveUsdtPayment(paymentId) {
-            if (!confirm('¿Aprobar este pago USDT?')) return;
-            
-            try {
-                showNotification('⏳ Aprobando pago USDT...', 'info');
-                
-                const response = await fetch(`/api/payments/${paymentId}/approve-usdt`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        adminId: currentUserId
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    showNotification('✅ Pago USDT aprobado. Se enviará el archivo automáticamente.', 'success');
-                    loadPendingPayments();
-                    loadApprovedPayments();
-                    loadStats();
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Error aprobando pago USDT');
-                }
-            } catch (error) {
-                console.error('❌ Error aprobando pago USDT:', error);
-                showNotification('❌ Error aprobando pago USDT: ' + error.message, 'error');
-            }
-        }
-
-        // Aprobar pago
+        // Aprobar pago - FUNCIÓN MODIFICADA PARA FLUJO MANUAL
         async function approvePayment(paymentId) {
-            if (!confirm('¿Estás seguro de aprobar este pago?')) return;
+            if (!confirm('¿Estás seguro de aprobar este pago?\n\n# El archivo NO se enviará automáticamente.\nDebes enviarlo manualmente desde la pestaña "Pagos Aprobados".')) return;
             
             try {
                 showNotification('⏳ Aprobando pago...', 'info');
@@ -4562,7 +4529,7 @@ Generado por VPN Cuba Admin Panel
                 
                 if (response.ok) {
                     const result = await response.json();
-                    showNotification('✅ Pago aprobado correctamente', 'success');
+                    showNotification('✅ Pago aprobado. Envía el archivo manualmente desde "Pagos Aprobados".', 'success');
                     closeModal();
                     loadPendingPayments();
                     loadApprovedPayments();
@@ -4611,7 +4578,7 @@ Generado por VPN Cuba Admin Panel
             }
         }
 
-        // Enviar archivo de configuración (CORREGIDO)
+        // Enviar archivo de configuración (CORREGIDO PARA ENVÍO MANUAL)
         async function sendConfigFile() {
             const fileInput = document.getElementById('configFile');
             const file = fileInput.files[0];
@@ -4639,7 +4606,7 @@ Generado por VPN Cuba Admin Panel
                 return;
             }
             
-            showNotification('⏳ Enviando configuración...', 'info');
+            showNotification('⏳ Enviando configuración manualmente...', 'info');
             
             const formData = new FormData();
             formData.append('configFile', file);
@@ -4655,7 +4622,7 @@ Generado por VPN Cuba Admin Panel
                 if (response.ok) {
                     const result = await response.json();
                     if (result.success) {
-                        showNotification('✅ Configuración enviada correctamente', 'success');
+                        showNotification('✅ Configuración enviada manualmente', 'success');
                     } else {
                         showNotification(`⚠️ ${result.message || 'Error enviando configuración'}`, 'warning');
                     }
@@ -4675,6 +4642,7 @@ Generado por VPN Cuba Admin Panel
         // Cerrar modales
         function closeModal() {
             document.getElementById('screenshotModal').classList.remove('active');
+            currentPaymentMethod = null;
         }
 
         function closeConfigModal() {

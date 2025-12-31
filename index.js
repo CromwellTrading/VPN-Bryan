@@ -487,9 +487,9 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     const username = user?.username ? `@${user.username}` : 'Sin usuario';
     const firstName = user?.first_name || 'Usuario';
 
-    // Guardar pago en base de datos
+    // Guardar pago en base de datos - Asegurándonos de incluir telegram_id
     const payment = await db.createPayment({
-      telegram_id: telegramId,
+      telegram_id: telegramId, // ¡IMPORTANTE: Incluir telegram_id!
       plan: plan,
       price: parseFloat(price),
       method: method || 'transfer',
@@ -502,6 +502,8 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     if (!payment) {
       throw new Error('No se pudo crear el pago en la base de datos');
     }
+
+    console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}`);
 
     // Notificar a admins - MENSJAE UNIFICADO PARA TODOS LOS MÉTODOS
     try {
@@ -638,6 +640,14 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
 
+    console.log(`✅ Pago aprobado: ${payment.id}, telegram_id: ${payment.telegram_id}`);
+
+    // Verificar que el pago tenga telegram_id
+    if (!payment.telegram_id) {
+      console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
+      return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
+    }
+
     // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
     try {
       await bot.telegram.sendMessage(
@@ -692,6 +702,12 @@ app.post('/api/payments/:id/reject', async (req, res) => {
     
     if (!payment) {
       return res.status(404).json({ error: 'Pago no encontrado' });
+    }
+
+    // Verificar que el pago tenga telegram_id
+    if (!payment.telegram_id) {
+      console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
+      return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
     // Notificar al usuario
@@ -794,13 +810,19 @@ app.get('/api/payments/:id', async (req, res) => {
   }
 });
 
-// 13. Enviar archivo de configuración (para pagos aprobados) - ENVÍO MANUAL
+// 13. Enviar archivo de configuración (para pagos aprobados) - CORREGIDO
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
-    const { paymentId, telegramId, adminId } = req.body;
+    const { paymentId, adminId } = req.body;
+    
+    console.log('📤 Recibiendo solicitud de envío de configuración:', { paymentId, adminId });
     
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!paymentId) {
+      return res.status(400).json({ error: 'ID de pago requerido' });
     }
     
     if (!req.file) {
@@ -815,23 +837,51 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
+    // Obtener el pago usando el ID
+    console.log(`🔍 Buscando pago con ID: ${paymentId}`);
     const payment = await db.getPayment(paymentId);
     
     if (!payment) {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
+      console.error(`❌ Pago no encontrado: ${paymentId}`);
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
     
+    console.log('📄 Pago encontrado:', {
+      id: payment.id,
+      telegram_id: payment.telegram_id,
+      status: payment.status,
+      plan: payment.plan
+    });
+    
+    // Verificar que el pago esté aprobado
     if (payment.status !== 'approved') {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
+      console.error(`❌ Pago no está aprobado, estado: ${payment.status}`);
       return res.status(400).json({ error: 'El pago no está aprobado' });
     }
     
+    // Obtener telegramId del pago
+    const telegramId = payment.telegram_id;
+    
+    if (!telegramId) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      console.error('❌ El pago no tiene telegram_id:', payment);
+      return res.status(400).json({ 
+        error: 'El pago no tiene un usuario asociado (telegram_id). Por favor, verifica la base de datos.' 
+      });
+    }
+    
+    console.log(`📤 Enviando configuración a usuario ${telegramId} para pago ${paymentId}`);
+    
     try {
+      // Enviar archivo por Telegram
       await bot.telegram.sendDocument(
         telegramId,
         { source: req.file.path, filename: req.file.originalname },
@@ -849,6 +899,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         }
       );
       
+      // Actualizar pago en la base de datos
       await db.updatePayment(paymentId, {
         config_sent: true,
         config_sent_at: new Date().toISOString(),
@@ -856,23 +907,29 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         config_sent_by: adminId
       });
       
+      // Verificar si el usuario ya es VIP, si no, hacerlo VIP
       const user = await db.getUser(telegramId);
-      if (!user.vip) {
+      if (user && !user.vip) {
         await db.makeUserVIP(telegramId, {
           plan: payment.plan,
           plan_price: payment.price,
           vip_since: new Date().toISOString()
         });
+        console.log(`✅ Usuario ${telegramId} marcado como VIP`);
       }
       
+      // Eliminar archivo temporal
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
       });
       
+      console.log(`✅ Configuración enviada al usuario ${telegramId}`);
+      
       res.json({ 
         success: true, 
         message: 'Configuración enviada manualmente',
-        filename: req.file.filename 
+        filename: req.file.filename,
+        telegramId: telegramId
       });
       
     } catch (telegramError) {
@@ -880,6 +937,15 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
+      
+      // Verificar si el error es específico de chat_id
+      if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id')) {
+        console.error(`❌ Error específico de chat_id para usuario ${telegramId}:`, telegramError.message);
+        return res.status(400).json({ 
+          error: `Error: El chat_id (${telegramId}) no es válido o el usuario no ha iniciado el bot.` 
+        });
+      }
+      
       res.status(500).json({ error: 'Error enviando archivo por Telegram: ' + telegramError.message });
     }
     
@@ -1031,7 +1097,7 @@ app.post('/api/request-trial', async (req, res) => {
         'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
         '📋 *Proceso:*\n' +
         '1. Un administrador revisará tu solicitud\n' +
-        '2. Recibirás la configuración por este chat\n' +
+        '2. Recibirás la configuración por este chat\n` +
         '3. Tendrás 1 hora de acceso completo\n\n' +
         '⏰ *Tiempo estimado:* Minutos\n\n' +
         '¡Gracias por probar VPN Cuba! 🚀',

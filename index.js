@@ -114,7 +114,8 @@ function getPlanName(planType) {
     'basico': 'Básico (1 mes)',
     'avanzado': 'Avanzado (2 meses)',
     'premium': 'Premium (1 mes)',
-    'anual': 'Anual (12 meses)'
+    'anual': 'Anual (12 meses)',
+    'trial': 'Prueba Gratuita'
   };
   return plans[planType] || planType;
 }
@@ -1043,20 +1044,25 @@ app.post('/api/send-message', async (req, res) => {
   }
 });
 
-// 17. Remover VIP de usuario (admin)
-app.post('/api/remove-vip', async (req, res) => {
+// 17. Remover VIP de usuario (admin) - CORREGIDO: Ruta específica
+app.post('/api/user/:userId/remove-vip', async (req, res) => {
   try {
-    const { telegramId, adminId } = req.body;
+    const { adminId } = req.body;
+    const userId = req.params.userId;
     
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
-    const user = await db.removeVIP(telegramId);
+    const user = await db.removeVIP(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
     
     try {
       await bot.telegram.sendMessage(
-        telegramId,
+        userId,
         '⚠️ *Tu acceso VIP ha sido removido*\n\n' +
         'Tu suscripción VIP ha sido cancelada.\n' +
         'Si crees que es un error, contacta con soporte.',
@@ -1732,7 +1738,51 @@ app.get('/api/referrals/user/:telegramId', async (req, res) => {
   }
 });
 
-// 36. RUTAS API PARA USDT (MODIFICADAS)
+// 36. Obtener usuarios con referidos
+app.get('/api/users/with-referrals', async (req, res) => {
+  try {
+    const stats = await db.getAllReferralsStats();
+    const usersWithReferrals = stats.top_referrers || [];
+    
+    const usersWithInfo = await Promise.all(usersWithReferrals.map(async (user) => {
+      const userInfo = await db.getUser(user.referrer_id);
+      return {
+        ...user,
+        first_name: userInfo?.first_name || 'Usuario',
+        username: userInfo?.username || 'sin_usuario',
+        telegram_id: user.referrer_id
+      };
+    }));
+    
+    res.json(usersWithInfo);
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios con referidos:', error);
+    res.status(500).json({ error: 'Error obteniendo usuarios con referidos' });
+  }
+});
+
+// 37. Obtener usuarios sin referidos
+app.get('/api/users/without-referrals', async (req, res) => {
+  try {
+    const stats = await db.getAllReferralsStats();
+    const allUsers = await db.getAllUsers();
+    
+    // Usuarios con referidos
+    const usersWithReferrals = new Set(stats.top_referrers?.map(u => u.referrer_id) || []);
+    
+    // Filtrar usuarios sin referidos
+    const usersWithoutReferrals = allUsers.filter(user => {
+      return !usersWithReferrals.has(user.telegram_id.toString());
+    });
+    
+    res.json(usersWithoutReferrals);
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios sin referidos:', error);
+    res.status(500).json({ error: 'Error obteniendo usuarios sin referidos' });
+  }
+});
+
+// 38. RUTAS API PARA USDT (MODIFICADAS)
 
 // Verificar estado de wallet USDT
 app.get('/api/usdt/wallet-status', async (req, res) => {
@@ -1801,7 +1851,7 @@ app.get('/api/usdt/unassigned-transactions', async (req, res) => {
   }
 });
 
-// 37. Subir archivo de plan
+// 39. Subir archivo de plan
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
@@ -1814,7 +1864,7 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Archivo de configuración requerido' });
     }
     
-    if (!plan || !['basico', 'avanzado', 'premium', 'anual', 'trial'].includes(plan)) {
+    if (!plan || !['basico', 'avanzado', 'premium', 'anual'].includes(plan)) {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
@@ -1870,8 +1920,79 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: 'Error subiendo archivo de plan: ' + error.message });
   }
 });
+
+// 40. Subir archivo de prueba
+app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
+  try {
+    const { plan, adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'Archivo de configuración requerido' });
+    }
+    
+    // Validar que sea archivo de prueba
+    if (plan !== 'trial') {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'Solo se permite subir archivos de prueba aquí' });
+    }
+    
+    const fileName = req.file.originalname.toLowerCase();
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
+    }
+    
+    // Leer archivo
+    const fileBuffer = fs.readFileSync(req.file.path);
+    
+    // Subir archivo a Supabase Storage
+    const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
+    
+    // Eliminar archivo local
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error('❌ Error al eliminar archivo local:', err);
+    });
+    
+    // Guardar información del archivo en la base de datos
+    const planFileData = {
+      plan: 'trial',
+      storage_filename: uploadResult.filename,
+      original_name: uploadResult.originalName,
+      public_url: uploadResult.publicUrl,
+      uploaded_by: adminId,
+      uploaded_at: new Date().toISOString()
+    };
+    
+    const savedFile = await db.savePlanFile(planFileData);
+    
+    res.json({ 
+      success: true, 
+      message: `Archivo de prueba subido correctamente`,
+      file: savedFile
+    });
+    
+  } catch (error) {
+    console.error('❌ Error subiendo archivo de prueba:', error);
+    
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+    }
+    
+    res.status(500).json({ error: 'Error subiendo archivo de prueba: ' + error.message });
+  }
+});
   
-// 38. Obtener todos los archivos de planes
+// 41. Obtener todos los archivos de planes
 app.get('/api/plan-files', async (req, res) => {
   try {
     const planFiles = await db.getAllPlanFiles();
@@ -1882,7 +2003,7 @@ app.get('/api/plan-files', async (req, res) => {
   }
 });
 
-// 39. Obtener archivo de plan específico
+// 42. Obtener archivo de plan específico
 app.get('/api/plan-files/:plan', async (req, res) => {
   try {
     const planFile = await db.getPlanFile(req.params.plan);
@@ -1898,7 +2019,23 @@ app.get('/api/plan-files/:plan', async (req, res) => {
   }
 });
 
-// 40. Eliminar archivo de plan
+// 43. Obtener archivo de prueba
+app.get('/api/plan-files/trial', async (req, res) => {
+  try {
+    const planFile = await db.getPlanFile('trial');
+    
+    if (!planFile) {
+      return res.status(404).json({ error: 'Archivo de prueba no encontrado' });
+    }
+    
+    res.json(planFile);
+  } catch (error) {
+    console.error('❌ Error obteniendo archivo de prueba:', error);
+    res.status(500).json({ error: 'Error obteniendo archivo de prueba' });
+  }
+});
+
+// 44. Eliminar archivo de plan
 app.delete('/api/plan-files/:plan', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -1920,7 +2057,7 @@ app.delete('/api/plan-files/:plan', async (req, res) => {
   }
 });
 
-// 41. Obtener estadísticas de juegos/servidores
+// 45. Obtener estadísticas de juegos/servidores
 app.get('/api/games-stats', async (req, res) => {
   try {
     const stats = await db.getGamesStatistics();
@@ -1931,7 +2068,7 @@ app.get('/api/games-stats', async (req, res) => {
   }
 });
 
-// 42. Obtener detalles de usuario (para admin)
+// 46. Obtener detalles de usuario (para admin)
 app.get('/api/user/:telegramId/details', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
@@ -1962,6 +2099,38 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
   } catch (error) {
     console.error('❌ Error obteniendo detalles de usuario:', error);
     res.status(500).json({ error: 'Error obteniendo detalles de usuario' });
+  }
+});
+
+// 47. Mensaje directo a usuario desde admin
+app.post('/api/user/:userId/message', async (req, res) => {
+  try {
+    const { adminId, message } = req.body;
+    const userId = req.params.userId;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!message) {
+      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
+    }
+    
+    // Validar que userId sea válido
+    if (!userId || userId === 'undefined' || userId === 'null' || userId === '') {
+      return res.status(400).json({ error: 'ID de usuario inválido' });
+    }
+    
+    const chatId = userId.toString().trim();
+    
+    await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
+      parse_mode: 'Markdown' 
+    });
+    
+    res.json({ success: true, message: 'Mensaje enviado' });
+  } catch (error) {
+    console.error('❌ Error enviando mensaje:', error);
+    res.status(500).json({ error: 'Error enviando mensaje: ' + error.message });
   }
 });
 

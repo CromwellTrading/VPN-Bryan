@@ -124,14 +124,17 @@ const db = {
     try {
       console.log(`🔍 Buscando usuario ${telegramId}...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', userId)
         .single();
       
       if (error && error.code === 'PGRST116') {
-        console.log(`📭 Usuario ${telegramId} no encontrado`);
+        console.log(`📭 Usuario ${userId} no encontrado`);
         return null;
       }
       
@@ -140,7 +143,7 @@ const db = {
         return null;
       }
       
-      console.log(`✅ Usuario encontrado: ${data.first_name || data.username || telegramId}`);
+      console.log(`✅ Usuario encontrado: ${data.first_name || data.username || userId}`);
       return data;
     } catch (error) {
       console.error('❌ Error en getUser:', error);
@@ -152,18 +155,24 @@ const db = {
     try {
       console.log(`💾 Guardando usuario ${telegramId}...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       // Verificar si el usuario ya existe
-      const existingUser = await this.getUser(telegramId);
+      const existingUser = await this.getUser(userId);
       
       if (existingUser) {
         // Actualizar usuario existente
-        console.log(`✏️ Actualizando usuario existente ${telegramId}`);
+        console.log(`✏️ Actualizando usuario existente ${userId}`);
         
         const updateData = {
           ...userData,
           updated_at: new Date().toISOString(),
           last_activity: new Date().toISOString()
         };
+        
+        // Asegurar que telegram_id esté presente
+        updateData.telegram_id = userId;
         
         // Si se envía trial_requested, actualizar también trial_requested_at
         if (userData.trial_requested && !existingUser.trial_requested) {
@@ -184,7 +193,7 @@ const db = {
         const { data, error } = await supabase
           .from('users')
           .update(updateData)
-          .eq('telegram_id', telegramId)
+          .eq('telegram_id', userId)
           .select()
           .single();
         
@@ -193,14 +202,14 @@ const db = {
           throw error;
         }
         
-        console.log(`✅ Usuario actualizado: ${data.first_name || data.username || telegramId}`);
+        console.log(`✅ Usuario actualizado: ${data.first_name || data.username || userId}`);
         return data;
       } else {
         // Crear nuevo usuario
-        console.log(`🆕 Creando nuevo usuario ${telegramId}`);
+        console.log(`🆕 Creando nuevo usuario ${userId}`);
         
         const insertData = {
-          telegram_id: telegramId,
+          telegram_id: userId,
           ...userData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -218,7 +227,7 @@ const db = {
           throw error;
         }
         
-        console.log(`✅ Usuario creado: ${data.first_name || data.username || telegramId}`);
+        console.log(`✅ Usuario creado: ${data.first_name || data.username || userId}`);
         return data;
       }
     } catch (error) {
@@ -231,13 +240,17 @@ const db = {
     try {
       console.log(`✏️ Actualizando usuario ${telegramId}...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       const { data, error } = await supabase
         .from('users')
         .update({
           ...updateData,
+          telegram_id: userId, // Asegurar que telegram_id esté presente
           updated_at: new Date().toISOString()
         })
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', userId)
         .select()
         .single();
       
@@ -246,7 +259,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Usuario ${telegramId} actualizado`);
+      console.log(`✅ Usuario ${userId} actualizado`);
       return data;
     } catch (error) {
       console.error('❌ Error actualizando usuario:', error);
@@ -266,9 +279,13 @@ const db = {
     try {
       console.log(`👑 Haciendo usuario ${telegramId} VIP...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       const { data, error } = await supabase
         .from('users')
         .update({
+          telegram_id: userId, // Asegurar que telegram_id esté presente
           vip: true,
           plan: vipData.plan || 'vip',
           plan_price: vipData.plan_price || 0,
@@ -276,7 +293,7 @@ const db = {
           updated_at: new Date().toISOString(),
           payment_method: vipData.payment_method || null
         })
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', userId)
         .select()
         .single();
       
@@ -285,7 +302,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Usuario ${telegramId} marcado como VIP`);
+      console.log(`✅ Usuario ${userId} marcado como VIP`);
       return data;
     } catch (error) {
       console.error('❌ Error haciendo usuario VIP:', error);
@@ -297,16 +314,20 @@ const db = {
     try {
       console.log(`👑 Removiendo VIP de usuario ${telegramId}...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       const { data, error } = await supabase
         .from('users')
         .update({
+          telegram_id: userId, // Asegurar que telegram_id esté presente
           vip: false,
           plan: null,
           plan_price: null,
           vip_since: null,
           updated_at: new Date().toISOString()
         })
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', userId)
         .select()
         .single();
       
@@ -315,7 +336,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ VIP removido de usuario ${telegramId}`);
+      console.log(`✅ VIP removido de usuario ${userId}`);
       return data;
     } catch (error) {
       console.error('❌ Error removiendo VIP:', error);
@@ -394,282 +415,21 @@ const db = {
     }
   },
 
-  // ========== FUNCIONES USDT PARA VERIFICACIÓN AUTOMÁTICA ==========
-  // Las siguientes funciones están comentadas porque el sistema de detección automática de USDT está desactivado
-  // Solo se procesan pagos USDT mediante verificación manual del admin con captura de pantalla
-
-  // Obtener pago USDT por hash de transacción
-  // async getUsdtPaymentByHash(transactionHash) {
-  //   try {
-  //     console.log(`🔍 Buscando pago USDT por hash: ${transactionHash}`);
-  //     
-  //     const { data, error } = await supabase
-  //       .from('usdt_payments')
-  //       .select('*')
-  //       .eq('transaction_hash', transactionHash)
-  //       .single();
-  //     
-  //     if (error && error.code !== 'PGRST116') {
-  //       console.error('❌ Error obteniendo pago USDT por hash:', error);
-  //       throw error;
-  //     }
-  //     
-  //     if (error && error.code === 'PGRST116') {
-  //       console.log(`📭 Pago USDT con hash ${transactionHash} no encontrado`);
-  //       return null;
-  //     }
-  //     
-  //     console.log(`✅ Pago USDT encontrado por hash`);
-  //     return data;
-  //   } catch (error) {
-  //     console.error('❌ Error en getUsdtPaymentByHash:', error);
-  //     return null;
-  //   }
-  // },
-
-  // Obtener pagos USDT pendientes
-  // async getPendingUsdtPayments() {
-  //   try {
-  //     console.log('🔍 Obteniendo pagos USDT pendientes...');
-  //     
-  //     const { data, error } = await supabase
-  //       .from('usdt_payments')
-  //       .select('*')
-  //       .eq('status', 'pending')
-  //       .order('created_at', { ascending: true });
-  //     
-  //     if (error) {
-  //       console.error('❌ Error obteniendo pagos USDT pendientes:', error);
-  //       throw error;
-  //     }
-  //     
-  //     console.log(`✅ ${data?.length || 0} pagos USDT pendientes encontrados`);
-  //     return data || [];
-  //   } catch (error) {
-  //     console.error('❌ Error en getPendingUsdtPayments:', error);
-  //     return [];
-  //   }
-  // },
-
-  // Obtener pago USDT de usuario por plan
-  // async getUserUsdtPayment(telegramId, plan) {
-  //   try {
-  //     console.log(`🔍 Buscando pago USDT de usuario ${telegramId}, plan ${plan}`);
-  //     
-  //     const { data, error } = await supabase
-  //       .from('usdt_payments')
-  //       .select('*')
-  //       .eq('telegram_id', telegramId)
-  //       .eq('plan', plan)
-  //       .eq('status', 'pending')
-  //       .order('created_at', { ascending: false })
-  //       .limit(1)
-  //       .single();
-  //     
-  //     if (error && error.code !== 'PGRST116') {
-  //       console.error('❌ Error obteniendo pago USDT de usuario:', error);
-  //       throw error;
-  //     }
-  //     
-  //     if (error && error.code === 'PGRST116') {
-  //       console.log(`📭 Pago USDT no encontrado para usuario ${telegramId}, plan ${plan}`);
-  //       return null;
-  //     }
-  //     
-  //     console.log(`✅ Pago USDT encontrado para usuario ${telegramId}`);
-  //     return data;
-  //   } catch (error) {
-  //     console.error('❌ Error en getUserUsdtPayment:', error);
-  //     return null;
-  //   }
-  // },
-
-  // Actualizar estado de pago USDT con más detalles
-  // async updateUsdtPaymentStatus(paymentId, status, transactionHash, senderAddress, amount) {
-  //   try {
-  //     console.log(`✏️ Actualizando estado de pago USDT ${paymentId} a ${status}`);
-  //     
-  //     const updateData = {
-  //       status: status,
-  //       updated_at: new Date().toISOString()
-  //     };
-  //     
-  //     if (transactionHash) {
-  //       updateData.transaction_hash = transactionHash;
-  //     }
-  //     
-  //     if (senderAddress) {
-  //       updateData.sender_address = senderAddress;
-  //     }
-  //     
-  //     if (amount) {
-  //       updateData.confirmed_amount = amount;
-  //     }
-  //     
-  //     if (status === 'completed') {
-  //       updateData.confirmed_at = new Date().toISOString();
-  //     }
-  //     
-  //     const { data, error } = await supabase
-  //       .from('usdt_payments')
-  //       .update(updateData)
-  //       .eq('id', paymentId)
-  //       .select()
-  //       .single();
-  //     
-  //     if (error) {
-  //       console.error('❌ Error actualizando estado de pago USDT:', error);
-  //       throw error;
-  //     }
-  //     
-  //     console.log(`✅ Pago USDT ${paymentId} actualizado a ${status}`);
-  //     return data;
-  //   } catch (error) {
-  //     console.error('❌ Error en updateUsdtPaymentStatus:', error);
-  //     throw error;
-  //   }
-  // },
-
-  // Crear transacción USDT no asignada
-  // async createUnassignedUsdtTransaction(transactionData) {
-  //   try {
-  //     console.log(`📝 Creando transacción USDT no asignada: ${transactionData.transaction_hash}`);
-  //     
-  //     const { data, error } = await supabase
-  //       .from('unassigned_usdt_transactions')
-  //       .insert([{
-  //         transaction_hash: transactionData.transaction_hash,
-  //         sender_address: transactionData.sender_address,
-  //         amount: transactionData.amount,
-  //         timestamp: transactionData.timestamp,
-  //         raw_data: transactionData.raw_data,
-  //         status: 'unassigned',
-  //         created_at: new Date().toISOString()
-  //       }])
-  //       .select()
-  //       .single();
-  //     
-  //     if (error) {
-  //       console.error('❌ Error creando transacción no asignada:', error);
-  //       
-  //       // Si ya existe, actualizar
-  //       if (error.code === '23505') { // Unique violation
-  //         console.log(`⚠️ Transacción ${transactionData.transaction_hash} ya existe, actualizando...`);
-  //         
-  //         const { data: existing } = await supabase
-  //           .from('unassigned_usdt_transactions')
-  //           .select('*')
-  //           .eq('transaction_hash', transactionData.transaction_hash)
-  //           .single();
-  //         
-  //         return existing;
-  //       }
-  //       throw error;
-  //     }
-  //     
-  //     console.log(`✅ Transacción no asignada creada: ${data.id}`);
-  //     return data;
-  //   } catch (error) {
-  //     console.error('❌ Error en createUnassignedUsdtTransaction:', error);
-  //     throw error;
-  //   }
-  // },
-
-  // Obtener transacciones no asignadas
-  // async getUnassignedUsdtTransactions() {
-  //   try {
-  //     console.log('🔍 Obteniendo transacciones USDT no asignadas...');
-  //     
-  //     const { data, error } = await supabase
-  //       .from('unassigned_usdt_transactions')
-  //       .select('*')
-  //       .eq('status', 'unassigned')
-  //       .order('timestamp', { ascending: false });
-  //     
-  //     if (error) {
-  //       console.error('❌ Error obteniendo transacciones no asignadas:', error);
-  //       throw error;
-  //     }
-  //     
-  //     console.log(`✅ ${data?.length || 0} transacciones no asignadas encontradas`);
-  //     return data || [];
-  //   } catch (error) {
-  //     console.error('❌ Error en getUnassignedUsdtTransactions:', error);
-  //     return [];
-  //   }
-  // },
-
-  // Obtener transacción no asignada específica
-  // async getUnassignedTransaction(transactionHash) {
-  //   try {
-  //     console.log(`🔍 Buscando transacción no asignada: ${transactionHash}`);
-  //     
-  //     const { data, error } = await supabase
-  //       .from('unassigned_usdt_transactions')
-  //       .select('*')
-  //       .eq('transaction_hash', transactionHash)
-  //       .eq('status', 'unassigned')
-  //       .single();
-  //     
-  //     if (error && error.code !== 'PGRST116') {
-  //       console.error('❌ Error obteniendo transacción no asignada:', error);
-  //       throw error;
-  //     }
-  //     
-  //     if (error && error.code === 'PGRST116') {
-  //       console.log(`📭 Transacción no asignada ${transactionHash} no encontrada`);
-  //       return null;
-  //     }
-  //     
-  //     console.log(`✅ Transacción no asignada encontrada`);
-  //     return data;
-  //   } catch (error) {
-  //     console.error('❌ Error en getUnassignedTransaction:', error);
-  //     return null;
-  //   }
-  // },
-
-  // Marcar transacción como asignada
-  // async markTransactionAsAssigned(transactionHash, assignedBy) {
-  //   try {
-  //     console.log(`✅ Marcando transacción ${transactionHash} como asignada por ${assignedBy}`);
-  //     
-  //     const { data, error } = await supabase
-  //       .from('unassigned_usdt_transactions')
-  //       .update({
-  //         status: 'assigned',
-  //         assigned_to: assignedBy,
-  //         assigned_at: new Date().toISOString(),
-  //         updated_at: new Date().toISOString()
-  //       })
-  //       .eq('transaction_hash', transactionHash)
-  //       .select()
-  //       .single();
-  //     
-  //     if (error) {
-  //       console.error('❌ Error marcando transacción como asignada:', error);
-  //       throw error;
-  //     }
-  //     
-  //     console.log(`✅ Transacción ${transactionHash} marcada como asignada`);
-  //     return data;
-  //   } catch (error) {
-  //     console.error('❌ Error en markTransactionAsAssigned:', error);
-  //     throw error;
-  //   }
-  // },
-
   // ========== REFERIDOS ==========
   async createReferral(referrerId, referredId, referredUsername = null, referredName = null) {
     try {
       console.log(`🤝 Creando referido: ${referrerId} -> ${referredId}`);
       
+      // Convertir a strings para asegurar consistencia
+      const referrerIdStr = String(referrerId).trim();
+      const referredIdStr = String(referredId).trim();
+      
       // Verificar si ya existe este referido
       const { data: existing, error: checkError } = await supabase
         .from('referrals')
         .select('id')
-        .eq('referrer_id', referrerId)
-        .eq('referred_id', referredId)
+        .eq('referrer_id', referrerIdStr)
+        .eq('referred_id', referredIdStr)
         .single();
       
       if (existing) {
@@ -681,8 +441,8 @@ const db = {
       const { data, error } = await supabase
         .from('referrals')
         .insert([{
-          referrer_id: referrerId,
-          referred_id: referredId,
+          referrer_id: referrerIdStr,
+          referred_id: referredIdStr,
           referred_username: referredUsername,
           referred_name: referredName,
           level: 1,
@@ -703,7 +463,7 @@ const db = {
       const { data: referrerReferrals } = await supabase
         .from('referrals')
         .select('referrer_id')
-        .eq('referred_id', referrerId)
+        .eq('referred_id', referrerIdStr)
         .eq('level', 1)
         .single();
       
@@ -713,7 +473,7 @@ const db = {
           .from('referrals')
           .insert([{
             referrer_id: referrerReferrals.referrer_id,
-            referred_id: referredId,
+            referred_id: referredIdStr,
             referred_username: referredUsername,
             referred_name: referredName,
             level: 2,
@@ -735,11 +495,14 @@ const db = {
     try {
       console.log(`📊 Obteniendo estadísticas de referidos para ${telegramId}`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       // Obtener referidos directos (nivel 1)
       const { data: level1, error: error1 } = await supabase
         .from('referrals')
         .select('*')
-        .eq('referrer_id', telegramId)
+        .eq('referrer_id', userId)
         .eq('level', 1);
       
       if (error1) {
@@ -758,7 +521,7 @@ const db = {
       const { data: level2, error: error2 } = await supabase
         .from('referrals')
         .select('*')
-        .eq('referrer_id', telegramId)
+        .eq('referrer_id', userId)
         .eq('level', 2);
       
       if (error2) {
@@ -907,10 +670,13 @@ const db = {
     try {
       console.log(`💰 Marcando referido ${referredId} como pagado`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(referredId).trim();
+      
       const { data, error } = await supabase
         .from('referrals')
         .update({ has_paid: true })
-        .eq('referred_id', referredId)
+        .eq('referred_id', userId)
         .select();
       
       if (error) {
@@ -918,7 +684,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Referido ${referredId} marcado como pagado`);
+      console.log(`✅ Referido ${userId} marcado como pagado`);
       return data;
     } catch (error) {
       console.error('❌ Error en markReferralAsPaid:', error);
@@ -930,10 +696,13 @@ const db = {
     try {
       console.log(`🔍 Obteniendo referidos de ${referrerId}`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(referrerId).trim();
+      
       const { data, error } = await supabase
         .from('referrals')
         .select('*')
-        .eq('referrer_id', referrerId)
+        .eq('referrer_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -958,10 +727,20 @@ const db = {
         status: paymentData.status
       });
       
+      // Validar que telegram_id esté presente y sea válido
+      if (!paymentData.telegram_id || paymentData.telegram_id === 'undefined' || paymentData.telegram_id === 'null') {
+        console.error('❌ Error: El campo telegram_id es inválido:', paymentData.telegram_id);
+        throw new Error('El campo telegram_id es requerido y debe ser válido para crear un pago');
+      }
+      
+      // Convertir a string para asegurar consistencia
+      const telegramId = String(paymentData.telegram_id).trim();
+      
       const { data, error } = await supabase
         .from('payments')
         .insert([{
           ...paymentData,
+          telegram_id: telegramId, // Asegurar que sea string consistente
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
@@ -973,7 +752,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Pago creado con ID: ${data.id}`);
+      console.log(`✅ Pago creado con ID: ${data.id}, telegram_id: ${data.telegram_id}`);
       return data;
     } catch (error) {
       console.error('❌ Error creando pago:', error);
@@ -1001,7 +780,16 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Pago ${paymentId} encontrado`);
+      console.log(`✅ Pago ${paymentId} encontrado, telegram_id: ${data.telegram_id || 'NO TIENE'}`);
+      
+      // Validar que el pago tenga telegram_id
+      if (!data.telegram_id) {
+        console.warn(`⚠️ ADVERTENCIA: El pago ${paymentId} no tiene telegram_id`);
+      } else {
+        // Asegurar que telegram_id sea string
+        data.telegram_id = String(data.telegram_id).trim();
+      }
+      
       return data;
     } catch (error) {
       console.error('❌ Error obteniendo pago:', error);
@@ -1025,7 +813,20 @@ const db = {
       }
       
       console.log(`✅ ${data?.length || 0} pagos pendientes encontrados`);
-      return data || [];
+      
+      // Verificar que todos los pagos tengan telegram_id y convertirlos a string
+      const pagosSinTelegramId = data?.filter(p => !p.telegram_id) || [];
+      if (pagosSinTelegramId.length > 0) {
+        console.warn(`⚠️ ADVERTENCIA: ${pagosSinTelegramId.length} pagos pendientes no tienen telegram_id`);
+      }
+      
+      // Asegurar que todos los telegram_id sean strings
+      const processedData = data?.map(payment => ({
+        ...payment,
+        telegram_id: payment.telegram_id ? String(payment.telegram_id).trim() : null
+      })) || [];
+      
+      return processedData;
     } catch (error) {
       console.error('❌ Error obteniendo pagos pendientes:', error);
       return [];
@@ -1048,7 +849,20 @@ const db = {
       }
       
       console.log(`✅ ${data?.length || 0} pagos aprobados encontrados`);
-      return data || [];
+      
+      // Verificar que todos los pagos tengan telegram_id y convertirlos a string
+      const pagosSinTelegramId = data?.filter(p => !p.telegram_id) || [];
+      if (pagosSinTelegramId.length > 0) {
+        console.warn(`⚠️ ADVERTENCIA: ${pagosSinTelegramId.length} pagos aprobados no tienen telegram_id`);
+      }
+      
+      // Asegurar que todos los telegram_id sean strings
+      const processedData = data?.map(payment => ({
+        ...payment,
+        telegram_id: payment.telegram_id ? String(payment.telegram_id).trim() : null
+      })) || [];
+      
+      return processedData;
     } catch (error) {
       console.error('❌ Error obteniendo pagos aprobados:', error);
       return [];
@@ -1075,7 +889,12 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Pago ${paymentId} aprobado`);
+      // Asegurar que telegram_id sea string
+      if (data.telegram_id) {
+        data.telegram_id = String(data.telegram_id).trim();
+      }
+      
+      console.log(`✅ Pago ${paymentId} aprobado, telegram_id: ${data.telegram_id || 'NO TIENE'}`);
       return data;
     } catch (error) {
       console.error('❌ Error aprobando pago:', error);
@@ -1143,10 +962,13 @@ const db = {
     try {
       console.log(`📊 Obteniendo pagos del usuario ${telegramId}...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       const { data, error } = await supabase
         .from('payments')
         .select('*')
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -1154,7 +976,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ ${data?.length || 0} pagos encontrados para usuario ${telegramId}`);
+      console.log(`✅ ${data?.length || 0} pagos encontrados para usuario ${userId}`);
       return data || [];
     } catch (error) {
       console.error('❌ Error obteniendo pagos del usuario:', error);
@@ -1163,9 +985,6 @@ const db = {
   },
 
   // ========== PAGOS USDT ==========
-  // Las funciones de USDT ahora solo son para registro, no para verificación automática
-  // Los pagos USDT se procesan manualmente mediante captura de pantalla
-  
   async createUsdtPayment(usdtData) {
     try {
       console.log('💸 Creando pago USDT (registro manual)...', {
@@ -1226,8 +1045,6 @@ const db = {
     }
   },
 
-  // Función actualizada para compatibilidad
-  // Esta función ahora solo se usa para actualizaciones manuales del admin
   async updateUsdtPaymentStatus(address, status, transactionHash = null, sender = null) {
     try {
       console.log(`✏️ Actualizando pago USDT ${address} a ${status} (MANUAL)`);
@@ -1268,10 +1085,6 @@ const db = {
       throw error;
     }
   },
-
-  // Las siguientes funciones están desactivadas - verificación automática deshabilitada
-  // async getPendingUsdtPayments() { ... }
-  // async getCompletedUsdtPayments() { ... }
 
   // ========== ARCHIVOS DE PLANES ==========
   async savePlanFile(planFileData) {
@@ -1442,7 +1255,7 @@ const db = {
       // Obtener estadísticas de pagos
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
-        .select('status, price, method');
+        .select('status, price, method, telegram_id');
       
       if (paymentsError) {
         console.error('❌ Error obteniendo pagos para estadísticas:', paymentsError);
@@ -1637,6 +1450,9 @@ const db = {
     try {
       console.log(`✅ Marcando prueba como enviada para ${telegramId}...`);
       
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
       const { data, error } = await supabase
         .from('users')
         .update({
@@ -1645,7 +1461,7 @@ const db = {
           trial_sent_by: sentBy,
           updated_at: new Date().toISOString()
         })
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', userId)
         .select()
         .single();
       
@@ -1654,7 +1470,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Prueba marcada como enviada para ${telegramId}`);
+      console.log(`✅ Prueba marcada como enviada para ${userId}`);
       return data;
     } catch (error) {
       console.error('❌ Error en markTrialAsSent:', error);
@@ -1666,7 +1482,10 @@ const db = {
     try {
       console.log(`🔍 Verificando elegibilidad para prueba de ${telegramId}...`);
       
-      const user = await this.getUser(telegramId);
+      // Convertir a string para asegurar consistencia
+      const userId = String(telegramId).trim();
+      
+      const user = await this.getUser(userId);
       
       if (!user) {
         return {
@@ -2106,17 +1925,10 @@ const db = {
         .select('count')
         .limit(1);
       
-      // Probar conexión a transacciones no asignadas (COMENTADA - sistema desactivado)
-      // const { data: unassignedTx, error: unassignedError } = await supabase
-      //   .from('unassigned_usdt_transactions')
-      //   .select('count')
-      //   .limit(1);
-      
       return {
         users: usersError ? `Error: ${usersError.message}` : '✅ Conectado',
         payments: paymentsError ? `Error: ${paymentsError.message}` : '✅ Conectado',
         usdt_payments: usdtError ? `Error: ${usdtError.message}` : '✅ Conectado',
-        // unassigned_transactions: unassignedError ? `Error: ${unassignedError.message}` : '✅ Conectado',
         unassigned_transactions: '❌ Sistema desactivado',
         storage: await this.checkStorageAccess()
       };

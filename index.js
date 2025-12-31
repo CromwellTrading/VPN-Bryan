@@ -810,7 +810,7 @@ app.get('/api/payments/:id', async (req, res) => {
   }
 });
 
-// 13. Enviar archivo de configuración (para pagos aprobados) - CORREGIDO
+// 13. Enviar archivo de configuración (para pagos aprobados) - CORREGIDO CON VALIDACIÓN DE chat_id
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
     const { paymentId, adminId } = req.body;
@@ -865,25 +865,45 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'El pago no está aprobado' });
     }
     
-    // Obtener telegramId del pago
+    // Obtener telegramId del pago - CORREGIDO: VALIDACIÓN COMPLETA
     const telegramId = payment.telegram_id;
     
-    if (!telegramId) {
+    console.log(`🔍 Telegram ID del pago: ${telegramId}, tipo: ${typeof telegramId}`);
+    
+    if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
-      console.error('❌ El pago no tiene telegram_id:', payment);
+      console.error('❌ El pago no tiene un telegram_id válido:', telegramId);
       return res.status(400).json({ 
         error: 'El pago no tiene un usuario asociado (telegram_id). Por favor, verifica la base de datos.' 
       });
     }
     
-    console.log(`📤 Enviando configuración a usuario ${telegramId} para pago ${paymentId}`);
+    // Convertir a string si es necesario
+    const chatId = telegramId.toString().trim();
+    console.log(`📤 Chat ID para envío: ${chatId}`);
+    
+    // Verificar si el usuario existe en la base de datos
+    const user = await db.getUser(chatId);
+    if (!user) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('❌ Error al eliminar archivo:', err);
+      });
+      console.error(`❌ Usuario ${chatId} no encontrado en la base de datos`);
+      return res.status(400).json({ 
+        error: `El usuario ${chatId} no está registrado en el sistema.` 
+      });
+    }
+    
+    console.log(`✅ Usuario encontrado: ${user.first_name || user.username || chatId}`);
     
     try {
+      console.log(`📤 Intentando enviar archivo a ${chatId}...`);
+      
       // Enviar archivo por Telegram
       await bot.telegram.sendDocument(
-        telegramId,
+        chatId,
         { source: req.file.path, filename: req.file.originalname },
         {
           caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
@@ -908,14 +928,13 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       });
       
       // Verificar si el usuario ya es VIP, si no, hacerlo VIP
-      const user = await db.getUser(telegramId);
       if (user && !user.vip) {
-        await db.makeUserVIP(telegramId, {
+        await db.makeUserVIP(chatId, {
           plan: payment.plan,
           plan_price: payment.price,
           vip_since: new Date().toISOString()
         });
-        console.log(`✅ Usuario ${telegramId} marcado como VIP`);
+        console.log(`✅ Usuario ${chatId} marcado como VIP`);
       }
       
       // Eliminar archivo temporal
@@ -923,26 +942,29 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
       });
       
-      console.log(`✅ Configuración enviada al usuario ${telegramId}`);
+      console.log(`✅ Configuración enviada al usuario ${chatId}`);
       
       res.json({ 
         success: true, 
         message: 'Configuración enviada manualmente',
         filename: req.file.filename,
-        telegramId: telegramId
+        telegramId: chatId
       });
       
     } catch (telegramError) {
-      console.error('❌ Error enviando archivo por Telegram:', telegramError);
+      console.error('❌ Error enviando archivo por Telegram:', telegramError.message);
+      console.error('❌ Stack trace:', telegramError.stack);
+      
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       
       // Verificar si el error es específico de chat_id
-      if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id')) {
-        console.error(`❌ Error específico de chat_id para usuario ${telegramId}:`, telegramError.message);
+      if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id') || 
+          telegramError.message.includes('chat not found') || telegramError.message.includes('chat not exist')) {
+        console.error(`❌ Error específico de chat_id para usuario ${chatId}:`, telegramError.message);
         return res.status(400).json({ 
-          error: `Error: El chat_id (${telegramId}) no es válido o el usuario no ha iniciado el bot.` 
+          error: `Error: El usuario ${chatId} no ha iniciado el bot o lo ha bloqueado. Chat_id inválido.` 
         });
       }
       
@@ -951,6 +973,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error en send-config:', error);
+    console.error('❌ Stack trace:', error.stack);
     
     if (req.file && req.file.path) {
       fs.unlink(req.file.path, (err) => {
@@ -1002,7 +1025,14 @@ app.post('/api/send-message', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
-    await bot.telegram.sendMessage(telegramId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
+    // Validar que telegramId sea válido
+    if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
+      return res.status(400).json({ error: 'ID de usuario inválido' });
+    }
+    
+    const chatId = telegramId.toString().trim();
+    
+    await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
       parse_mode: 'Markdown' 
     });
     
@@ -1097,7 +1127,7 @@ app.post('/api/request-trial', async (req, res) => {
         'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
         '📋 *Proceso:*\n' +
         '1. Un administrador revisará tu solicitud\n' +
-        '2. Recibirás la configuración por este chat\n` +
+        '2. Recibirás la configuración por este chat\n' +
         '3. Tendrás 1 hora de acceso completo\n\n' +
         '⏰ *Tiempo estimado:* Minutos\n\n' +
         '¡Gracias por probar VPN Cuba! 🚀',
@@ -1201,7 +1231,14 @@ app.post('/api/send-trial-config', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
-    const user = await db.getUser(telegramId);
+    // Validar que telegramId sea válido
+    if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
+      return res.status(400).json({ error: 'ID de usuario inválido' });
+    }
+    
+    const chatId = telegramId.toString().trim();
+    
+    const user = await db.getUser(chatId);
     
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -1225,7 +1262,7 @@ app.post('/api/send-trial-config', async (req, res) => {
       const connectionType = user.trial_connection_type || 'No especificado';
       
       await bot.telegram.sendDocument(
-        telegramId,
+        chatId,
         planFile.public_url,
         {
           caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
@@ -1243,7 +1280,7 @@ app.post('/api/send-trial-config', async (req, res) => {
         }
       );
       
-      await db.markTrialAsSent(telegramId, adminId);
+      await db.markTrialAsSent(chatId, adminId);
       
       res.json({ 
         success: true, 
@@ -2652,7 +2689,7 @@ bot.command('trialstatus', async (ctx) => {
         
         if (!user) {
             return ctx.reply('❌ No estás registrado. Usa /start para comenzar.');
-    }
+        }
     
         if (!user.trial_requested) {
             return ctx.reply('🎯 *Estado de prueba:* No has solicitado prueba gratuita.\n\nUsa "🎁 PRUEBA GRATIS" en la web para solicitar.', { parse_mode: 'Markdown' });
@@ -2739,8 +2776,16 @@ bot.on('document', async (ctx) => {
                 return;
             }
             
+            // Validar que telegramId sea válido
+            if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
+                await ctx.reply('❌ ID de usuario inválido');
+                return;
+            }
+            
+            const chatId = telegramId.toString().trim();
+            
             // Buscar si hay un pago aprobado para este usuario
-            const payments = await db.getUserPayments(telegramId);
+            const payments = await db.getUserPayments(chatId);
             let paymentId = null;
             let approvedPayment = null;
             
@@ -2752,7 +2797,7 @@ bot.on('document', async (ctx) => {
             }
             
             // Enviar archivo al usuario
-            await bot.telegram.sendDocument(telegramId, fileId, {
+            await bot.telegram.sendDocument(chatId, fileId, {
                 caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
                         `📁 *Archivo:* ${fileName}\n\n` +
                         `*Instrucciones:*\n` +
@@ -2775,9 +2820,9 @@ bot.on('document', async (ctx) => {
                 });
                 
                 // Marcar usuario como VIP si aún no lo está
-                const user = await db.getUser(telegramId);
+                const user = await db.getUser(chatId);
                 if (user && !user.vip && approvedPayment) {
-                    await db.makeUserVIP(telegramId, {
+                    await db.makeUserVIP(chatId, {
                         plan: approvedPayment.plan,
                         plan_price: approvedPayment.price,
                         vip_since: new Date().toISOString()
@@ -2785,11 +2830,11 @@ bot.on('document', async (ctx) => {
                 }
             }
 
-            await ctx.reply(`✅ Archivo enviado al usuario ${telegramId}`);
+            await ctx.reply(`✅ Archivo enviado al usuario ${chatId}`);
             
             // Notificar al usuario
             await bot.telegram.sendMessage(
-                telegramId,
+                chatId,
                 '✅ *Configuración recibida*\n\n' +
                 'El administrador te ha enviado la configuración.\n' +
                 'Busca el archivo en este chat.\n' +

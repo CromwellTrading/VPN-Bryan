@@ -1859,6 +1859,36 @@ const db = {
       return { games: [], connections: [] };
     }
   },
+  async updateUser(telegramId, updateData) {
+  try {
+    console.log(`✏️ Actualizando usuario ${telegramId}...`);
+    
+    // Convertir a string para asegurar consistencia
+    const userId = String(telegramId).trim();
+    
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        ...updateData,
+        telegram_id: userId, // Asegurar que telegram_id esté presente
+        updated_at: new Date().toISOString()
+      })
+      .eq('telegram_id', userId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ Error actualizando usuario:', error);
+      throw error;
+    }
+    
+    console.log(`✅ Usuario ${userId} actualizado`);
+    return data;
+  } catch (error) {
+    console.error('❌ Error actualizando usuario:', error);
+    throw error;
+  }
+}
 
   // ========== FUNCIONES DE DIAGNÓSTICO ==========
   async checkStorageAccess() {

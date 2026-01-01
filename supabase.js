@@ -1889,50 +1889,6 @@ const db = {
     throw error;
   }
 }
-
-  // ========== FUNCIONES DE DIAGNÓSTICO ==========
-  async checkStorageAccess() {
-    try {
-      console.log('🔍 Verificando acceso a storage...');
-      
-      const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
-      const results = [];
-      
-      for (const bucket of buckets) {
-        try {
-          const { data, error } = await supabaseAdmin.storage
-            .from(bucket)
-            .list();
-          
-          if (error) {
-            results.push({
-              bucket,
-              status: 'error',
-              message: error.message
-            });
-          } else {
-            results.push({
-              bucket,
-              status: 'ok',
-              fileCount: data?.length || 0
-            });
-          }
-        } catch (bucketError) {
-          results.push({
-            bucket,
-            status: 'error',
-            message: bucketError.message
-          });
-        }
-      }
-      
-      return results;
-    } catch (error) {
-      console.error('❌ Error en checkStorageAccess:', error);
-      return [];
-    }
-  },
-
   async testDatabaseConnection() {
     try {
       console.log('🔍 Probando conexión a la base de datos...');

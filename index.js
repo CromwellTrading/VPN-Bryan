@@ -2992,7 +2992,7 @@ bot.action('referral_info', async (ctx) => {
 bot.action('copy_referral_link', async (ctx) => {
     try {
         const userId = ctx.from.id.toString();
-        const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+        const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         
         // Primero responder a la callback query
         await ctx.answerCbQuery('📋 Enlace listo para copiar');

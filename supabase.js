@@ -190,6 +190,11 @@ const db = {
           updateData.referrer_username = userData.referrer_username;
         }
         
+        // Si no se especifica is_active, mantener el valor actual
+        if (userData.is_active === undefined) {
+          updateData.is_active = existingUser.is_active;
+        }
+        
         const { data, error } = await supabase
           .from('users')
           .update(updateData)
@@ -215,6 +220,11 @@ const db = {
           updated_at: new Date().toISOString(),
           last_activity: new Date().toISOString()
         };
+        
+        // Establecer is_active como true por defecto para nuevos usuarios
+        if (insertData.is_active === undefined) {
+          insertData.is_active = true;
+        }
         
         const { data, error } = await supabase
           .from('users')
@@ -263,6 +273,26 @@ const db = {
       return data;
     } catch (error) {
       console.error('❌ Error actualizando usuario:', error);
+      throw error;
+    }
+  },
+
+  async updateUserActiveStatus(telegramId, isActive, lastError = null) {
+    try {
+      console.log(`✏️ Actualizando estado activo para usuario ${telegramId}: ${isActive}`);
+      
+      const updateData = {
+        is_active: isActive,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (lastError) {
+        updateData.last_error = lastError;
+      }
+      
+      return await this.updateUser(telegramId, updateData);
+    } catch (error) {
+      console.error('❌ Error actualizando estado activo:', error);
       throw error;
     }
   },
@@ -1239,7 +1269,7 @@ const db = {
       // Obtener estadísticas de usuarios
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('vip, created_at, trial_requested, trial_received, referrer_id, referrer_username');
+        .select('vip, created_at, trial_requested, trial_received, referrer_id, referrer_username, is_active');
       
       if (usersError) {
         console.error('❌ Error obteniendo usuarios para estadísticas:', usersError);
@@ -1251,6 +1281,8 @@ const db = {
       const trialRequests = usersData?.filter(u => u.trial_requested)?.length || 0;
       const trialReceived = usersData?.filter(u => u.trial_received)?.length || 0;
       const usersWithReferrer = usersData?.filter(u => u.referrer_id)?.length || 0;
+      const activeUsers = usersData?.filter(u => u.is_active !== false)?.length || 0;
+      const inactiveUsers = usersData?.filter(u => u.is_active === false)?.length || 0;
       
       // Obtener estadísticas de pagos
       const { data: paymentsData, error: paymentsError } = await supabase
@@ -1301,7 +1333,9 @@ const db = {
           trial_requests: trialRequests,
           trial_received: trialReceived,
           trial_pending: trialRequests - trialReceived,
-          with_referrer: usersWithReferrer
+          with_referrer: usersWithReferrer,
+          active: activeUsers,
+          inactive: inactiveUsers
         },
         payments: {
           total: totalPayments,
@@ -1335,7 +1369,9 @@ const db = {
           trial_requests: 0,
           trial_received: 0,
           trial_pending: 0,
-          with_referrer: 0
+          with_referrer: 0,
+          active: 0,
+          inactive: 0
         },
         payments: { 
           total: 0, 
@@ -1639,9 +1675,12 @@ const db = {
         updateData.sent_count = stats.sent_count || 0;
         updateData.failed_count = stats.failed_count || 0;
         updateData.total_users = stats.total_users || 0;
+        updateData.unavailable_count = stats.unavailable_count || 0;
       } else if (status === 'sending') {
         updateData.sent_count = stats.sent_count || 0;
         updateData.total_users = stats.total_users || 0;
+        updateData.failed_count = stats.failed_count || 0;
+        updateData.unavailable_count = stats.unavailable_count || 0;
       }
       
       const { data, error } = await supabase
@@ -1670,7 +1709,7 @@ const db = {
       
       let query = supabase
         .from('users')
-        .select('telegram_id, username, first_name, vip, trial_requested, trial_received, last_activity');
+        .select('telegram_id, username, first_name, vip, trial_requested, trial_received, last_activity, is_active');
       
       if (targetUsers === 'vip') {
         query = query.eq('vip', true);
@@ -1698,6 +1737,33 @@ const db = {
     } catch (error) {
       console.error('❌ Error obteniendo usuarios para broadcast:', error);
       return [];
+    }
+  },
+
+  async retryFailedBroadcast(broadcastId) {
+    try {
+      console.log(`🔄 Reintentando broadcast fallido: ${broadcastId}`);
+      
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .update({
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', broadcastId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error reintentando broadcast:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Broadcast ${broadcastId} marcado para reintento`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en retryFailedBroadcast:', error);
+      throw error;
     }
   },
 
@@ -1796,6 +1862,7 @@ const db = {
           vip: u.vip,
           trial_requested: u.trial_requested,
           trial_received: u.trial_received,
+          is_active: u.is_active,
           created_at: u.created_at,
           updated_at: u.updated_at
         }))
@@ -1859,36 +1926,7 @@ const db = {
       return { games: [], connections: [] };
     }
   },
-  async updateUser(telegramId, updateData) {
-  try {
-    console.log(`✏️ Actualizando usuario ${telegramId}...`);
-    
-    // Convertir a string para asegurar consistencia
-    const userId = String(telegramId).trim();
-    
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        ...updateData,
-        telegram_id: userId, // Asegurar que telegram_id esté presente
-        updated_at: new Date().toISOString()
-      })
-      .eq('telegram_id', userId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('❌ Error actualizando usuario:', error);
-      throw error;
-    }
-    
-    console.log(`✅ Usuario ${userId} actualizado`);
-    return data;
-  } catch (error) {
-    console.error('❌ Error actualizando usuario:', error);
-    throw error;
-  }
-}
+
   async testDatabaseConnection() {
     try {
       console.log('🔍 Probando conexión a la base de datos...');
@@ -1911,12 +1949,21 @@ const db = {
         .select('count')
         .limit(1);
       
+      // Probar conexión a broadcasts
+      const { data: broadcasts, error: broadcastsError } = await supabase
+        .from('broadcasts')
+        .select('count')
+        .limit(1);
+      
+      // Verificar acceso a storage
+      const storageStatus = await this.checkStorageAccess();
+      
       return {
         users: usersError ? `Error: ${usersError.message}` : '✅ Conectado',
         payments: paymentsError ? `Error: ${paymentsError.message}` : '✅ Conectado',
         usdt_payments: usdtError ? `Error: ${usdtError.message}` : '✅ Conectado',
-        unassigned_transactions: '❌ Sistema desactivado',
-        storage: await this.checkStorageAccess()
+        broadcasts: broadcastsError ? `Error: ${broadcastsError.message}` : '✅ Conectado',
+        storage: storageStatus
       };
     } catch (error) {
       console.error('❌ Error en testDatabaseConnection:', error);
@@ -1924,9 +1971,43 @@ const db = {
         users: `Error: ${error.message}`,
         payments: 'No probado',
         usdt_payments: 'No probado',
-        unassigned_transactions: '❌ Sistema desactivado',
+        broadcasts: 'No probado',
         storage: []
       };
+    }
+  },
+
+  async checkStorageAccess() {
+    try {
+      console.log('📦 Verificando acceso a storage...');
+      
+      const buckets = ['payments-screenshots', 'plan-files'];
+      const results = [];
+      
+      for (const bucket of buckets) {
+        try {
+          const { data, error } = await supabaseAdmin.storage
+            .from(bucket)
+            .list();
+          
+          if (error) {
+            results.push({ bucket, status: `❌ Error: ${error.message}` });
+          } else {
+            results.push({ 
+              bucket, 
+              status: '✅ Acceso permitido',
+              fileCount: data?.length || 0
+            });
+          }
+        } catch (bucketError) {
+          results.push({ bucket, status: `❌ Error: ${bucketError.message}` });
+        }
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('❌ Error en checkStorageAccess:', error);
+      return [{ bucket: 'general', status: `❌ Error: ${error.message}` }];
     }
   }
 };

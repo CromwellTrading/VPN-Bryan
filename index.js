@@ -52,6 +52,22 @@ function isAdmin(userId) {
     return ADMIN_IDS.includes(userId.toString());
 }
 
+// Función para verificar si un usuario puede recibir mensajes
+async function canSendMessageToUser(telegramId) {
+    try {
+        // Intentar enviar un mensaje silencioso de prueba
+        await bot.telegram.sendChatAction(telegramId, 'typing');
+        return { canSend: true, reason: 'Usuario disponible' };
+    } catch (error) {
+        console.log(`❌ Usuario ${telegramId} no disponible: ${error.description || error.message}`);
+        return { 
+            canSend: false, 
+            reason: error.description || error.message,
+            errorCode: error.response?.error_code || 400
+        };
+    }
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -391,6 +407,142 @@ function calcularDiasRestantes(user) {
     return diasRestantes;
 }
 
+// ==================== FUNCIONES DE ENVÍO MEJORADAS ====================
+
+// Función mejorada para enviar pruebas pendientes
+async function sendTrialToValidUsers(adminId) {
+  try {
+    console.log('🎯 Enviando pruebas solo a usuarios disponibles...');
+    
+    // Obtener pruebas pendientes
+    const pendingTrials = await db.getPendingTrials();
+    
+    if (!pendingTrials || pendingTrials.length === 0) {
+      console.log('📭 No hay pruebas pendientes');
+      return { success: true, message: 'No hay pruebas pendientes' };
+    }
+    
+    console.log(`📋 ${pendingTrials.length} pruebas pendientes encontradas`);
+    
+    let sentCount = 0;
+    let failedCount = 0;
+    let unavailableCount = 0;
+    
+    for (let i = 0; i < pendingTrials.length; i++) {
+      const user = pendingTrials[i];
+      
+      try {
+        if (!user.telegram_id) {
+          console.log(`⚠️ Usuario sin telegram_id, saltando`);
+          failedCount++;
+          continue;
+        }
+        
+        console.log(`🎁 Procesando prueba para ${user.telegram_id} (${i+1}/${pendingTrials.length})`);
+        
+        // Verificar si el usuario puede recibir mensajes
+        const canSend = await canSendMessageToUser(user.telegram_id);
+        
+        if (!canSend.canSend) {
+          console.log(`❌ Usuario ${user.telegram_id} no disponible para prueba: ${canSend.reason}`);
+          unavailableCount++;
+          failedCount++;
+          
+          // Marcar como inactivo si es error permanente
+          if (canSend.reason.includes('chat not found') || 
+              canSend.reason.includes('blocked')) {
+            try {
+              await db.updateUser(user.telegram_id, {
+                is_active: false,
+                last_error: canSend.reason,
+                updated_at: new Date().toISOString()
+              });
+            } catch (updateError) {
+              console.log(`⚠️ Error actualizando usuario ${user.telegram_id}:`, updateError.message);
+            }
+          }
+          continue;
+        }
+        
+        // Usuario disponible, enviar prueba
+        await sendTrialConfigToUser(user.telegram_id, adminId);
+        sentCount++;
+        
+        // Pequeña pausa
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (error) {
+        failedCount++;
+        console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, error.message);
+      }
+    }
+    
+    console.log(`✅ Envío de pruebas completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
+    
+    return {
+      success: true,
+      sent: sentCount,
+      failed: failedCount,
+      unavailable: unavailableCount,
+      total: pendingTrials.length
+    };
+    
+  } catch (error) {
+    console.error('❌ Error en sendTrialToValidUsers:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Función auxiliar para enviar prueba a un usuario específico
+async function sendTrialConfigToUser(telegramId, adminId) {
+  try {
+    const user = await db.getUser(telegramId);
+    
+    if (!user) {
+      throw new Error(`Usuario ${telegramId} no encontrado`);
+    }
+    
+    // Buscar archivo de prueba
+    const planFile = await db.getPlanFile('trial');
+    
+    if (planFile && planFile.public_url) {
+      const fileName = planFile.original_name || 'config_trial.conf';
+      const gameServer = user.trial_game_server || 'No especificado';
+      const connectionType = user.trial_connection_type || 'No especificado';
+      
+      await bot.telegram.sendDocument(
+        telegramId,
+        planFile.public_url,
+        {
+          caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
+                  `📁 *Archivo de configuración para 1 hora de prueba*\n\n` +
+                  `🎮 *Juego/Servidor:* ${gameServer}\n` +
+                  `📡 *Conexión:* ${connectionType}\n\n` +
+                  `*Instrucciones de instalación:*\n` +
+                  `1. Descarga este archivo\n` +
+                  `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                  `3. Activa la conexión\n` +
+                  `4. ¡Disfruta de 1 hora de prueba gratis! 🎉\n\n` +
+                  `⏰ *Duración:* 1 hora\n` +
+                  `*Importante:* Esta configuración expirará en 1 hora.`,
+          parse_mode: 'Markdown'
+        }
+      );
+      
+      await db.markTrialAsSent(telegramId, adminId);
+      
+      console.log(`✅ Prueba enviada a ${telegramId}`);
+      return true;
+    } else {
+      console.log(`❌ No hay archivo de prueba disponible para ${telegramId}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ Error enviando prueba a ${telegramId}:`, error.message);
+    throw error;
+  }
+}
+
 // ==================== RUTAS DE LA API ====================
 
 // 1. Verificar si es administrador
@@ -409,7 +561,8 @@ app.post('/api/accept-terms', async (req, res) => {
       username: username,
       first_name: firstName,
       accepted_terms: true,
-      terms_date: new Date().toISOString()
+      terms_date: new Date().toISOString(),
+      is_active: true // Por defecto activo al registrarse
     };
 
     // Si hay referidor, guardarlo
@@ -506,7 +659,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
 
     console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}`);
 
-    // Notificar a admins - MENSJAE UNIFICADO PARA TODOS LOS MÉTODOS
+    // Notificar a admins - MENSAJE UNIFICADO PARA TODOS LOS MÉTODOS
     try {
       const methodNames = {
         'transfer': 'BPA',
@@ -755,12 +908,20 @@ app.get('/api/stats', async (req, res) => {
       message: 'Todos los pagos USDT requieren captura y aprobación manual'
     };
     
+    // Estadísticas de usuarios activos/inactivos
+    const allUsers = await db.getAllUsers();
+    const activeUsers = allUsers.filter(u => u.is_active !== false).length;
+    const inactiveUsers = allUsers.filter(u => u.is_active === false).length;
+    
+    stats.users.active = activeUsers;
+    stats.users.inactive = inactiveUsers;
+    
     res.json(stats);
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas:', error);
     res.status(500).json({ 
       error: 'Error obteniendo estadísticas',
-      users: { total: 0, vip: 0, trial_requests: 0, trial_pending: 0 },
+      users: { total: 0, vip: 0, trial_requests: 0, trial_pending: 0, active: 0, inactive: 0 },
       payments: { pending: 0, approved: 0 },
       revenue: { total: 0 },
       broadcasts: { completed: 0 }
@@ -964,6 +1125,18 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id') || 
           telegramError.message.includes('chat not found') || telegramError.message.includes('chat not exist')) {
         console.error(`❌ Error específico de chat_id para usuario ${chatId}:`, telegramError.message);
+        
+        // Marcar usuario como inactivo
+        try {
+          await db.updateUser(chatId, {
+            is_active: false,
+            last_error: telegramError.message,
+            updated_at: new Date().toISOString()
+          });
+        } catch (updateError) {
+          console.error(`⚠️ Error actualizando usuario ${chatId}:`, updateError.message);
+        }
+        
         return res.status(400).json({ 
           error: `Error: El usuario ${chatId} no ha iniciado el bot o lo ha bloqueado. Chat_id inválido.` 
         });
@@ -1033,6 +1206,14 @@ app.post('/api/send-message', async (req, res) => {
     
     const chatId = telegramId.toString().trim();
     
+    // Verificar si el usuario puede recibir mensajes
+    const canSend = await canSendMessageToUser(chatId);
+    if (!canSend.canSend) {
+      return res.status(400).json({ 
+        error: `No se puede enviar mensaje al usuario: ${canSend.reason}` 
+      });
+    }
+    
     await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
       parse_mode: 'Markdown' 
     });
@@ -1061,13 +1242,19 @@ app.post('/api/user/:userId/remove-vip', async (req, res) => {
     }
     
     try {
-      await bot.telegram.sendMessage(
-        userId,
-        '⚠️ *Tu acceso VIP ha sido removido*\n\n' +
-        'Tu suscripción VIP ha sido cancelada.\n' +
-        'Si crees que es un error, contacta con soporte.',
-        { parse_mode: 'Markdown' }
-      );
+      // Verificar si el usuario puede recibir mensajes
+      const canSend = await canSendMessageToUser(userId);
+      if (canSend.canSend) {
+        await bot.telegram.sendMessage(
+          userId,
+          '⚠️ *Tu acceso VIP ha sido removido*\n\n' +
+          'Tu suscripción VIP ha sido cancelada.\n' +
+          'Si crees que es un error, contacta con soporte.',
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        console.log(`⚠️ No se pudo notificar al usuario ${userId}: ${canSend.reason}`);
+      }
     } catch (botError) {
       console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
@@ -1102,7 +1289,8 @@ app.post('/api/request-trial', async (req, res) => {
       trial_requested_at: new Date().toISOString(),
       trial_plan_type: trialType,
       trial_game_server: gameServer || '',
-      trial_connection_type: connectionType || ''
+      trial_connection_type: connectionType || '',
+      is_active: true // Marcar como activo al solicitar prueba
     });
     
     // Notificar a TODOS los administradores
@@ -1127,18 +1315,24 @@ app.post('/api/request-trial', async (req, res) => {
     
     // Enviar confirmación al usuario
     try {
-      await bot.telegram.sendMessage(
-        telegramId,
-        '✅ *Solicitud de prueba recibida*\n\n' +
-        'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
-        '📋 *Proceso:*\n' +
-        '1. Un administrador revisará tu solicitud\n' +
-        '2. Recibirás la configuración por este chat\n' +
-        '3. Tendrás 1 hora de acceso completo\n\n' +
-        '⏰ *Tiempo estimado:* Minutos\n\n' +
-        '¡Gracias por probar VPN Cuba! 🚀',
-        { parse_mode: 'Markdown' }
-      );
+      // Verificar si el usuario puede recibir mensajes
+      const canSend = await canSendMessageToUser(telegramId);
+      if (canSend.canSend) {
+        await bot.telegram.sendMessage(
+          telegramId,
+          '✅ *Solicitud de prueba recibida*\n\n' +
+          'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
+          '📋 *Proceso:*\n' +
+          '1. Un administrador revisará tu solicitud\n' +
+          '2. Recibirás la configuración por este chat\n' +
+          '3. Tendrás 1 hora de acceso completo\n\n' +
+          '⏰ *Tiempo estimado:* Minutos\n\n' +
+          '¡Gracias por probar VPN Cuba! 🚀',
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        console.log(`⚠️ Usuario ${telegramId} no disponible para notificación: ${canSend.reason}`);
+      }
     } catch (userError) {
       console.log('❌ No se pudo notificar al usuario:', userError.message);
     }
@@ -1205,14 +1399,20 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
     
     // Notificar al usuario
     try {
-      await bot.telegram.sendMessage(
-        req.params.telegramId,
-        '🎉 *¡Tu prueba gratuita está lista!*\n\n' +
-        'Has recibido la configuración de prueba de 1 hora.\n' +
-        '¡Disfruta de baja latencia! 🚀\n\n' +
-        '*Nota:* Esta prueba expirará en 1 hora.',
-        { parse_mode: 'Markdown' }
-      );
+      // Verificar si el usuario puede recibir mensajes
+      const canSend = await canSendMessageToUser(req.params.telegramId);
+      if (canSend.canSend) {
+        await bot.telegram.sendMessage(
+          req.params.telegramId,
+          '🎉 *¡Tu prueba gratuita está lista!*\n\n' +
+          'Has recibido la configuración de prueba de 1 hora.\n' +
+          '¡Disfruta de baja latencia! 🚀\n\n' +
+          '*Nota:* Esta prueba expirará en 1 hora.',
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        console.log(`⚠️ No se pudo notificar al usuario ${req.params.telegramId}: ${canSend.reason}`);
+      }
     } catch (botError) {
       console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
@@ -1256,6 +1456,20 @@ app.post('/api/send-trial-config', async (req, res) => {
     
     if (user.trial_received) {
       return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
+    }
+    
+    // Verificar si el usuario puede recibir mensajes
+    const canSend = await canSendMessageToUser(chatId);
+    if (!canSend.canSend) {
+      // Marcar como inactivo si no puede recibir
+      await db.updateUser(chatId, {
+        is_active: false,
+        last_error: canSend.reason
+      });
+      
+      return res.status(400).json({ 
+        error: `El usuario no puede recibir mensajes: ${canSend.reason}. Marcado como inactivo.` 
+      });
     }
     
     // Buscar si hay archivo de prueba disponible
@@ -1486,6 +1700,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     
     let sentCount = 0;
     let failedCount = 0;
+    let unavailableCount = 0;
     const failedUsers = [];
     
     for (let i = 0; i < users.length; i++) {
@@ -1500,6 +1715,35 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         
         console.log(`📨 Enviando a ${user.telegram_id} (${i+1}/${users.length})`);
         
+        // Verificar si el usuario puede recibir mensajes
+        const canSend = await canSendMessageToUser(user.telegram_id);
+        
+        if (!canSend.canSend) {
+          console.log(`❌ Usuario ${user.telegram_id} no disponible: ${canSend.reason}`);
+          unavailableCount++;
+          failedCount++;
+          
+          // Marcar usuario como no disponible si es error permanente
+          if (canSend.reason.includes('chat not found') || 
+              canSend.reason.includes('blocked') || 
+              canSend.reason.includes('kicked') ||
+              canSend.reason.includes('user is deactivated')) {
+            
+            try {
+              await db.updateUser(user.telegram_id, {
+                is_active: false,
+                last_error: canSend.reason,
+                updated_at: new Date().toISOString()
+              });
+            } catch (updateError) {
+              console.log(`⚠️ Error actualizando usuario ${user.telegram_id}:`, updateError.message);
+            }
+          }
+          
+          continue;
+        }
+        
+        // Si puede recibir, enviar el mensaje
         await bot.telegram.sendMessage(
           user.telegram_id,
           `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
@@ -1509,10 +1753,11 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         
         // Actualizar progreso cada 10 usuarios
         if ((i + 1) % 10 === 0 || i === users.length - 1) {
-          console.log(`📊 Progreso: ${sentCount} enviados, ${failedCount} fallidos`);
+          console.log(`📊 Progreso: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
           await db.updateBroadcastStatus(broadcastId, 'sending', {
             sent_count: sentCount,
             failed_count: failedCount,
+            unavailable_count: unavailableCount,
             total_users: users.length
           });
         }
@@ -1528,8 +1773,23 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         });
         
         // Si el usuario bloqueó al bot, continuar
-        if (error.description && error.description.includes('blocked')) {
-          console.log(`❌ Usuario ${user.telegram_id} bloqueó al bot`);
+        if (error.description && (
+            error.description.includes('blocked') || 
+            error.description.includes('chat not found') ||
+            error.description.includes('kicked') ||
+            error.description.includes('user is deactivated'))) {
+          console.log(`❌ Usuario ${user.telegram_id} no disponible: ${error.description}`);
+          
+          // Marcar como inactivo en la base de datos
+          try {
+            await db.updateUser(user.telegram_id, {
+              is_active: false,
+              last_error: error.description,
+              updated_at: new Date().toISOString()
+            });
+          } catch (updateError) {
+            console.log(`⚠️ Error actualizando usuario ${user.telegram_id}:`, updateError.message);
+          }
           continue;
         }
         
@@ -1538,10 +1798,11 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     }
     
     // Actualizar estado final
-    console.log(`✅ Broadcast ${broadcastId} completado: ${sentCount} enviados, ${failedCount} fallidos`);
+    console.log(`✅ Broadcast ${broadcastId} completado: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
     await db.updateBroadcastStatus(broadcastId, 'completed', {
       sent_count: sentCount,
       failed_count: failedCount,
+      unavailable_count: unavailableCount,
       total_users: users.length
     });
     
@@ -1553,6 +1814,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
       await db.updateBroadcastStatus(broadcastId, 'failed', {
         sent_count: 0,
         failed_count: users.length || 0,
+        unavailable_count: 0,
         total_users: users.length || 0
       });
     } catch (updateError) {
@@ -2123,6 +2385,14 @@ app.post('/api/user/:userId/message', async (req, res) => {
     
     const chatId = userId.toString().trim();
     
+    // Verificar si el usuario puede recibir mensajes
+    const canSend = await canSendMessageToUser(chatId);
+    if (!canSend.canSend) {
+      return res.status(400).json({ 
+        error: `No se puede enviar mensaje al usuario: ${canSend.reason}` 
+      });
+    }
+    
     await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
       parse_mode: 'Markdown' 
     });
@@ -2131,6 +2401,31 @@ app.post('/api/user/:userId/message', async (req, res) => {
   } catch (error) {
     console.error('❌ Error enviando mensaje:', error);
     res.status(500).json({ error: 'Error enviando mensaje: ' + error.message });
+  }
+});
+
+// 48. Ruta mejorada para enviar pruebas a usuarios disponibles
+app.post('/api/send-trials-to-valid', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    console.log(`🚀 Iniciando envío de pruebas solo a usuarios disponibles...`);
+    
+    // Usar la función mejorada
+    const result = await sendTrialToValidUsers(adminId);
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error('❌ Error en send-trials-to-valid:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error interno del servidor: ' + error.message 
+    });
   }
 });
 
@@ -2192,7 +2487,8 @@ bot.start(async (ctx) => {
             username: ctx.from.username,
             first_name: firstName,
             last_name: ctx.from.last_name,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            is_active: true // Marcar como activo al iniciar el bot
         };
         
         // Si hay referidor, guardarlo
@@ -2953,6 +3249,13 @@ bot.on('document', async (ctx) => {
             
             const chatId = telegramId.toString().trim();
             
+            // Verificar si el usuario puede recibir mensajes
+            const canSend = await canSendMessageToUser(chatId);
+            if (!canSend.canSend) {
+                await ctx.reply(`❌ No se puede enviar al usuario: ${canSend.reason}`);
+                return;
+            }
+            
             // Buscar si hay un pago aprobado para este usuario
             const payments = await db.getUserPayments(chatId);
             let paymentId = null;
@@ -3077,6 +3380,7 @@ app.listen(PORT, async () => {
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: DESACTIVADO - Envío manual`);
     console.log(`📦 Buckets de almacenamiento: Verificados`);
+    console.log(`👤 Sistema mejorado de envío: Usuarios inactivos marcados automáticamente`);
 });
 
 // Manejar errores no capturados para reiniciar el bot
@@ -3129,5 +3433,6 @@ module.exports = {
     isAdmin,
     ADMIN_IDS,
     initializeStorageBuckets,
-    initializeUsdtSystem
+    initializeUsdtSystem,
+    sendTrialToValidUsers
 };

@@ -2933,7 +2933,7 @@ bot.action('referral_info', async (ctx) => {
         referralStats = await db.getReferralStats(userId);
     }
     
-    const referralLink = `https://t.me/CromwellTradingBot?start=ref${userId}`;
+    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
     
     let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
     message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;

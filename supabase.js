@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs').promises;
+const path = require('path');
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -57,26 +58,34 @@ const db = {
     }
   },
 
-  async uploadPlanFile(fileBuffer, plan, fileName) {
+  async uploadPlanFile(fileBuffer, plan, originalFileName, useTimestamp = true) {
     try {
-      console.log(`📤 Subiendo archivo para plan ${plan}: ${fileName}`);
+      console.log(`📤 Subiendo archivo para plan ${plan}: ${originalFileName}`);
+      
+      // Determinar el bucket según el plan
+      const bucket = plan === 'trial' ? 'trial-files' : 'plan-files';
       
       // Determinar content type
-      const extension = fileName.split('.').pop().toLowerCase();
+      const extension = path.extname(originalFileName).toLowerCase();
       let contentType = 'application/octet-stream';
-      if (extension === 'conf') contentType = 'text/plain';
-      if (extension === 'zip') contentType = 'application/zip';
-      if (extension === 'rar') contentType = 'application/x-rar-compressed';
+      if (extension === '.conf') contentType = 'text/plain';
+      if (extension === '.zip') contentType = 'application/zip';
+      if (extension === '.rar') contentType = 'application/x-rar-compressed';
+      if (extension === '.txt') contentType = 'text/plain';
       
-      const storageFileName = `plan_${plan}_${Date.now()}_${fileName}`;
+      // Para todos los archivos usar siempre el nombre original
+      // El admin garantiza que cada archivo tiene nombre único
+      const storageFileName = originalFileName;
+      
+      console.log(`📁 Nombre del archivo en storage: ${storageFileName}, bucket: ${bucket}`);
       
       // Usar el cliente admin para evitar problemas de RLS
       const { data, error } = await supabaseAdmin.storage
-        .from('plan-files')
+        .from(bucket)
         .upload(storageFileName, fileBuffer, {
           contentType: contentType,
           cacheControl: '3600',
-          upsert: true
+          upsert: true // Permitir sobreescribir si el admin sube el mismo archivo nuevamente
         });
 
       if (error) {
@@ -85,14 +94,14 @@ const db = {
       }
 
       const { data: { publicUrl } } = supabaseAdmin.storage
-        .from('plan-files')
+        .from(bucket)
         .getPublicUrl(storageFileName);
 
       console.log(`✅ Archivo de plan subido: ${publicUrl}`);
       return {
         filename: storageFileName,
         publicUrl: publicUrl,
-        originalName: fileName
+        originalName: originalFileName
       };
 
     } catch (error) {
@@ -105,6 +114,8 @@ const db = {
     try {
       if (!oldFileName) return;
       
+      // Solo eliminar si existe el archivo antiguo
+      // No aplica para archivos de prueba ya que estos se manejan separadamente
       const { error } = await supabaseAdmin.storage
         .from('plan-files')
         .remove([oldFileName]);
@@ -1129,6 +1140,19 @@ const db = {
         .single();
       
       if (existing) {
+        // Si es un archivo de prueba, eliminar el archivo anterior del storage
+        if (planFileData.plan === 'trial' && existing.storage_filename) {
+          const { error: deleteError } = await supabaseAdmin.storage
+            .from('trial-files')
+            .remove([existing.storage_filename]);
+          
+          if (deleteError) {
+            console.error('❌ Error eliminando archivo de prueba anterior:', deleteError);
+          } else {
+            console.log(`✅ Archivo de prueba anterior eliminado: ${existing.storage_filename}`);
+          }
+        }
+        
         // Actualizar archivo existente
         const { data, error } = await supabase
           .from('plan_files')
@@ -1229,15 +1253,18 @@ const db = {
       
       const { data: fileData } = await this.getPlanFile(plan);
       if (fileData && fileData.storage_filename) {
+        // Determinar bucket según el plan
+        const bucket = plan === 'trial' ? 'trial-files' : 'plan-files';
+        
         // Eliminar del storage usando el cliente admin
         const { error: deleteError } = await supabaseAdmin.storage
-          .from('plan-files')
+          .from(bucket)
           .remove([fileData.storage_filename]);
         
         if (deleteError) {
           console.error('❌ Error eliminando archivo de storage:', deleteError);
         } else {
-          console.log(`✅ Archivo eliminado de storage: ${fileData.storage_filename}`);
+          console.log(`✅ Archivo eliminado de storage: ${fileData.storage_filename} (bucket: ${bucket})`);
         }
       }
       
@@ -1981,7 +2008,7 @@ const db = {
     try {
       console.log('📦 Verificando acceso a storage...');
       
-      const buckets = ['payments-screenshots', 'plan-files'];
+      const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
       const results = [];
       
       for (const bucket of buckets) {

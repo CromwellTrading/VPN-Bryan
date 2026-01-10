@@ -916,6 +916,10 @@ app.get('/api/stats', async (req, res) => {
     stats.users.active = activeUsers;
     stats.users.inactive = inactiveUsers;
     
+    // Obtener estadísticas de cupones
+    const coupons = await db.getCouponsStats();
+    stats.coupons = coupons || { total: 0, active: 0, expired: 0, used: 0 };
+    
     res.json(stats);
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas:', error);
@@ -924,7 +928,8 @@ app.get('/api/stats', async (req, res) => {
       users: { total: 0, vip: 0, trial_requests: 0, trial_pending: 0, active: 0, inactive: 0 },
       payments: { pending: 0, approved: 0 },
       revenue: { total: 0 },
-      broadcasts: { completed: 0 }
+      broadcasts: { completed: 0 },
+      coupons: { total: 0, active: 0, expired: 0, used: 0 }
     });
   }
 });
@@ -2429,6 +2434,392 @@ app.post('/api/send-trials-to-valid', async (req, res) => {
   }
 });
 
+// ==================== RUTAS PARA CUPONES ====================
+
+// 49. Crear un nuevo cupón
+app.post('/api/coupons', async (req, res) => {
+  try {
+    const { code, discount, stock, expiry, description, adminId } = req.body;
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!code || !discount || !stock) {
+      return res.status(400).json({ error: 'Faltan campos requeridos: código, descuento y stock' });
+    }
+    
+    // Validar código
+    if (!/^[A-Z0-9]+$/.test(code)) {
+      return res.status(400).json({ error: 'El código solo puede contener letras mayúsculas y números' });
+    }
+    
+    // Validar descuento
+    const discountNum = parseFloat(discount);
+    if (isNaN(discountNum) || discountNum < 1 || discountNum > 100) {
+      return res.status(400).json({ error: 'El descuento debe estar entre 1% y 100%' });
+    }
+    
+    // Validar stock
+    const stockNum = parseInt(stock);
+    if (isNaN(stockNum) || stockNum < 1) {
+      return res.status(400).json({ error: 'El stock debe ser mayor a 0' });
+    }
+    
+    // Validar fecha de expiración si se proporciona
+    let expiryDate = null;
+    if (expiry) {
+      expiryDate = new Date(expiry);
+      if (isNaN(expiryDate.getTime())) {
+        return res.status(400).json({ error: 'Fecha de expiración inválida' });
+      }
+      // Asegurar que la fecha de expiración sea en el futuro
+      if (expiryDate <= new Date()) {
+        return res.status(400).json({ error: 'La fecha de expiración debe ser en el futuro' });
+      }
+    }
+    
+    // Crear cupón
+    const coupon = await db.createCoupon({
+      code: code.toUpperCase(),
+      discount: discountNum,
+      stock: stockNum,
+      expiry: expiryDate,
+      description: description || '',
+      status: 'active',
+      created_by: adminId
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Cupón creado exitosamente',
+      coupon 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creando cupón:', error);
+    
+    if (error.message.includes('unique')) {
+      return res.status(400).json({ error: 'Ya existe un cupón con ese código' });
+    }
+    
+    res.status(500).json({ error: 'Error creando cupón: ' + error.message });
+  }
+});
+
+// 50. Obtener todos los cupones
+app.get('/api/coupons', async (req, res) => {
+  try {
+    const coupons = await db.getCoupons();
+    res.json(coupons);
+  } catch (error) {
+    console.error('❌ Error obteniendo cupones:', error);
+    res.status(500).json({ error: 'Error obteniendo cupones' });
+  }
+});
+
+// 51. Obtener estadísticas de cupones
+app.get('/api/coupons/stats', async (req, res) => {
+  try {
+    const stats = await db.getCouponsStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de cupones:', error);
+    res.status(500).json({ error: 'Error obteniendo estadísticas de cupones' });
+  }
+});
+
+// 52. Obtener un cupón específico
+app.get('/api/coupons/:code', async (req, res) => {
+  try {
+    const coupon = await db.getCoupon(req.params.code.toUpperCase());
+    
+    if (!coupon) {
+      return res.status(404).json({ error: 'Cupón no encontrado' });
+    }
+    
+    res.json(coupon);
+  } catch (error) {
+    console.error('❌ Error obteniendo cupón:', error);
+    res.status(500).json({ error: 'Error obteniendo cupón' });
+  }
+});
+
+// 53. Actualizar cupón
+app.put('/api/coupons/:code', async (req, res) => {
+  try {
+    const { stock, status, adminId } = req.body;
+    const code = req.params.code.toUpperCase();
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const coupon = await db.getCoupon(code);
+    if (!coupon) {
+      return res.status(404).json({ error: 'Cupón no encontrado' });
+    }
+    
+    // Validar stock si se proporciona
+    let stockNum = coupon.stock;
+    if (stock !== undefined) {
+      stockNum = parseInt(stock);
+      if (isNaN(stockNum) || stockNum < 0) {
+        return res.status(400).json({ error: 'Stock inválido' });
+      }
+    }
+    
+    // Validar estado si se proporciona
+    let newStatus = coupon.status;
+    if (status && ['active', 'inactive', 'expired'].includes(status)) {
+      newStatus = status;
+    }
+    
+    // Actualizar cupón
+    const updatedCoupon = await db.updateCoupon(code, {
+      stock: stockNum,
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+      updated_by: adminId
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Cupón actualizado exitosamente',
+      coupon: updatedCoupon 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error actualizando cupón:', error);
+    res.status(500).json({ error: 'Error actualizando cupón: ' + error.message });
+  }
+});
+
+// 54. Cambiar estado de cupón
+app.put('/api/coupons/:code/status', async (req, res) => {
+  try {
+    const { status, adminId } = req.body;
+    const code = req.params.code.toUpperCase();
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    if (!status || !['active', 'inactive', 'expired'].includes(status)) {
+      return res.status(400).json({ error: 'Estado inválido. Use: active, inactive, expired' });
+    }
+    
+    const coupon = await db.getCoupon(code);
+    if (!coupon) {
+      return res.status(404).json({ error: 'Cupón no encontrado' });
+    }
+    
+    // Actualizar estado
+    const updatedCoupon = await db.updateCouponStatus(code, status, adminId);
+    
+    res.json({ 
+      success: true, 
+      message: `Cupón ${status === 'active' ? 'activado' : 'desactivado'} exitosamente`,
+      coupon: updatedCoupon 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error cambiando estado de cupón:', error);
+    res.status(500).json({ error: 'Error cambiando estado de cupón: ' + error.message });
+  }
+});
+
+// 55. Eliminar cupón
+app.delete('/api/coupons/:code', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    const code = req.params.code.toUpperCase();
+    
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const coupon = await db.getCoupon(code);
+    if (!coupon) {
+      return res.status(404).json({ error: 'Cupón no encontrado' });
+    }
+    
+    // Verificar si el cupón ha sido usado
+    if (coupon.used && coupon.used > 0) {
+      return res.status(400).json({ 
+        error: 'No se puede eliminar un cupón que ha sido usado. Puedes desactivarlo en su lugar.' 
+      });
+    }
+    
+    // Eliminar cupón
+    await db.deleteCoupon(code);
+    
+    res.json({ 
+      success: true, 
+      message: 'Cupón eliminado exitosamente' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error eliminando cupón:', error);
+    res.status(500).json({ error: 'Error eliminando cupón: ' + error.message });
+  }
+});
+
+// 56. Verificar cupón (para uso en pagos)
+app.post('/api/coupons/verify/:code', async (req, res) => {
+  try {
+    const { telegramId } = req.body;
+    const code = req.params.code.toUpperCase();
+    
+    if (!telegramId) {
+      return res.status(400).json({ error: 'ID de usuario requerido' });
+    }
+    
+    const coupon = await db.getCoupon(code);
+    if (!coupon) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Cupón no encontrado' 
+      });
+    }
+    
+    // Verificar si el cupón está activo
+    if (coupon.status !== 'active') {
+      return res.json({ 
+        success: false, 
+        error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
+      });
+    }
+    
+    // Verificar si ha expirado
+    if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
+      // Actualizar estado a expirado
+      await db.updateCouponStatus(code, 'expired', 'system');
+      return res.json({ 
+        success: false, 
+        error: 'Cupón expirado' 
+      });
+    }
+    
+    // Verificar si hay stock disponible
+    if (coupon.stock <= 0) {
+      return res.json({ 
+        success: false, 
+        error: 'Cupón agotado' 
+      });
+    }
+    
+    // Verificar si el usuario ya usó este cupón
+    const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
+    if (hasUsed) {
+      return res.json({ 
+        success: false, 
+        error: 'Ya has usado este cupón' 
+      });
+    }
+    
+    // Cupón válido
+    res.json({ 
+      success: true,
+      coupon: {
+        code: coupon.code,
+        discount: coupon.discount,
+        description: coupon.description
+      },
+      message: `Cupón válido. Descuento del ${coupon.discount}% aplicado.`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error verificando cupón:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error verificando cupón: ' + error.message 
+    });
+  }
+});
+
+// 57. Aplicar cupón a un pago
+app.post('/api/coupons/apply/:code', async (req, res) => {
+  try {
+    const { telegramId, paymentId, adminId } = req.body;
+    const code = req.params.code.toUpperCase();
+    
+    if (!telegramId || !paymentId) {
+      return res.status(400).json({ error: 'ID de usuario y pago requeridos' });
+    }
+    
+    const coupon = await db.getCoupon(code);
+    if (!coupon) {
+      return res.status(404).json({ error: 'Cupón no encontrado' });
+    }
+    
+    // Verificar si el cupón está activo
+    if (coupon.status !== 'active') {
+      return res.status(400).json({ 
+        error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
+      });
+    }
+    
+    // Verificar si ha expirado
+    if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
+      await db.updateCouponStatus(code, 'expired', 'system');
+      return res.status(400).json({ error: 'Cupón expirado' });
+    }
+    
+    // Verificar si hay stock disponible
+    if (coupon.stock <= 0) {
+      return res.status(400).json({ error: 'Cupón agotado' });
+    }
+    
+    // Verificar si el usuario ya usó este cupón
+    const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
+    if (hasUsed) {
+      return res.status(400).json({ error: 'Ya has usado este cupón' });
+    }
+    
+    // Aplicar cupón al pago
+    const applied = await db.applyCouponToPayment(code, telegramId, paymentId);
+    
+    if (!applied) {
+      return res.status(400).json({ error: 'No se pudo aplicar el cupón al pago' });
+    }
+    
+    // Reducir stock del cupón
+    const newStock = coupon.stock - 1;
+    await db.updateCoupon(code, {
+      stock: newStock,
+      used: (coupon.used || 0) + 1,
+      updated_at: new Date().toISOString(),
+      updated_by: adminId || 'system'
+    });
+    
+    res.json({ 
+      success: true, 
+      message: `Cupón aplicado. Descuento del ${coupon.discount}% aplicado al pago.`,
+      discount: coupon.discount,
+      coupon: coupon.code
+    });
+    
+  } catch (error) {
+    console.error('❌ Error aplicando cupón:', error);
+    res.status(500).json({ error: 'Error aplicando cupón: ' + error.message });
+  }
+});
+
+// 58. Obtener historial de uso de cupones
+app.get('/api/coupons/history/:code', async (req, res) => {
+  try {
+    const code = req.params.code.toUpperCase();
+    
+    const history = await db.getCouponUsageHistory(code);
+    
+    res.json(history);
+  } catch (error) {
+    console.error('❌ Error obteniendo historial de cupón:', error);
+    res.status(500).json({ error: 'Error obteniendo historial de cupón' });
+  }
+});
+
 // ==================== SERVIR ARCHIVOS HTML ====================
 
 // Ruta principal
@@ -2827,7 +3218,7 @@ bot.action('check_status', async (ctx) => {
                     }
                 ]
             ];
-            
+    
             try {
                 await ctx.editMessageText(
                     trialMessage,
@@ -3113,6 +3504,64 @@ bot.command('admin', async (ctx) => {
     );
 });
 
+// Comando /cupon para verificar cupones
+bot.command('cupon', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const args = ctx.message.text.split(' ');
+    
+    if (args.length < 2) {
+        return ctx.reply(
+            `🎫 *VERIFICAR CUPÓN*\n\n` +
+            `Uso: /cupon <código>\n` +
+            `Ejemplo: /cupon VPN20\n\n` +
+            `Introduce el código del cupón que deseas verificar.`,
+            { parse_mode: 'Markdown' }
+        );
+    }
+    
+    const couponCode = args[1].toUpperCase();
+    
+    try {
+        // Verificar cupón
+        const response = await fetch(`${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/api/coupons/verify/${couponCode}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegramId: userId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await ctx.reply(
+                `✅ *¡CUPÓN VÁLIDO!*\n\n` +
+                `Código: ${result.coupon.code}\n` +
+                `Descuento: ${result.coupon.discount}%\n` +
+                `${result.coupon.description ? `Descripción: ${result.coupon.description}\n\n` : '\n'}` +
+                `Puedes usar este cupón en tu próxima compra desde la web.\n\n` +
+                `*Nota:* El descuento se aplicará automáticamente al finalizar el pago.`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            await ctx.reply(
+                `❌ *CUPÓN NO VÁLIDO*\n\n` +
+                `Código: ${couponCode}\n` +
+                `Razón: ${result.error}\n\n` +
+                `Verifica que el código sea correcto y que no haya expirado.`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    } catch (error) {
+        console.error('❌ Error verificando cupón:', error);
+        await ctx.reply(
+            `❌ *ERROR VERIFICANDO CUPÓN*\n\n` +
+            `No se pudo verificar el cupón. Inténtalo de nuevo más tarde.`,
+            { parse_mode: 'Markdown' }
+        );
+    }
+});
+
 // Comando /help
 bot.command('help', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -3132,6 +3581,7 @@ bot.command('help', async (ctx) => {
         `\n*COMANDOS DISPONIBLES:*\n` +
         `/start - Iniciar el bot\n` +
         `/referidos - Obtener tu enlace de referidos\n` +
+        `/cupon <código> - Verificar un cupón de descuento\n` +
         `/trialstatus - Ver estado de prueba gratuita\n` +
         `/help - Mostrar esta ayuda\n` +
         `${esAdmin ? '/admin - Panel de administración\n/enviar - Enviar configuración\n' : ''}` +
@@ -3356,6 +3806,7 @@ app.listen(PORT, async () => {
             { command: 'start', description: 'Iniciar el bot' },
             { command: 'help', description: 'Mostrar ayuda' },
             { command: 'referidos', description: 'Obtener enlace de referidos' },
+            { command: 'cupon', description: 'Verificar cupón de descuento' },
             { command: 'trialstatus', description: 'Ver estado de prueba gratuita' },
             { command: 'admin', description: 'Panel de administración (solo admins)' },
             { command: 'enviar', description: 'Enviar configuración (solo admins)' }
@@ -3373,6 +3824,7 @@ app.listen(PORT, async () => {
     
     console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
     console.log(`📊 Estadísticas completas: /api/stats`);
+    console.log(`🎫 Sistema de cupones: Habilitado`);
     console.log(`💰 Sistema USDT: MODO MANUAL`);
     console.log(`   • Dirección: ${USDT_CONFIG.WALLET_ADDRESS}`);
     console.log(`   • Verificación: DESACTIVADA - Flujo manual`);
@@ -3435,4 +3887,4 @@ module.exports = {
     initializeStorageBuckets,
     initializeUsdtSystem,
     sendTrialToValidUsers
-}; 
+};

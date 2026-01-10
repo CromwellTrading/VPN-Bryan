@@ -21,6 +21,8 @@
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
+            --discount: #ec4899;
+            --discount-glow: rgba(236, 72, 153, 0.4);
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             --usdt-color: #f0b90b;
             --mobile-color: #25D366;
@@ -241,6 +243,294 @@
         .step.active .step-label {
             color: var(--accent-light);
             font-weight: 600;
+        }
+
+        /* SECCIÓN DE CUPONES */
+        .coupon-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coupon-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--discount), #f472b6);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .coupon-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .coupon-icon {
+            font-size: 2rem;
+            color: var(--discount);
+        }
+
+        .coupon-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .coupon-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .coupon-input {
+            flex: 1;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid var(--border);
+            border-radius: 15px;
+            color: var(--text);
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .coupon-input:focus {
+            outline: none;
+            border-color: var(--discount);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+        }
+
+        .coupon-btn {
+            padding: 18px 30px;
+            background: linear-gradient(135deg, var(--discount), #f472b6);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .coupon-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
+        }
+
+        .coupon-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .coupon-message {
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .coupon-message.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .coupon-message.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .discount-info {
+            display: none;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(244, 114, 182, 0.05));
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .discount-info.active {
+            display: block;
+        }
+
+        .discount-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .discount-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .discount-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+        }
+
+        .discount-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--discount);
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+
+        .new-price {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .remove-coupon {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-secondary);
+            padding: 8px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .remove-coupon:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text);
+        }
+
+        /* TARJETA RESUMEN */
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            border-radius: 24px 24px 0 0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 15px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            color: var(--accent);
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+        }
+
+        .summary-item {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            border-left: 4px solid var(--accent);
+            transition: all 0.3s ease;
+        }
+
+        .summary-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-3px);
+        }
+
+        .item-label {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .item-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .plan-badge {
+            display: inline-block;
+            padding: 6px 15px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .discount-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, var(--discount), #f472b6);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
         }
 
         /* SELECTOR DE MÉTODO DE PAGO */
@@ -541,92 +831,6 @@
             font-weight: 800;
             color: var(--mobile-color);
             margin: 10px 0;
-        }
-
-        /* TARJETA RESUMEN */
-        .summary-card {
-            background: var(--card-bg);
-            border-radius: 24px;
-            padding: 40px;
-            margin-bottom: 40px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .summary-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-light));
-            border-radius: 24px 24px 0 0;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 30px;
-            gap: 15px;
-        }
-
-        .card-icon {
-            font-size: 2rem;
-            color: var(--accent);
-        }
-
-        .card-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 25px;
-        }
-
-        .summary-item {
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 16px;
-            border-left: 4px solid var(--accent);
-            transition: all 0.3s ease;
-        }
-
-        .summary-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            transform: translateY(-3px);
-        }
-
-        .item-label {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .item-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .plan-badge {
-            display: inline-block;
-            padding: 6px 15px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            color: white;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-left: 10px;
-            vertical-align: middle;
         }
 
         /* SUBIDA DE ARCHIVO */
@@ -937,7 +1141,8 @@
             .summary-card,
             .payment-method-selector,
             .method-info-card,
-            .upload-card {
+            .upload-card,
+            .coupon-section {
                 padding: 30px 20px;
             }
             
@@ -990,6 +1195,15 @@
                 width: 50px;
                 height: 50px;
                 font-size: 1.5rem;
+            }
+            
+            .coupon-form {
+                flex-direction: column;
+            }
+            
+            .coupon-btn {
+                width: 100%;
+                justify-content: center;
             }
         }
 
@@ -1047,8 +1261,78 @@
             </div>
         </div>
         
+        <!-- SECCIÓN DE CUPONES -->
+        <div class="coupon-section fade-in delay-1">
+            <div class="coupon-header">
+                <i class="fas fa-tag coupon-icon"></i>
+                <h2 class="coupon-title">Cupón de descuento</h2>
+            </div>
+            
+            <div class="coupon-form">
+                <input type="text" class="coupon-input" id="couponCode" placeholder="Introduce tu código de descuento" maxlength="20">
+                <button class="coupon-btn" id="applyCouponBtn" onclick="applyCoupon()">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Aplicar cupón</span>
+                </button>
+            </div>
+            
+            <div class="coupon-message" id="couponMessage"></div>
+            
+            <div class="discount-info" id="discountInfo">
+                <div class="discount-row">
+                    <div class="discount-label">
+                        <i class="fas fa-tag"></i>
+                        <span>Cupón aplicado:</span>
+                    </div>
+                    <div class="discount-value" id="appliedCouponCode"></div>
+                </div>
+                
+                <div class="discount-row">
+                    <div class="discount-label">
+                        <i class="fas fa-percentage"></i>
+                        <span>Descuento:</span>
+                    </div>
+                    <div class="discount-value" id="discountPercentage"></div>
+                </div>
+                
+                <div class="discount-row">
+                    <div class="discount-label">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Ahorro:</span>
+                    </div>
+                    <div class="discount-value" id="discountAmount"></div>
+                </div>
+                
+                <div class="discount-row">
+                    <div class="discount-label">
+                        <i class="fas fa-receipt"></i>
+                        <span>Nuevo total:</span>
+                    </div>
+                    <div>
+                        <span class="original-price" id="originalPrice"></span>
+                        <span class="new-price" id="newPrice"></span>
+                    </div>
+                </div>
+                
+                <div class="discount-row">
+                    <div class="discount-label">
+                        <i class="fas fa-clock"></i>
+                        <span>Válido hasta:</span>
+                    </div>
+                    <div class="discount-value" id="couponExpiry"></div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="remove-coupon" onclick="removeCoupon()">
+                        <i class="fas fa-times"></i>
+                        <span>Eliminar cupón</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- RESUMEN DEL PLAN -->
-        <div class="summary-card fade-in delay-1">
+        <div class="summary-card fade-in delay-2">
             <div class="card-header">
                 <i class="fas fa-receipt card-icon"></i>
                 <h2 class="card-title">Resumen de tu compra</h2>
@@ -1060,12 +1344,15 @@
                     <div class="item-value">
                         <span id="planName">Básico</span>
                         <span class="plan-badge" id="planBadge">1 MES</span>
+                        <span class="discount-badge" id="discountBadge" style="display: none;">-0%</span>
                     </div>
                 </div>
                 
                 <div class="summary-item">
                     <div class="item-label">Precio total</div>
-                    <div class="item-value" id="planPrice">$800 CUP</div>
+                    <div class="item-value">
+                        <span id="planPrice">$800 CUP</span>
+                    </div>
                 </div>
                 
                 <div class="summary-item">
@@ -1081,7 +1368,7 @@
         </div>
         
         <!-- SELECTOR DE MÉTODO DE PAGO -->
-        <div class="payment-method-selector fade-in delay-2">
+        <div class="payment-method-selector fade-in delay-3">
             <div class="method-selector-header">
                 <i class="fas fa-credit-card method-selector-icon"></i>
                 <h2 class="method-selector-title">Selecciona método de pago</h2>
@@ -1296,7 +1583,7 @@
         </div>
         
         <!-- SUBIDA DE COMPROBANTE (para TODOS los métodos) -->
-        <div id="uploadSection" class="upload-card fade-in delay-3">
+        <div id="uploadSection" class="upload-card fade-in delay-4">
             <div class="card-header">
                 <i class="fas fa-camera card-icon"></i>
                 <h2 class="card-title">Sube el comprobante</h2>
@@ -1379,11 +1666,12 @@
         let planType = null;
         let price = null;
         let currentMethod = 'transfer';
+        let activeCoupon = null;
         
         // DIRECCIÓN USDT FIJA
         const FIXED_USDT_ADDRESS = '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2';
         
-        // Precios en USDT por plan
+        // Precios base en USDT por plan
         const usdtPrices = {
             'basico': '1.6',
             'avanzado': '2.7',
@@ -1391,12 +1679,20 @@
             'anual': '30'
         };
         
-        // Precios en saldo móvil por plan
+        // Precios base en saldo móvil por plan
         const mobilePrices = {
             'basico': '360',
             'avanzado': '560',
             'premium': '500',
             'anual': '15000'
+        };
+        
+        // Precios base en CUP por plan
+        const cupPrices = {
+            'basico': '800',
+            'avanzado': '1200',
+            'premium': '1000',
+            'anual': '30000'
         };
         
         // Descripciones de métodos
@@ -1504,9 +1800,18 @@
             };
             
             // Actualizar información del plan
-            document.getElementById('planName').textContent = planNames[planType] || 'Básico';
-            document.getElementById('planBadge').textContent = planPeriods[planType] || '1 MES';
-            document.getElementById('planPrice').textContent = `$${price || '800'} CUP`;
+            const planNameElement = document.getElementById('planName');
+            const planBadgeElement = document.getElementById('planBadge');
+            const planPriceElement = document.getElementById('planPrice');
+            
+            planNameElement.textContent = planNames[planType] || 'Básico';
+            planBadgeElement.textContent = planPeriods[planType] || '1 MES';
+            
+            // Usar el precio de la URL o el precio base del plan
+            const basePrice = cupPrices[planType] || '800';
+            price = price || basePrice;
+            planPriceElement.textContent = `$${price} CUP`;
+            
             document.getElementById('userIdDisplay').textContent = currentUserId || 'No disponible';
             document.getElementById('requestDate').textContent = new Date().toLocaleDateString('es-ES', {
                 day: '2-digit',
@@ -1527,23 +1832,41 @@
             // Configurar método de pago inicial
             changePaymentMethod();
             
-            console.log(`📋 Plan: ${planType}, Precio: ${price}`);
+            // Cargar cupón guardado si existe
+            loadSavedCoupon();
+            
+            console.log(`📋 Plan: ${planType}, Precio base: ${price}`);
         }
         
         // Actualizar precios específicos por método
         function updateMethodSpecificPrices() {
-            // Obtener parámetros de la URL
-            const params = getUrlParameters();
+            // Obtener precio base según el plan
+            const baseCupPrice = parseInt(cupPrices[planType] || '800');
+            const baseUsdtPrice = parseFloat(usdtPrices[planType] || '1.6');
+            const baseMobilePrice = parseInt(mobilePrices[planType] || '360');
             
-            // Si hay usdtAmount en la URL, usarlo, sino usar el mapeo
-            const usdtAmount = params.usdtAmount || usdtPrices[planType] || '1.6';
-            document.getElementById('usdtAmount').textContent = usdtAmount;
+            // Aplicar descuento si existe
+            let finalCupPrice = baseCupPrice;
+            let finalUsdtPrice = baseUsdtPrice;
+            let finalMobilePrice = baseMobilePrice;
+            
+            if (activeCoupon) {
+                const discount = activeCoupon.discount || 0;
+                finalCupPrice = Math.round(baseCupPrice * (1 - discount / 100));
+                finalUsdtPrice = baseUsdtPrice * (1 - discount / 100);
+                finalMobilePrice = Math.round(baseMobilePrice * (1 - discount / 100));
+            }
+            
+            // Actualizar precio CUP
+            document.getElementById('planPrice').textContent = `$${finalCupPrice} CUP`;
+            
+            // Actualizar precio USDT
+            document.getElementById('usdtAmount').textContent = finalUsdtPrice.toFixed(2);
             
             // Actualizar precio saldo móvil
-            const mobilePrice = mobilePrices[planType] || '360';
             const mobilePriceDisplay = document.getElementById('mobilePriceDisplay');
             mobilePriceDisplay.innerHTML = `
-                <div class="mobile-price">${mobilePrice} CUP</div>
+                <div class="mobile-price">${finalMobilePrice} CUP</div>
                 <p>Plan ${document.getElementById('planName').textContent}</p>
             `;
         }
@@ -1676,6 +1999,200 @@
             showNotification('Imagen eliminada. Sube otra captura para continuar.', 'info');
         }
         
+        // Verificar cupón con el backend
+        async function verifyCoupon(couponCode) {
+            try {
+                console.log(`🎫 Verificando cupón: ${couponCode} para usuario ${currentUserId}`);
+                
+                const response = await fetch(`/api/coupons/verify/${couponCode}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        telegramId: currentUserId,
+                        planType: planType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    return {
+                        valid: true,
+                        code: result.coupon.code,
+                        discount: result.coupon.discount,
+                        name: result.coupon.description || `Descuento ${result.coupon.discount}%`,
+                        expires: 'No expira',
+                        message: `Descuento del ${result.coupon.discount}% aplicado`
+                    };
+                } else {
+                    return {
+                        valid: false,
+                        message: result.error || 'Cupón no válido'
+                    };
+                }
+            } catch (error) {
+                console.error('❌ Error verificando cupón:', error);
+                return {
+                    valid: false,
+                    message: 'Error al verificar el cupón'
+                };
+            }
+        }
+        
+        // Aplicar cupón de descuento
+        async function applyCoupon() {
+            const couponCode = document.getElementById('couponCode').value.trim().toUpperCase();
+            const couponMessage = document.getElementById('couponMessage');
+            const applyBtn = document.getElementById('applyCouponBtn');
+            
+            if (!couponCode) {
+                couponMessage.textContent = 'Por favor, introduce un código de cupón.';
+                couponMessage.className = 'coupon-message error';
+                return;
+            }
+            
+            // Deshabilitar botón mientras se procesa
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Verificando...</span>';
+            
+            try {
+                // Llamada REAL a la API para verificar cupón
+                const couponData = await verifyCoupon(couponCode);
+                
+                if (couponData.valid) {
+                    // Cupón válido
+                    activeCoupon = couponData;
+                    
+                    // Mostrar información del descuento
+                    showDiscountInfo(couponData);
+                    
+                    // Actualizar precios
+                    updateMethodSpecificPrices();
+                    
+                    // Guardar cupón en localStorage
+                    saveCoupon(couponData);
+                    
+                    couponMessage.textContent = `¡Cupón "${couponCode}" aplicado correctamente!`;
+                    couponMessage.className = 'coupon-message success';
+                    
+                    // Mostrar badge de descuento
+                    const discountBadge = document.getElementById('discountBadge');
+                    discountBadge.textContent = `-${couponData.discount}%`;
+                    discountBadge.style.display = 'inline-block';
+                    
+                    showNotification(`¡Cupón aplicado! Descuento del ${couponData.discount}%`, 'success');
+                } else {
+                    // Cupón inválido
+                    couponMessage.textContent = couponData.message || 'Cupón no válido o expirado.';
+                    couponMessage.className = 'coupon-message error';
+                    showNotification('Cupón no válido', 'error');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error verificando cupón:', error);
+                couponMessage.textContent = 'Error al verificar el cupón. Intenta de nuevo.';
+                couponMessage.className = 'coupon-message error';
+                showNotification('Error al verificar cupón', 'error');
+            } finally {
+                // Rehabilitar botón
+                applyBtn.disabled = false;
+                applyBtn.innerHTML = '<i class="fas fa-check-circle"></i><span>Aplicar cupón</span>';
+            }
+        }
+        
+        // Mostrar información del descuento
+        function showDiscountInfo(couponData) {
+            const discountInfo = document.getElementById('discountInfo');
+            const baseCupPrice = parseInt(cupPrices[planType] || '800');
+            const discountAmount = Math.round(baseCupPrice * (couponData.discount / 100));
+            const newPrice = baseCupPrice - discountAmount;
+            
+            // Formatear fecha de expiración
+            const expiryDate = new Date(couponData.expires);
+            const formattedExpiry = expiryDate.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            
+            // Actualizar elementos
+            document.getElementById('appliedCouponCode').textContent = couponData.code;
+            document.getElementById('discountPercentage').textContent = `${couponData.discount}%`;
+            document.getElementById('discountAmount').textContent = `$${discountAmount} CUP`;
+            document.getElementById('originalPrice').textContent = `$${baseCupPrice} CUP`;
+            document.getElementById('newPrice').textContent = `$${newPrice} CUP`;
+            document.getElementById('couponExpiry').textContent = formattedExpiry;
+            
+            // Mostrar sección de descuento
+            discountInfo.classList.add('active');
+            
+            // Limpiar campo de entrada
+            document.getElementById('couponCode').value = '';
+        }
+        
+        // Eliminar cupón
+        function removeCoupon() {
+            activeCoupon = null;
+            
+            // Ocultar sección de descuento
+            document.getElementById('discountInfo').classList.remove('active');
+            
+            // Ocultar badge de descuento
+            document.getElementById('discountBadge').style.display = 'none';
+            
+            // Actualizar precios
+            updateMethodSpecificPrices();
+            
+            // Limpiar mensaje
+            document.getElementById('couponMessage').className = 'coupon-message';
+            document.getElementById('couponMessage').textContent = '';
+            
+            // Eliminar cupón guardado
+            localStorage.removeItem(`coupon_${currentUserId}`);
+            
+            showNotification('Cupón eliminado', 'info');
+        }
+        
+        // Guardar cupón en localStorage
+        function saveCoupon(couponData) {
+            const couponStorage = {
+                ...couponData,
+                appliedAt: new Date().toISOString(),
+                userId: currentUserId,
+                planType: planType
+            };
+            
+            localStorage.setItem(`coupon_${currentUserId}`, JSON.stringify(couponStorage));
+        }
+        
+        // Cargar cupón guardado
+        function loadSavedCoupon() {
+            const savedCoupon = localStorage.getItem(`coupon_${currentUserId}`);
+            
+            if (savedCoupon) {
+                try {
+                    const couponData = JSON.parse(savedCoupon);
+                    
+                    // Verificar si el cupón sigue siendo válido
+                    // (ahora verificamos con el backend)
+                    activeCoupon = couponData;
+                    showDiscountInfo(couponData);
+                    
+                    // Mostrar badge de descuento
+                    const discountBadge = document.getElementById('discountBadge');
+                    discountBadge.textContent = `-${couponData.discount}%`;
+                    discountBadge.style.display = 'inline-block';
+                    
+                    console.log(`🎫 Cupón "${couponData.code}" cargado desde almacenamiento local`);
+                } catch (error) {
+                    console.error('❌ Error cargando cupón guardado:', error);
+                    localStorage.removeItem(`coupon_${currentUserId}`);
+                }
+            }
+        }
+        
         // Enviar pago
         async function submitPayment() {
             const button = document.getElementById('submitBtn');
@@ -1693,6 +2210,9 @@
             
             console.log(`🔄 Enviando pago para usuario ${currentUserId}`);
             console.log(`📋 Plan: ${planType}, Precio: ${price}, Método: ${currentMethod}`);
+            if (activeCoupon) {
+                console.log(`🎫 Cupón aplicado: ${activeCoupon.code} (${activeCoupon.discount}% descuento)`);
+            }
             
             try {
                 // Crear FormData para enviar archivo y datos
@@ -1702,6 +2222,13 @@
                 formData.append('price', price);
                 formData.append('method', currentMethod);
                 formData.append('screenshot', selectedFile);
+                
+                // Agregar información del cupón si existe
+                if (activeCoupon) {
+                    formData.append('couponCode', activeCoupon.code);
+                    formData.append('discount', activeCoupon.discount);
+                    formData.append('finalPrice', calculateFinalPrice());
+                }
                 
                 // Para USDT, agregar información adicional
                 if (currentMethod === 'usdt') {
@@ -1725,6 +2252,11 @@
                 const data = await response.json();
                 console.log('✅ Respuesta del servidor:', data);
                 
+                // Eliminar cupón usado del almacenamiento local
+                if (activeCoupon) {
+                    localStorage.removeItem(`coupon_${currentUserId}`);
+                }
+                
                 // Actualizar progreso
                 document.getElementById('progressBar').style.width = '100%';
                 document.querySelectorAll('.step')[2].classList.add('active');
@@ -1746,6 +2278,17 @@
                 button.disabled = false;
                 button.innerHTML = originalContent;
             }
+        }
+        
+        // Calcular precio final con descuento
+        function calculateFinalPrice() {
+            const baseCupPrice = parseInt(cupPrices[planType] || '800');
+            
+            if (activeCoupon) {
+                return Math.round(baseCupPrice * (1 - activeCoupon.discount / 100));
+            }
+            
+            return baseCupPrice;
         }
         
         // Mostrar notificación
@@ -1790,6 +2333,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📄 Página de pago cargada');
             initializePage();
+            
+            // Permitir enviar cupón con Enter
+            document.getElementById('couponCode').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyCoupon();
+                }
+            });
         });
     </script>
 </body>

@@ -32,6 +32,8 @@
             --referral-color: #8b5cf6;
             --usdt-color: #f0b90b;
             --annual-green: #39ff14;
+            --coupon-color: #ec4899;
+            --coupon-glow: rgba(236, 72, 153, 0.4);
         }
 
         * {
@@ -91,7 +93,7 @@
             margin-top: 10px;
         }
 
-        /* TABS */
+        /* TABS - ACTUALIZADAS CON CUPONES */
         .tabs {
             display: flex;
             gap: 10px;
@@ -167,7 +169,7 @@
             background: rgba(255, 255, 255, 0.15);
         }
 
-        /* ESTADÍSTICAS */
+        /* ESTADÍSTICAS - ACTUALIZADAS CON CUPONES */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -239,6 +241,9 @@
 
         .stat-card.usdt .stat-value { color: var(--usdt-color); }
         .stat-card.usdt .stat-icon { color: var(--usdt-color); }
+
+        .stat-card.coupons .stat-value { color: var(--coupon-color); }
+        .stat-card.coupons .stat-icon { color: var(--coupon-color); }
 
         /* TABLAS */
         .table-container {
@@ -405,6 +410,30 @@
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
+        .badge.active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge.expired {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge.inactive {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .badge.coupon {
+            background: rgba(236, 72, 153, 0.2);
+            color: #ec4899;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -506,6 +535,46 @@
 
         .action-btn.view-details:hover {
             background: rgba(99, 102, 241, 0.3);
+        }
+
+        .action-btn.edit-coupon {
+            background: rgba(236, 72, 153, 0.2);
+            color: #ec4899;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .action-btn.edit-coupon:hover {
+            background: rgba(236, 72, 153, 0.3);
+        }
+
+        .action-btn.delete-coupon {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .action-btn.delete-coupon:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .action-btn.activate-coupon {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .action-btn.activate-coupon:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+        .action-btn.deactivate-coupon {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .action-btn.deactivate-coupon:hover {
+            background: rgba(245, 158, 11, 0.3);
         }
 
         .action-btn:disabled {
@@ -987,6 +1056,17 @@
             color: var(--trial-light);
         }
 
+        .info-box.coupon {
+            background: rgba(236, 72, 153, 0.1);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            color: #ec4899;
+            font-size: 0.9rem;
+        }
+
+        .info-box.coupon i {
+            color: #ec4899;
+        }
+
         /* PROGRESS BAR */
         .progress-container {
             margin: 20px 0;
@@ -1035,6 +1115,22 @@
             font-weight: 500;
         }
 
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--coupon-color);
+            box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
+        }
+
         .form-select {
             width: 100%;
             padding: 12px;
@@ -1047,8 +1143,8 @@
 
         .form-select:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
+            border-color: var(--coupon-color);
+            box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
         }
 
         .form-textarea {
@@ -1065,8 +1161,8 @@
 
         .form-textarea:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
+            border-color: var(--coupon-color);
+            box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
         }
 
         /* STATS GRID */
@@ -1407,6 +1503,99 @@
             font-weight: 500;
             color: var(--text);
         }
+
+        /* FORMULARIOS PARA CUPONES */
+        .coupon-form {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--coupon-color), #f472b6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px var(--coupon-glow);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* GRID PARA FORMULARIO DE CUPÓN */
+        .coupon-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .coupon-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ESTILOS PARA INPUT DE PORCENTAJE */
+        .percent-input-container {
+            position: relative;
+        }
+
+        .percent-symbol {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* ESTILOS PARA STOCK */
+        .stock-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stock-input {
+            width: 80px;
+            padding: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stock-btn {
+            padding: 8px 12px;
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--accent-light);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .stock-btn:hover {
+            background: rgba(79, 70, 229, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -1417,10 +1606,10 @@
                 <i class="fas fa-shield-alt logo-icon"></i>
                 <h1 class="title">VPN CUBA ADMIN</h1>
             </div>
-            <p class="subtitle">Panel de administración - Gestión de usuarios, pagos, referidos y archivos de planes</p>
+            <p class="subtitle">Panel de administración - Gestión de usuarios, pagos, referidos, archivos de planes y cupones</p>
         </header>
 
-        <!-- TABS - ACTUALIZADAS -->
+        <!-- TABS - ACTUALIZADAS CON CUPONES -->
         <div class="tabs">
             <div class="tab active" data-tab="stats">📊 Estadísticas</div>
             <div class="tab" data-tab="pending">⏳ Pagos Pendientes</div>
@@ -1429,11 +1618,12 @@
             <div class="tab" data-tab="users">👥 Usuarios</div>
             <div class="tab" data-tab="referrals">🤝 Referidos</div>
             <div class="tab" data-tab="plan-files">📁 Archivos de Planes</div>
+            <div class="tab" data-tab="coupons">🎫 Cupones</div>
             <div class="tab" data-tab="games">🎮 Juegos/Servidores</div>
             <div class="tab" data-tab="broadcast">📢 Broadcast</div>
         </div>
 
-        <!-- ESTADÍSTICAS - ACTUALIZADAS -->
+        <!-- ESTADÍSTICAS - ACTUALIZADAS CON CUPONES -->
         <div id="statsContent" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card users">
@@ -1488,6 +1678,12 @@
                     <i class="fas fa-bullhorn stat-icon"></i>
                     <div class="stat-value" id="broadcastCount">0</div>
                     <div class="stat-label">Broadcasts Enviados</div>
+                </div>
+
+                <div class="stat-card coupons">
+                    <i class="fas fa-tag stat-icon"></i>
+                    <div class="stat-value" id="couponsCount">0</div>
+                    <div class="stat-label">Cupones Activos</div>
                 </div>
             </div>
         </div>
@@ -2197,6 +2393,133 @@
             </div>
         </div>
 
+        <!-- SECCIÓN DE CUPONES - NUEVA -->
+        <div id="couponsContent" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-tag"></i>
+                        Crear Nuevo Cupón de Descuento
+                    </h2>
+                </div>
+
+                <div class="info-box coupon">
+                    <i class="fas fa-info-circle"></i>
+                    Crea cupones de descuento para que los usuarios puedan aplicarlos en sus compras. Puedes controlar el stock y modificar los cupones después de creados.
+                </div>
+
+                <div class="coupon-form">
+                    <div class="coupon-form-grid">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-tag"></i> Código del Cupón *
+                            </label>
+                            <input type="text" id="couponCode" class="form-input" 
+                                   placeholder="Ej: VPN20, VERANO2024" 
+                                   maxlength="20" required>
+                            <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                                Solo letras mayúsculas y números, sin espacios
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-percentage"></i> Porcentaje de Descuento *
+                            </label>
+                            <div class="percent-input-container">
+                                <input type="number" id="couponDiscount" class="form-input" 
+                                       placeholder="0-100" min="1" max="100" step="0.5" required>
+                                <span class="percent-symbol">%</span>
+                            </div>
+                            <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                                Valor entre 1% y 100%
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-box"></i> Stock Inicial *
+                            </label>
+                            <input type="number" id="couponStock" class="form-input" 
+                                   placeholder="Ej: 100" min="1" max="9999" required>
+                            <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                                Número de veces que se puede usar el cupón
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt"></i> Fecha de Expiración
+                            </label>
+                            <input type="date" id="couponExpiry" class="form-input">
+                            <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                                Dejar vacío para que no expire
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label class="form-label">
+                                <i class="fas fa-align-left"></i> Descripción (Opcional)
+                            </label>
+                            <textarea id="couponDescription" class="form-textarea" 
+                                      placeholder="Describe el cupón, condiciones especiales, etc." 
+                                      rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <button class="submit-btn" onclick="createCoupon()" id="createCouponBtn">
+                        <i class="fas fa-plus-circle"></i>
+                        Crear Cupón
+                    </button>
+                </div>
+            </div>
+
+            <!-- LISTA DE CUPONES EXISTENTES -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-list-alt"></i>
+                        Cupones Existentes
+                    </h2>
+                    <button class="refresh-btn" onclick="loadCoupons()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div class="loading" id="couponsLoading" style="text-align: center; padding: 40px;">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando cupones...</p>
+                </div>
+
+                <div class="table-container">
+                    <table id="couponsTable">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Descuento</th>
+                                <th>Stock</th>
+                                <th>Usados</th>
+                                <th>Expiración</th>
+                                <th>Estado</th>
+                                <th>Creado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="couponsTableBody">
+                            <!-- Datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="no-data" id="couponsNoData" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-tag" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                    <p>No hay cupones creados</p>
+                    <p style="margin-top: 10px; font-size: 0.9rem;">Crea tu primer cupón usando el formulario de arriba</p>
+                </div>
+            </div>
+        </div>
+
         <!-- JUEGOS/SERVIDORES -->
         <div id="gamesContent" class="tab-content" style="display: none;">
             <div class="card">
@@ -2584,6 +2907,54 @@
         </div>
     </div>
 
+    <!-- MODAL PARA EDITAR STOCK DE CUPÓN -->
+    <div id="editCouponModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-edit"></i>
+                    Editar Stock del Cupón
+                </h3>
+                <button class="close-modal" onclick="closeEditCouponModal()">&times;</button>
+            </div>
+            
+            <div class="coupon-form">
+                <div class="form-group">
+                    <label class="form-label">Código del Cupón</label>
+                    <input type="text" id="editCouponCode" class="form-input" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Stock Actual</label>
+                    <div class="stock-actions">
+                        <input type="number" id="editCouponStock" class="stock-input" min="0" max="9999">
+                        <button class="stock-btn" onclick="adjustStock(-1)">-1</button>
+                        <button class="stock-btn" onclick="adjustStock(1)">+1</button>
+                        <button class="stock-btn" onclick="adjustStock(5)">+5</button>
+                        <button class="stock-btn" onclick="adjustStock(10)">+10</button>
+                    </div>
+                    <small style="color: var(--text-secondary); margin-top: 5px; display: block;">
+                        Nuevo stock total (0 para desactivar)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select id="editCouponStatus" class="form-select">
+                        <option value="active">Activo</option>
+                        <option value="inactive">Inactivo</option>
+                        <option value="expired">Expirado</option>
+                    </select>
+                </div>
+                
+                <button class="submit-btn" onclick="updateCoupon()" id="updateCouponBtn">
+                    <i class="fas fa-save"></i>
+                    Actualizar Cupón
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- NOTIFICACIÓN -->
     <div id="notification" class="notification">
         <i class="fas fa-info-circle"></i>
@@ -2608,6 +2979,8 @@
         const usersPerPage = 20;
         let filteredUsers = [];
         let currentUserDetailsId = null;
+        let currentCouponCode = null;
+        let allCoupons = [];
 
         // Inicializar Telegram WebApp
         const tg = window.Telegram.WebApp;
@@ -2673,6 +3046,7 @@
                 document.getElementById('totalReferrals').textContent = stats.referrals?.total || 0;
                 document.getElementById('usdtPayments').textContent = stats.payments?.usdt || 0;
                 document.getElementById('broadcastCount').textContent = stats.broadcasts?.total || 0;
+                document.getElementById('couponsCount').textContent = stats.coupons?.active || 0;
                 
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
@@ -2857,7 +3231,7 @@
             }
         }
 
-        // Cargar usuarios con paginación - CORREGIDA
+        // Cargar usuarios con paginación
         async function loadUsers() {
             try {
                 document.getElementById('usersLoading').style.display = 'block';
@@ -2918,7 +3292,7 @@
             
             pageUsers.forEach(user => {
                 const row = document.createElement('tr');
-                const isVip = user.vip || false; // CORREGIDO: usar user.vip en lugar de user.is_vip
+                const isVip = user.vip || false;
                 const vipBadge = isVip ? 
                     '<span class="badge vip">VIP</span>' : 
                     '<span class="badge non-vip">No VIP</span>';
@@ -3311,7 +3685,7 @@
             displayReferralsPage(1);
         }
 
-        // Buscar referidos de un usuario específico - CORREGIDA
+        // Buscar referidos de un usuario específico
         async function searchUserReferrals() {
             const searchTerm = document.getElementById('searchUserReferrals').value.trim();
             const searchType = document.getElementById('searchType').value;
@@ -3403,7 +3777,7 @@
             }
         }
 
-        // Mostrar referidos de un usuario - CORREGIDA
+        // Mostrar referidos de un usuario
         function displayUserReferrals(data, searchType) {
             if (searchType === 'all') {
                 // Mostrar detalles de un usuario específico
@@ -4535,7 +4909,7 @@ Generado por VPN Cuba Admin Panel
             document.getElementById('configModal').classList.add('active');
         }
 
-        // Enviar configuración de prueba - CORREGIDA
+        // Enviar configuración de prueba
         async function sendTrialConfig(telegramId, userName) {
             if (!confirm(`¿Enviar configuración de prueba a ${userName}?\n\nSe enviará el archivo de prueba actual.`)) return;
             
@@ -4722,6 +5096,323 @@ Generado por VPN Cuba Admin Panel
             document.getElementById('configFile').value = '';
         }
 
+        // FUNCIONES DE CUPONES
+
+        // Función para crear cupón
+        async function createCoupon() {
+            const code = document.getElementById('couponCode').value.trim().toUpperCase();
+            const discount = parseFloat(document.getElementById('couponDiscount').value);
+            const stock = parseInt(document.getElementById('couponStock').value);
+            const expiry = document.getElementById('couponExpiry').value;
+            const description = document.getElementById('couponDescription').value.trim();
+
+            // Validaciones
+            if (!code) {
+                showNotification('❌ Ingresa un código para el cupón', 'warning');
+                return;
+            }
+
+            if (!/^[A-Z0-9]+$/.test(code)) {
+                showNotification('❌ El código solo puede contener letras mayúsculas y números', 'warning');
+                return;
+            }
+
+            if (!discount || discount < 1 || discount > 100) {
+                showNotification('❌ El descuento debe estar entre 1% y 100%', 'warning');
+                return;
+            }
+
+            if (!stock || stock < 1) {
+                showNotification('❌ El stock debe ser mayor a 0', 'warning');
+                return;
+            }
+
+            const button = document.getElementById('createCouponBtn');
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+
+            try {
+                const response = await fetch('/api/coupons', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        discount: discount,
+                        stock: stock,
+                        expiry: expiry || null,
+                        description: description,
+                        adminId: currentUserId
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification('✅ Cupón creado exitosamente', 'success');
+                    
+                    // Limpiar formulario
+                    document.getElementById('couponCode').value = '';
+                    document.getElementById('couponDiscount').value = '';
+                    document.getElementById('couponStock').value = '';
+                    document.getElementById('couponExpiry').value = '';
+                    document.getElementById('couponDescription').value = '';
+                    
+                    // Recargar lista de cupones
+                    loadCoupons();
+                    // Actualizar estadísticas
+                    loadStats();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Error creando cupón');
+                }
+            } catch (error) {
+                console.error('❌ Error creando cupón:', error);
+                showNotification('❌ Error creando cupón: ' + error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-plus-circle"></i> Crear Cupón';
+            }
+        }
+
+        // Función para cargar cupones
+        async function loadCoupons() {
+            try {
+                document.getElementById('couponsLoading').style.display = 'block';
+                document.getElementById('couponsTable').style.display = 'none';
+                document.getElementById('couponsNoData').style.display = 'none';
+                
+                console.log('🎫 Cargando cupones...');
+                const response = await fetch('/api/coupons');
+                const coupons = await response.json();
+                
+                document.getElementById('couponsLoading').style.display = 'none';
+                
+                if (!coupons || coupons.length === 0) {
+                    document.getElementById('couponsNoData').style.display = 'block';
+                    return;
+                }
+                
+                // Guardar todos los cupones
+                allCoupons = coupons;
+                
+                // Actualizar tabla
+                const tableBody = document.getElementById('couponsTableBody');
+                tableBody.innerHTML = '';
+                
+                coupons.forEach(coupon => {
+                    const row = document.createElement('tr');
+                    
+                    // Determinar estado del cupón
+                    let statusBadge = '';
+                    if (coupon.status === 'active') {
+                        statusBadge = '<span class="badge active">Activo</span>';
+                    } else if (coupon.status === 'expired') {
+                        statusBadge = '<span class="badge expired">Expirado</span>';
+                    } else {
+                        statusBadge = '<span class="badge inactive">Inactivo</span>';
+                    }
+                    
+                    // Formatear fecha de expiración
+                    let expiryDate = 'No expira';
+                    if (coupon.expiry) {
+                        const expiry = new Date(coupon.expiry);
+                        const today = new Date();
+                        expiryDate = expiry.toLocaleDateString('es-ES');
+                        if (expiry < today && coupon.status !== 'expired') {
+                            statusBadge = '<span class="badge expired">Expirado</span>';
+                        }
+                    }
+                    
+                    // Formatear fecha de creación
+                    const createdDate = coupon.created_at ? 
+                        new Date(coupon.created_at).toLocaleDateString('es-ES') : 'N/A';
+                    
+                    row.innerHTML = `
+                        <td>
+                            <strong>${coupon.code}</strong>
+                            ${coupon.description ? `<br><small style="color: #888;">${coupon.description}</small>` : ''}
+                        </td>
+                        <td>
+                            <span class="badge coupon" style="font-size: 1.1rem;">${coupon.discount}%</span>
+                        </td>
+                        <td>
+                            <strong>${coupon.stock}</strong> disponibles
+                        </td>
+                        <td>
+                            ${coupon.used || 0} usados
+                        </td>
+                        <td>${expiryDate}</td>
+                        <td>${statusBadge}</td>
+                        <td>${createdDate}</td>
+                        <td>
+                            <button class="action-btn edit-coupon" onclick="openEditCouponModal('${coupon.code}')">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            ${coupon.status === 'active' ? 
+                                `<button class="action-btn deactivate-coupon" onclick="toggleCouponStatus('${coupon.code}', 'inactive')">
+                                    <i class="fas fa-pause"></i> Desactivar
+                                </button>` :
+                                `<button class="action-btn activate-coupon" onclick="toggleCouponStatus('${coupon.code}', 'active')">
+                                    <i class="fas fa-play"></i> Activar
+                                </button>`
+                            }
+                            <button class="action-btn delete-coupon" onclick="deleteCoupon('${coupon.code}')">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                document.getElementById('couponsTable').style.display = 'table';
+                
+            } catch (error) {
+                console.error('❌ Error cargando cupones:', error);
+                document.getElementById('couponsLoading').style.display = 'none';
+                showNotification('❌ Error cargando cupones', 'error');
+            }
+        }
+
+        // Función para abrir modal de edición de cupón
+        function openEditCouponModal(couponCode) {
+            const coupon = allCoupons.find(c => c.code === couponCode);
+            if (!coupon) {
+                showNotification('❌ Cupón no encontrado', 'error');
+                return;
+            }
+            
+            currentCouponCode = couponCode;
+            document.getElementById('editCouponCode').value = coupon.code;
+            document.getElementById('editCouponStock').value = coupon.stock;
+            document.getElementById('editCouponStatus').value = coupon.status;
+            
+            document.getElementById('editCouponModal').classList.add('active');
+        }
+
+        // Función para ajustar stock
+        function adjustStock(amount) {
+            const stockInput = document.getElementById('editCouponStock');
+            let currentStock = parseInt(stockInput.value) || 0;
+            currentStock = Math.max(0, currentStock + amount);
+            stockInput.value = currentStock;
+        }
+
+        // Función para actualizar cupón
+        async function updateCoupon() {
+            const newStock = parseInt(document.getElementById('editCouponStock').value);
+            const newStatus = document.getElementById('editCouponStatus').value;
+            
+            if (isNaN(newStock) || newStock < 0) {
+                showNotification('❌ Stock inválido', 'warning');
+                return;
+            }
+            
+            const button = document.getElementById('updateCouponBtn');
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
+            
+            try {
+                const response = await fetch(`/api/coupons/${currentCouponCode}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        stock: newStock,
+                        status: newStatus,
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification('✅ Cupón actualizado exitosamente', 'success');
+                    closeEditCouponModal();
+                    loadCoupons();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Error actualizando cupón');
+                }
+            } catch (error) {
+                console.error('❌ Error actualizando cupón:', error);
+                showNotification('❌ Error actualizando cupón: ' + error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-save"></i> Actualizar Cupón';
+            }
+        }
+
+        // Función para cambiar estado del cupón
+        async function toggleCouponStatus(couponCode, newStatus) {
+            const action = newStatus === 'active' ? 'activar' : 'desactivar';
+            
+            if (!confirm(`¿Estás seguro de ${action} este cupón?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/coupons/${couponCode}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: newStatus,
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification(`✅ Cupón ${action}do exitosamente`, 'success');
+                    loadCoupons();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || `Error ${action}do cupón`);
+                }
+            } catch (error) {
+                console.error(`❌ Error ${action}do cupón:`, error);
+                showNotification(`❌ Error ${action}do cupón: ` + error.message, 'error');
+            }
+        }
+
+        // Función para eliminar cupón
+        async function deleteCoupon(couponCode) {
+            if (!confirm(`¿Estás seguro de eliminar el cupón ${couponCode}?\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/coupons/${couponCode}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        adminId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification('✅ Cupón eliminado exitosamente', 'success');
+                    loadCoupons();
+                    loadStats();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Error eliminando cupón');
+                }
+            } catch (error) {
+                console.error('❌ Error eliminando cupón:', error);
+                showNotification('❌ Error eliminando cupón: ' + error.message, 'error');
+            }
+        }
+
+        // Función para cerrar modal de edición
+        function closeEditCouponModal() {
+            document.getElementById('editCouponModal').classList.remove('active');
+            currentCouponCode = null;
+        }
+
         // Mostrar notificación
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
@@ -4769,6 +5460,9 @@ Generado por VPN Cuba Admin Panel
                     break;
                 case 'plan-files':
                     loadPlanFiles();
+                    break;
+                case 'coupons':
+                    loadCoupons();
                     break;
                 case 'games':
                     loadGamesStats();
@@ -4896,6 +5590,7 @@ Generado por VPN Cuba Admin Panel
                 closeConfigModal();
                 closeUserDetailsModal();
                 closeFilesStatsModal();
+                closeEditCouponModal();
                 const customModal = document.getElementById('customModal');
                 if (customModal) customModal.classList.remove('active');
             }
@@ -4943,6 +5638,8 @@ Generado por VPN Cuba Admin Panel
             setInterval(() => {
                 if (currentTab === 'stats') {
                     loadStats();
+                } else if (currentTab === 'coupons') {
+                    loadCoupons();
                 }
             }, 30000);
         });

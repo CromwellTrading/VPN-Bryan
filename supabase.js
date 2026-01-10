@@ -1352,6 +1352,9 @@ const db = {
       const totalBroadcasts = broadcastsData?.length || 0;
       const completedBroadcasts = broadcastsData?.filter(b => b.status === 'completed')?.length || 0;
       
+      // Obtener estadísticas de cupones
+      const couponsStats = await this.getCouponsStats();
+      
       return {
         users: {
           total: totalUsers,
@@ -1384,7 +1387,8 @@ const db = {
         broadcasts: {
           total: totalBroadcasts,
           completed: completedBroadcasts
-        }
+        },
+        coupons: couponsStats
       };
     } catch (error) {
       console.error('❌ Error obteniendo estadísticas:', error);
@@ -1430,6 +1434,13 @@ const db = {
         broadcasts: {
           total: 0,
           completed: 0
+        },
+        coupons: {
+          total: 0,
+          active: 0,
+          expired: 0,
+          used: 0,
+          coupons: []
         }
       };
     }
@@ -1794,6 +1805,290 @@ const db = {
     }
   },
 
+  // ========== CUPONES ==========
+  async createCoupon(couponData) {
+    try {
+      console.log(`🎫 Creando cupón: ${couponData.code}`);
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .insert([{
+          ...couponData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error creando cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Cupón creado: ${data.code}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createCoupon:', error);
+      throw error;
+    }
+  },
+
+  async getCoupons() {
+    try {
+      console.log('🎫 Obteniendo todos los cupones...');
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo cupones:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} cupones encontrados`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getCoupons:', error);
+      return [];
+    }
+  },
+
+  async getCoupon(code) {
+    try {
+      console.log(`🔍 Buscando cupón: ${code}`);
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`📭 Cupón ${code} no encontrado`);
+        return null;
+      }
+      
+      if (error) {
+        console.error('❌ Error obteniendo cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Cupón encontrado: ${data.code}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getCoupon:', error);
+      return null;
+    }
+  },
+
+  async getCouponsStats() {
+    try {
+      console.log('📊 Obteniendo estadísticas de cupones...');
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*');
+      
+      if (error) {
+        console.error('❌ Error obteniendo cupones para estadísticas:', error);
+        throw error;
+      }
+      
+      const total = data?.length || 0;
+      const active = data?.filter(c => c.status === 'active').length || 0;
+      const expired = data?.filter(c => c.status === 'expired').length || 0;
+      const used = data?.reduce((sum, c) => sum + (c.used || 0), 0);
+      
+      return {
+        total: total,
+        active: active,
+        expired: expired,
+        used: used,
+        coupons: data || []
+      };
+    } catch (error) {
+      console.error('❌ Error en getCouponsStats:', error);
+      return {
+        total: 0,
+        active: 0,
+        expired: 0,
+        used: 0,
+        coupons: []
+      };
+    }
+  },
+
+  async updateCoupon(code, updateData) {
+    try {
+      console.log(`✏️ Actualizando cupón: ${code}`);
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('code', code.toUpperCase())
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Cupón actualizado: ${data.code}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateCoupon:', error);
+      throw error;
+    }
+  },
+
+  async updateCouponStatus(code, status, updatedBy) {
+    try {
+      console.log(`✏️ Actualizando estado del cupón ${code} a ${status}`);
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({
+          status: status,
+          updated_by: updatedBy,
+          updated_at: new Date().toISOString()
+        })
+        .eq('code', code.toUpperCase())
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error actualizando estado del cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Estado del cupón actualizado: ${data.code} -> ${data.status}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateCouponStatus:', error);
+      throw error;
+    }
+  },
+
+  async deleteCoupon(code) {
+    try {
+      console.log(`🗑️ Eliminando cupón: ${code}`);
+      
+      const { data, error } = await supabase
+        .from('coupons')
+        .delete()
+        .eq('code', code.toUpperCase())
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error eliminando cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Cupón eliminado: ${code}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en deleteCoupon:', error);
+      throw error;
+    }
+  },
+
+  async hasUserUsedCoupon(telegramId, code) {
+    try {
+      console.log(`🔍 Verificando si usuario ${telegramId} usó el cupón ${code}`);
+      
+      // Convertir a string para consistencia
+      const userId = String(telegramId).trim();
+      
+      const { data, error } = await supabase
+        .from('coupon_usage')
+        .select('id')
+        .eq('telegram_id', userId)
+        .eq('coupon_code', code.toUpperCase())
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        console.log(`✅ Usuario ${userId} no ha usado el cupón ${code}`);
+        return false;
+      }
+      
+      if (error) {
+        console.error('❌ Error verificando uso de cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Usuario ${userId} ya usó el cupón ${code}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error en hasUserUsedCoupon:', error);
+      return false;
+    }
+  },
+
+  async applyCouponToPayment(code, telegramId, paymentId) {
+    try {
+      console.log(`🎫 Aplicando cupón ${code} al pago ${paymentId} del usuario ${telegramId}`);
+      
+      // Convertir a string para consistencia
+      const userId = String(telegramId).trim();
+      
+      const { data, error } = await supabase
+        .from('coupon_usage')
+        .insert([{
+          coupon_code: code.toUpperCase(),
+          telegram_id: userId,
+          payment_id: paymentId,
+          used_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error aplicando cupón al pago:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Cupón aplicado: ${code} -> pago ${paymentId}`);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en applyCouponToPayment:', error);
+      throw error;
+    }
+  },
+
+  async getCouponUsageHistory(code) {
+    try {
+      console.log(`📜 Obteniendo historial de uso del cupón: ${code}`);
+      
+      const { data, error } = await supabase
+        .from('coupon_usage')
+        .select(`
+          *,
+          payments (*),
+          users (telegram_id, username, first_name)
+        `)
+        .eq('coupon_code', code.toUpperCase())
+        .order('used_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error obteniendo historial de cupón:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} usos encontrados para el cupón ${code}`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getCouponUsageHistory:', error);
+      return [];
+    }
+  },
+
   // ========== FUNCIONES ADICIONALES ==========
   async searchUsers(searchTerm) {
     try {
@@ -1982,6 +2277,12 @@ const db = {
         .select('count')
         .limit(1);
       
+      // Probar conexión a cupones
+      const { data: coupons, error: couponsError } = await supabase
+        .from('coupons')
+        .select('count')
+        .limit(1);
+      
       // Verificar acceso a storage
       const storageStatus = await this.checkStorageAccess();
       
@@ -1990,6 +2291,7 @@ const db = {
         payments: paymentsError ? `Error: ${paymentsError.message}` : '✅ Conectado',
         usdt_payments: usdtError ? `Error: ${usdtError.message}` : '✅ Conectado',
         broadcasts: broadcastsError ? `Error: ${broadcastsError.message}` : '✅ Conectado',
+        coupons: couponsError ? `Error: ${couponsError.message}` : '✅ Conectado',
         storage: storageStatus
       };
     } catch (error) {
@@ -1999,6 +2301,7 @@ const db = {
         payments: 'No probado',
         usdt_payments: 'No probado',
         broadcasts: 'No probado',
+        coupons: 'No probado',
         storage: []
       };
     }

@@ -182,6 +182,10 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             {
                 text: '🤝 REFERIDOS',
                 callback_data: 'referral_info'
+            },
+            {
+                text: '❓ CÓMO FUNCIONA',
+                callback_data: 'how_it_works'
             }
         ]
     ];
@@ -3379,6 +3383,48 @@ bot.action('referral_info', async (ctx) => {
     }
 });
 
+// Botón: Cómo Funciona
+bot.action('how_it_works', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    
+    const keyboard = [
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+
+    try {
+        await ctx.editMessageText(
+            `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
+            `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
+            `*¿Cómo lo logramos?*\n\n` +
+            `1️⃣ *Rutas VIP*: Tu tráfico viaja por una 'vía rápida' privada, evitando la saturación de tu proveedor de internet.\n` +
+            `2️⃣ *Tecnología Wireguard*: Es el protocolo más veloz del mundo; procesa datos casi al instante sin calentar tu celular.\n\n` +
+            `⚠️ *REQUISITO IMPORTANTE:*\n` +
+            `Para que esta configuración haga su magia, necesitas tener una conexión a internet estable. 📶\n` +
+            `Wireguard optimiza y estabiliza tu ping, pero no puede arreglar un internet que se desconecta o que tiene una velocidad base excesivamente baja.\n\n` +
+            `Si tu internet es decente pero el juego te va mal, ¡nosotros somos la pieza que te falta para llegar a los 50-70ms constantes! 🏎️💨\n\n` +
+            `¡Mejora tu respuesta en las Teamfights hoy mismo! Dale al botón de Ver planes y elige tu plan.`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        throw error;
+    }
+});
+
 // Botón: Copiar enlace de referido
 bot.action('copy_referral_link', async (ctx) => {
     try {
@@ -3576,6 +3622,7 @@ bot.command('help', async (ctx) => {
         `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
         `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
         `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
+        `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
         `🆘 SOPORTE - Contactar con soporte técnico\n` +
         `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
         `\n*COMANDOS DISPONIBLES:*\n` +

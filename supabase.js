@@ -1833,37 +1833,42 @@ const db = {
 
   // ========== CUPONES - FUNCIONES NUEVAS ==========
   async createCoupon(couponData) {
-    try {
-      console.log(`🎫 Creando cupón: ${couponData.code}`);
-      
-      const { data, error } = await supabase
-        .from('coupons')
-        .insert([{
-          code: couponData.code,
-          discount: couponData.discount,
-          stock: couponData.stock,
-          expiry: couponData.expiry || null,
-          description: couponData.description || '',
-          status: couponData.status || 'active',
-          created_by: couponData.created_by || 'system',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Error creando cupón:', error);
-        throw error;
-      }
-      
-      console.log(`✅ Cupón creado: ${data.code}`);
-      return data;
-    } catch (error) {
-      console.error('❌ Error en createCoupon:', error);
+  try {
+    console.log(`🎫 CREANDO CUPÓN EN DB: ${couponData.code}`);
+    console.log(`📊 Datos del cupón:`, JSON.stringify(couponData, null, 2));
+    
+    const { data, error } = await supabase
+      .from('coupons')
+      .insert([{
+        code: couponData.code,
+        discount: couponData.discount,
+        stock: couponData.stock,
+        expiry: couponData.expiry || null,
+        description: couponData.description || '',
+        status: couponData.status || 'active',
+        used: 0,
+        created_by: couponData.created_by || 'system',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ ERROR EN QUERY SUPABASE:', error);
+      console.error('❌ Código de error:', error.code);
+      console.error('❌ Mensaje de error:', error.message);
+      console.error('❌ Detalles:', error.details);
       throw error;
     }
-  },
+    
+    console.log(`✅ CUPÓN CREADO EN DB: ${data.code}`);
+    return data;
+  } catch (error) {
+    console.error('❌ ERROR EN createCoupon:', error);
+    throw error;
+  }
+},
 
   async getCoupons() {
     try {

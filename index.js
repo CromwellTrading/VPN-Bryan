@@ -843,7 +843,7 @@ app.get('/api/payments/approved', async (req, res) => {
   }
 });
 
-// 7. Aprobar pago - MODIFICADO PARA NO ENVIAR CONFIGURACIÓN AUTOMÁTICAMENTE
+// 7. Aprobar pago - MODIFICADO PARA REDUCIR STOCK DE CUPÓN
 app.post('/api/payments/:id/approve', async (req, res) => {
   try {
     const payment = await db.approvePayment(req.params.id);
@@ -860,63 +860,27 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
-    // Aplicar cupón si se usó
+    // REDUCIR STOCK DEL CUPÓN SI SE USÓ - NUEVO CÓDIGO
     if (payment.coupon_used && payment.coupon_code) {
       try {
-        await db.applyCouponToPayment(payment.coupon_code, payment.telegram_id, payment.id);
-        console.log(`🎫 Cupón ${payment.coupon_code} aplicado al pago ${payment.id}`);
+        const coupon = await db.getCoupon(payment.coupon_code);
+        if (coupon && coupon.stock > 0) {
+          const newStock = coupon.stock - 1;
+          await db.updateCoupon(payment.coupon_code, {
+            stock: newStock,
+            used: (coupon.used || 0) + 1,
+            updated_at: new Date().toISOString(),
+            updated_by: 'system'
+          });
+          console.log(`🎫 Cupón ${payment.coupon_code} stock reducido a ${newStock}`);
+        }
+        
+        // Marcar que el usuario usó el cupón
+        await db.markCouponAsUsed(payment.coupon_code, payment.telegram_id, payment.id);
       } catch (couponError) {
         console.error('❌ Error aplicando cupón:', couponError.message);
       }
     }
-
-    // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
-    try {
-      let userMessage = '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
-        'Ahora eres usuario VIP de VPN Cuba.\n' +
-        'El administrador te enviará manualmente el archivo de configuración por este mismo chat en breve.\n\n';
-      
-      if (payment.coupon_used && payment.coupon_discount) {
-        userMessage += `🎫 *Cupón aplicado:* ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
-      }
-      
-      userMessage += '*Nota:* Sistema de envío automático desactivado.';
-      
-      await bot.telegram.sendMessage(
-        payment.telegram_id,
-        userMessage,
-        { parse_mode: 'Markdown' }
-      );
-    } catch (botError) {
-      console.log('❌ No se pudo notificar al usuario:', botError.message);
-    }
-
-    // Marcar usuario como VIP
-    const user = await db.getUser(payment.telegram_id);
-    if (!user.vip) {
-      await db.makeUserVIP(payment.telegram_id, {
-        plan: payment.plan,
-        plan_price: payment.price,
-        vip_since: new Date().toISOString()
-      });
-    }
-
-    // Verificar si el usuario fue referido y actualizar referidos pagados
-    if (user.referrer_id) {
-      try {
-        await db.markReferralAsPaid(payment.telegram_id);
-        console.log(`✅ Referido ${payment.telegram_id} marcado como pagado`);
-      } catch (refError) {
-        console.log('⚠️ Error marcando referido como pagado:', refError.message);
-      }
-    }
-
-    res.json({ success: true, payment });
-  } catch (error) {
-    console.error('❌ Error aprobando pago:', error);
-    res.status(500).json({ error: 'Error aprobando pago' });
-  }
-});
 
 // 8. Rechazar pago
 app.post('/api/payments/:id/reject', async (req, res) => {

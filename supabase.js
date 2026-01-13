@@ -765,7 +765,10 @@ const db = {
         telegram_id: paymentData.telegram_id,
         plan: paymentData.plan,
         price: paymentData.price,
-        status: paymentData.status
+        status: paymentData.status,
+        coupon_used: paymentData.coupon_used,
+        coupon_code: paymentData.coupon_code,
+        original_price: paymentData.original_price
       });
       
       // Validar que telegram_id esté presente y sea válido
@@ -780,9 +783,18 @@ const db = {
       const { data, error } = await supabase
         .from('payments')
         .insert([{
-          ...paymentData,
           telegram_id: telegramId, // Asegurar que sea string consistente
-          created_at: new Date().toISOString(),
+          plan: paymentData.plan,
+          price: paymentData.price,
+          original_price: paymentData.original_price || paymentData.price, // Guardar precio original
+          method: paymentData.method || 'transfer',
+          screenshot_url: paymentData.screenshot_url || '',
+          notes: paymentData.notes || '',
+          status: paymentData.status || 'pending',
+          coupon_used: paymentData.coupon_used || false,
+          coupon_code: paymentData.coupon_code || null,
+          coupon_discount: paymentData.coupon_discount || 0,
+          created_at: paymentData.created_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
         .select()
@@ -793,7 +805,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Pago creado con ID: ${data.id}, telegram_id: ${data.telegram_id}`);
+      console.log(`✅ Pago creado con ID: ${data.id}, telegram_id: ${data.telegram_id}, cupón: ${data.coupon_code || 'No aplicado'}`);
       return data;
     } catch (error) {
       console.error('❌ Error creando pago:', error);
@@ -821,7 +833,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Pago ${paymentId} encontrado, telegram_id: ${data.telegram_id || 'NO TIENE'}`);
+      console.log(`✅ Pago ${paymentId} encontrado, telegram_id: ${data.telegram_id || 'NO TIENE'}, cupón: ${data.coupon_code || 'No'}`);
       
       // Validar que el pago tenga telegram_id
       if (!data.telegram_id) {
@@ -935,7 +947,7 @@ const db = {
         data.telegram_id = String(data.telegram_id).trim();
       }
       
-      console.log(`✅ Pago ${paymentId} aprobado, telegram_id: ${data.telegram_id || 'NO TIENE'}`);
+      console.log(`✅ Pago ${paymentId} aprobado, telegram_id: ${data.telegram_id || 'NO TIENE'}, cupón: ${data.coupon_code || 'No'}`);
       return data;
     } catch (error) {
       console.error('❌ Error aprobando pago:', error);
@@ -1314,7 +1326,7 @@ const db = {
       // Obtener estadísticas de pagos
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
-        .select('status, price, method, telegram_id');
+        .select('status, price, method, telegram_id, coupon_used, coupon_code, coupon_discount');
       
       if (paymentsError) {
         console.error('❌ Error obteniendo pagos para estadísticas:', paymentsError);
@@ -1326,11 +1338,21 @@ const db = {
       const approvedPayments = paymentsData?.filter(p => p.status === 'approved')?.length || 0;
       const rejectedPayments = paymentsData?.filter(p => p.status === 'rejected')?.length || 0;
       const usdtPayments = paymentsData?.filter(p => p.method === 'usdt')?.length || 0;
+      const couponPayments = paymentsData?.filter(p => p.coupon_used)?.length || 0;
       
-      // Calcular ingresos totales
+      // Calcular ingresos totales (con descuentos aplicados)
       const totalRevenue = paymentsData
         ?.filter(p => p.status === 'approved' && p.price)
         ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
+      
+      // Calcular descuentos totales aplicados
+      const totalDiscounts = paymentsData
+        ?.filter(p => p.status === 'approved' && p.coupon_discount && p.price)
+        ?.reduce((sum, p) => {
+          const originalPrice = p.original_price || p.price / (1 - (p.coupon_discount / 100));
+          const discountAmount = originalPrice - parseFloat(p.price);
+          return sum + discountAmount;
+        }, 0) || 0;
       
       // Obtener estadísticas de referidos
       const referralsStats = await this.getAllReferralsStats();
@@ -1372,10 +1394,12 @@ const db = {
           pending: pendingPayments,
           approved: approvedPayments,
           rejected: rejectedPayments,
-          usdt: usdtPayments
+          usdt: usdtPayments,
+          with_coupon: couponPayments
         },
         revenue: {
           total: totalRevenue,
+          discounts: totalDiscounts,
           average: approvedPayments > 0 ? totalRevenue / approvedPayments : 0
         },
         referrals: referralsStats,
@@ -1409,10 +1433,12 @@ const db = {
           pending: 0, 
           approved: 0, 
           rejected: 0,
-          usdt: 0
+          usdt: 0,
+          with_coupon: 0
         },
         revenue: { 
           total: 0, 
+          discounts: 0,
           average: 0
         },
         referrals: {
@@ -1805,7 +1831,7 @@ const db = {
     }
   },
 
-  // ========== CUPONES ==========
+  // ========== CUPONES - FUNCIONES NUEVAS ==========
   async createCoupon(couponData) {
     try {
       console.log(`🎫 Creando cupón: ${couponData.code}`);
@@ -1813,7 +1839,13 @@ const db = {
       const { data, error } = await supabase
         .from('coupons')
         .insert([{
-          ...couponData,
+          code: couponData.code,
+          discount: couponData.discount,
+          stock: couponData.stock,
+          expiry: couponData.expiry || null,
+          description: couponData.description || '',
+          status: couponData.status || 'active',
+          created_by: couponData.created_by || 'system',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
@@ -1899,13 +1931,26 @@ const db = {
       const total = data?.length || 0;
       const active = data?.filter(c => c.status === 'active').length || 0;
       const expired = data?.filter(c => c.status === 'expired').length || 0;
+      const inactive = data?.filter(c => c.status === 'inactive').length || 0;
       const used = data?.reduce((sum, c) => sum + (c.used || 0), 0);
+      
+      // Calcular descuento promedio
+      const averageDiscount = data?.length > 0 ? 
+        data.reduce((sum, c) => sum + (c.discount || 0), 0) / data.length : 0;
+      
+      // Obtener cupones con stock bajo (menos de 5)
+      const lowStock = data?.filter(c => c.stock < 5 && c.stock > 0).length || 0;
+      const outOfStock = data?.filter(c => c.stock === 0).length || 0;
       
       return {
         total: total,
         active: active,
         expired: expired,
+        inactive: inactive,
         used: used,
+        average_discount: averageDiscount.toFixed(1),
+        low_stock: lowStock,
+        out_of_stock: outOfStock,
         coupons: data || []
       };
     } catch (error) {
@@ -1914,7 +1959,11 @@ const db = {
         total: 0,
         active: 0,
         expired: 0,
+        inactive: 0,
         used: 0,
+        average_discount: 0,
+        low_stock: 0,
+        out_of_stock: 0,
         coupons: []
       };
     }
@@ -2005,16 +2054,17 @@ const db = {
       
       // Convertir a string para consistencia
       const userId = String(telegramId).trim();
+      const couponCode = code.toUpperCase();
       
       const { data, error } = await supabase
         .from('coupon_usage')
         .select('id')
         .eq('telegram_id', userId)
-        .eq('coupon_code', code.toUpperCase())
+        .eq('coupon_code', couponCode)
         .single();
       
       if (error && error.code === 'PGRST116') {
-        console.log(`✅ Usuario ${userId} no ha usado el cupón ${code}`);
+        console.log(`✅ Usuario ${userId} no ha usado el cupón ${couponCode}`);
         return false;
       }
       
@@ -2023,7 +2073,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Usuario ${userId} ya usó el cupón ${code}`);
+      console.log(`✅ Usuario ${userId} ya usó el cupón ${couponCode}`);
       return true;
     } catch (error) {
       console.error('❌ Error en hasUserUsedCoupon:', error);
@@ -2037,13 +2087,33 @@ const db = {
       
       // Convertir a string para consistencia
       const userId = String(telegramId).trim();
+      const couponCode = code.toUpperCase();
       
+      // Verificar que el cupón existe y está activo
+      const coupon = await this.getCoupon(couponCode);
+      if (!coupon || coupon.status !== 'active') {
+        throw new Error('Cupón no válido o inactivo');
+      }
+      
+      // Verificar stock
+      if (coupon.stock <= 0) {
+        throw new Error('Cupón agotado');
+      }
+      
+      // Verificar si el usuario ya usó este cupón
+      const hasUsed = await this.hasUserUsedCoupon(userId, couponCode);
+      if (hasUsed) {
+        throw new Error('Usuario ya usó este cupón');
+      }
+      
+      // Registrar uso del cupón
       const { data, error } = await supabase
         .from('coupon_usage')
         .insert([{
-          coupon_code: code.toUpperCase(),
+          coupon_code: couponCode,
           telegram_id: userId,
           payment_id: paymentId,
+          discount_applied: coupon.discount,
           used_at: new Date().toISOString()
         }])
         .select()
@@ -2054,7 +2124,15 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ Cupón aplicado: ${code} -> pago ${paymentId}`);
+      // Reducir stock del cupón
+      await this.updateCoupon(couponCode, {
+        stock: coupon.stock - 1,
+        used: (coupon.used || 0) + 1,
+        updated_at: new Date().toISOString(),
+        updated_by: 'system'
+      });
+      
+      console.log(`✅ Cupón aplicado: ${couponCode} -> pago ${paymentId}`);
       return data;
     } catch (error) {
       console.error('❌ Error en applyCouponToPayment:', error);
@@ -2066,14 +2144,28 @@ const db = {
     try {
       console.log(`📜 Obteniendo historial de uso del cupón: ${code}`);
       
+      const couponCode = code.toUpperCase();
+      
       const { data, error } = await supabase
         .from('coupon_usage')
         .select(`
           *,
-          payments (*),
-          users (telegram_id, username, first_name)
+          payments:payment_id (
+            id,
+            plan,
+            price,
+            original_price,
+            method,
+            status,
+            created_at
+          ),
+          users:telegram_id (
+            telegram_id,
+            username,
+            first_name
+          )
         `)
-        .eq('coupon_code', code.toUpperCase())
+        .eq('coupon_code', couponCode)
         .order('used_at', { ascending: false });
       
       if (error) {
@@ -2081,7 +2173,7 @@ const db = {
         throw error;
       }
       
-      console.log(`✅ ${data?.length || 0} usos encontrados para el cupón ${code}`);
+      console.log(`✅ ${data?.length || 0} usos encontrados para el cupón ${couponCode}`);
       return data || [];
     } catch (error) {
       console.error('❌ Error en getCouponUsageHistory:', error);
@@ -2172,6 +2264,8 @@ const db = {
           status: p.status,
           plan: p.plan,
           price: p.price,
+          coupon_used: p.coupon_used,
+          coupon_code: p.coupon_code,
           created_at: p.created_at,
           updated_at: p.updated_at
         })),

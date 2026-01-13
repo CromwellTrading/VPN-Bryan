@@ -434,6 +434,18 @@
             border: 1px solid rgba(236, 72, 153, 0.3);
         }
 
+        .badge.coupon-used {
+            background: rgba(236, 72, 153, 0.3);
+            color: #ec4899;
+            border: 1px solid rgba(236, 72, 153, 0.4);
+        }
+
+        .badge.coupon-not-used {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -1811,6 +1823,7 @@
                                 <th>Plan</th>
                                 <th>Método</th>
                                 <th>Monto</th>
+                                <th>Cupón</th>
                                 <th>Aprobado</th>
                                 <th>Configuración</th>
                                 <th>Acciones</th>
@@ -3171,7 +3184,7 @@
             }
         }
 
-        // Cargar pagos aprobados
+        // Cargar pagos aprobados - ACTUALIZADO PARA MOSTRAR INFORMACIÓN DE CUPONES
         async function loadApprovedPayments() {
             try {
                 document.getElementById('approvedLoading').style.display = 'block';
@@ -3193,6 +3206,22 @@
                 tableBody.innerHTML = '';
                 
                 payments.forEach(payment => {
+                    // Obtener información del cupón
+                    let couponInfo = '';
+                    if (payment.coupon_used) {
+                        couponInfo = `
+                            <div>
+                                <span class="badge coupon-used">Sí</span>
+                                <small style="color: #ec4899; display: block; margin-top: 3px;">
+                                    ${payment.coupon_code || 'Cupón'}
+                                    ${payment.coupon_discount ? `(${payment.coupon_discount}%)` : ''}
+                                </small>
+                            </div>
+                        `;
+                    } else {
+                        couponInfo = '<span class="badge coupon-not-used">No</span>';
+                    }
+                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${payment.id || 'N/A'}</td>
@@ -3203,6 +3232,7 @@
                         <td>${getPlanName(payment.plan)}</td>
                         <td>${getPaymentMethodBadge(payment.method)}</td>
                         <td>${payment.price || 0} ${payment.method === 'usdt' ? 'USDT' : 'CUP'}</td>
+                        <td>${couponInfo}</td>
                         <td>${payment.approved_at ? new Date(payment.approved_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
                             ${payment.config_sent ? 

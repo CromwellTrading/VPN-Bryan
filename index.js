@@ -300,7 +300,7 @@ async function verifyStorageBuckets() {
           if (createError) {
             console.error(`❌ Error creando bucket ${bucketName}:`, createError.message);
           } else {
-            console.log(`✅ Bucket ${bucketName} creado exitosamente`);
+            console.log(`✅ Bucket ${bucketName} creado exitosamente');
           }
         } else if (error) {
           console.error(`⚠️ Error verificando bucket ${bucketName}:`, error.message);
@@ -613,10 +613,11 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       telegramId: req.body.telegramId,
       plan: req.body.plan,
       price: req.body.price,
-      method: req.body.method
+      method: req.body.method,
+      couponCode: req.body.couponCode
     });
     
-    const { telegramId, plan, price, notes, method } = req.body;
+    const { telegramId, plan, price, notes, method, couponCode } = req.body;
     
     if (!telegramId || !plan || !price) {
       return res.status(400).json({ error: 'Datos incompletos' });
@@ -645,23 +646,66 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     const username = user?.username ? `@${user.username}` : 'Sin usuario';
     const firstName = user?.first_name || 'Usuario';
 
-    // Guardar pago en base de datos - Asegurándonos de incluir telegram_id
+    // Verificar cupón si se proporcionó
+    let couponUsed = false;
+    let couponDiscount = 0;
+    let finalPrice = parseFloat(price);
+    
+    if (couponCode && couponCode.trim() !== '') {
+      try {
+        const coupon = await db.getCoupon(couponCode.toUpperCase());
+        
+        if (coupon && coupon.status === 'active') {
+          // Verificar si el cupón ha expirado
+          if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
+            await db.updateCouponStatus(couponCode.toUpperCase(), 'expired', 'system');
+          } else if (coupon.stock > 0) {
+            // Verificar si el usuario ya usó este cupón
+            const hasUsed = await db.hasUserUsedCoupon(telegramId, couponCode);
+            
+            if (!hasUsed) {
+              // Cupón válido
+              couponUsed = true;
+              couponDiscount = coupon.discount;
+              // Calcular precio con descuento
+              finalPrice = finalPrice * (1 - couponDiscount / 100);
+              
+              console.log(`🎫 Cupón aplicado: ${couponCode} - ${couponDiscount}% de descuento`);
+            } else {
+              console.log(`⚠️ Usuario ya usó este cupón: ${couponCode}`);
+            }
+          } else {
+            console.log(`⚠️ Cupón agotado: ${couponCode}`);
+          }
+        } else {
+          console.log(`⚠️ Cupón no válido o inactivo: ${couponCode}`);
+        }
+      } catch (couponError) {
+        console.log('⚠️ Error verificando cupón:', couponError.message);
+      }
+    }
+
+    // Guardar pago en base de datos - Asegurándonos de incluir telegram_id y datos del cupón
     const payment = await db.createPayment({
       telegram_id: telegramId, // ¡IMPORTANTE: Incluir telegram_id!
       plan: plan,
-      price: parseFloat(price),
+      price: finalPrice,
+      original_price: parseFloat(price), // Guardar precio original
       method: method || 'transfer',
       screenshot_url: screenshotUrl,
       notes: notes || '',
       status: 'pending',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      coupon_used: couponUsed,
+      coupon_code: couponUsed ? couponCode?.toUpperCase() : null,
+      coupon_discount: couponDiscount
     });
 
     if (!payment) {
       throw new Error('No se pudo crear el pago en la base de datos');
     }
 
-    console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}`);
+    console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}, cupón: ${couponUsed ? 'Sí' : 'No'}`);
 
     // Notificar a admins - MENSAJE UNIFICADO PARA TODOS LOS MÉTODOS
     try {
@@ -673,13 +717,19 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
         'usdt': 'USDT (BEP20)'
       };
       
-      const adminMessage = `💰 *NUEVO PAGO RECIBIDO - ${method === 'usdt' ? 'USDT' : 'CUP'}*\n\n` +
+      let adminMessage = `💰 *NUEVO PAGO RECIBIDO - ${method === 'usdt' ? 'USDT' : 'CUP'}*\n\n` +
         `👤 *Usuario:* ${firstName}\n` +
         `📱 *Telegram:* ${username}\n` +
         `🆔 *ID:* ${telegramId}\n` +
         `📋 *Plan:* ${getPlanName(plan)}\n` +
-        `💰 *Monto:* ${price} ${method === 'usdt' ? 'USDT' : 'CUP'}\n` +
-        `💳 *Método:* ${methodNames[method] || method}\n` +
+        `💰 *Monto original:* ${price} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
+        
+      if (couponUsed) {
+        adminMessage += `🎫 *Cupón:* ${couponCode} (${couponDiscount}% descuento)\n` +
+          `💰 *Monto final:* ${finalPrice.toFixed(2)} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
+      }
+      
+      adminMessage += `💳 *Método:* ${methodNames[method] || method}\n` +
         `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
         `📝 *Estado:* ⏳ Pendiente de revisión manual\n` +
         `📸 *Captura:* Requerida ✅\n` +
@@ -709,8 +759,9 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
           `💰 *Monto exacto:* ${usdtAmount} USDT\n` +
           `🏦 *Dirección:* \`${usdtAddress}\`\n` +
           `🌐 *Red:* BEP20 (Binance Smart Chain)\n` +
-          `📸 *Captura enviada:* Sí\n\n` +
-          `*Instrucciones importantes:*\n` +
+          `📸 *Captura enviada:* Sí\n` +
+          `${couponUsed ? `🎫 *Cupón aplicado:* ${couponCode} (${couponDiscount}% descuento)\n` : ''}` +
+          `\n*Instrucciones importantes:*\n` +
           `1. El administrador revisará manualmente tu captura\n` +
           `2. Una vez aprobado, recibirás la confirmación\n` +
           `3. El administrador te enviará el archivo manualmente\n\n` +
@@ -734,7 +785,10 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       message: method === 'usdt' ? 
         'Pago USDT recibido con captura. El administrador revisará manualmente.' : 
         'Pago recibido. El administrador revisará la captura y te notificará.',
-      payment 
+      payment,
+      couponApplied: couponUsed,
+      discount: couponDiscount,
+      finalPrice: finalPrice
     });
   } catch (error) {
     console.error('❌ Error procesando pago:', error);
@@ -769,7 +823,7 @@ app.get('/api/payments/pending', async (req, res) => {
   }
 });
 
-// 6. Obtener pagos aprobados
+// 6. Obtener pagos aprobados - ACTUALIZADO PARA INCLUIR INFORMACIÓN DE CUPONES
 app.get('/api/payments/approved', async (req, res) => {
   try {
     const payments = await db.getApprovedPayments();
@@ -806,14 +860,31 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
+    // Aplicar cupón si se usó
+    if (payment.coupon_used && payment.coupon_code) {
+      try {
+        await db.applyCouponToPayment(payment.coupon_code, payment.telegram_id, payment.id);
+        console.log(`🎫 Cupón ${payment.coupon_code} aplicado al pago ${payment.id}`);
+      } catch (couponError) {
+        console.error('❌ Error aplicando cupón:', couponError.message);
+      }
+    }
+
     // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
     try {
+      let userMessage = '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
+        'Ahora eres usuario VIP de VPN Cuba.\n' +
+        'El administrador te enviará manualmente el archivo de configuración por este mismo chat en breve.\n\n';
+      
+      if (payment.coupon_used && payment.coupon_discount) {
+        userMessage += `🎫 *Cupón aplicado:* ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
+      }
+      
+      userMessage += '*Nota:* Sistema de envío automático desactivado.';
+      
       await bot.telegram.sendMessage(
         payment.telegram_id,
-        '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
-        'Ahora eres usuario VIP de VPN Cuba.\n' +
-        'El administrador te enviará manualmente el archivo de configuración por este mismo chat en breve.\n\n' +
-        '*Nota:* Sistema de envío automático desactivado.',
+        userMessage,
         { parse_mode: 'Markdown' }
       );
     } catch (botError) {
@@ -1024,7 +1095,9 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       id: payment.id,
       telegram_id: payment.telegram_id,
       status: payment.status,
-      plan: payment.plan
+      plan: payment.plan,
+      coupon_used: payment.coupon_used,
+      coupon_code: payment.coupon_code
     });
     
     // Verificar que el pago esté aprobado
@@ -1078,8 +1151,10 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         { source: req.file.path, filename: req.file.originalname },
         {
           caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
-                  `📁 *Archivo:* ${req.file.originalname}\n\n` +
-                  `*Instrucciones de instalación:*\n` +
+                  `📁 *Archivo:* ${req.file.originalname}\n` +
+                  `📋 *Plan:* ${getPlanName(payment.plan)}\n` +
+                  `${payment.coupon_used ? `🎫 *Cupón aplicado:* ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n` : ''}` +
+                  `\n*Instrucciones de instalación:*\n` +
                   `1. Descarga este archivo\n` +
                   `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
                   `3. Importa el archivo .conf en tu cliente WireGuard\n` +

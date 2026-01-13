@@ -2518,30 +2518,40 @@ app.post('/api/send-trials-to-valid', async (req, res) => {
 // 49. Crear un nuevo cupón
 app.post('/api/coupons', async (req, res) => {
   try {
+    console.log('🎫 RECIBIENDO SOLICITUD PARA CREAR CUPÓN...');
+    console.log('📦 Cuerpo de la solicitud:', JSON.stringify(req.body, null, 2));
+    
     const { code, discount, stock, expiry, description, adminId } = req.body;
     
     if (!isAdmin(adminId)) {
+      console.log('❌ USUARIO NO ES ADMINISTRADOR:', adminId);
       return res.status(403).json({ error: 'No autorizado' });
     }
     
+    console.log('✅ USUARIO ES ADMINISTRADOR');
+    
     if (!code || !discount || !stock) {
+      console.log('❌ FALTAN CAMPOS REQUERIDOS:', { code, discount, stock });
       return res.status(400).json({ error: 'Faltan campos requeridos: código, descuento y stock' });
     }
     
     // Validar código
     if (!/^[A-Z0-9]+$/.test(code)) {
+      console.log('❌ CÓDIGO INVÁLIDO:', code);
       return res.status(400).json({ error: 'El código solo puede contener letras mayúsculas y números' });
     }
     
     // Validar descuento
     const discountNum = parseFloat(discount);
     if (isNaN(discountNum) || discountNum < 1 || discountNum > 100) {
+      console.log('❌ DESCUENTO INVÁLIDO:', discount);
       return res.status(400).json({ error: 'El descuento debe estar entre 1% y 100%' });
     }
     
     // Validar stock
     const stockNum = parseInt(stock);
     if (isNaN(stockNum) || stockNum < 1) {
+      console.log('❌ STOCK INVÁLIDO:', stock);
       return res.status(400).json({ error: 'El stock debe ser mayor a 0' });
     }
     
@@ -2550,13 +2560,26 @@ app.post('/api/coupons', async (req, res) => {
     if (expiry) {
       expiryDate = new Date(expiry);
       if (isNaN(expiryDate.getTime())) {
+        console.log('❌ FECHA DE EXPIRACIÓN INVÁLIDA:', expiry);
         return res.status(400).json({ error: 'Fecha de expiración inválida' });
       }
       // Asegurar que la fecha de expiración sea en el futuro
       if (expiryDate <= new Date()) {
+        console.log('❌ FECHA DE EXPIRACIÓN DEBE SER FUTURA:', expiry);
         return res.status(400).json({ error: 'La fecha de expiración debe ser en el futuro' });
       }
     }
+    
+    console.log('📝 DATOS VALIDADOS, CREANDO CUPÓN...');
+    console.log('🔍 Datos del cupón:', {
+      code: code.toUpperCase(),
+      discount: discountNum,
+      stock: stockNum,
+      expiry: expiryDate,
+      description: description || '',
+      status: 'active',
+      created_by: adminId
+    });
     
     // Crear cupón
     const coupon = await db.createCoupon({
@@ -2569,6 +2592,8 @@ app.post('/api/coupons', async (req, res) => {
       created_by: adminId
     });
     
+    console.log('✅ CUPÓN CREADO EXITOSAMENTE:', coupon);
+    
     res.json({ 
       success: true, 
       message: 'Cupón creado exitosamente',
@@ -2576,16 +2601,19 @@ app.post('/api/coupons', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error creando cupón:', error);
+    console.error('❌ ERROR CRÍTICO CREANDO CUPÓN:', error);
+    console.error('❌ Stack trace:', error.stack);
     
     if (error.message.includes('unique')) {
       return res.status(400).json({ error: 'Ya existe un cupón con ese código' });
     }
     
-    res.status(500).json({ error: 'Error creando cupón: ' + error.message });
+    res.status(500).json({ 
+      error: 'Error creando cupón: ' + error.message,
+      details: error.stack 
+    });
   }
 });
-
 // 50. Obtener todos los cupones
 app.get('/api/coupons', async (req, res) => {
   try {

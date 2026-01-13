@@ -300,7 +300,7 @@ async function verifyStorageBuckets() {
           if (createError) {
             console.error(`❌ Error creando bucket ${bucketName}:`, createError.message);
           } else {
-            console.log(`✅ Bucket ${bucketName} creado exitosamente');
+            console.log(`✅ Bucket ${bucketName} creado exitosamente`);
           }
         } else if (error) {
           console.error(`⚠️ Error verificando bucket ${bucketName}:`, error.message);

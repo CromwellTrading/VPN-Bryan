@@ -143,11 +143,34 @@ function generateUniqueUsdtAddress() {
 
 // Función para formatear fecha
 function formatearFecha(fecha) {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    if (!fecha) return 'N/A';
+    
+    // Intentar diferentes formatos de fecha
+    try {
+        const date = new Date(fecha);
+        
+        // Verificar si es una fecha válida
+        if (isNaN(date.getTime())) {
+            console.log(`⚠️ Fecha inválida: ${fecha}`);
+            return 'Fecha inválida';
+        }
+        
+        // Formatear con múltiples formatos para compatibilidad
+        const options = { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: 'America/Havana'
+        };
+        
+        return date.toLocaleDateString('es-ES', options);
+    } catch (error) {
+        console.error(`❌ Error formateando fecha ${fecha}:`, error);
+        return 'Error fecha';
+    }
 }
 
 // En la función crearMenuPrincipal, agregar botón de referidos
@@ -650,35 +673,47 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     let couponUsed = false;
     let couponDiscount = 0;
     let finalPrice = parseFloat(price);
+    let appliedCoupon = null;
     
     if (couponCode && couponCode.trim() !== '') {
       try {
+        console.log(`🎫 Verificando cupón: ${couponCode.toUpperCase()}`);
         const coupon = await db.getCoupon(couponCode.toUpperCase());
         
-        if (coupon && coupon.status === 'active') {
-          // Verificar si el cupón ha expirado
-          if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
+        if (coupon) {
+          console.log(`🔍 Cupón encontrado: ${JSON.stringify(coupon, null, 2)}`);
+          
+          // Verificar si el cupón está activo
+          if (coupon.status !== 'active') {
+            console.log(`⚠️ Cupón no activo: ${couponCode}, estado: ${coupon.status}`);
+          } 
+          // Verificar si ha expirado
+          else if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
+            console.log(`⚠️ Cupón expirado: ${couponCode}, expiry: ${coupon.expiry}`);
             await db.updateCouponStatus(couponCode.toUpperCase(), 'expired', 'system');
-          } else if (coupon.stock > 0) {
-            // Verificar si el usuario ya usó este cupón
-            const hasUsed = await db.hasUserUsedCoupon(telegramId, couponCode);
+          } 
+          // Verificar si hay stock disponible
+          else if (coupon.stock <= 0) {
+            console.log(`⚠️ Cupón agotado: ${couponCode}, stock: ${coupon.stock}`);
+          } 
+          // Verificar si el usuario ya usó este cupón
+          else if (await db.hasUserUsedCoupon(telegramId, couponCode.toUpperCase())) {
+            console.log(`⚠️ Usuario ya usó este cupón: ${couponCode}`);
+          } 
+          // Cupón válido
+          else {
+            couponUsed = true;
+            couponDiscount = coupon.discount;
+            appliedCoupon = coupon;
             
-            if (!hasUsed) {
-              // Cupón válido
-              couponUsed = true;
-              couponDiscount = coupon.discount;
-              // Calcular precio con descuento
-              finalPrice = finalPrice * (1 - couponDiscount / 100);
-              
-              console.log(`🎫 Cupón aplicado: ${couponCode} - ${couponDiscount}% de descuento`);
-            } else {
-              console.log(`⚠️ Usuario ya usó este cupón: ${couponCode}`);
-            }
-          } else {
-            console.log(`⚠️ Cupón agotado: ${couponCode}`);
+            // Calcular precio con descuento
+            finalPrice = finalPrice * (1 - couponDiscount / 100);
+            
+            console.log(`✅ Cupón aplicado: ${couponCode} - ${couponDiscount}% de descuento`);
+            console.log(`💰 Precio original: ${price}, Precio final: ${finalPrice.toFixed(2)}`);
           }
         } else {
-          console.log(`⚠️ Cupón no válido o inactivo: ${couponCode}`);
+          console.log(`⚠️ Cupón no encontrado: ${couponCode}`);
         }
       } catch (couponError) {
         console.log('⚠️ Error verificando cupón:', couponError.message);
@@ -843,7 +878,7 @@ app.get('/api/payments/approved', async (req, res) => {
   }
 });
 
-// 7. Aprobar pago - MODIFICADO PARA REDUCIR STOCK DE CUPÓN
+// 7. Aprobar pago - MODIFICADO PARA NO ENVIAR CONFIGURACIÓN AUTOMÁTICAMENTE
 app.post('/api/payments/:id/approve', async (req, res) => {
   try {
     const payment = await db.approvePayment(req.params.id);
@@ -860,27 +895,82 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
-    // REDUCIR STOCK DEL CUPÓN SI SE USÓ - NUEVO CÓDIGO
+    // Aplicar cupón si se usó y tiene stock disponible
     if (payment.coupon_used && payment.coupon_code) {
       try {
+        console.log(`🎫 Aplicando cupón ${payment.coupon_code} al pago ${payment.id}`);
         const coupon = await db.getCoupon(payment.coupon_code);
-        if (coupon && coupon.stock > 0) {
-          const newStock = coupon.stock - 1;
-          await db.updateCoupon(payment.coupon_code, {
-            stock: newStock,
-            used: (coupon.used || 0) + 1,
-            updated_at: new Date().toISOString(),
-            updated_by: 'system'
-          });
-          console.log(`🎫 Cupón ${payment.coupon_code} stock reducido a ${newStock}`);
-        }
         
-        // Marcar que el usuario usó el cupón
-        await db.markCouponAsUsed(payment.coupon_code, payment.telegram_id, payment.id);
+        if (coupon && coupon.stock > 0) {
+          const applied = await db.applyCouponToPayment(payment.coupon_code, payment.telegram_id, payment.id);
+          
+          if (applied) {
+            // Reducir stock del cupón
+            const newStock = coupon.stock - 1;
+            await db.updateCoupon(payment.coupon_code, {
+              stock: newStock,
+              used: (coupon.used || 0) + 1,
+              updated_at: new Date().toISOString(),
+              updated_by: payment.config_sent_by || 'system'
+            });
+            
+            console.log(`✅ Cupón ${payment.coupon_code} aplicado. Stock actualizado: ${newStock}`);
+          }
+        } else {
+          console.log(`⚠️ Cupón ${payment.coupon_code} no disponible o sin stock`);
+        }
       } catch (couponError) {
         console.error('❌ Error aplicando cupón:', couponError.message);
       }
     }
+
+    // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
+    try {
+      let userMessage = '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
+        'Ahora eres usuario VIP de VPN Cuba.\n' +
+        'El administrador te enviará manualmente el archivo de configuración por este mismo chat en breve.\n\n';
+      
+      if (payment.coupon_used && payment.coupon_discount) {
+        userMessage += `🎫 *Cupón aplicado:* ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
+      }
+      
+      userMessage += '*Nota:* Sistema de envío automático desactivado.';
+      
+      await bot.telegram.sendMessage(
+        payment.telegram_id,
+        userMessage,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (botError) {
+      console.log('❌ No se pudo notificar al usuario:', botError.message);
+    }
+
+    // Marcar usuario como VIP
+    const user = await db.getUser(payment.telegram_id);
+    if (!user.vip) {
+      await db.makeUserVIP(payment.telegram_id, {
+        plan: payment.plan,
+        plan_price: payment.price,
+        vip_since: new Date().toISOString()
+      });
+    }
+
+    // Verificar si el usuario fue referido y actualizar referidos pagados
+    if (user.referrer_id) {
+      try {
+        await db.markReferralAsPaid(payment.telegram_id);
+        console.log(`✅ Referido ${payment.telegram_id} marcado como pagado`);
+      } catch (refError) {
+        console.log('⚠️ Error marcando referido como pagado:', refError.message);
+      }
+    }
+
+    res.json({ success: true, payment });
+  } catch (error) {
+    console.error('❌ Error aprobando pago:', error);
+    res.status(500).json({ error: 'Error aprobando pago' });
+  }
+});
 
 // 8. Rechazar pago
 app.post('/api/payments/:id/reject', async (req, res) => {
@@ -2522,11 +2612,26 @@ app.post('/api/coupons', async (req, res) => {
     // Validar fecha de expiración si se proporciona
     let expiryDate = null;
     if (expiry) {
-      expiryDate = new Date(expiry);
+      // Intentar diferentes formatos de fecha
+      const dateFormats = [
+        expiry, // Formato original
+        expiry.replace('T', ' '), // Para fechas ISO con T
+        new Date(expiry).toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
+        new Date(expiry).toISOString() // ISO completo
+      ];
+      
+      for (const dateStr of dateFormats) {
+        expiryDate = new Date(dateStr);
+        if (!isNaN(expiryDate.getTime())) {
+          break;
+        }
+      }
+      
       if (isNaN(expiryDate.getTime())) {
         console.log('❌ FECHA DE EXPIRACIÓN INVÁLIDA:', expiry);
         return res.status(400).json({ error: 'Fecha de expiración inválida' });
       }
+      
       // Asegurar que la fecha de expiración sea en el futuro
       if (expiryDate <= new Date()) {
         console.log('❌ FECHA DE EXPIRACIÓN DEBE SER FUTURA:', expiry);
@@ -2578,6 +2683,7 @@ app.post('/api/coupons', async (req, res) => {
     });
   }
 });
+
 // 50. Obtener todos los cupones
 app.get('/api/coupons', async (req, res) => {
   try {
@@ -2746,16 +2852,28 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       return res.status(400).json({ error: 'ID de usuario requerido' });
     }
     
+    console.log(`🔍 Verificando cupón ${code} para usuario ${telegramId}`);
+    
     const coupon = await db.getCoupon(code);
     if (!coupon) {
-      return res.status(404).json({ 
+      console.log(`❌ Cupón ${code} no encontrado`);
+      return res.json({ 
         success: false, 
         error: 'Cupón no encontrado' 
       });
     }
     
+    console.log(`✅ Cupón encontrado:`, {
+      code: coupon.code,
+      status: coupon.status,
+      stock: coupon.stock,
+      expiry: coupon.expiry,
+      used: coupon.used
+    });
+    
     // Verificar si el cupón está activo
     if (coupon.status !== 'active') {
+      console.log(`⚠️ Cupón no activo: ${coupon.status}`);
       return res.json({ 
         success: false, 
         error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
@@ -2763,17 +2881,26 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
     }
     
     // Verificar si ha expirado
-    if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
-      // Actualizar estado a expirado
-      await db.updateCouponStatus(code, 'expired', 'system');
-      return res.json({ 
-        success: false, 
-        error: 'Cupón expirado' 
-      });
+    if (coupon.expiry) {
+      const expiryDate = new Date(coupon.expiry);
+      const now = new Date();
+      
+      console.log(`📅 Expiración: ${expiryDate}, Ahora: ${now}`);
+      
+      if (expiryDate < now) {
+        console.log(`⚠️ Cupón expirado`);
+        // Actualizar estado a expirado
+        await db.updateCouponStatus(code, 'expired', 'system');
+        return res.json({ 
+          success: false, 
+          error: 'Cupón expirado' 
+        });
+      }
     }
     
     // Verificar si hay stock disponible
     if (coupon.stock <= 0) {
+      console.log(`⚠️ Cupón agotado, stock: ${coupon.stock}`);
       return res.json({ 
         success: false, 
         error: 'Cupón agotado' 
@@ -2783,6 +2910,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
     // Verificar si el usuario ya usó este cupón
     const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
     if (hasUsed) {
+      console.log(`⚠️ Usuario ya usó este cupón`);
       return res.json({ 
         success: false, 
         error: 'Ya has usado este cupón' 
@@ -2790,12 +2918,14 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
     }
     
     // Cupón válido
+    console.log(`✅ Cupón ${code} válido para usuario ${telegramId}`);
     res.json({ 
       success: true,
       coupon: {
         code: coupon.code,
         discount: coupon.discount,
-        description: coupon.description
+        description: coupon.description,
+        stock: coupon.stock
       },
       message: `Cupón válido. Descuento del ${coupon.discount}% aplicado.`
     });

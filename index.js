@@ -23,12 +23,12 @@ const supabaseAdmin = createClient(
 // IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604'];
+    ['6373481979', '5376388604, 7426865949'];
 
 // ==================== CONFIGURACIÓN USDT (MODIFICADA) ====================
 const USDT_CONFIG = {
     // Dirección fija USDT (BEP20)
-    WALLET_ADDRESS: '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2',
+    WALLET_ADDRESS: '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519',
     // API Key de BSCScan - DESACTIVADA PARA FLUJO MANUAL
     BSCSCAN_API_KEY: '', // Vacía para desactivar verificación automática
     // Contrato USDT en BSC (BEP20)
@@ -198,7 +198,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             },
             {
                 text: '🆘 SOPORTE',
-                url: 'https://t.me/L0quen2'
+                url: 'https://t.me/Espaciosvacios'
             }
         ],
         [
@@ -3227,7 +3227,7 @@ bot.action('view_plans', async (ctx) => {
             },
             {
                 text: '🆘 SOPORTE',
-                url: 'https://t.me/L0quen2'
+                url: 'https://t.me/Espaciosvacios'
             }
         ],
         [
@@ -3348,7 +3348,7 @@ bot.action('check_status', async (ctx) => {
                 [
                     {
                         text: '🆘 CONTACTAR SOPORTE', 
-                        url: 'https://t.me/L0quen2'
+                        url: 'https://t.me/Espaciosvacios'
                     }
                 ],
                 [
@@ -3409,7 +3409,7 @@ bot.action('check_status', async (ctx) => {
                 [
                     {
                         text: '🆘 CONTACTAR SOPORTE', 
-                        url: 'https://t.me/L0quen2'
+                        url: 'https://t.me/Espaciosvacios'
                     }
                 ],
                 [
@@ -3453,7 +3453,7 @@ bot.action('check_status', async (ctx) => {
                 [
                     {
                         text: '🆘 SOPORTE',
-                        url: 'https://t.me/L0quen2'
+                        url: 'https://t.me/Espaciosvacios'
                     }
                 ],
                 [
@@ -3724,7 +3724,7 @@ bot.command('admin', async (ctx) => {
             },
             {
                 text: '🆘 SOPORTE',
-                url: 'https://t.me/L0quen2'
+                url: 'https://t.me/Espaciosvacios'
             }
         ],
         [

@@ -4106,7 +4106,7 @@ process.on('SIGINT', () => {
 
 // Función keep-alive
 function startKeepAlive() {
-    const keepAliveInterval = 5 * 60 * 1000;
+    const keepAliveInterval = 4 * 60 * 1000;
     const healthCheckUrl = `http://localhost:${PORT}/api/health`;
 
     setInterval(async () => {

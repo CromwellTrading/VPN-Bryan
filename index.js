@@ -198,7 +198,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             },
             {
                 text: '🆘 SOPORTE',
-                url: 'https://t.me/Espaciosvacios'
+                url: 'https://t.me/L0quen2'
             }
         ],
         [
@@ -3227,7 +3227,7 @@ bot.action('view_plans', async (ctx) => {
             },
             {
                 text: '🆘 SOPORTE',
-                url: 'https://t.me/Espaciosvacios'
+                url: 'https://t.me/L0quen2'
             }
         ],
         [
@@ -3348,7 +3348,7 @@ bot.action('check_status', async (ctx) => {
                 [
                     {
                         text: '🆘 CONTACTAR SOPORTE', 
-                        url: 'https://t.me/Espaciosvacios'
+                        url: 'https://t.me/L0quen2'
                     }
                 ],
                 [
@@ -3409,7 +3409,7 @@ bot.action('check_status', async (ctx) => {
                 [
                     {
                         text: '🆘 CONTACTAR SOPORTE', 
-                        url: 'https://t.me/Espaciosvacios'
+                        url: 'https://t.me/L0quen2'
                     }
                 ],
                 [
@@ -3453,7 +3453,7 @@ bot.action('check_status', async (ctx) => {
                 [
                     {
                         text: '🆘 SOPORTE',
-                        url: 'https://t.me/Espaciosvacios'
+                        url: 'https://t.me/L0quen2'
                     }
                 ],
                 [
@@ -3724,7 +3724,7 @@ bot.command('admin', async (ctx) => {
             },
             {
                 text: '🆘 SOPORTE',
-                url: 'https://t.me/Espaciosvacios'
+                url: 'https://t.me/L0quen2'
             }
         ],
         [

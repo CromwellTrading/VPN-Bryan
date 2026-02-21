@@ -173,7 +173,7 @@ function formatearFecha(fecha) {
     }
 }
 
-// En la función crearMenuPrincipal, agregar botón de referidos
+// En la función crearMenuPrincipal, agregar botones de canal y películas
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
@@ -209,6 +209,17 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             {
                 text: '❓ CÓMO FUNCIONA',
                 callback_data: 'how_it_works'
+            }
+        ],
+        // NUEVOS BOTONES AÑADIDOS
+        [
+            {
+                text: '📢 VPN CANAL',
+                url: 'https://t.me/vpncubaw'
+            },
+            {
+                text: '🎬 PELÍCULAS',
+                url: 'https://t.me/cumovies_bot'
             }
         ]
     ];
@@ -3821,6 +3832,8 @@ bot.command('help', async (ctx) => {
         `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
         `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
         `🆘 SOPORTE - Contactar con soporte técnico\n` +
+        `📢 VPN CANAL - Unirse al canal de VPN\n` +
+        `🎬 PELÍCULAS - Bot de películas\n` +
         `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
         `\n*COMANDOS DISPONIBLES:*\n` +
         `/start - Iniciar el bot\n` +

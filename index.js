@@ -173,7 +173,7 @@ function formatearFecha(fecha) {
     }
 }
 
-// En la función crearMenuPrincipal, agregar botones de canal y películas
+// En la función crearMenuPrincipal, agregar los nuevos botones
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
@@ -211,7 +211,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
                 callback_data: 'how_it_works'
             }
         ],
-        // NUEVOS BOTONES AÑADIDOS
+        // NUEVA FILA CON LOS TRES BOTONES ADICIONALES
         [
             {
                 text: '📢 VPN CANAL',
@@ -220,6 +220,10 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
             {
                 text: '🎬 PELÍCULAS',
                 url: 'https://t.me/cumovies_bot'
+            },
+            {
+                text: '📱 WHATSAPP',
+                url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t'
             }
         ]
     ];
@@ -3831,9 +3835,10 @@ bot.command('help', async (ctx) => {
         `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
         `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
         `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
-        `🆘 SOPORTE - Contactar con soporte técnico\n` +
-        `📢 VPN CANAL - Unirse al canal de VPN\n` +
+        `📢 VPN CANAL - Unirse al canal oficial\n` +
         `🎬 PELÍCULAS - Bot de películas\n` +
+        `📱 WHATSAPP - Grupo de WhatsApp\n` +
+        `🆘 SOPORTE - Contactar con soporte técnico\n` +
         `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
         `\n*COMANDOS DISPONIBLES:*\n` +
         `/start - Iniciar el bot\n` +

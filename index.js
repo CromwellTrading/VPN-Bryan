@@ -25,15 +25,21 @@ const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ?
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
     ['6373481979', '5376388604'];
 
-// ==================== CONFIGURACIÓN USDT ====================
+// ==================== CONFIGURACIÓN USDT (MODIFICADA) ====================
 const USDT_CONFIG = {
+    // Dirección fija USDT (BEP20)
     WALLET_ADDRESS: '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519',
-    BSCSCAN_API_KEY: '',
+    // API Key de BSCScan - DESACTIVADA PARA FLUJO MANUAL
+    BSCSCAN_API_KEY: '', // Vacía para desactivar verificación automática
+    // Contrato USDT en BSC (BEP20)
     USDT_CONTRACT_ADDRESS: '0x55d398326f99059ff775485246999027b3197955',
-    CHECK_INTERVAL: 0,
+    // Tiempo de verificación (desactivado)
+    CHECK_INTERVAL: 0, // 0 para desactivar
+    // Mínimo de confirmaciones requeridas
     MIN_CONFIRMATIONS: 3
 };
 
+// Precios USDT por plan
 const USDT_PRICES = {
     'basico': '1.6',
     'avanzado': '2.7',
@@ -41,29 +47,7 @@ const USDT_PRICES = {
     'anual': '30'
 };
 
-// ==================== FUNCIONES AUXILIARES DE SEGURIDAD ====================
-async function withTimeout(promise, ms = 5000, errorMessage = 'Timeout en operación de BD') {
-  let timeoutId;
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(errorMessage)), ms);
-  });
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    clearTimeout(timeoutId);
-    return result;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
-}
-
-// ==================== VERIFICAR VARIABLES DE ENTORNO ====================
-if (!process.env.WEBAPP_URL) {
-  console.warn('⚠️ WEBAPP_URL no definida, se usará localhost');
-  process.env.WEBAPP_URL = `http://localhost:${PORT}`;
-}
-
-// ==================== VERIFICAR SI ES ADMIN ====================
+// Verificar si es administrador
 function isAdmin(userId) {
     return ADMIN_IDS.includes(userId.toString());
 }
@@ -71,6 +55,7 @@ function isAdmin(userId) {
 // Función para verificar si un usuario puede recibir mensajes
 async function canSendMessageToUser(telegramId) {
     try {
+        // Intentar enviar un mensaje silencioso de prueba
         await bot.telegram.sendChatAction(telegramId, 'typing');
         return { canSend: true, reason: 'Usuario disponible' };
     } catch (error) {
@@ -98,7 +83,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  limits: { 
+    fileSize: 20 * 1024 * 1024,
+    files: 1 
+  },
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'screenshot') {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -119,6 +107,7 @@ const upload = multer({
       ];
       const fileExt = path.extname(file.originalname).toLowerCase();
       const fileMime = file.mimetype.toLowerCase();
+      
       if (allowedExtensions.includes(fileExt) || allowedMimeTypes.includes(fileMime)) {
         cb(null, true);
       } else {
@@ -155,12 +144,18 @@ function generateUniqueUsdtAddress() {
 // Función para formatear fecha
 function formatearFecha(fecha) {
     if (!fecha) return 'N/A';
+    
+    // Intentar diferentes formatos de fecha
     try {
         const date = new Date(fecha);
+        
+        // Verificar si es una fecha válida
         if (isNaN(date.getTime())) {
             console.log(`⚠️ Fecha inválida: ${fecha}`);
             return 'Fecha inválida';
         }
+        
+        // Formatear con múltiples formatos para compatibilidad
         const options = { 
             day: '2-digit', 
             month: '2-digit', 
@@ -170,6 +165,7 @@ function formatearFecha(fecha) {
             second: '2-digit',
             timeZone: 'America/Havana'
         };
+        
         return date.toLocaleDateString('es-ES', options);
     } catch (error) {
         console.error(`❌ Error formateando fecha ${fecha}:`, error);
@@ -177,56 +173,96 @@ function formatearFecha(fecha) {
     }
 }
 
-// Función crearMenuPrincipal
+// En la función crearMenuPrincipal, agregar los nuevos botones
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
-    const webappUrl = `${process.env.WEBAPP_URL}`;
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
+    // Crear teclado BASE para TODOS los usuarios
     const keyboard = [
         [
-            { text: '📋 VER PLANES', web_app: { url: plansUrl } },
-            { text: '👑 MI ESTADO', callback_data: 'check_status' }
+            { 
+                text: '📋 VER PLANES', 
+                web_app: { url: plansUrl }
+            },
+            {
+                text: '👑 MI ESTADO',
+                callback_data: 'check_status'
+            }
         ],
         [
-            { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' },
-            { text: '🆘 SOPORTE', url: 'https://t.me/L0quen2' }
+            {
+                text: '💻 DESCARGAR WIREGUARD',
+                callback_data: 'download_wireguard'
+            },
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
         ],
         [
-            { text: '🤝 REFERIDOS', callback_data: 'referral_info' },
-            { text: '❓ CÓMO FUNCIONA', callback_data: 'how_it_works' }
+            {
+                text: '🤝 REFERIDOS',
+                callback_data: 'referral_info'
+            },
+            {
+                text: '❓ CÓMO FUNCIONA',
+                callback_data: 'how_it_works'
+            }
         ],
+        // NUEVA FILA CON LOS TRES BOTONES ADICIONALES
         [
-            { text: '📢 VPN CANAL', url: 'https://t.me/vpncubaw' },
-            { text: '🎬 PELÍCULAS', url: 'https://t.me/cumovies_bot' },
-            { text: '📱 WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }
+            {
+                text: '📢 VPN CANAL',
+                url: 'https://t.me/vpncubaw'
+            },
+            {
+                text: '🎬 PELÍCULAS',
+                url: 'https://t.me/cumovies_bot'
+            },
+            {
+                text: '📱 WHATSAPP',
+                url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t'
+            }
         ]
     ];
 
+    // Si es ADMIN, agregar botón de panel admin
     if (esAdmin) {
         keyboard.push([
-            { text: '🔧 PANEL ADMIN', web_app: { url: adminUrl } }
+            { 
+                text: '🔧 PANEL ADMIN', 
+                web_app: { url: adminUrl }
+            }
         ]);
     }
 
     return keyboard;
 }
 
-// ==================== FUNCIONES DE VERIFICACIÓN USDT ====================
+// ==================== FUNCIONES DE VERIFICACIÓN USDT (MODIFICADAS) ====================
+
+// Función para verificar transacciones USDT en BSCScan (DESACTIVADA)
 async function checkUsdtTransactions() {
     console.log('⚠️ Verificación automática USDT desactivada - Flujo manual activado');
     return { success: true, message: 'Verificación automática desactivada - Flujo manual' };
 }
 
+// Inicializar sistema USDT (DESACTIVADO)
 async function initializeUsdtSystem() {
     console.log('💸 Sistema USDT inicializado en modo MANUAL');
     console.log('📝 Todos los pagos USDT requieren captura y aprobación manual');
+    
+    // Informar sobre el modo manual
     if (!USDT_CONFIG.BSCSCAN_API_KEY) {
         console.log('✅ Sistema USDT en modo manual - No se requiere API Key');
     }
+    
     if (!USDT_CONFIG.WALLET_ADDRESS) {
         console.log('⚠️ Dirección USDT no configurada.');
     }
+    
     console.log('✅ Sistema USDT inicializado en modo manual');
 }
 
@@ -234,51 +270,71 @@ async function initializeUsdtSystem() {
 async function createStorageBucket(bucketName, isPublic = true) {
   try {
     console.log(`📦 Intentando crear bucket: ${bucketName}`);
+    
+    // Verificar si el bucket ya existe
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+    
     if (listError) {
       console.error('❌ Error listando buckets:', listError.message);
       return { success: false, error: listError.message };
     }
+    
     const bucketExists = buckets?.some(b => b.name === bucketName);
+    
     if (bucketExists) {
       console.log(`✅ Bucket ${bucketName} ya existe`);
       return { success: true, exists: true };
     }
+    
+    // Crear el nuevo bucket
     const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
       public: isPublic,
-      allowedMimeTypes: null,
-      fileSizeLimit: 20971520,
+      allowedMimeTypes: null, // Permitir todos los tipos
+      fileSizeLimit: 20971520, // 20MB
       avifAutodetection: false
     });
+    
     if (error) {
       console.error(`❌ Error creando bucket ${bucketName}:`, error.message);
+      
+      // Intentar método alternativo usando fetch directo
       return await createBucketViaAPI(bucketName, isPublic);
     }
+    
     console.log(`✅ Bucket ${bucketName} creado exitosamente`);
     return { success: true, data };
+    
   } catch (error) {
     console.error(`❌ Error en createStorageBucket para ${bucketName}:`, error.message);
     return { success: false, error: error.message };
   }
 }
 
+// Función para verificar y crear buckets automáticamente
 async function verifyStorageBuckets() {
   try {
     console.log('🔍 Verificando buckets de almacenamiento...');
+    
     const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
+    
     for (const bucketName of buckets) {
       try {
+        // Intentar listar archivos para verificar si el bucket existe
         const { data, error } = await supabaseAdmin.storage
           .from(bucketName)
           .list();
+        
         if (error && error.message.includes('not found')) {
           console.log(`📦 Bucket ${bucketName} no existe, creando...`);
+          
+          // Intentar crear el bucket
           const { data: bucketData, error: createError } = await supabaseAdmin.storage
             .createBucket(bucketName, {
               public: true,
               allowedMimeTypes: null,
-              fileSizeLimit: 20971520
+              fileSizeLimit: 20971520 // 20MB
             });
+          
           if (createError) {
             console.error(`❌ Error creando bucket ${bucketName}:`, createError.message);
           } else {
@@ -298,9 +354,11 @@ async function verifyStorageBuckets() {
   }
 }
 
+// Método alternativo usando API REST directa
 async function createBucketViaAPI(bucketName, isPublic = true) {
   try {
     console.log(`🔄 Intentando crear bucket via API REST: ${bucketName}`);
+    
     const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/bucket`, {
       method: 'POST',
       headers: {
@@ -315,6 +373,7 @@ async function createBucketViaAPI(bucketName, isPublic = true) {
         file_size_limit: 20971520
       })
     });
+    
     if (response.ok) {
       console.log(`✅ Bucket ${bucketName} creado via API REST`);
       return { success: true };
@@ -329,72 +388,111 @@ async function createBucketViaAPI(bucketName, isPublic = true) {
   }
 }
 
+// Función para inicializar todos los buckets necesarios
 async function initializeStorageBuckets() {
   console.log('🚀 Inicializando buckets de almacenamiento...');
+  
   const buckets = [
     { name: 'payments-screenshots', public: true },
     { name: 'plan-files', public: true },
     { name: 'trial-files', public: true }
   ];
+  
   for (const bucket of buckets) {
     const result = await createStorageBucket(bucket.name, bucket.public);
+    
     if (result.success) {
       console.log(`✅ Bucket ${bucket.name} listo`);
     } else {
       console.log(`⚠️ Bucket ${bucket.name} no pudo crearse: ${result.error}`);
     }
   }
+  
   console.log('✅ Inicialización de buckets completada');
 }
 
 // ==================== FUNCIONES AUXILIARES DEL BOT ====================
+
+// Función para calcular días restantes según el plan
 function calcularDiasRestantes(user) {
     if (!user.vip || !user.vip_since || !user.plan) {
         return 0;
     }
+
     const fechaInicio = new Date(user.vip_since);
     const fechaActual = new Date();
+    
     let duracionDias;
     switch(user.plan.toLowerCase()) {
-        case 'basico': duracionDias = 30; break;
-        case 'avanzado': duracionDias = 60; break;
-        case 'premium': duracionDias = 30; break;
-        case 'anual': duracionDias = 365; break;
-        default: duracionDias = 30;
+        case 'basico':
+            duracionDias = 30;
+            break;
+        case 'avanzado':
+            duracionDias = 60;
+            break;
+        case 'premium':
+            duracionDias = 30;
+            break;
+        case 'anual':
+            duracionDias = 365;
+            break;
+        default:
+            duracionDias = 30;
     }
+    
     const fechaExpiracion = new Date(fechaInicio);
     fechaExpiracion.setDate(fechaExpiracion.getDate() + duracionDias);
+    
     const diferenciaMs = fechaExpiracion - fechaActual;
     const diasRestantes = Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
+    
     return diasRestantes;
 }
 
 // ==================== FUNCIONES DE ENVÍO MEJORADAS ====================
+
+// Función mejorada para enviar pruebas pendientes
 async function sendTrialToValidUsers(adminId) {
   try {
     console.log('🎯 Enviando pruebas solo a usuarios disponibles...');
+    
+    // Obtener pruebas pendientes
     const pendingTrials = await db.getPendingTrials();
+    
     if (!pendingTrials || pendingTrials.length === 0) {
       console.log('📭 No hay pruebas pendientes');
       return { success: true, message: 'No hay pruebas pendientes' };
     }
+    
     console.log(`📋 ${pendingTrials.length} pruebas pendientes encontradas`);
-    let sentCount = 0, failedCount = 0, unavailableCount = 0;
+    
+    let sentCount = 0;
+    let failedCount = 0;
+    let unavailableCount = 0;
+    
     for (let i = 0; i < pendingTrials.length; i++) {
       const user = pendingTrials[i];
+      
       try {
         if (!user.telegram_id) {
           console.log(`⚠️ Usuario sin telegram_id, saltando`);
           failedCount++;
           continue;
         }
+        
         console.log(`🎁 Procesando prueba para ${user.telegram_id} (${i+1}/${pendingTrials.length})`);
+        
+        // Verificar si el usuario puede recibir mensajes
         const canSend = await canSendMessageToUser(user.telegram_id);
+        
         if (!canSend.canSend) {
           console.log(`❌ Usuario ${user.telegram_id} no disponible para prueba: ${canSend.reason}`);
           unavailableCount++;
           failedCount++;
-          if (canSend.reason.includes('chat not found') || canSend.reason.includes('blocked')) {
+          
+          // Marcar como inactivo si es error permanente
+          if (canSend.reason.includes('chat not found') || 
+              canSend.reason.includes('blocked')) {
             try {
               await db.updateUser(user.telegram_id, {
                 is_active: false,
@@ -407,31 +505,53 @@ async function sendTrialToValidUsers(adminId) {
           }
           continue;
         }
+        
+        // Usuario disponible, enviar prueba
         await sendTrialConfigToUser(user.telegram_id, adminId);
         sentCount++;
+        
+        // Pequeña pausa
         await new Promise(resolve => setTimeout(resolve, 100));
+        
       } catch (error) {
         failedCount++;
         console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, error.message);
       }
     }
+    
     console.log(`✅ Envío de pruebas completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
-    return { success: true, sent: sentCount, failed: failedCount, unavailable: unavailableCount, total: pendingTrials.length };
+    
+    return {
+      success: true,
+      sent: sentCount,
+      failed: failedCount,
+      unavailable: unavailableCount,
+      total: pendingTrials.length
+    };
+    
   } catch (error) {
     console.error('❌ Error en sendTrialToValidUsers:', error);
     return { success: false, error: error.message };
   }
 }
 
+// Función auxiliar para enviar prueba a un usuario específico
 async function sendTrialConfigToUser(telegramId, adminId) {
   try {
     const user = await db.getUser(telegramId);
-    if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
+    
+    if (!user) {
+      throw new Error(`Usuario ${telegramId} no encontrado`);
+    }
+    
+    // Buscar archivo de prueba
     const planFile = await db.getPlanFile('trial');
+    
     if (planFile && planFile.public_url) {
       const fileName = planFile.original_name || 'config_trial.conf';
       const gameServer = user.trial_game_server || 'No especificado';
       const connectionType = user.trial_connection_type || 'No especificado';
+      
       await bot.telegram.sendDocument(
         telegramId,
         planFile.public_url,
@@ -450,7 +570,9 @@ async function sendTrialConfigToUser(telegramId, adminId) {
           parse_mode: 'Markdown'
         }
       );
+      
       await db.markTrialAsSent(telegramId, adminId);
+      
       console.log(`✅ Prueba enviada a ${telegramId}`);
       return true;
     } else {
@@ -464,6 +586,7 @@ async function sendTrialConfigToUser(telegramId, adminId) {
 }
 
 // ==================== RUTAS DE LA API ====================
+
 // 1. Verificar si es administrador
 app.get('/api/check-admin/:telegramId', (req, res) => {
   const isAdminUser = isAdmin(req.params.telegramId);
@@ -481,13 +604,15 @@ app.post('/api/accept-terms', async (req, res) => {
       first_name: firstName,
       accepted_terms: true,
       terms_date: new Date().toISOString(),
-      is_active: true
+      is_active: true // Por defecto activo al registrarse
     };
 
+    // Si hay referidor, guardarlo
     if (referrerId) {
       userData.referrer_id = referrerId;
       userData.referrer_username = referrerUsername;
       
+      // Crear registro de referido
       try {
         await db.createReferral(referrerId, telegramId, username, firstName);
         console.log(`✅ Referido creado: ${referrerId} -> ${telegramId}`);
@@ -519,7 +644,7 @@ app.get('/api/check-terms/:telegramId', async (req, res) => {
   }
 });
 
-// 4. Procesar pago
+// 4. Procesar pago - MODIFICADO PARA REQUERIR CAPTURA EN TODOS LOS MÉTODOS
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   try {
     console.log('📥 Pago recibido:', {
@@ -536,12 +661,14 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 
+    // REQUERIR CAPTURA PARA TODOS LOS MÉTODOS, INCLUIDO USDT
     if (!req.file) {
       return res.status(400).json({ error: 'Captura de pantalla requerida para todos los métodos de pago' });
     }
 
     let screenshotUrl = '';
     if (req.file) {
+      // Subir imagen a Supabase Storage
       try {
         screenshotUrl = await db.uploadImage(req.file.path, telegramId);
         fs.unlink(req.file.path, (err) => {
@@ -552,10 +679,12 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       }
     }
 
+    // Obtener información del usuario
     const user = await db.getUser(telegramId);
     const username = user?.username ? `@${user.username}` : 'Sin usuario';
     const firstName = user?.first_name || 'Usuario';
 
+    // Verificar cupón si se proporcionó
     let couponUsed = false;
     let couponDiscount = 0;
     let finalPrice = parseFloat(price);
@@ -569,24 +698,30 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
         if (coupon) {
           console.log(`🔍 Cupón encontrado: ${JSON.stringify(coupon, null, 2)}`);
           
+          // Verificar si el cupón está activo
           if (coupon.status !== 'active') {
             console.log(`⚠️ Cupón no activo: ${couponCode}, estado: ${coupon.status}`);
           } 
+          // Verificar si ha expirado
           else if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
             console.log(`⚠️ Cupón expirado: ${couponCode}, expiry: ${coupon.expiry}`);
             await db.updateCouponStatus(couponCode.toUpperCase(), 'expired', 'system');
           } 
+          // Verificar si hay stock disponible
           else if (coupon.stock <= 0) {
             console.log(`⚠️ Cupón agotado: ${couponCode}, stock: ${coupon.stock}`);
           } 
+          // Verificar si el usuario ya usó este cupón
           else if (await db.hasUserUsedCoupon(telegramId, couponCode.toUpperCase())) {
             console.log(`⚠️ Usuario ya usó este cupón: ${couponCode}`);
           } 
+          // Cupón válido
           else {
             couponUsed = true;
             couponDiscount = coupon.discount;
             appliedCoupon = coupon;
             
+            // Calcular precio con descuento
             finalPrice = finalPrice * (1 - couponDiscount / 100);
             
             console.log(`✅ Cupón aplicado: ${couponCode} - ${couponDiscount}% de descuento`);
@@ -600,11 +735,12 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       }
     }
 
+    // Guardar pago en base de datos - Asegurándonos de incluir telegram_id y datos del cupón
     const payment = await db.createPayment({
-      telegram_id: telegramId,
+      telegram_id: telegramId, // ¡IMPORTANTE: Incluir telegram_id!
       plan: plan,
       price: finalPrice,
-      original_price: parseFloat(price),
+      original_price: parseFloat(price), // Guardar precio original
       method: method || 'transfer',
       screenshot_url: screenshotUrl,
       notes: notes || '',
@@ -621,6 +757,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
 
     console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}, cupón: ${couponUsed ? 'Sí' : 'No'}`);
 
+    // Notificar a admins - MENSAJE UNIFICADO PARA TODOS LOS MÉTODOS
     try {
       const methodNames = {
         'transfer': 'BPA',
@@ -659,6 +796,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       console.log('❌ Error al notificar a los admins:', adminError.message);
     }
 
+    // Si es pago USDT, informar sobre flujo manual
     if (method === 'usdt') {
       try {
         const usdtAddress = USDT_CONFIG.WALLET_ADDRESS;
@@ -682,6 +820,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
           { parse_mode: 'Markdown' }
         );
         
+        // NO crear pago USDT separado - Solo el pago regular con screenshot
         await db.updatePayment(payment.id, {
           notes: 'Pago USDT pendiente - Revisión manual con captura'
         });
@@ -734,7 +873,7 @@ app.get('/api/payments/pending', async (req, res) => {
   }
 });
 
-// 6. Obtener pagos aprobados
+// 6. Obtener pagos aprobados - ACTUALIZADO PARA INCLUIR INFORMACIÓN DE CUPONES
 app.get('/api/payments/approved', async (req, res) => {
   try {
     const payments = await db.getApprovedPayments();
@@ -754,7 +893,7 @@ app.get('/api/payments/approved', async (req, res) => {
   }
 });
 
-// 7. Aprobar pago
+// 7. Aprobar pago - MODIFICADO PARA NO ENVIAR CONFIGURACIÓN AUTOMÁTICAMENTE
 app.post('/api/payments/:id/approve', async (req, res) => {
   try {
     const payment = await db.approvePayment(req.params.id);
@@ -765,11 +904,13 @@ app.post('/api/payments/:id/approve', async (req, res) => {
 
     console.log(`✅ Pago aprobado: ${payment.id}, telegram_id: ${payment.telegram_id}`);
 
+    // Verificar que el pago tenga telegram_id
     if (!payment.telegram_id) {
       console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
+    // Aplicar cupón si se usó y tiene stock disponible
     if (payment.coupon_used && payment.coupon_code) {
       try {
         console.log(`🎫 Aplicando cupón ${payment.coupon_code} al pago ${payment.id}`);
@@ -779,6 +920,7 @@ app.post('/api/payments/:id/approve', async (req, res) => {
           const applied = await db.applyCouponToPayment(payment.coupon_code, payment.telegram_id, payment.id);
           
           if (applied) {
+            // Reducir stock del cupón
             const newStock = coupon.stock - 1;
             await db.updateCoupon(payment.coupon_code, {
               stock: newStock,
@@ -797,6 +939,7 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       }
     }
 
+    // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
     try {
       let userMessage = '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
         'Ahora eres usuario VIP de VPN Cuba.\n' +
@@ -817,6 +960,7 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
 
+    // Marcar usuario como VIP
     const user = await db.getUser(payment.telegram_id);
     if (!user.vip) {
       await db.makeUserVIP(payment.telegram_id, {
@@ -826,6 +970,7 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       });
     }
 
+    // Verificar si el usuario fue referido y actualizar referidos pagados
     if (user.referrer_id) {
       try {
         await db.markReferralAsPaid(payment.telegram_id);
@@ -857,11 +1002,13 @@ app.post('/api/payments/:id/reject', async (req, res) => {
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
 
+    // Verificar que el pago tenga telegram_id
     if (!payment.telegram_id) {
       console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
+    // Notificar al usuario
     try {
       await bot.telegram.sendMessage(
         payment.telegram_id,
@@ -884,9 +1031,11 @@ app.get('/api/stats', async (req, res) => {
   try {
     const stats = await db.getStats();
     
+    // Obtener estadísticas adicionales de broadcasts
     const broadcasts = await db.getBroadcasts();
     const completedBroadcasts = broadcasts.filter(b => b.status === 'completed').length;
     
+    // Agregar estadísticas de broadcasts a las estadísticas generales
     stats.broadcasts = {
       total: broadcasts.length,
       completed: completedBroadcasts,
@@ -895,6 +1044,7 @@ app.get('/api/stats', async (req, res) => {
       failed: broadcasts.filter(b => b.status === 'failed').length
     };
     
+    // Información USDT - modo manual
     stats.usdt = {
       wallet_address: USDT_CONFIG.WALLET_ADDRESS,
       verification_enabled: false,
@@ -902,6 +1052,7 @@ app.get('/api/stats', async (req, res) => {
       message: 'Todos los pagos USDT requieren captura y aprobación manual'
     };
     
+    // Estadísticas de usuarios activos/inactivos
     const allUsers = await db.getAllUsers();
     const activeUsers = allUsers.filter(u => u.is_active !== false).length;
     const inactiveUsers = allUsers.filter(u => u.is_active === false).length;
@@ -909,6 +1060,7 @@ app.get('/api/stats', async (req, res) => {
     stats.users.active = activeUsers;
     stats.users.inactive = inactiveUsers;
     
+    // Obtener estadísticas de cupones
     const coupons = await db.getCouponsStats();
     stats.coupons = coupons || { total: 0, active: 0, expired: 0, used: 0 };
     
@@ -969,7 +1121,7 @@ app.get('/api/payments/:id', async (req, res) => {
   }
 });
 
-// 13. Enviar archivo de configuración (para pagos aprobados)
+// 13. Enviar archivo de configuración (para pagos aprobados) - CORREGIDO CON VALIDACIÓN DE chat_id
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
     const { paymentId, adminId } = req.body;
@@ -996,6 +1148,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
+    // Obtener el pago usando el ID
     console.log(`🔍 Buscando pago con ID: ${paymentId}`);
     const payment = await db.getPayment(paymentId);
     
@@ -1016,6 +1169,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       coupon_code: payment.coupon_code
     });
     
+    // Verificar que el pago esté aprobado
     if (payment.status !== 'approved') {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
@@ -1024,6 +1178,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'El pago no está aprobado' });
     }
     
+    // Obtener telegramId del pago - CORREGIDO: VALIDACIÓN COMPLETA
     const telegramId = payment.telegram_id;
     
     console.log(`🔍 Telegram ID del pago: ${telegramId}, tipo: ${typeof telegramId}`);
@@ -1038,9 +1193,11 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       });
     }
     
+    // Convertir a string si es necesario
     const chatId = telegramId.toString().trim();
     console.log(`📤 Chat ID para envío: ${chatId}`);
     
+    // Verificar si el usuario existe en la base de datos
     const user = await db.getUser(chatId);
     if (!user) {
       fs.unlink(req.file.path, (err) => {
@@ -1057,6 +1214,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     try {
       console.log(`📤 Intentando enviar archivo a ${chatId}...`);
       
+      // Enviar archivo por Telegram
       await bot.telegram.sendDocument(
         chatId,
         { source: req.file.path, filename: req.file.originalname },
@@ -1076,6 +1234,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         }
       );
       
+      // Actualizar pago en la base de datos
       await db.updatePayment(paymentId, {
         config_sent: true,
         config_sent_at: new Date().toISOString(),
@@ -1083,6 +1242,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         config_sent_by: adminId
       });
       
+      // Verificar si el usuario ya es VIP, si no, hacerlo VIP
       if (user && !user.vip) {
         await db.makeUserVIP(chatId, {
           plan: payment.plan,
@@ -1092,6 +1252,7 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         console.log(`✅ Usuario ${chatId} marcado como VIP`);
       }
       
+      // Eliminar archivo temporal
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
       });
@@ -1113,10 +1274,12 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       
+      // Verificar si el error es específico de chat_id
       if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id') || 
           telegramError.message.includes('chat not found') || telegramError.message.includes('chat not exist')) {
         console.error(`❌ Error específico de chat_id para usuario ${chatId}:`, telegramError.message);
         
+        // Marcar usuario como inactivo
         try {
           await db.updateUser(chatId, {
             is_active: false,
@@ -1163,6 +1326,7 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     
     const admin = isAdmin(req.params.telegramId);
     
+    // Obtener estadísticas de referidos
     let referralStats = null;
     if (user.referrer_id) {
       referralStats = await db.getReferralStats(req.params.telegramId);
@@ -1188,12 +1352,14 @@ app.post('/api/send-message', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
+    // Validar que telegramId sea válido
     if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
       return res.status(400).json({ error: 'ID de usuario inválido' });
     }
     
     const chatId = telegramId.toString().trim();
     
+    // Verificar si el usuario puede recibir mensajes
     const canSend = await canSendMessageToUser(chatId);
     if (!canSend.canSend) {
       return res.status(400).json({ 
@@ -1212,7 +1378,7 @@ app.post('/api/send-message', async (req, res) => {
   }
 });
 
-// 17. Remover VIP de usuario (admin)
+// 17. Remover VIP de usuario (admin) - CORREGIDO: Ruta específica
 app.post('/api/user/:userId/remove-vip', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -1229,6 +1395,7 @@ app.post('/api/user/:userId/remove-vip', async (req, res) => {
     }
     
     try {
+      // Verificar si el usuario puede recibir mensajes
       const canSend = await canSendMessageToUser(userId);
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
@@ -1257,6 +1424,7 @@ app.post('/api/request-trial', async (req, res) => {
   try {
     const { telegramId, username, firstName, trialType = '1h', gameServer, connectionType } = req.body;
     
+    // Verificar elegibilidad para prueba
     const eligibility = await db.checkTrialEligibility(telegramId);
     
     if (!eligibility.eligible) {
@@ -1265,6 +1433,7 @@ app.post('/api/request-trial', async (req, res) => {
       });
     }
     
+    // Guardar/actualizar usuario con solicitud de prueba
     const updatedUser = await db.saveUser(telegramId, {
       telegram_id: telegramId,
       username: username,
@@ -1274,9 +1443,10 @@ app.post('/api/request-trial', async (req, res) => {
       trial_plan_type: trialType,
       trial_game_server: gameServer || '',
       trial_connection_type: connectionType || '',
-      is_active: true
+      is_active: true // Marcar como activo al solicitar prueba
     });
     
+    // Notificar a TODOS los administradores
     const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA ${trialType.toUpperCase()}*\n\n` +
       `👤 *Usuario:* ${firstName}\n` +
       `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
@@ -1296,7 +1466,9 @@ app.post('/api/request-trial', async (req, res) => {
       }
     }
     
+    // Enviar confirmación al usuario
     try {
+      // Verificar si el usuario puede recibir mensajes
       const canSend = await canSendMessageToUser(telegramId);
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
@@ -1378,7 +1550,9 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
     
     const user = await db.markTrialAsSent(req.params.telegramId, adminId);
     
+    // Notificar al usuario
     try {
+      // Verificar si el usuario puede recibir mensajes
       const canSend = await canSendMessageToUser(req.params.telegramId);
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
@@ -1416,6 +1590,7 @@ app.post('/api/send-trial-config', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
+    // Validar que telegramId sea válido
     if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
       return res.status(400).json({ error: 'ID de usuario inválido' });
     }
@@ -1436,8 +1611,10 @@ app.post('/api/send-trial-config', async (req, res) => {
       return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
     }
     
+    // Verificar si el usuario puede recibir mensajes
     const canSend = await canSendMessageToUser(chatId);
     if (!canSend.canSend) {
+      // Marcar como inactivo si no puede recibir
       await db.updateUser(chatId, {
         is_active: false,
         last_error: canSend.reason
@@ -1448,9 +1625,11 @@ app.post('/api/send-trial-config', async (req, res) => {
       });
     }
     
+    // Buscar si hay archivo de prueba disponible
     const planFile = await db.getPlanFile('trial');
     
     if (planFile && planFile.public_url) {
+      // Enviar archivo automáticamente
       const fileName = planFile.original_name || 'config_trial.conf';
       const gameServer = user.trial_game_server || 'No especificado';
       const connectionType = user.trial_connection_type || 'No especificado';
@@ -1486,6 +1665,7 @@ app.post('/api/send-trial-config', async (req, res) => {
       });
       
     } else {
+      // Notificar al admin que no hay archivo de prueba disponible
       res.status(404).json({ 
         error: 'No hay archivo de prueba disponible. Sube uno primero en "Archivos de Planes".' 
       });
@@ -1515,8 +1695,7 @@ app.get('/api/health', (req, res) => {
       bscscan_api_key: '❌ Desactivado - Flujo manual',
       verification_interval: 'Verificación automática desactivada',
       notes: 'Todos los pagos requieren captura y aprobación manual'
-    },
-    webhook_url: `${process.env.WEBAPP_URL}/webhook`
+    }
   });
 });
 
@@ -1542,6 +1721,7 @@ app.get('/api/storage-status', async (req, res) => {
   try {
     const buckets = [];
     
+    // Verificar payments-screenshots
     try {
       const { data: screenshots } = await supabaseAdmin.storage
         .from('payments-screenshots')
@@ -1558,6 +1738,7 @@ app.get('/api/storage-status', async (req, res) => {
       });
     }
     
+    // Verificar plan-files
     try {
       const { data: planFiles } = await supabaseAdmin.storage
         .from('plan-files')
@@ -1597,10 +1778,12 @@ app.post('/api/broadcast/send', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
+    // Validar que el mensaje no esté vacío
     if (!message || message.trim() === '') {
       return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
     }
     
+    // Validar que target sea válido
     const validTargets = ['all', 'vip', 'non_vip', 'trial_pending', 'trial_received', 'active', 'with_referrals', 'usdt_payers'];
     if (!validTargets.includes(target)) {
       return res.status(400).json({ error: 'Target de broadcast inválido' });
@@ -1608,6 +1791,7 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`📢 Creando broadcast para ${target} usuarios...`);
     
+    // Crear broadcast en la base de datos
     const broadcast = await db.createBroadcast(message, target, adminId);
     
     if (!broadcast || !broadcast.id) {
@@ -1616,14 +1800,17 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`✅ Broadcast creado con ID: ${broadcast.id}`);
     
+    // Obtener usuarios según el target
     const users = await db.getUsersForBroadcast(target);
     
     console.log(`👥 ${users.length} usuarios encontrados para el broadcast`);
     
+    // Actualizar broadcast con el total de usuarios
     await db.updateBroadcastStatus(broadcast.id, 'pending', {
       total_users: users.length
     });
     
+    // Iniciar el envío en segundo plano
     setTimeout(() => {
       sendBroadcastToUsers(broadcast.id, message, users, adminId);
     }, 100);
@@ -1650,6 +1837,7 @@ app.post('/api/broadcast/send', async (req, res) => {
 // Función auxiliar para enviar broadcast a usuarios
 async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   try {
+    // Validar que broadcastId existe
     if (!broadcastId) {
       console.error('❌ ID de broadcast no proporcionado');
       return;
@@ -1657,12 +1845,16 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     
     console.log(`🚀 Iniciando envío de broadcast ${broadcastId} a ${users.length} usuarios`);
     
+    // Actualizar estado a "enviando"
     await db.updateBroadcastStatus(broadcastId, 'sending', {
       total_users: users.length,
       sent_count: 0
     });
     
-    let sentCount = 0, failedCount = 0, unavailableCount = 0;
+    let sentCount = 0;
+    let failedCount = 0;
+    let unavailableCount = 0;
+    const failedUsers = [];
     
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
@@ -1676,6 +1868,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         
         console.log(`📨 Enviando a ${user.telegram_id} (${i+1}/${users.length})`);
         
+        // Verificar si el usuario puede recibir mensajes
         const canSend = await canSendMessageToUser(user.telegram_id);
         
         if (!canSend.canSend) {
@@ -1683,6 +1876,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           unavailableCount++;
           failedCount++;
           
+          // Marcar usuario como no disponible si es error permanente
           if (canSend.reason.includes('chat not found') || 
               canSend.reason.includes('blocked') || 
               canSend.reason.includes('kicked') ||
@@ -1702,6 +1896,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           continue;
         }
         
+        // Si puede recibir, enviar el mensaje
         await bot.telegram.sendMessage(
           user.telegram_id,
           `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
@@ -1709,6 +1904,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         );
         sentCount++;
         
+        // Actualizar progreso cada 10 usuarios
         if ((i + 1) % 10 === 0 || i === users.length - 1) {
           console.log(`📊 Progreso: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
           await db.updateBroadcastStatus(broadcastId, 'sending', {
@@ -1719,11 +1915,17 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           });
         }
         
+        // Pequeña pausa para no saturar
         await new Promise(resolve => setTimeout(resolve, 100));
         
       } catch (error) {
         failedCount++;
+        failedUsers.push({
+          telegram_id: user.telegram_id,
+          error: error.message
+        });
         
+        // Si el usuario bloqueó al bot, continuar
         if (error.description && (
             error.description.includes('blocked') || 
             error.description.includes('chat not found') ||
@@ -1731,6 +1933,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
             error.description.includes('user is deactivated'))) {
           console.log(`❌ Usuario ${user.telegram_id} no disponible: ${error.description}`);
           
+          // Marcar como inactivo en la base de datos
           try {
             await db.updateUser(user.telegram_id, {
               is_active: false,
@@ -1747,6 +1950,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
       }
     }
     
+    // Actualizar estado final
     console.log(`✅ Broadcast ${broadcastId} completado: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
     await db.updateBroadcastStatus(broadcastId, 'completed', {
       sent_count: sentCount,
@@ -1758,6 +1962,7 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   } catch (error) {
     console.error(`❌ Error crítico en broadcast ${broadcastId}:`, error);
     
+    // Intentar actualizar el estado a fallido
     try {
       await db.updateBroadcastStatus(broadcastId, 'failed', {
         sent_count: 0,
@@ -1787,6 +1992,7 @@ app.get('/api/broadcast/status/:id', async (req, res) => {
   try {
     const broadcastId = req.params.id;
     
+    // Validar que broadcastId sea un número
     if (!broadcastId || isNaN(parseInt(broadcastId))) {
       console.error(`❌ ID de broadcast inválido: ${broadcastId}`);
       return res.status(400).json({ error: 'ID de broadcast inválido' });
@@ -1821,8 +2027,10 @@ app.post('/api/broadcast/retry/:id', async (req, res) => {
       return res.status(404).json({ error: 'Broadcast no encontrado' });
     }
     
+    // Obtener usuarios para el broadcast
     const users = await db.getUsersForBroadcast(broadcast.target_users);
     
+    // Iniciar el envío en segundo plano
     setTimeout(() => {
       sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId);
     }, 100);
@@ -1855,6 +2063,7 @@ app.get('/api/broadcast/:id', async (req, res) => {
   try {
     const broadcastId = req.params.id;
     
+    // Validar que broadcastId sea un número
     if (!broadcastId || isNaN(parseInt(broadcastId))) {
       return res.status(400).json({ error: 'ID de broadcast inválido' });
     }
@@ -1889,6 +2098,7 @@ app.get('/api/referrals/top', async (req, res) => {
     const stats = await db.getAllReferralsStats();
     const topReferrers = stats.top_referrers || [];
     
+    // Obtener información de usuario para cada referidor
     const referrersWithInfo = await Promise.all(topReferrers.map(async (referrer) => {
       const user = await db.getUser(referrer.referrer_id);
       return {
@@ -1911,6 +2121,7 @@ app.get('/api/referrals/list', async (req, res) => {
     const stats = await db.getAllReferralsStats();
     const referrals = stats.recent_referrals || [];
     
+    // Obtener información de usuario para cada referido
     const referralsWithInfo = await Promise.all(referrals.map(async (referral) => {
       const user = await db.getUser(referral.referred_id);
       const referrer = await db.getUser(referral.referrer_id);
@@ -1971,8 +2182,10 @@ app.get('/api/users/without-referrals', async (req, res) => {
     const stats = await db.getAllReferralsStats();
     const allUsers = await db.getAllUsers();
     
+    // Usuarios con referidos
     const usersWithReferrals = new Set(stats.top_referrers?.map(u => u.referrer_id) || []);
     
+    // Filtrar usuarios sin referidos
     const usersWithoutReferrals = allUsers.filter(user => {
       return !usersWithReferrals.has(user.telegram_id.toString());
     });
@@ -1984,7 +2197,9 @@ app.get('/api/users/without-referrals', async (req, res) => {
   }
 });
 
-// 38. RUTAS API PARA USDT
+// 38. RUTAS API PARA USDT (MODIFICADAS)
+
+// Verificar estado de wallet USDT
 app.get('/api/usdt/wallet-status', async (req, res) => {
   try {
     res.json({
@@ -2005,6 +2220,7 @@ app.get('/api/usdt/wallet-status', async (req, res) => {
   }
 });
 
+// Verificar transacción específica
 app.get('/api/usdt/verify-transaction/:hash', async (req, res) => {
   try {
     res.json({
@@ -2020,6 +2236,7 @@ app.get('/api/usdt/verify-transaction/:hash', async (req, res) => {
   }
 });
 
+// Forzar verificación de transacciones (para admins)
 app.post('/api/usdt/force-check', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2039,9 +2256,10 @@ app.post('/api/usdt/force-check', async (req, res) => {
   }
 });
 
+// Obtener transacciones no asignadas
 app.get('/api/usdt/unassigned-transactions', async (req, res) => {
   try {
-    res.json([]);
+    res.json([]); // No hay transacciones no asignadas en modo manual
   } catch (error) {
     console.error('❌ Error obteniendo transacciones no asignadas:', error);
     res.status(500).json({ error: 'Error obteniendo transacciones no asignadas' });
@@ -2076,14 +2294,18 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
+    // Leer archivo
     const fileBuffer = fs.readFileSync(req.file.path);
     
+    // Subir archivo a Supabase Storage
     const uploadResult = await db.uploadPlanFile(fileBuffer, plan, req.file.originalname);
     
+    // Eliminar archivo local
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('❌ Error al eliminar archivo local:', err);
     });
     
+    // Guardar información del archivo en la base de datos
     const planFileData = {
       plan: plan,
       storage_filename: uploadResult.filename,
@@ -2127,6 +2349,7 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Archivo de configuración requerido' });
     }
     
+    // Validar que sea archivo de prueba
     if (plan !== 'trial') {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
@@ -2142,14 +2365,18 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
+    // Leer archivo
     const fileBuffer = fs.readFileSync(req.file.path);
     
+    // Subir archivo a Supabase Storage
     const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
     
+    // Eliminar archivo local
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('❌ Error al eliminar archivo local:', err);
     });
     
+    // Guardar información del archivo en la base de datos
     const planFileData = {
       plan: 'trial',
       storage_filename: uploadResult.filename,
@@ -2265,10 +2492,13 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     
+    // Obtener estadísticas de referidos
     const referralStats = await db.getReferralStats(req.params.telegramId);
     
+    // Obtener pagos del usuario
     const payments = await db.getUserPayments(req.params.telegramId);
     
+    // Obtener referidos del usuario
     const referrals = await db.getReferralsByReferrer(req.params.telegramId);
     
     res.json({
@@ -2301,12 +2531,14 @@ app.post('/api/user/:userId/message', async (req, res) => {
       return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
     }
     
+    // Validar que userId sea válido
     if (!userId || userId === 'undefined' || userId === 'null' || userId === '') {
       return res.status(400).json({ error: 'ID de usuario inválido' });
     }
     
     const chatId = userId.toString().trim();
     
+    // Verificar si el usuario puede recibir mensajes
     const canSend = await canSendMessageToUser(chatId);
     if (!canSend.canSend) {
       return res.status(400).json({ 
@@ -2336,6 +2568,7 @@ app.post('/api/send-trials-to-valid', async (req, res) => {
     
     console.log(`🚀 Iniciando envío de pruebas solo a usuarios disponibles...`);
     
+    // Usar la función mejorada
     const result = await sendTrialToValidUsers(adminId);
     
     res.json(result);
@@ -2350,6 +2583,7 @@ app.post('/api/send-trials-to-valid', async (req, res) => {
 });
 
 // ==================== RUTAS PARA CUPONES ====================
+
 // 49. Crear un nuevo cupón
 app.post('/api/coupons', async (req, res) => {
   try {
@@ -2370,30 +2604,35 @@ app.post('/api/coupons', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos requeridos: código, descuento y stock' });
     }
     
+    // Validar código
     if (!/^[A-Z0-9]+$/.test(code)) {
       console.log('❌ CÓDIGO INVÁLIDO:', code);
       return res.status(400).json({ error: 'El código solo puede contener letras mayúsculas y números' });
     }
     
+    // Validar descuento
     const discountNum = parseFloat(discount);
     if (isNaN(discountNum) || discountNum < 1 || discountNum > 100) {
       console.log('❌ DESCUENTO INVÁLIDO:', discount);
       return res.status(400).json({ error: 'El descuento debe estar entre 1% y 100%' });
     }
     
+    // Validar stock
     const stockNum = parseInt(stock);
     if (isNaN(stockNum) || stockNum < 1) {
       console.log('❌ STOCK INVÁLIDO:', stock);
       return res.status(400).json({ error: 'El stock debe ser mayor a 0' });
     }
     
+    // Validar fecha de expiración si se proporciona
     let expiryDate = null;
     if (expiry) {
+      // Intentar diferentes formatos de fecha
       const dateFormats = [
-        expiry,
-        expiry.replace('T', ' '),
-        new Date(expiry).toISOString().split('T')[0],
-        new Date(expiry).toISOString()
+        expiry, // Formato original
+        expiry.replace('T', ' '), // Para fechas ISO con T
+        new Date(expiry).toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
+        new Date(expiry).toISOString() // ISO completo
       ];
       
       for (const dateStr of dateFormats) {
@@ -2408,6 +2647,7 @@ app.post('/api/coupons', async (req, res) => {
         return res.status(400).json({ error: 'Fecha de expiración inválida' });
       }
       
+      // Asegurar que la fecha de expiración sea en el futuro
       if (expiryDate <= new Date()) {
         console.log('❌ FECHA DE EXPIRACIÓN DEBE SER FUTURA:', expiry);
         return res.status(400).json({ error: 'La fecha de expiración debe ser en el futuro' });
@@ -2425,6 +2665,7 @@ app.post('/api/coupons', async (req, res) => {
       created_by: adminId
     });
     
+    // Crear cupón
     const coupon = await db.createCoupon({
       code: code.toUpperCase(),
       discount: discountNum,
@@ -2511,6 +2752,7 @@ app.put('/api/coupons/:code', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
+    // Validar stock si se proporciona
     let stockNum = coupon.stock;
     if (stock !== undefined) {
       stockNum = parseInt(stock);
@@ -2519,11 +2761,13 @@ app.put('/api/coupons/:code', async (req, res) => {
       }
     }
     
+    // Validar estado si se proporciona
     let newStatus = coupon.status;
     if (status && ['active', 'inactive', 'expired'].includes(status)) {
       newStatus = status;
     }
     
+    // Actualizar cupón
     const updatedCoupon = await db.updateCoupon(code, {
       stock: stockNum,
       status: newStatus,
@@ -2562,6 +2806,7 @@ app.put('/api/coupons/:code/status', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
+    // Actualizar estado
     const updatedCoupon = await db.updateCouponStatus(code, status, adminId);
     
     res.json({ 
@@ -2591,12 +2836,14 @@ app.delete('/api/coupons/:code', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
+    // Verificar si el cupón ha sido usado
     if (coupon.used && coupon.used > 0) {
       return res.status(400).json({ 
         error: 'No se puede eliminar un cupón que ha sido usado. Puedes desactivarlo en su lugar.' 
       });
     }
     
+    // Eliminar cupón
     await db.deleteCoupon(code);
     
     res.json({ 
@@ -2639,6 +2886,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       used: coupon.used
     });
     
+    // Verificar si el cupón está activo
     if (coupon.status !== 'active') {
       console.log(`⚠️ Cupón no activo: ${coupon.status}`);
       return res.json({ 
@@ -2647,6 +2895,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       });
     }
     
+    // Verificar si ha expirado
     if (coupon.expiry) {
       const expiryDate = new Date(coupon.expiry);
       const now = new Date();
@@ -2655,6 +2904,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       
       if (expiryDate < now) {
         console.log(`⚠️ Cupón expirado`);
+        // Actualizar estado a expirado
         await db.updateCouponStatus(code, 'expired', 'system');
         return res.json({ 
           success: false, 
@@ -2663,6 +2913,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       }
     }
     
+    // Verificar si hay stock disponible
     if (coupon.stock <= 0) {
       console.log(`⚠️ Cupón agotado, stock: ${coupon.stock}`);
       return res.json({ 
@@ -2671,6 +2922,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       });
     }
     
+    // Verificar si el usuario ya usó este cupón
     const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
     if (hasUsed) {
       console.log(`⚠️ Usuario ya usó este cupón`);
@@ -2680,6 +2932,7 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       });
     }
     
+    // Cupón válido
     console.log(`✅ Cupón ${code} válido para usuario ${telegramId}`);
     res.json({ 
       success: true,
@@ -2716,32 +2969,38 @@ app.post('/api/coupons/apply/:code', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
+    // Verificar si el cupón está activo
     if (coupon.status !== 'active') {
       return res.status(400).json({ 
         error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
       });
     }
     
+    // Verificar si ha expirado
     if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
       await db.updateCouponStatus(code, 'expired', 'system');
       return res.status(400).json({ error: 'Cupón expirado' });
     }
     
+    // Verificar si hay stock disponible
     if (coupon.stock <= 0) {
       return res.status(400).json({ error: 'Cupón agotado' });
     }
     
+    // Verificar si el usuario ya usó este cupón
     const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
     if (hasUsed) {
       return res.status(400).json({ error: 'Ya has usado este cupón' });
     }
     
+    // Aplicar cupón al pago
     const applied = await db.applyCouponToPayment(code, telegramId, paymentId);
     
     if (!applied) {
       return res.status(400).json({ error: 'No se pudo aplicar el cupón al pago' });
     }
     
+    // Reducir stock del cupón
     const newStock = coupon.stock - 1;
     await db.updateCoupon(code, {
       stock: newStock,
@@ -2778,34 +3037,42 @@ app.get('/api/coupons/history/:code', async (req, res) => {
 });
 
 // ==================== SERVIR ARCHIVOS HTML ====================
+
+// Ruta principal
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
+// Ruta para planes
 app.get('/plans.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/plans.html'));
 });
 
+// Ruta para pago
 app.get('/payment.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/payment.html'));
 });
 
+// Ruta para admin
 app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// ==================== BOT DE TELEGRAM (WEBHOOK) ====================
-const webhookPath = '/webhook';
-const webhookUrl = `${process.env.WEBAPP_URL}${webhookPath}`;
-app.use(webhookPath, bot.webhookCallback(webhookPath));
+// ==================== BOT DE TELEGRAM ====================
 
-// Comando /start con manejo robusto de errores
+// Manejador global de errores del bot
+bot.catch((err, ctx) => {
+  console.error('❌ Error no manejado en el bot:', err);
+  // Aquí podrías notificar a los admins, pero no interrumpimos el flujo
+});
+
+// Comando /start con sistema de referidos
 bot.start(async (ctx) => {
-  try {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
     
+    // Verificar si hay referidor en el comando (ej: /start ref123456)
     const startPayload = ctx.startPayload;
     let referrerId = null;
     let referrerUsername = null;
@@ -2813,8 +3080,10 @@ bot.start(async (ctx) => {
     if (startPayload && startPayload.startsWith('ref')) {
         referrerId = startPayload.replace('ref', '');
         console.log(`🔗 Usuario ${userId} referido por ${referrerId}`);
+        
+        // Obtener información del referidor
         try {
-            const referrer = await withTimeout(db.getUser(referrerId), 3000, 'Timeout obteniendo referidor');
+            const referrer = await db.getUser(referrerId);
             if (referrer) {
                 referrerUsername = referrer.username;
                 console.log(`✅ Referidor encontrado: ${referrer.first_name} (@${referrer.username})`);
@@ -2824,6 +3093,7 @@ bot.start(async (ctx) => {
         }
     }
     
+    // Guardar/actualizar usuario en la base de datos
     try {
         const userData = {
             telegram_id: userId.toString(),
@@ -2831,31 +3101,40 @@ bot.start(async (ctx) => {
             first_name: firstName,
             last_name: ctx.from.last_name,
             created_at: new Date().toISOString(),
-            is_active: true
+            is_active: true // Marcar como activo al iniciar el bot
         };
+        
+        // Si hay referidor, guardarlo
         if (referrerId) {
             userData.referrer_id = referrerId;
             userData.referrer_username = referrerUsername;
+            
+            // Crear registro de referido
             try {
-                await withTimeout(db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName), 3000);
+                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
                 console.log(`✅ Referido creado: ${referrerId} -> ${userId}`);
             } catch (refError) {
                 console.log('⚠️ Error creando referido, continuando...', refError.message);
             }
         }
-        await withTimeout(db.saveUser(userId.toString(), userData), 3000);
+        
+        await db.saveUser(userId.toString(), userData);
     } catch (error) {
-        console.error('❌ Error guardando usuario (no crítico):', error);
+        console.error('❌ Error guardando usuario:', error);
     }
     
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
+    
     let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
         `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
         `Conéctate con la mejor latencia para gaming y navegación.\n\n`;
+    
+    // Informar sobre referido si aplica
     if (referrerId) {
         welcomeMessage += `👥 *¡Te invitó un amigo!*\n` +
             `Obtendrás beneficios especiales por ser referido.\n\n`;
     }
+    
     welcomeMessage += `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
         `*Selecciona una opción:*`;
     
@@ -2868,556 +3147,951 @@ bot.start(async (ctx) => {
             }
         }
     );
-  } catch (error) {
-    console.error('❌ Error crítico en /start:', error);
-    try {
-      const userId = ctx.from?.id;
-      const firstName = ctx.from?.first_name || 'usuario';
-      const esAdmin = userId ? isAdmin(userId) : false;
-      let keyboard;
-      try {
-        keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
-      } catch (keyboardError) {
-        console.error('❌ Error creando teclado en recuperación:', keyboardError);
-        const fallbackUrl = process.env.WEBAPP_URL;
-        keyboard = [
-          [
-            { text: '📋 VER PLANES', web_app: { url: `${fallbackUrl}/plans.html?userId=${userId}` } },
-            { text: '👑 MI ESTADO', callback_data: 'check_status' }
-          ],
-          [
-            { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' },
-            { text: '🆘 SOPORTE', url: 'https://t.me/L0quen2' }
-          ],
-          [
-            { text: '🤝 REFERIDOS', callback_data: 'referral_info' },
-            { text: '❓ CÓMO FUNCIONA', callback_data: 'how_it_works' }
-          ],
-          [
-            { text: '📢 VPN CANAL', url: 'https://t.me/vpncubaw' },
-            { text: '🎬 PELÍCULAS', url: 'https://t.me/cumovies_bot' },
-            { text: '📱 WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }
-          ]
-        ];
-        if (esAdmin) {
-          keyboard.push([
-            { text: '🔧 PANEL ADMIN', web_app: { url: `${fallbackUrl}/admin.html?userId=${userId}&admin=true` } }
-          ]);
-        }
-      }
-      let welcomeMessage = `¡Hola ${firstName}! 👋\n\n` +
-          `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-          `Conéctate con la mejor latencia para gaming y navegación.\n\n`;
-      welcomeMessage += (esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : '') +
-          `*Selecciona una opción:*`;
-      await ctx.reply(
-        welcomeMessage,
-        {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: keyboard
-          }
-        }
-      );
-    } catch (finalError) {
-      console.error('❌ Error incluso en el mensaje de recuperación:', finalError);
-      await ctx.reply('⚠️ Ocurrió un error, pero puedes seguir usando los botones del menú principal si aparecen.').catch(() => {});
-    }
-  }
 });
 
-// ==================== ACCIONES DEL BOT ====================
+// Botón: Menú Principal
 bot.action('main_menu', async (ctx) => {
-  try {
     const userId = ctx.from.id.toString();
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
+    
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
-    await ctx.editMessageText(
-      `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: { inline_keyboard: keyboard }
-      }
-    );
-  } catch (error) {
-    if (error.response && error.response.description && error.response.description.includes('message is not modified')) {
-      return;
+    
+    try {
+        await ctx.editMessageText(
+            `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+            `Selecciona una opción:`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        // Ignorar error de "message not modified"
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        throw error;
     }
-    console.error('❌ Error en main_menu:', error);
-  }
 });
 
+// Botón: Descargar WireGuard
 bot.action('download_wireguard', async (ctx) => {
-  try {
     const userId = ctx.from.id.toString();
     const esAdmin = isAdmin(userId);
+    
     const keyboard = [
-      [
-        { text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' },
-        { text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }
-      ],
-      [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
+        [
+            {
+                text: '💻 WINDOWS',
+                url: 'https://www.wireguard.com/install/'
+            },
+            {
+                text: '📱 ANDROID',
+                url: 'https://play.google.com/store/apps/details?id=com.wireguard.android'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
     ];
-    await ctx.editMessageText(
-      `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
-      `*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nhttps://www.wireguard.com/install/\n\n` +
-      `*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nhttps://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
-      `*Selecciona tu sistema operativo:*`,
-      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-    );
-  } catch (error) {
-    if (error.response && error.response.description && error.response.description.includes('message is not modified')) return;
-    console.error('❌ Error en download_wireguard:', error);
-  }
-});
-
-bot.action('view_plans', async (ctx) => {
-  try {
-    const userId = ctx.from.id.toString();
-    const webappUrl = `${process.env.WEBAPP_URL}/plans.html?userId=${userId}`;
-    const keyboard = [
-      [ { text: '🚀 VER PLANES EN WEB', web_app: { url: webappUrl } } ],
-      [
-        { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' },
-        { text: '🆘 SOPORTE', url: 'https://t.me/L0quen2' }
-      ],
-      [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
-    ];
-    await ctx.editMessageText(
-      `📋 *NUESTROS PLANES* 🚀\n\n` +
-      `*PRUEBA GRATIS (1 hora)*\n💵 $0 CUP 🎁 ¡Prueba completamente gratis!\n\n` +
-      `*BÁSICO (1 mes)*\n💵 $800 CUP / 💰 1.6 USDT\n\n` +
-      `*AVANZADO (2 meses)*\n💵 $1,300 CUP / 💰 2.7 USDT\n🎯 ¡Recomendado!\n\n` +
-      `*PREMIUM (1 mes)*\n💵 $1,200 CUP / 💰 2.5 USDT\n👑 Servidor privado\n\n` +
-      `*ANUAL (12 meses)*\n💵 $15,000 CUP / 💰 30 USDT\n🏆 ¡El mejor valor!\n\nSelecciona una opción:`,
-      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-    );
-  } catch (error) {
-    if (error.response && error.response.description && error.response.description.includes('message is not modified')) return;
-    console.error('❌ Error en view_plans:', error);
-  }
-});
-
-bot.action('check_status', async (ctx) => {
-  const userId = ctx.from.id.toString();
-  const esAdmin = isAdmin(userId);
-  try {
-    const user = await db.getUser(userId);
-    if (!user) {
-      const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
-      return ctx.editMessageText(
-        `❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "📋 VER PLANES" para registrarte y comenzar.`,
-        { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-      );
-    }
-    if (user?.vip) {
-      const vipSince = formatearFecha(user.vip_since);
-      const diasRestantes = calcularDiasRestantes(user);
-      const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n📅 *Activado:* ${vipSince}\n📋 *Plan:* ${planNombre}\n⏳ *Días restantes:* ${diasRestantes} días\n💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-      if (user.referrer_id) {
-        const referralStats = await db.getReferralStats(userId);
-        if (referralStats.discount_percentage > 0) {
-          mensajeEstado += `👥 *Descuento por referidos:* ${referralStats.discount_percentage}%\n`;
+    
+    try {
+        await ctx.editMessageText(
+            `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
+            `*Para Windows*\n` +
+            `Aplicación Oficial de WireGuard para Windows:\n` +
+            `Enlace: https://www.wireguard.com/install/\n\n` +
+            `*Para Android*\n` +
+            `Aplicación Oficial de WireGuard en Google Play Store:\n` +
+            `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
+            `*Selecciona tu sistema operativo:*`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
         }
-      }
-      if (diasRestantes <= 7) {
-        mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\nRenueva ahora para mantener tu acceso VIP.\n\n`;
-      } else {
-        mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
-      }
-      const webappUrl = `${process.env.WEBAPP_URL}/plans.html?userId=${userId}`;
-      const keyboard = [
-        [ { text: '📋 VER PLANES', web_app: { url: webappUrl } }, { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' } ],
-        [ { text: '🆘 CONTACTAR SOPORTE', url: 'https://t.me/L0quen2' } ],
-        [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
-      ];
-      await ctx.editMessageText(mensajeEstado, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } });
-    } else if (user?.trial_requested) {
-      let trialMessage = `🎁 *SOLICITASTE UNA PRUEBA GRATUITA*\n\n`;
-      if (user.trial_received) {
-        const trialSentAt = formatearFecha(user.trial_sent_at);
-        trialMessage += `✅ *Prueba recibida:* ${trialSentAt}\n⏰ *Duración:* ${user.trial_plan_type || '1h'}\n📋 *Estado:* Completada\n\nSi quieres acceso ilimitado, adquiere uno de nuestros planes.`;
-      } else {
-        trialMessage += `⏳ *Estado:* Pendiente de envío\n⏰ *Duración:* ${user.trial_plan_type || '1h'}\n📋 *Solicitada:* ${formatearFecha(user.trial_requested_at)}\n\nRecibirás la configuración por este chat en minutos.`;
-      }
-      const webappUrl = `${process.env.WEBAPP_URL}/plans.html?userId=${userId}`;
-      const keyboard = [
-        [ { text: '📋 VER PLANES', web_app: { url: webappUrl } } ],
-        [ { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' } ],
-        [ { text: '🆘 CONTACTAR SOPORTE', url: 'https://t.me/L0quen2' } ],
-        [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
-      ];
-      await ctx.editMessageText(trialMessage, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } });
-    } else {
-      const webappUrl = `${process.env.WEBAPP_URL}/plans.html?userId=${userId}`;
-      const keyboard = [
-        [ { text: '📋 VER PLANES', web_app: { url: webappUrl } }, { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' } ],
-        [ { text: '🆘 SOPORTE', url: 'https://t.me/L0quen2' } ],
-        [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
-      ];
-      await ctx.editMessageText(
-        `❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en los botones para ver nuestros planes o descargar WireGuard:`,
-        { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-      );
+        throw error;
     }
-  } catch (error) {
-    if (error.response && error.response.description && error.response.description.includes('message is not modified')) return;
-    console.error('❌ Error en check_status:', error);
-    const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
-    await ctx.editMessageText(
-      `❌ Error al verificar tu estado.`,
-      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-    ).catch(() => {});
-  }
 });
 
+// Botón: Ver Planes
+bot.action('view_plans', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+    
+    const keyboard = [
+        [
+            { 
+                text: '🚀 VER PLANES EN WEB', 
+                web_app: { url: webappUrl }
+            }
+        ],
+        [
+            {
+                text: '💻 DESCARGAR WIREGUARD',
+                callback_data: 'download_wireguard'
+            },
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+    
+    try {
+        await ctx.editMessageText(
+            `📋 *NUESTROS PLANES* 🚀\n\n` +
+            `*PRUEBA GRATIS (1 hora)*\n` +
+            `💵 $0 CUP\n` +
+            `🎁 ¡Prueba completamente gratis!\n\n` +
+            `*BÁSICO (1 mes)*\n` +
+            `💵 $800 CUP\n` +
+            `💰 1.6 USDT\n\n` +
+            `*AVANZADO (2 meses)*\n` +
+            `💵 $1,300 CUP\n` +
+            `💰 2.7 USDT\n` +
+            `🎯 ¡Recomendado!\n\n` +
+            `*PREMIUM (1 mes)*\n` +
+            `💵 $1,200 CUP\n` +
+            `💰 2.5 USDT\n` +
+            `👑 Servidor privado\n\n` +
+            `*ANUAL (12 meses)*\n` +
+            `💵 $15,000 CUP\n` +
+            `💰 30 USDT\n` +
+            `🏆 ¡El mejor valor!\n\n` +
+            `Selecciona una opción:`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        throw error;
+    }
+});
+
+// Botón: Mi Estado
+bot.action('check_status', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const esAdmin = isAdmin(userId);
+    
+    try {
+        const user = await db.getUser(userId);
+        
+        if (!user) {
+            const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+            try {
+                await ctx.editMessageText(
+                    `❌ *NO ESTÁS REGISTRADO*\n\n` +
+                    `Usa el botón "📋 VER PLANES" para registrarte y comenzar.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
+                    }
+                );
+            } catch (editError) {
+                // Si el mensaje no cambió, no hacer nada
+                if (!editError.response || !editError.response.description || 
+                    !editError.response.description.includes('message is not modified')) {
+                    throw editError;
+                }
+            }
+            return;
+        }
+        
+        if (user?.vip) {
+            const vipSince = formatearFecha(user.vip_since);
+            const diasRestantes = calcularDiasRestantes(user);
+            const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
+            
+            let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
+            mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
+            mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
+            mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
+            mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
+            
+            // Mostrar información de referidos si tiene
+            if (user.referrer_id) {
+                const referralStats = await db.getReferralStats(userId);
+                if (referralStats.discount_percentage > 0) {
+                    mensajeEstado += `👥 *Descuento por referidos:* ${referralStats.discount_percentage}%\n`;
+                }
+            }
+            
+            if (diasRestantes <= 7) {
+                mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
+                mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
+            } else {
+                mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
+            }
+            
+            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+            const keyboard = [
+                [
+                    { 
+                        text: '📋 VER PLANES',
+                        web_app: { url: webappUrl }
+                    },
+                    {
+                        text: '💻 DESCARGAR WIREGUARD',
+                        callback_data: 'download_wireguard'
+                    }
+                ],
+                [
+                    {
+                        text: '🆘 CONTACTAR SOPORTE', 
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
+            
+            try {
+                await ctx.editMessageText(
+                    mensajeEstado,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
+                    }
+                );
+            } catch (error) {
+                if (error.response && error.response.description && 
+                    error.response.description.includes('message is not modified')) {
+                    return;
+                }
+                throw error;
+            }
+        } else if (user?.trial_requested) {
+            let trialMessage = `🎁 *SOLICITASTE UNA PRUEBA GRATUITA*\n\n`;
+            
+            if (user.trial_received) {
+                const trialSentAt = formatearFecha(user.trial_sent_at);
+                trialMessage += `✅ *Prueba recibida:* ${trialSentAt}\n`;
+                trialMessage += `⏰ *Duración:* ${user.trial_plan_type || '1h'}\n`;
+                trialMessage += `📋 *Estado:* Completada\n\n`;
+                trialMessage += `Si quieres acceso ilimitado, adquiere uno de nuestros planes.`;
+            } else {
+                trialMessage += `⏳ *Estado:* Pendiente de envío\n`;
+                trialMessage += `⏰ *Duración:* ${user.trial_plan_type || '1h'}\n`;
+                trialMessage += `📋 *Solicitada:* ${formatearFecha(user.trial_requested_at)}\n\n`;
+                trialMessage += `Recibirás la configuración por este chat en minutos.`;
+            }
+            
+            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+            const keyboard = [
+                [
+                    { 
+                        text: '📋 VER PLANES',
+                        web_app: { url: webappUrl }
+                    }
+                ],
+                [
+                    {
+                        text: '💻 DESCARGAR WIREGUARD',
+                        callback_data: 'download_wireguard'
+                    }
+                ],
+                [
+                    {
+                        text: '🆘 CONTACTAR SOPORTE', 
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
+    
+            try {
+                await ctx.editMessageText(
+                    trialMessage,
+                    { 
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
+                    }
+                );
+            } catch (error) {
+                if (error.response && error.response.description && 
+                    error.response.description.includes('message is not modified')) {
+                    return;
+                }
+                throw error;
+            }
+        } else {
+            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+            const keyboard = [
+                [
+                    { 
+                        text: '📋 VER PLANES', 
+                        web_app: { url: webappUrl }
+                    },
+                    {
+                        text: '💻 DESCARGAR WIREGUARD',
+                        callback_data: 'download_wireguard'
+                    }
+                ],
+                [
+                    {
+                        text: '🆘 SOPORTE',
+                        url: 'https://t.me/L0quen2'
+                    }
+                ],
+                [
+                    {
+                        text: '🏠 MENÚ PRINCIPAL',
+                        callback_data: 'main_menu'
+                    }
+                ]
+            ];
+            
+            try {
+                await ctx.editMessageText(
+                    `❌ *NO ERES USUARIO VIP*\n\n` +
+                    `Actualmente no tienes acceso a los servicios premium.\n\n` +
+                    `Haz clic en los botones para ver nuestros planes o descargar WireGuard:`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: keyboard
+                        }
+                    }
+                );
+            } catch (error) {
+                if (error.response && error.response.description && 
+                    error.response.description.includes('message is not modified')) {
+                    return;
+                }
+                throw error;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error en check_status:', error);
+        
+        // Solo reenviar mensaje si no es el error de "message not modified"
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        
+        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+        try {
+            await ctx.editMessageText(
+                `❌ Error al verificar tu estado.`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: keyboard
+                    }
+                }
+            );
+        } catch (editError) {
+            if (!editError.response || !editError.response.description || 
+                !editError.response.description.includes('message is not modified')) {
+                console.error('❌ Error al editar mensaje de error:', editError);
+            }
+        }
+    }
+});
+
+// Botón: Información de Referidos
 bot.action('referral_info', async (ctx) => {
-  try {
     const userId = ctx.from.id.toString();
     const userName = ctx.from.first_name;
+    
+    // Obtener información del usuario para ver si ya tiene referidos
     const user = await db.getUser(userId);
     let referralStats = null;
     if (user) {
-      referralStats = await db.getReferralStats(userId);
+        referralStats = await db.getReferralStats(userId);
     }
+    
     const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n*Tu enlace único:*\n\`${referralLink}\`\n\n*Cómo funciona:*\n1. Comparte este enlace con amigos\n2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n3. Por cada referido que pague un plan, obtienes un descuento:\n   • Nivel 1 (referido directo): 20% de descuento\n   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
+    
+    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
+    message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
+    message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
+    message += `*Cómo funciona:*\n`;
+    message += `1. Comparte este enlace con amigos\n`;
+    message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
+    message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
+    message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
+    message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
+    
     if (referralStats) {
-      message += `*Tus estadísticas:*\n• Referidos directos (Nivel 1): ${referralStats.level1.total} (${referralStats.level1.paid} pagados)\n• Referidos nivel 2: ${referralStats.level2.total} (${referralStats.level2.paid} pagados)\n• Descuento total acumulado: ${referralStats.discount_percentage}%\n\n`;
+        message += `*Tus estadísticas:*\n`;
+        message += `• Referidos directos (Nivel 1): ${referralStats.level1.total} (${referralStats.level1.paid} pagados)\n`;
+        message += `• Referidos nivel 2: ${referralStats.level2.total} (${referralStats.level2.paid} pagados)\n`;
+        message += `• Descuento total acumulado: ${referralStats.discount_percentage}%\n\n`;
     }
+    
     message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
+    
     const keyboard = [
-      [ { text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' } ],
-      [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
+        [
+            {
+                text: '📋 COPIAR ENLACE',
+                callback_data: 'copy_referral_link'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
     ];
-    await ctx.editMessageText(message, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } });
-  } catch (error) {
-    if (error.response && error.response.description && error.response.description.includes('message is not modified')) return;
-    console.error('❌ Error en referral_info:', error);
-  }
+    
+    try {
+        await ctx.editMessageText(
+            message,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        throw error;
+    }
 });
 
-bot.action('copy_referral_link', async (ctx) => {
-  try {
-    const userId = ctx.from.id.toString();
-    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-    await ctx.answerCbQuery('📋 Enlace listo para copiar');
-    const replyToMessageId = ctx.callbackQuery?.message?.message_id;
-    await ctx.reply(
-      `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\nPara copiar, mantén presionado el enlace y selecciona "Copiar".`,
-      { parse_mode: 'Markdown', reply_to_message_id: replyToMessageId }
-    );
-  } catch (error) {
-    console.error('❌ Error en copy_referral_link:', error);
-    await ctx.answerCbQuery('❌ Error, intenta nuevamente').catch(() => {});
-  }
-});
-
+// Botón: Cómo Funciona
 bot.action('how_it_works', async (ctx) => {
-  try {
     const userId = ctx.from.id.toString();
     const esAdmin = isAdmin(userId);
-    const keyboard = [ [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ] ];
-    await ctx.editMessageText(
-      `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
-      `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
-      `*¿Cómo lo logramos?*\n\n` +
-      `1️⃣ *Rutas VIP*: Tu tráfico viaja por una 'vía rápida' privada, evitando la saturación de tu proveedor de internet.\n` +
-      `2️⃣ *Tecnología Wireguard*: Es el protocolo más veloz del mundo; procesa datos casi al instante sin calentar tu celular.\n\n` +
-      `⚠️ *REQUISITO IMPORTANTE:*\n` +
-      `Para que esta configuración haga su magia, necesitas tener una conexión a internet estable. 📶\n` +
-      `Wireguard optimiza y estabiliza tu ping, pero no puede arreglar un internet que se desconecta o que tiene una velocidad base excesivamente baja.\n\n` +
-      `Si tu internet es decente pero el juego te va mal, ¡nosotros somos la pieza que te falta para llegar a los 50-70ms constantes! 🏎️💨\n\n` +
-      `¡Mejora tu respuesta en las Teamfights hoy mismo! Dale al botón de Ver planes y elige tu plan.`,
-      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-    );
-  } catch (error) {
-    if (error.response && error.response.description && error.response.description.includes('message is not modified')) return;
-    console.error('❌ Error en how_it_works:', error);
-  }
+    
+    const keyboard = [
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+
+    try {
+        await ctx.editMessageText(
+            `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
+            `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
+            `*¿Cómo lo logramos?*\n\n` +
+            `1️⃣ *Rutas VIP*: Tu tráfico viaja por una 'vía rápida' privada, evitando la saturación de tu proveedor de internet.\n` +
+            `2️⃣ *Tecnología Wireguard*: Es el protocolo más veloz del mundo; procesa datos casi al instante sin calentar tu celular.\n\n` +
+            `⚠️ *REQUISITO IMPORTANTE:*\n` +
+            `Para que esta configuración haga su magia, necesitas tener una conexión a internet estable. 📶\n` +
+            `Wireguard optimiza y estabiliza tu ping, pero no puede arreglar un internet que se desconecta o que tiene una velocidad base excesivamente baja.\n\n` +
+            `Si tu internet es decente pero el juego te va mal, ¡nosotros somos la pieza que te falta para llegar a los 50-70ms constantes! 🏎️💨\n\n` +
+            `¡Mejora tu respuesta en las Teamfights hoy mismo! Dale al botón de Ver planes y elige tu plan.`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+        );
+    } catch (error) {
+        if (error.response && error.response.description && 
+            error.response.description.includes('message is not modified')) {
+            return;
+        }
+        throw error;
+    }
 });
 
-// Comandos adicionales
+// Botón: Copiar enlace de referido
+bot.action('copy_referral_link', async (ctx) => {
+    try {
+        const userId = ctx.from.id.toString();
+        const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+        
+        // Primero responder a la callback query
+        await ctx.answerCbQuery('📋 Enlace listo para copiar');
+        
+        // Determinar el message_id de manera segura
+        let replyToMessageId = null;
+        if (ctx.callbackQuery && ctx.callbackQuery.message) {
+            replyToMessageId = ctx.callbackQuery.message.message_id;
+        }
+        
+        // Enviar mensaje con el enlace
+        await ctx.reply(
+            `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\n` +
+            `Para copiar, mantén presionado el enlace y selecciona "Copiar".`,
+            { 
+                parse_mode: 'Markdown',
+                reply_to_message_id: replyToMessageId
+            }
+        );
+        
+    } catch (error) {
+        console.error('❌ Error en copy_referral_link:', error);
+        
+        // Intentar respuesta alternativa
+        try {
+            await ctx.answerCbQuery('❌ Error, intenta nuevamente');
+        } catch (e) {
+            // Ignorar error secundario
+        }
+    }
+});
+
+// Comando /referidos
+bot.command('referidos', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+    
+    const user = await db.getUser(userId);
+    let referralStats = null;
+    if (user) {
+        referralStats = await db.getReferralStats(userId);
+    }
+    
+    let message = `🤝 *TU ENLACE DE REFERIDOS*\n\n`;
+    message += `\`${referralLink}\`\n\n`;
+    message += `*Instrucciones:*\n`;
+    message += `1. Comparte este enlace con amigos\n`;
+    message += `2. Cuando se registren, serán tus referidos\n`;
+    message += `3. Ganas descuentos cuando paguen\n\n`;
+    
+    if (referralStats) {
+        message += `*Tus estadísticas:*\n`;
+        message += `• Referidos totales: ${referralStats.total_referrals}\n`;
+        message += `• Referidos que han pagado: ${referralStats.total_paid}\n`;
+        message += `• Descuento actual: ${referralStats.discount_percentage}%\n`;
+    }
+    
+    await ctx.reply(
+        message,
+        { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: '🏠 MENÚ PRINCIPAL',
+                            callback_data: 'main_menu'
+                        }
+                    ]
+                ]
+            }
+        }
+    );
+});
+
+// Comando /admin solo para admins
+bot.command('admin', async (ctx) => {
+    if (!isAdmin(ctx.from.id.toString())) {
+        return ctx.reply('❌ Solo el administrador puede usar este comando.');
+    }
+
+    const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${ctx.from.id}&admin=true`;
+    
+    const keyboard = [
+        [
+            { 
+                text: '🔧 ABRIR PANEL WEB', 
+                web_app: { url: adminUrl }
+            }
+        ],
+        [
+            {
+                text: '💻 DESCARGAR WIREGUARD',
+                callback_data: 'download_wireguard'
+            },
+            {
+                text: '🆘 SOPORTE',
+                url: 'https://t.me/L0quen2'
+            }
+        ],
+        [
+            {
+                text: '🏠 MENÚ PRINCIPAL',
+                callback_data: 'main_menu'
+            }
+        ]
+    ];
+    
+    await ctx.reply(
+        `🔧 *PANEL DE ADMINISTRACIÓN*\n\n` +
+        `Selecciona una opción:`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
+    );
+});
+
+// Comando /cupon para verificar cupones
+bot.command('cupon', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const args = ctx.message.text.split(' ');
+    
+    if (args.length < 2) {
+        return ctx.reply(
+            `🎫 *VERIFICAR CUPÓN*\n\n` +
+            `Uso: /cupon <código>\n` +
+            `Ejemplo: /cupon VPN20\n\n` +
+            `Introduce el código del cupón que deseas verificar.`,
+            { parse_mode: 'Markdown' }
+        );
+    }
+    
+    const couponCode = args[1].toUpperCase();
+    
+    try {
+        // Verificar cupón
+        const response = await fetch(`${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/api/coupons/verify/${couponCode}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegramId: userId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await ctx.reply(
+                `✅ *¡CUPÓN VÁLIDO!*\n\n` +
+                `Código: ${result.coupon.code}\n` +
+                `Descuento: ${result.coupon.discount}%\n` +
+                `${result.coupon.description ? `Descripción: ${result.coupon.description}\n\n` : '\n'}` +
+                `Puedes usar este cupón en tu próxima compra desde la web.\n\n` +
+                `*Nota:* El descuento se aplicará automáticamente al finalizar el pago.`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            await ctx.reply(
+                `❌ *CUPÓN NO VÁLIDO*\n\n` +
+                `Código: ${couponCode}\n` +
+                `Razón: ${result.error}\n\n` +
+                `Verifica que el código sea correcto y que no haya expirado.`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    } catch (error) {
+        console.error('❌ Error verificando cupón:', error);
+        await ctx.reply(
+            `❌ *ERROR VERIFICANDO CUPÓN*\n\n` +
+            `No se pudo verificar el cupón. Inténtalo de nuevo más tarde.`,
+            { parse_mode: 'Markdown' }
+        );
+    }
+});
+
+// Comando /help
 bot.command('help', async (ctx) => {
-  try {
     const userId = ctx.from.id.toString();
     const esAdmin = isAdmin(userId);
     const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+    
     await ctx.reply(
-      `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
-      `Usa los botones para navegar por todas las funciones.\n\n` +
-      `*BOTONES DISPONIBLES:*\n` +
-      `📋 VER PLANES - Ver y comprar planes\n` +
-      `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
-      `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
-      `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
-      `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
-      `📢 VPN CANAL - Unirse al canal oficial\n` +
-      `🎬 PELÍCULAS - Bot de películas\n` +
-      `📱 WHATSAPP - Grupo de WhatsApp\n` +
-      `🆘 SOPORTE - Contactar con soporte técnico\n` +
-      `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
-      `\n*COMANDOS DISPONIBLES:*\n` +
-      `/start - Iniciar el bot\n` +
-      `/referidos - Obtener tu enlace de referidos\n` +
-      `/cupon <código> - Verificar un cupón de descuento\n` +
-      `/trialstatus - Ver estado de prueba gratuita\n` +
-      `/help - Mostrar esta ayuda\n` +
-      `${esAdmin ? '/admin - Panel de administración\n/enviar - Enviar configuración\n' : ''}` +
-      `\n¡Todo está disponible en los botones! 🚀`,
-      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
+        `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
+        `Usa los botones para navegar por todas las funciones.\n\n` +
+        `*BOTONES DISPONIBLES:*\n` +
+        `📋 VER PLANES - Ver y comprar planes\n` +
+        `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
+        `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
+        `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
+        `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
+        `📢 VPN CANAL - Unirse al canal oficial\n` +
+        `🎬 PELÍCULAS - Bot de películas\n` +
+        `📱 WHATSAPP - Grupo de WhatsApp\n` +
+        `🆘 SOPORTE - Contactar con soporte técnico\n` +
+        `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
+        `\n*COMANDOS DISPONIBLES:*\n` +
+        `/start - Iniciar el bot\n` +
+        `/referidos - Obtener tu enlace de referidos\n` +
+        `/cupon <código> - Verificar un cupón de descuento\n` +
+        `/trialstatus - Ver estado de prueba gratuita\n` +
+        `/help - Mostrar esta ayuda\n` +
+        `${esAdmin ? '/admin - Panel de administración\n/enviar - Enviar configuración\n' : ''}` +
+        `\n¡Todo está disponible en los botones! 🚀`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: keyboard
+            }
+        }
     );
-  } catch (error) {
-    console.error('❌ Error en /help:', error);
-  }
 });
 
-bot.command('referidos', async (ctx) => {
-  try {
+// Comando /trialstatus
+bot.command('trialstatus', async (ctx) => {
     const userId = ctx.from.id.toString();
-    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-    const user = await db.getUser(userId);
-    let referralStats = null;
-    if (user) {
-      referralStats = await db.getReferralStats(userId);
+    
+    try {
+        const user = await db.getUser(userId);
+        
+        if (!user) {
+            return ctx.reply('❌ No estás registrado. Usa /start para comenzar.');
+        }
+    
+        if (!user.trial_requested) {
+            return ctx.reply('🎯 *Estado de prueba:* No has solicitado prueba gratuita.\n\nUsa "🎁 PRUEBA GRATIS" en la web para solicitar.', { parse_mode: 'Markdown' });
+        }
+    
+        if (user.trial_received) {
+            const sentDate = user.trial_sent_at ? new Date(user.trial_sent_at).toLocaleDateString('es-ES') : 'No disponible';
+            return ctx.reply(
+                `✅ *Prueba gratuita recibida*\n\n` +
+                `📅 Enviada: ${sentDate}\n` +
+                `⏰ Duración: ${user.trial_plan_type || '1h'}\n` +
+                `🎮 Juego/Servidor: ${user.trial_game_server || 'No especificado'}\n` +
+                `📡 Conexión: ${user.trial_connection_type || 'No especificado'}\n` +
+                `📋 Estado: Activada\n\n` +
+                `Busca el archivo en este chat. Si no lo encuentras, contacta a soporte.`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            const requestedDate = user.trial_requested_at ? new Date(user.trial_requested_at).toLocaleDateString('es-ES') : 'No disponible';
+            return ctx.reply(
+                `⏳ *Prueba gratuita pendiente*\n\n` +
+                `📅 Solicitada: ${requestedDate}\n` +
+                `⏰ Duración: ${user.trial_plan_type || '1h'}\n` +
+                `🎮 Juego/Servidor: ${user.trial_game_server || 'No especificado'}\n` +
+                `📡 Conexión: ${user.trial_connection_type || 'No especificado'}\n` +
+                `📋 Estado: En espera de envío\n\n` +
+                `Recibirás la configuración por este chat en breve.`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    } catch (error) {
+        console.error('❌ Error en trialstatus:', error);
+        return ctx.reply('❌ Error al verificar estado de prueba.');
     }
-    let message = `🤝 *TU ENLACE DE REFERIDOS*\n\n\`${referralLink}\`\n\n*Instrucciones:*\n1. Comparte este enlace con amigos\n2. Cuando se registren, serán tus referidos\n3. Ganas descuentos cuando paguen\n\n`;
-    if (referralStats) {
-      message += `*Tus estadísticas:*\n• Referidos totales: ${referralStats.total_referrals}\n• Referidos que han pagado: ${referralStats.total_paid}\n• Descuento actual: ${referralStats.discount_percentage}%\n`;
-    }
-    await ctx.reply(message, { 
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: [ [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ] ] }
-    });
-  } catch (error) {
-    console.error('❌ Error en /referidos:', error);
-  }
 });
 
-bot.command('admin', async (ctx) => {
-  try {
+// Comando /enviar para administrador
+bot.command('enviar', async (ctx) => {
     if (!isAdmin(ctx.from.id.toString())) {
-      return ctx.reply('❌ Solo el administrador puede usar este comando.');
+        return ctx.reply('❌ Solo el administrador puede usar este comando.');
     }
-    const adminUrl = `${process.env.WEBAPP_URL}/admin.html?userId=${ctx.from.id}&admin=true`;
-    const keyboard = [
-      [ { text: '🔧 ABRIR PANEL WEB', web_app: { url: adminUrl } } ],
-      [
-        { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' },
-        { text: '🆘 SOPORTE', url: 'https://t.me/L0quen2' }
-      ],
-      [ { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' } ]
-    ];
-    await ctx.reply(
-      `🔧 *PANEL DE ADMINISTRACIÓN*\n\nSelecciona una opción:`,
-      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } }
-    );
-  } catch (error) {
-    console.error('❌ Error en /admin:', error);
-  }
-});
 
-bot.command('cupon', async (ctx) => {
-  try {
-    const userId = ctx.from.id.toString();
     const args = ctx.message.text.split(' ');
     if (args.length < 2) {
-      return ctx.reply(
-        `🎫 *VERIFICAR CUPÓN*\n\nUso: /cupon <código>\nEjemplo: /cupon VPN20\n\nIntroduce el código del cupón que deseas verificar.`,
-        { parse_mode: 'Markdown' }
-      );
+        return ctx.reply('Uso: /enviar <ID de usuario>\nEjemplo: /enviar 123456789');
     }
-    const couponCode = args[1].toUpperCase();
-    const response = await fetch(`${process.env.WEBAPP_URL}/api/coupons/verify/${couponCode}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegramId: userId })
-    });
-    const result = await response.json();
-    if (result.success) {
-      await ctx.reply(
-        `✅ *¡CUPÓN VÁLIDO!*\n\nCódigo: ${result.coupon.code}\nDescuento: ${result.coupon.discount}%\n${result.coupon.description ? `Descripción: ${result.coupon.description}\n\n` : '\n'}Puedes usar este cupón en tu próxima compra desde la web.\n\n*Nota:* El descuento se aplicará automáticamente al finalizar el pago.`,
-        { parse_mode: 'Markdown' }
-      );
-    } else {
-      await ctx.reply(
-        `❌ *CUPÓN NO VÁLIDO*\n\nCódigo: ${couponCode}\nRazón: ${result.error}\n\nVerifica que el código sea correcto y que no haya expirado.`,
-        { parse_mode: 'Markdown' }
-      );
-    }
-  } catch (error) {
-    console.error('❌ Error en /cupon:', error);
-    await ctx.reply(`❌ *ERROR VERIFICANDO CUPÓN*\n\nNo se pudo verificar el cupón. Inténtalo de nuevo más tarde.`, { parse_mode: 'Markdown' });
-  }
-});
 
-bot.command('trialstatus', async (ctx) => {
-  try {
-    const userId = ctx.from.id.toString();
-    const user = await db.getUser(userId);
-    if (!user) {
-      return ctx.reply('❌ No estás registrado. Usa /start para comenzar.');
-    }
-    if (!user.trial_requested) {
-      return ctx.reply('🎯 *Estado de prueba:* No has solicitado prueba gratuita.\n\nUsa "🎁 PRUEBA GRATIS" en la web para solicitar.', { parse_mode: 'Markdown' });
-    }
-    if (user.trial_received) {
-      const sentDate = user.trial_sent_at ? new Date(user.trial_sent_at).toLocaleDateString('es-ES') : 'No disponible';
-      return ctx.reply(
-        `✅ *Prueba gratuita recibida*\n\n📅 Enviada: ${sentDate}\n⏰ Duración: ${user.trial_plan_type || '1h'}\n🎮 Juego/Servidor: ${user.trial_game_server || 'No especificado'}\n📡 Conexión: ${user.trial_connection_type || 'No especificado'}\n📋 Estado: Activada\n\nBusca el archivo en este chat. Si no lo encuentras, contacta a soporte.`,
-        { parse_mode: 'Markdown' }
-      );
-    } else {
-      const requestedDate = user.trial_requested_at ? new Date(user.trial_requested_at).toLocaleDateString('es-ES') : 'No disponible';
-      return ctx.reply(
-        `⏳ *Prueba gratuita pendiente*\n\n📅 Solicitada: ${requestedDate}\n⏰ Duración: ${user.trial_plan_type || '1h'}\n🎮 Juego/Servidor: ${user.trial_game_server || 'No especificado'}\n📡 Conexión: ${user.trial_connection_type || 'No especificado'}\n📋 Estado: En espera de envío\n\nRecibirás la configuración por este chat en breve.`,
-        { parse_mode: 'Markdown' }
-      );
-    }
-  } catch (error) {
-    console.error('❌ Error en trialstatus:', error);
-    return ctx.reply('❌ Error al verificar estado de prueba.');
-  }
-});
-
-bot.command('enviar', async (ctx) => {
-  if (!isAdmin(ctx.from.id.toString())) {
-    return ctx.reply('❌ Solo el administrador puede usar este comando.');
-  }
-  const args = ctx.message.text.split(' ');
-  if (args.length < 2) {
-    return ctx.reply('Uso: /enviar <ID de usuario>\nEjemplo: /enviar 123456789');
-  }
-  const telegramId = args[1];
-  await ctx.reply(
-    `📤 *ENVIAR CONFIGURACIÓN A USUARIO*\n\nUsuario: ${telegramId}\n\nPor favor, envía el archivo .conf, .zip o .rar ahora:`,
-    { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '❌ CANCELAR', callback_data: 'main_menu' } ] ] } }
-  );
-  ctx.session = { waitingToSendTo: telegramId };
+    const telegramId = args[1];
+    
+    await ctx.reply(
+        `📤 *ENVIAR CONFIGURACIÓN A USUARIO*\n\n` +
+        `Usuario: ${telegramId}\n\n` +
+        `Por favor, envía el archivo .conf, .zip o .rar ahora:`,
+        { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '❌ CANCELAR', callback_data: 'main_menu' }
+                    ]
+                ]
+            }
+        }
+    );
+    
+    ctx.session = { waitingToSendTo: telegramId };
 });
 
 // Manejar archivos enviados por admin
 bot.on('document', async (ctx) => {
-  const adminId = ctx.from.id.toString();
-  if (!isAdmin(adminId)) return;
-  if (ctx.session?.waitingToSendTo) {
-    const telegramId = ctx.session.waitingToSendTo;
-    const fileId = ctx.message.document.file_id;
-    const fileName = ctx.message.document.file_name;
-    try {
-      const fileNameLower = fileName.toLowerCase();
-      if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
-        await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
-        return;
-      }
-      if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
-        await ctx.reply('❌ ID de usuario inválido');
-        return;
-      }
-      const chatId = telegramId.toString().trim();
-      const canSend = await canSendMessageToUser(chatId);
-      if (!canSend.canSend) {
-        await ctx.reply(`❌ No se puede enviar al usuario: ${canSend.reason}`);
-        return;
-      }
-      const payments = await db.getUserPayments(chatId);
-      let paymentId = null, approvedPayment = null;
-      if (payments && payments.length > 0) {
-        approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
-        if (approvedPayment) paymentId = approvedPayment.id;
-      }
-      await bot.telegram.sendDocument(chatId, fileId, {
-        caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n📁 *Archivo:* ${fileName}\n\n*Instrucciones:*\n1. Descarga este archivo\n2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR'}\n3. Importa el archivo .conf en WireGuard\n4. Activa la conexión\n5. ¡Disfruta de baja latencia! 🚀\n\n*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
-        parse_mode: 'Markdown'
-      });
-      if (paymentId) {
-        await db.updatePayment(paymentId, {
-          config_sent: true,
-          config_sent_at: new Date().toISOString(),
-          config_file: fileName,
-          config_sent_by: adminId
-        });
-        const user = await db.getUser(chatId);
-        if (user && !user.vip && approvedPayment) {
-          await db.makeUserVIP(chatId, {
-            plan: approvedPayment.plan,
-            plan_price: approvedPayment.price,
-            vip_since: new Date().toISOString()
-          });
+    const adminId = ctx.from.id.toString();
+    
+    if (!isAdmin(adminId)) return;
+    
+    if (ctx.session?.waitingToSendTo) {
+        const telegramId = ctx.session.waitingToSendTo;
+        const fileId = ctx.message.document.file_id;
+        const fileName = ctx.message.document.file_name;
+
+        try {
+            const fileNameLower = fileName.toLowerCase();
+            if (!fileNameLower.endsWith('.zip') && !fileNameLower.endsWith('.rar') && !fileNameLower.endsWith('.conf')) {
+                await ctx.reply('❌ El archivo debe tener extensión .conf, .zip o .rar');
+                return;
+            }
+            
+            // Validar que telegramId sea válido
+            if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
+                await ctx.reply('❌ ID de usuario inválido');
+                return;
+            }
+            
+            const chatId = telegramId.toString().trim();
+            
+            // Verificar si el usuario puede recibir mensajes
+            const canSend = await canSendMessageToUser(chatId);
+            if (!canSend.canSend) {
+                await ctx.reply(`❌ No se puede enviar al usuario: ${canSend.reason}`);
+                return;
+            }
+            
+            // Buscar si hay un pago aprobado para este usuario
+            const payments = await db.getUserPayments(chatId);
+            let paymentId = null;
+            let approvedPayment = null;
+            
+            if (payments && payments.length > 0) {
+                approvedPayment = payments.find(p => p.status === 'approved' && !p.config_sent);
+                if (approvedPayment) {
+                    paymentId = approvedPayment.id;
+                }
+            }
+            
+            // Enviar archivo al usuario
+            await bot.telegram.sendDocument(chatId, fileId, {
+                caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
+                        `📁 *Archivo:* ${fileName}\n\n` +
+                        `*Instrucciones:*\n` +
+                        `1. Descarga este archivo\n` +
+                        `2. ${fileNameLower.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR'}\n` +
+                        `3. Importa el archivo .conf en WireGuard\n` +
+                        `4. Activa la conexión\n` +
+                        `5. ¡Disfruta de baja latencia! 🚀\n\n` +
+                        `*Soporte:* Contacta con @L0quen2 si tienes problemas.`,
+                parse_mode: 'Markdown'
+            });
+
+            // Actualizar pago si existe
+            if (paymentId) {
+                await db.updatePayment(paymentId, {
+                    config_sent: true,
+                    config_sent_at: new Date().toISOString(),
+                    config_file: fileName,
+                    config_sent_by: adminId
+                });
+                
+                // Marcar usuario como VIP si aún no lo está
+                const user = await db.getUser(chatId);
+                if (user && !user.vip && approvedPayment) {
+                    await db.makeUserVIP(chatId, {
+                        plan: approvedPayment.plan,
+                        plan_price: approvedPayment.price,
+                        vip_since: new Date().toISOString()
+                    });
+                }
+            }
+
+            await ctx.reply(`✅ Archivo enviado al usuario ${chatId}`);
+            
+            // Notificar al usuario
+            await bot.telegram.sendMessage(
+                chatId,
+                '✅ *Configuración recibida*\n\n' +
+                'El administrador te ha enviado la configuración.\n' +
+                'Busca el archivo en este chat.\n' +
+                '¡Disfruta de baja latencia! 🚀',
+                { parse_mode: 'Markdown' }
+            );
+            
+        } catch (error) {
+            console.error('❌ Error enviando archivo:', error);
+            await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
         }
-      }
-      await ctx.reply(`✅ Archivo enviado al usuario ${chatId}`);
-      await bot.telegram.sendMessage(
-        chatId,
-        '✅ *Configuración recibida*\n\nEl administrador te ha enviado la configuración.\nBusca el archivo en este chat.\n¡Disfruta de baja latencia! 🚀',
-        { parse_mode: 'Markdown' }
-      );
-    } catch (error) {
-      console.error('❌ Error enviando archivo:', error);
-      await ctx.reply(`❌ Error enviando archivo: ${error.message}`);
+
+        delete ctx.session.waitingToSendTo;
     }
-    delete ctx.session.waitingToSendTo;
-  }
 });
 
-// ==================== FUNCIÓN DE AUTO-CURACIÓN DEL WEBHOOK ====================
-let webhookHealthInterval = null;
-let webhookRestartAttempts = 0;
-const MAX_RESTART_ATTEMPTS = 5;
+// ==================== CONFIGURACIÓN DEL WEBHOOK ====================
 
-async function checkWebhookHealth() {
-  try {
-    const webhookInfo = await bot.telegram.getWebhookInfo();
-    if (webhookInfo.url === webhookUrl && webhookInfo.last_error_date) {
-      console.log(`⚠️ Webhook tiene errores: ${webhookInfo.last_error_message}`);
-    }
-    const botInfo = await bot.telegram.getMe();
-    if (botInfo && botInfo.id) {
-      console.log(`✅ Webhook saludable, bot: @${botInfo.username}`);
-      webhookRestartAttempts = 0;
-    } else {
-      throw new Error('No se pudo obtener información del bot');
-    }
-  } catch (error) {
-    console.error('❌ Error en health check del webhook:', error.message);
-    webhookRestartAttempts++;
-    if (webhookRestartAttempts <= MAX_RESTART_ATTEMPTS) {
-      console.log(`🔄 Intentando reconfigurar webhook (intento ${webhookRestartAttempts}/${MAX_RESTART_ATTEMPTS})...`);
-      try {
+// Ruta para recibir actualizaciones de Telegram
+app.post('/webhook', (req, res) => {
+    // Pasar la solicitud al bot para que la procese
+    bot.handleUpdate(req.body, res);
+});
+
+// Función para establecer el webhook
+async function setWebhook() {
+    const webhookUrl = `${process.env.WEBAPP_URL}/webhook`; // Usamos la misma URL base de la webapp
+    try {
         await bot.telegram.setWebhook(webhookUrl);
-        console.log('✅ Webhook reconfigurado exitosamente');
-      } catch (setError) {
-        console.error('❌ Error al reconfigurar webhook:', setError.message);
-      }
-    } else {
-      console.error('❌ Demasiados intentos fallidos, no se reintentará más hasta el próximo ciclo');
-      webhookRestartAttempts = 0;
+        console.log(`✅ Webhook establecido en: ${webhookUrl}`);
+        
+        // Obtener información del webhook para verificar
+        const webhookInfo = await bot.telegram.getWebhookInfo();
+        console.log(`📡 Información del webhook:`, webhookInfo);
+    } catch (error) {
+        console.error('❌ Error estableciendo webhook:', error);
+        // Si falla, intentar con polling como fallback
+        console.log('⚠️ Usando polling como fallback...');
+        await bot.launch();
     }
-  }
 }
 
 // ==================== SERVIDOR ====================
+
+// Iniciar servidor
 app.listen(PORT, async () => {
-    console.log(`🚀 Servidor en ${process.env.WEBAPP_URL}`);
+    console.log(`🚀 Servidor en http://localhost:${PORT}`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
     
+    // Verificar buckets primero
+    console.log('🔍 Verificando buckets de almacenamiento...');
     await verifyStorageBuckets();
+    
+    // Inicializar buckets de almacenamiento
+    console.log('📦 Inicializando buckets de almacenamiento...');
     await initializeStorageBuckets();
+    
+    // Inicializar sistema USDT (modo manual)
+    console.log('💸 Inicializando sistema USDT en modo MANUAL...');
     await initializeUsdtSystem();
     
-    // Configurar webhook
-    try {
-        await bot.telegram.deleteWebhook();
-        await bot.telegram.setWebhook(webhookUrl);
-        console.log(`✅ Webhook configurado en: ${webhookUrl}`);
-    } catch (error) {
-        console.error('❌ Error configurando webhook:', error.message);
-    }
+    // Configurar webhook (o polling si falla)
+    await setWebhook();
     
     // Configurar comandos del bot
     try {
@@ -3430,25 +4104,51 @@ app.listen(PORT, async () => {
             { command: 'admin', description: 'Panel de administración (solo admins)' },
             { command: 'enviar', description: 'Enviar configuración (solo admins)' }
         ];
+        
         await bot.telegram.setMyCommands(commands);
         console.log('📝 Comandos del bot configurados');
     } catch (error) {
         console.error('❌ Error configurando comandos:', error);
     }
 
-    // Iniciar keep-alive y health check del webhook
+    // Iniciar keep-alive
     startKeepAlive();
-    webhookHealthInterval = setInterval(checkWebhookHealth, 5 * 60 * 1000);
     
     console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
-    console.log(`💰 Sistema USDT: MODO MANUAL - Dirección: ${USDT_CONFIG.WALLET_ADDRESS}`);
-    console.log(`🔍 Health check del webhook activado (cada 5 minutos)`);
+    console.log(`📊 Estadísticas completas: /api/stats`);
+    console.log(`🎫 Sistema de cupones: Habilitado`);
+    console.log(`💰 Sistema USDT: MODO MANUAL`);
+    console.log(`   • Dirección: ${USDT_CONFIG.WALLET_ADDRESS}`);
+    console.log(`   • Verificación: DESACTIVADA - Flujo manual`);
+    console.log(`   • Todos los pagos requieren captura`);
+    console.log(`👥 Sistema de referidos: Habilitado`);
+    console.log(`📁 Archivos automáticos: DESACTIVADO - Envío manual`);
+    console.log(`📦 Buckets de almacenamiento: Verificados`);
+    console.log(`👤 Sistema mejorado de envío: Usuarios inactivos marcados automáticamente`);
+});
+
+// Manejar errores no capturados para reiniciar el bot (si está en polling, pero ya no se usa)
+process.on('uncaughtException', async (error) => {
+    console.error('❌ Error no capturado:', error);
+    // Con webhook, Express maneja los errores, pero si algo grave ocurre podemos reiniciar el proceso
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+    console.error('❌ Promesa rechazada no manejada:', reason);
+});
+
+// Manejar cierre
+process.on('SIGINT', () => {
+    console.log('\n👋 Cerrando aplicación...');
+    // Eliminar webhook al salir (opcional)
+    bot.telegram.deleteWebhook().catch(() => {});
+    process.exit(0);
 });
 
 // Función keep-alive
 function startKeepAlive() {
     const keepAliveInterval = 4 * 60 * 1000;
-    const healthCheckUrl = `${process.env.WEBAPP_URL}/api/health`;
+    const healthCheckUrl = `http://localhost:${PORT}/api/health`;
 
     setInterval(async () => {
         try {
@@ -3463,14 +4163,6 @@ function startKeepAlive() {
 
     console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
 }
-
-// Manejar cierre
-process.on('SIGINT', () => {
-    console.log('\n👋 Cerrando aplicación...');
-    if (webhookHealthInterval) clearInterval(webhookHealthInterval);
-    bot.stop();
-    process.exit(0);
-});
 
 // Exportar para pruebas
 module.exports = {

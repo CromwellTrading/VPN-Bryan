@@ -1,0 +1,27 @@
+name: Keep Alive – Evitar que el bot se duerma
+
+on:
+  schedule:
+    # Ejecutar cada 10 minutos (ajusta según necesites)
+    - cron: '*/22 * * * *'
+  workflow_dispatch:        # Permite ejecución manual desde la pestaña Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hacer ping a la aplicación
+        run: |
+          # URL del endpoint de salud de tu aplicación (cámbiala por la tuya)
+          URL="https://vpn-bryan.onrender.com/api/health"
+          
+          echo "⏰ Pinging $URL ..."
+          
+          # Usamos curl con timeout y mostramos solo cabeceras para minimizar tráfico
+          # --fail: devuelve código de error si la respuesta HTTP no es 2xx/3xx
+          # --max-time: tiempo máximo de espera
+          # --head: solo obtiene cabeceras (más ligero)
+          curl --head --fail --max-time 15 "$URL"
+          
+          # Si curl falla (por timeout o HTTP error), el workflow se marcará como fallido
+          echo "✅ Ping completado correctamente."

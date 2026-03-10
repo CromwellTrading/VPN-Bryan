@@ -183,46 +183,46 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const keyboard = [
         [
             { 
-                text: '⎙ VER PLANES', 
+                text: '📁 VER PLANES', 
                 web_app: { url: plansUrl }
             },
             {
-                text: '♕ MI ESTADO',
+                text: '👑 MI ESTADO',
                 callback_data: 'check_status'
             }
         ],
         [
             {
-                text: '☄ DESCARGAR WIREGUARD',
+                text: '💻 DESCARGAR WIREGUARD',
                 callback_data: 'download_wireguard'
             },
             {
-                text: '☏ SOPORTE',
+                text: '🆘 SOPORTE',
                 url: 'https://t.me/L0quen2'
             }
         ],
         [
             {
-                text: '♻ REFERIDOS',
+                text: '♻️ REFERIDOS',
                 callback_data: 'referral_info'
             },
             {
-                text: '✎ CÓMO FUNCIONA',
+                text: '❓ CÓMO FUNCIONA',
                 callback_data: 'how_it_works'
             }
         ],
         // NUEVA FILA CON LOS TRES BOTONES (se reemplazó PELÍCULAS por POLITICAS)
         [
             {
-                text: '❏ VPN CANAL',
+                text: '🔈 VPN CANAL',
                 url: 'https://t.me/vpncubaw'
             },
             {
-                text: '⚿ Politicas',  // Nuevo botón (placeholder)
+                text: '📜 Politicas',  // Nuevo botón (placeholder)
                 callback_data: 'politicas'
             },
             {
-                text: '✆ WHATSAPP',
+                text: '📲 WHATSAPP',
                 url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t'
             }
         ]
@@ -3163,7 +3163,7 @@ bot.on('text', async (ctx) => {
     console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
     
     // Opción: ⎙ VER PLANES
-    if (text === '⎙ VER PLANES') {
+    if (text === '📁 VER PLANES') {
         const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
         await ctx.reply(
             `📋 *NUESTROS PLANES* 🚀\n\n` +
@@ -3199,7 +3199,7 @@ bot.on('text', async (ctx) => {
     }
     
     // Opción: ♕ MI ESTADO
-    else if (text === '♕ MI ESTADO') {
+    else if (text === '👑 MI ESTADO') {
         try {
             const user = await db.getUser(userId);
             
@@ -3266,8 +3266,8 @@ bot.on('text', async (ctx) => {
         }
     }
     
-    // Opción: ☑ DESCARGAR WIREGUARD
-    else if (text === '☑ DESCARGAR WIREGUARD') {
+    // Opción: ☄ DESCARGAR WIREGUARD
+    else if (text === '💻 DESCARGAR WIREGUARD') {
         await ctx.reply(
             `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
             `*Para Windows*\n` +
@@ -3293,7 +3293,7 @@ bot.on('text', async (ctx) => {
     }
     
     // Opción: ☏ SOPORTE
-    else if (text === '☏ SOPORTE') {
+    else if (text === '🆘 SOPORTE') {
         await ctx.reply(
             `🆘 *SOPORTE TÉCNICO*\n\n` +
             `Para cualquier duda o problema, contacta con nuestro soporte:\n` +
@@ -3311,8 +3311,8 @@ bot.on('text', async (ctx) => {
         );
     }
     
-    // Opción: ☤ REFERIDOS
-    else if (text === '☤ REFERIDOS') {
+    // Opción: ♻ REFERIDOS
+    else if (text === '♻️ REFERIDOS') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         const user = await db.getUser(userId);
         let referralStats = null;
@@ -3354,7 +3354,7 @@ bot.on('text', async (ctx) => {
     }
     
     // Opción: ✎ CÓMO FUNCIONA
-    else if (text === '✎ CÓMO FUNCIONA') {
+    else if (text === '❓ CÓMO FUNCIONA') {
         await ctx.reply(
             `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
             `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
@@ -3378,7 +3378,7 @@ bot.on('text', async (ctx) => {
     }
     
     // Opción: ❏ VPN CANAL
-    else if (text === '❏ VPN CANAL') {
+    else if (text === '🔈 VPN CANAL') {
         await ctx.reply(
             `📢 *CANAL OFICIAL DE VPN CUBA*\n\n` +
             `Únete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n` +
@@ -3396,7 +3396,7 @@ bot.on('text', async (ctx) => {
     }
     
     // Opción: ✆ WHATSAPP
-    else if (text === '✆ WHATSAPP') {
+    else if (text === '📲 WHATSAPP') {
         await ctx.reply(
             `📱 *GRUPO DE WHATSAPP*\n\n` +
             `Únete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte.\n\n` +
@@ -3413,10 +3413,10 @@ bot.on('text', async (ctx) => {
         );
     }
     
-    // Opción: ⚿ Politicas
-else if (text === '⚿ Politicas') {
+    // Opción: 📜 Politicas
+else if (text === '📜 Politicas') {
     const politicasMensaje = 
-        `⚿ *TÉRMINOS DE SERVICIO Y USO ACEPTABLE DE VPN CUBA* 📜\n` +
+        `📜 *TÉRMINOS DE SERVICIO Y USO ACEPTABLE DE VPN CUBA* 📜\n` +
         `_Última actualización: Noviembre de 2025_\n\n` +
         `Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.\n\n` +
         `*1. Responsabilidad del Cliente*\n` +
@@ -3492,10 +3492,10 @@ else if (text === '⚿ Politicas') {
             }
         }
     );
-}
+      }
     
     // Opción: ⌨ PANEL ADMIN (solo admin)
-    else if (text === '⌨ PANEL ADMIN' && esAdmin) {
+    else if (text === '🔐 PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
         await ctx.reply(
             `🔧 *PANEL DE ADMINISTRACIÓN*\n\n` +
@@ -3795,18 +3795,18 @@ bot.command('help', async (ctx) => {
     let ayuda = `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
         `Usa los botones del menú para navegar por todas las funciones.\n\n` +
         `*BOTONES DISPONIBLES:*\n` +
-        `⎙ VER PLANES - Ver y comprar planes\n` +
-        `♕ MI ESTADO - Ver tu estado VIP y días restantes\n` +
-        `☄ DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
-        `♻ REFERIDOS - Obtener tu enlace de referidos\n` +
-        `✎ CÓMO FUNCIONA - Explicación del servicio\n` +
-        `❏ VPN CANAL - Unirse al canal oficial\n` +
-        `⚿ Politicas - Políticas del servicio\n` +
-        `✆ WHATSAPP - Grupo de WhatsApp\n` +
-        `☏ SOPORTE - Contactar con soporte técnico\n`;
+        `📁 VER PLANES - Ver y comprar planes\n` +
+        `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
+        `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
+        `♻️ REFERIDOS - Obtener tu enlace de referidos\n` +
+        `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
+        `🔈 VPN CANAL - Unirse al canal oficial\n` +
+        `📜 Politicas - Políticas del servicio\n` +
+        `📲 WHATSAPP - Grupo de WhatsApp\n` +
+        `🆘 SOPORTE - Contactar con soporte técnico\n`;
     
     if (esAdmin) {
-        ayuda += `⌨ PANEL ADMIN - Panel de administración\n`;
+        ayuda += `🔐 PANEL ADMIN - Panel de administración\n`;
     }
     
     ayuda += `\n*COMANDOS DISPONIBLES:*\n` +

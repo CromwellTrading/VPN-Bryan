@@ -3266,8 +3266,8 @@ bot.on('text', async (ctx) => {
         }
     }
     
-    // Opción: ☄ DESCARGAR WIREGUARD
-    else if (text === '☄ DESCARGAR WIREGUARD') {
+    // Opción: ☑ DESCARGAR WIREGUARD
+    else if (text === '☑ DESCARGAR WIREGUARD') {
         await ctx.reply(
             `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
             `*Para Windows*\n` +
@@ -3311,8 +3311,8 @@ bot.on('text', async (ctx) => {
         );
     }
     
-    // Opción: ♻ REFERIDOS
-    else if (text === '♻ REFERIDOS') {
+    // Opción: ☤ REFERIDOS
+    else if (text === '☤ REFERIDOS') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         const user = await db.getUser(userId);
         let referralStats = null;
@@ -3413,23 +3413,86 @@ bot.on('text', async (ctx) => {
         );
     }
     
-    // Opción: ⚿ Politicas (nuevo botón)
-    else if (text === '⚿ Politicas') {
-        // Aquí puedes escribir el contenido definitivo de las políticas
-        await ctx.reply(
-            `⚿ *POLÍTICAS DEL SERVICIO*\n\n` +
-            `()\n\n` +
-            `Próximamente disponible.`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
+    // Opción: ⚿ Politicas
+else if (text === '⚿ Politicas') {
+    const politicasMensaje = 
+        `⚿ *TÉRMINOS DE SERVICIO Y USO ACEPTABLE DE VPN CUBA* 📜\n` +
+        `_Última actualización: Noviembre de 2025_\n\n` +
+        `Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.\n\n` +
+        `*1. Responsabilidad del Cliente*\n` +
+        `• *Cumplimiento Legal:* El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.\n` +
+        `• *Uso Legal:* El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.\n` +
+        `• *Datos de Cuenta:* El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.\n\n` +
+        `*2. Uso Aceptable del Servicio (Prohibiciones)*\n` +
+        `Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:\n` +
+        `• *Actividades Ilegales:* Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.\n` +
+        `• *Ataques a la Red:* Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).\n` +
+        `• *Abuso de Ancho de Banda:* Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).\n` +
+        `• *Compartición No Autorizada:* Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.\n\n` +
+        `*3. Exclusión de Garantías y Limitación de Responsabilidad*\n` +
+        `• *Rendimiento:* Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.\n` +
+        `• *Interrupción de Servicio:* VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.\n\n` +
+        `*4. Suspensión y Terminación*\n` +
+        `• *Violación:* VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.\n\n` +
+        `━━━━━━━━━━━━━━━━\n\n` +
+        `💳 *POLÍTICA DE REEMBOLSO Y GARANTÍA* 💳\n` +
+        `_Última actualización: Noviembre de 2025_\n\n` +
+        `En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una garantía clara:\n\n` +
+        `*1. Garantía de Devolución de Dinero (7 Días)*\n` +
+        `• Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la fecha de la compra inicial del plan.\n` +
+        `• Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este periodo, puedes solicitar un reembolso completo.\n` +
+        `• Esta garantía solo aplica a la primera compra de un cliente. Las renovaciones o compras posteriores no son elegibles.\n\n` +
+        `*2. Condiciones Específicas para el Reembolso*\n` +
+        `Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con lo siguiente:\n` +
+        `• *Motivo Técnico:* La solicitud debe basarse en un problema técnico no resuelto (incapacidad de conectar o latencia inusualmente alta) que el equipo de soporte no pudo solucionar.\n` +
+        `• *Limitaciones Locales:* Las velocidades o latencias consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.\n` +
+        `• *Cumplimiento de Términos:* El cliente no debe haber violado los Términos de Servicio (ej. compartir clave, abuso de ancho de banda o actividades ilegales).\n\n` +
+        `*3. Exclusiones y No Elegibilidad*\n` +
+        `No se otorgará un reembolso bajo las siguientes circunstancias:\n` +
+        `• *Expiración del Período:* Solicitudes realizadas después del día 7 de la compra inicial.\n` +
+        `• *Renovaciones:* Los pagos por renovación automática o manual no son reembolsables.\n` +
+        `• *Uso Abusivo:* Si se comprueba el uso del servicio para actividades ilegales o violación de términos.\n\n` +
+        `*4. Proceso de Solicitud de Reembolso*\n` +
+        `Para iniciar el proceso:\n` +
+        `• Envía un correo electrónico a: \`lolitogarcia0707@gmail.com\`.\n` +
+        `• Incluye tu ID de Cliente, la Fecha de Compra y una Explicación Detallada del problema técnico no resuelto.\n` +
+        `• El equipo de soporte revisará la solicitud y responderá en un plazo máximo de 72 horas hábiles.\n\n` +
+        `━━━━━━━━━━━━━━━━\n\n` +
+        `🔒 *POLÍTICA DE PRIVACIDAD (NO-LOGS)* 🔒\n` +
+        `_Última actualización: Noviembre de 2025_\n\n` +
+        `En VPN Cuba, la privacidad y seguridad son la máxima prioridad. Operan bajo una estricta política de Cero Registros (No-Logs Policy) para asegurar que la actividad en línea de los usuarios permanezca privada.\n\n` +
+        `*1. Nuestro Compromiso: Cero Registros de Actividad*\n` +
+        `VPN Cuba NO registra, almacena ni monitorea la actividad de sus usuarios. Específicamente, no se registra:\n` +
+        `• Actividad de navegación: Historial de sitios visitados o contenido de comunicaciones.\n` +
+        `• Registros de tráfico: Datos enviados o recibidos.\n` +
+        `• Registros de DNS: Solicitudes a sitios web.\n` +
+        `• Direcciones IP: Ni la dirección IP real (externa) ni la asignada por la VPN.\n` +
+        `Esto garantiza que no existe información que compartir sobre la actividad del usuario, incluso si fuera solicitada por terceros.\n\n` +
+        `*2. Información Necesaria que Sí Recolectamos*\n` +
+        `Para el funcionamiento y mantenimiento del servicio, solo se recopila la información mínima necesaria:\n` +
+        `• *Información de la Cuenta:* Nombre de usuario o ID de Cliente y contacto (correo electrónico o nombre de Telegram) para la gestión de la cuenta.\n` +
+        `• *Información de Pago:* Datos para procesar la compra, como confirmación de transferencia o ID de transacción (PayPal o USDT). Nunca se almacenan números de tarjetas de crédito o información bancaria sensible.\n` +
+        `• *Datos de Conexión Mínimos y Anónimos:* Registro agregado del total de ancho de banda o tiempo de conexión para gestión de red y optimización del servidor. Esta información no puede ser vinculada a una actividad específica.\n\n` +
+        `*3. El Protocolo WireGuard®*\n` +
+        `Se utiliza el protocolo WireGuard por su seguridad y eficiencia. Se han implementado configuraciones personalizadas para eliminar riesgos de privacidad relacionados con registros temporales de IP, cumpliendo estrictamente con la política No-Logs.\n\n` +
+        `*4. Uso de la Información*\n` +
+        `La información mínima recolectada se utiliza únicamente para:\n` +
+        `• Crear, mantener y gestionar la cuenta del usuario.\n` +
+        `• Procesar pagos y facturación.\n` +
+        `• Responder a solicitudes de soporte al cliente.`;
+
+    await ctx.reply(
+        politicasMensaje,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                ]
             }
-        );
-    }
+        }
+    );
+}
     
     // Opción: ⌨ PANEL ADMIN (solo admin)
     else if (text === '⌨ PANEL ADMIN' && esAdmin) {
@@ -3495,74 +3558,78 @@ bot.action('copy_referral_link', async (ctx) => {
     }
 });
 
-// Botón: Politicas (acción inline, por si se llega a usar)
+// Botón: Politicas (acción inline)
 bot.action('politicas', async (ctx) => {
     await ctx.answerCbQuery('📜 Políticas del servicio');
-    await ctx.reply(
-        `📜 *POLÍTICAS DEL SERVICIO*\n\n` +
-        `(​Términos de Servicio y Uso Aceptable de VPN Cuba
-​Última actualización: Noviembre de 2025
-​Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.  
-​1. Responsabilidad del Cliente
-​1.1. Cumplimiento Legal: El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.  
-​1.2. Uso Legal: El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.  
-​1.3. Datos de Cuenta: El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.  
-​2. Uso Aceptable del Servicio (Prohibiciones)
-​Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:  
-​Actividades Ilegales: Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.  
-​Ataques a la Red: Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).  
-​Abuso de Ancho de Banda: Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).  
-​Compartición No Autorizada: Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.  
-​3. Exclusión de Garantías y Limitación de Responsabilidad
-​3.1. Rendimiento: Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.  
-​3.2. Interrupción de Servicio: VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.  
-​4. Suspensión y Terminación
-​4.1. Violación: VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.)\n\n` +
-        `​Política de Reembolso y Garantía de VPN Cuba
-​Última actualización: Noviembre de 2025  
-​En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una garantía clara:  
-​1. Garantía de Devolución de Dinero (7 Días)
-​Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la fecha de la compra inicial del plan.  
-​Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este periodo, puedes solicitar un reembolso completo.  
-​Esta garantía solo aplica a la primera compra de un cliente. Las renovaciones o compras posteriores no son elegibles.  
-​2. Condiciones Específicas para el Reembolso
-​Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con lo siguiente:  
-​Motivo Técnico: La solicitud debe basarse en un problema técnico no resuelto (incapacidad de conectar o latencia inusualmente alta) que el equipo de soporte no pudo solucionar.  
-​Limitaciones Locales: Las velocidades o latencias consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.  
-​Cumplimiento de Términos: El cliente no debe haber violado los Términos de Servicio (ej. compartir clave, abuso de ancho de banda o actividades ilegales).  
-​3. Exclusiones y No Elegibilidad
-​No se otorgará un reembolso bajo las siguientes circunstancias:  
-​Expiración del Período: Solicitudes realizadas después del día 7 de la compra inicial.  
-​Renovaciones: Los pagos por renovación automática o manual no son reembolsables.  
-​Uso Abusivo: Si se comprueba el uso del servicio para actividades ilegales o violación de términos.  
-​4. Proceso de Solicitud de Reembolso
-​Para iniciar el proceso:  
-​Envía un correo electrónico a: lolitogarcia0707@gmail.com.  
-​Incluye tu ID de Cliente, la Fecha de Compra y una Explicación Detallada del problema técnico no resuelto.  
-​El equipo de soporte revisará la solicitud y responderá en un plazo máximo de 72 horas hábiles.
 
-​Política de Privacidad de VPN Cuba (Política No-Logs)
-​Última actualización: Noviembre de 2025.  
-​En VPN Cuba, la privacidad y seguridad son la máxima prioridad. Operan bajo una estricta política de Cero Registros (No-Logs Policy) para asegurar que la actividad en línea de los usuarios permanezca privada.  
-​1. Nuestro Compromiso: Cero Registros de Actividad
-​VPN Cuba NO registra, almacena ni monitorea la actividad de sus usuarios. Específicamente, no se registra:  
-​Actividad de navegación: Historial de sitios visitados o contenido de comunicaciones.  
-​Registros de tráfico: Datos enviados o recibidos.  
-​Registros de DNS: Solicitudes a sitios web.  
-​Direcciones IP: Ni la dirección IP real (externa) ni la asignada por la VPN.  
-​Esto garantiza que no existe información que compartir sobre la actividad del usuario, incluso si fuera solicitada por terceros.  
-​2. Información Necesaria que Sí Recolectamos
-​Para el funcionamiento y mantenimiento del servicio, solo se recopila la información mínima necesaria:
-​Información de la Cuenta: Nombre de usuario o ID de Cliente y contacto (correo electrónico o nombre de Telegram) para la gestión de la cuenta.  
-​Información de Pago: Datos para procesar la compra, como confirmación de transferencia o ID de transacción (PayPal o USDT). Nunca se almacenan números de tarjetas de crédito o información bancaria sensible.  
-​Datos de Conexión Mínimos y Anónimos: Registro agregado del total de ancho de banda o tiempo de conexión para gestión de red y optimización del servidor. Esta información no puede ser vinculada a una actividad específica.  
-​3. El Protocolo WireGuard®
-​Se utiliza el protocolo WireGuard por su seguridad y eficiencia. Se han implementado configuraciones personalizadas para eliminar riesgos de privacidad relacionados con registros temporales de IP, cumpliendo estrictamente con la política No-Logs.  
-​4. Uso de la Información
-​La información mínima recolectada se utiliza únicamente para:
-​Crear, mantener y gestionar la cuenta del usuario.  
-​Procesar pagos y facturación.  
-​Responder a solicitudes de soporte al cliente.`,
+    const politicasMensaje = 
+        `📜 *TÉRMINOS DE SERVICIO Y USO ACEPTABLE DE VPN CUBA* 📜\n` +
+        `_Última actualización: Noviembre de 2025_\n\n` +
+        `Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.\n\n` +
+        `*1. Responsabilidad del Cliente*\n` +
+        `• *Cumplimiento Legal:* El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.\n` +
+        `• *Uso Legal:* El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.\n` +
+        `• *Datos de Cuenta:* El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.\n\n` +
+        `*2. Uso Aceptable del Servicio (Prohibiciones)*\n` +
+        `Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:\n` +
+        `• *Actividades Ilegales:* Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.\n` +
+        `• *Ataques a la Red:* Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).\n` +
+        `• *Abuso de Ancho de Banda:* Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).\n` +
+        `• *Compartición No Autorizada:* Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.\n\n` +
+        `*3. Exclusión de Garantías y Limitación de Responsabilidad*\n` +
+        `• *Rendimiento:* Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.\n` +
+        `• *Interrupción de Servicio:* VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.\n\n` +
+        `*4. Suspensión y Terminación*\n` +
+        `• *Violación:* VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.\n\n` +
+        `━━━━━━━━━━━━━━━━\n\n` +
+        `💳 *POLÍTICA DE REEMBOLSO Y GARANTÍA* 💳\n` +
+        `_Última actualización: Noviembre de 2025_\n\n` +
+        `En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una garantía clara:\n\n` +
+        `*1. Garantía de Devolución de Dinero (7 Días)*\n` +
+        `• Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la fecha de la compra inicial del plan.\n` +
+        `• Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este periodo, puedes solicitar un reembolso completo.\n` +
+        `• Esta garantía solo aplica a la primera compra de un cliente. Las renovaciones o compras posteriores no son elegibles.\n\n` +
+        `*2. Condiciones Específicas para el Reembolso*\n` +
+        `Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con lo siguiente:\n` +
+        `• *Motivo Técnico:* La solicitud debe basarse en un problema técnico no resuelto (incapacidad de conectar o latencia inusualmente alta) que el equipo de soporte no pudo solucionar.\n` +
+        `• *Limitaciones Locales:* Las velocidades o latencias consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.\n` +
+        `• *Cumplimiento de Términos:* El cliente no debe haber violado los Términos de Servicio (ej. compartir clave, abuso de ancho de banda o actividades ilegales).\n\n` +
+        `*3. Exclusiones y No Elegibilidad*\n` +
+        `No se otorgará un reembolso bajo las siguientes circunstancias:\n` +
+        `• *Expiración del Período:* Solicitudes realizadas después del día 7 de la compra inicial.\n` +
+        `• *Renovaciones:* Los pagos por renovación automática o manual no son reembolsables.\n` +
+        `• *Uso Abusivo:* Si se comprueba el uso del servicio para actividades ilegales o violación de términos.\n\n` +
+        `*4. Proceso de Solicitud de Reembolso*\n` +
+        `Para iniciar el proceso:\n` +
+        `• Envía un correo electrónico a: \`lolitogarcia0707@gmail.com\`.\n` +
+        `• Incluye tu ID de Cliente, la Fecha de Compra y una Explicación Detallada del problema técnico no resuelto.\n` +
+        `• El equipo de soporte revisará la solicitud y responderá en un plazo máximo de 72 horas hábiles.\n\n` +
+        `━━━━━━━━━━━━━━━━\n\n` +
+        `🔒 *POLÍTICA DE PRIVACIDAD (NO-LOGS)* 🔒\n` +
+        `_Última actualización: Noviembre de 2025_\n\n` +
+        `En VPN Cuba, la privacidad y seguridad son la máxima prioridad. Operan bajo una estricta política de Cero Registros (No-Logs Policy) para asegurar que la actividad en línea de los usuarios permanezca privada.\n\n` +
+        `*1. Nuestro Compromiso: Cero Registros de Actividad*\n` +
+        `VPN Cuba NO registra, almacena ni monitorea la actividad de sus usuarios. Específicamente, no se registra:\n` +
+        `• Actividad de navegación: Historial de sitios visitados o contenido de comunicaciones.\n` +
+        `• Registros de tráfico: Datos enviados o recibidos.\n` +
+        `• Registros de DNS: Solicitudes a sitios web.\n` +
+        `• Direcciones IP: Ni la dirección IP real (externa) ni la asignada por la VPN.\n` +
+        `Esto garantiza que no existe información que compartir sobre la actividad del usuario, incluso si fuera solicitada por terceros.\n\n` +
+        `*2. Información Necesaria que Sí Recolectamos*\n` +
+        `Para el funcionamiento y mantenimiento del servicio, solo se recopila la información mínima necesaria:\n` +
+        `• *Información de la Cuenta:* Nombre de usuario o ID de Cliente y contacto (correo electrónico o nombre de Telegram) para la gestión de la cuenta.\n` +
+        `• *Información de Pago:* Datos para procesar la compra, como confirmación de transferencia o ID de transacción (PayPal o USDT). Nunca se almacenan números de tarjetas de crédito o información bancaria sensible.\n` +
+        `• *Datos de Conexión Mínimos y Anónimos:* Registro agregado del total de ancho de banda o tiempo de conexión para gestión de red y optimización del servidor. Esta información no puede ser vinculada a una actividad específica.\n\n` +
+        `*3. El Protocolo WireGuard®*\n` +
+        `Se utiliza el protocolo WireGuard por su seguridad y eficiencia. Se han implementado configuraciones personalizadas para eliminar riesgos de privacidad relacionados con registros temporales de IP, cumpliendo estrictamente con la política No-Logs.\n\n` +
+        `*4. Uso de la Información*\n` +
+        `La información mínima recolectada se utiliza únicamente para:\n` +
+        `• Crear, mantener y gestionar la cuenta del usuario.\n` +
+        `• Procesar pagos y facturación.\n` +
+        `• Responder a solicitudes de soporte al cliente.`;
+
+    await ctx.reply(
+        politicasMensaje,
         {
             parse_mode: 'Markdown',
             reply_markup: {

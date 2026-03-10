@@ -3304,6 +3304,7 @@ bot.on('text', async (ctx) => {
                 reply_markup: {
                     inline_keyboard: [
                         [{ text: '💬 IR AL SOPORTE', url: 'https://t.me/L0quen2' }],
+                        [{ text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }], 
                         [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
                     ]
                 }

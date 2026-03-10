@@ -1,3 +1,5 @@
+solo responde ok 
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -179,50 +181,50 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
-    // Crear teclado BASE para TODOS los usuarios
+    // Crear teclado BASE para TODOS los usuarios (NATIVO)
     const keyboard = [
         [
             { 
-                text: '📋 VER PLANES', 
+                text: '⎙ VER PLANES', 
                 web_app: { url: plansUrl }
             },
             {
-                text: '👑 MI ESTADO',
+                text: '♕ MI ESTADO',
                 callback_data: 'check_status'
             }
         ],
         [
             {
-                text: '💻 DESCARGAR WIREGUARD',
+                text: '☄ DESCARGAR WIREGUARD',
                 callback_data: 'download_wireguard'
             },
             {
-                text: '🆘 SOPORTE',
+                text: '☏ SOPORTE',
                 url: 'https://t.me/L0quen2'
             }
         ],
         [
             {
-                text: '🤝 REFERIDOS',
+                text: '♻ REFERIDOS',
                 callback_data: 'referral_info'
             },
             {
-                text: '❓ CÓMO FUNCIONA',
+                text: '✎ CÓMO FUNCIONA',
                 callback_data: 'how_it_works'
             }
         ],
-        // NUEVA FILA CON LOS TRES BOTONES ADICIONALES
+        // NUEVA FILA CON LOS TRES BOTONES (se reemplazó PELÍCULAS por POLITICAS)
         [
             {
-                text: '📢 VPN CANAL',
+                text: '❏ VPN CANAL',
                 url: 'https://t.me/vpncubaw'
             },
             {
-                text: '🎬 PELÍCULAS',
-                url: 'https://t.me/cumovies_bot'
+                text: '⚿ Politicas',  // Nuevo botón (placeholder)
+                callback_data: 'politicas'
             },
             {
-                text: '📱 WHATSAPP',
+                text: '✆ WHATSAPP',
                 url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t'
             }
         ]
@@ -232,13 +234,19 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     if (esAdmin) {
         keyboard.push([
             { 
-                text: '🔧 PANEL ADMIN', 
+                text: '⌨ PANEL ADMIN', 
                 web_app: { url: adminUrl }
             }
         ]);
     }
 
-    return keyboard;
+    return {
+        reply_markup: {
+            keyboard: keyboard,
+            resize_keyboard: true,
+            one_time_keyboard: false
+        }
+    };
 }
 
 // ==================== FUNCIONES DE VERIFICACIÓN USDT (MODIFICADAS) ====================
@@ -3142,125 +3150,24 @@ bot.start(async (ctx) => {
         welcomeMessage,
         {
             parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: keyboard
-            }
+            ...keyboard // Aquí se envía el teclado nativo
         }
     );
 });
 
-// Botón: Menú Principal
-bot.action('main_menu', async (ctx) => {
+// Manejador de texto para las opciones del menú nativo
+bot.on('text', async (ctx) => {
+    const text = ctx.message.text;
     const userId = ctx.from.id.toString();
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
     
-    const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
+    console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
     
-    try {
-        await ctx.editMessageText(
-            `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-            `Selecciona una opción:`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: keyboard
-                }
-            }
-        );
-    } catch (error) {
-        // Ignorar error de "message not modified"
-        if (error.response && error.response.description && 
-            error.response.description.includes('message is not modified')) {
-            return;
-        }
-        throw error;
-    }
-});
-
-// Botón: Descargar WireGuard
-bot.action('download_wireguard', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const esAdmin = isAdmin(userId);
-    
-    const keyboard = [
-        [
-            {
-                text: '💻 WINDOWS',
-                url: 'https://www.wireguard.com/install/'
-            },
-            {
-                text: '📱 ANDROID',
-                url: 'https://play.google.com/store/apps/details?id=com.wireguard.android'
-            }
-        ],
-        [
-            {
-                text: '🏠 MENÚ PRINCIPAL',
-                callback_data: 'main_menu'
-            }
-        ]
-    ];
-    
-    try {
-        await ctx.editMessageText(
-            `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
-            `*Para Windows*\n` +
-            `Aplicación Oficial de WireGuard para Windows:\n` +
-            `Enlace: https://www.wireguard.com/install/\n\n` +
-            `*Para Android*\n` +
-            `Aplicación Oficial de WireGuard en Google Play Store:\n` +
-            `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
-            `*Selecciona tu sistema operativo:*`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: keyboard
-                }
-            }
-        );
-    } catch (error) {
-        if (error.response && error.response.description && 
-            error.response.description.includes('message is not modified')) {
-            return;
-        }
-        throw error;
-    }
-});
-
-// Botón: Ver Planes
-bot.action('view_plans', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const esAdmin = isAdmin(userId);
-    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-    
-    const keyboard = [
-        [
-            { 
-                text: '🚀 VER PLANES EN WEB', 
-                web_app: { url: webappUrl }
-            }
-        ],
-        [
-            {
-                text: '💻 DESCARGAR WIREGUARD',
-                callback_data: 'download_wireguard'
-            },
-            {
-                text: '🆘 SOPORTE',
-                url: 'https://t.me/L0quen2'
-            }
-        ],
-        [
-            {
-                text: '🏠 MENÚ PRINCIPAL',
-                callback_data: 'main_menu'
-            }
-        ]
-    ];
-    
-    try {
-        await ctx.editMessageText(
+    // Opción: ⎙ VER PLANES
+    if (text === '⎙ VER PLANES') {
+        const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+        await ctx.reply(
             `📋 *NUESTROS PLANES* 🚀\n\n` +
             `*PRUEBA GRATIS (1 hora)*\n` +
             `💵 $0 CUP\n` +
@@ -3280,343 +3187,177 @@ bot.action('view_plans', async (ctx) => {
             `💵 $15,000 CUP\n` +
             `💰 30 USDT\n` +
             `🏆 ¡El mejor valor!\n\n` +
-            `Selecciona una opción:`,
+            `Puedes ver los planes y adquirirlos en la web:`,
             {
                 parse_mode: 'Markdown',
                 reply_markup: {
-                    inline_keyboard: keyboard
+                    inline_keyboard: [
+                        [{ text: '🚀 ABRIR WEB DE PLANES', web_app: { url: webappUrl } }],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
                 }
             }
         );
-    } catch (error) {
-        if (error.response && error.response.description && 
-            error.response.description.includes('message is not modified')) {
-            return;
-        }
-        throw error;
     }
-});
-
-// Botón: Mi Estado
-bot.action('check_status', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const esAdmin = isAdmin(userId);
     
-    try {
-        const user = await db.getUser(userId);
-        
-        if (!user) {
-            const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
-            try {
-                await ctx.editMessageText(
+    // Opción: ♕ MI ESTADO
+    else if (text === '♕ MI ESTADO') {
+        try {
+            const user = await db.getUser(userId);
+            
+            if (!user) {
+                await ctx.reply(
                     `❌ *NO ESTÁS REGISTRADO*\n\n` +
-                    `Usa el botón "📋 VER PLANES" para registrarte y comenzar.`,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: keyboard
-                        }
-                    }
+                    `Usa el botón "⎙ VER PLANES" para registrarte y comenzar.`,
+                    { parse_mode: 'Markdown' }
                 );
-            } catch (editError) {
-                // Si el mensaje no cambió, no hacer nada
-                if (!editError.response || !editError.response.description || 
-                    !editError.response.description.includes('message is not modified')) {
-                    throw editError;
+                return;
+            }
+            
+            if (user?.vip) {
+                const vipSince = formatearFecha(user.vip_since);
+                const diasRestantes = calcularDiasRestantes(user);
+                const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
+                
+                let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
+                mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
+                mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
+                mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
+                mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
+                
+                if (diasRestantes <= 7) {
+                    mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
+                    mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
+                } else {
+                    mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
                 }
-            }
-            return;
-        }
-        
-        if (user?.vip) {
-            const vipSince = formatearFecha(user.vip_since);
-            const diasRestantes = calcularDiasRestantes(user);
-            const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-            
-            let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
-            mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
-            mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
-            mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
-            mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-            
-            // Mostrar información de referidos si tiene
-            if (user.referrer_id) {
-                const referralStats = await db.getReferralStats(userId);
-                if (referralStats.discount_percentage > 0) {
-                    mensajeEstado += `👥 *Descuento por referidos:* ${referralStats.discount_percentage}%\n`;
-                }
-            }
-            
-            if (diasRestantes <= 7) {
-                mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
-                mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
-            } else {
-                mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
-            }
-            
-            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-            const keyboard = [
-                [
-                    { 
-                        text: '📋 VER PLANES',
-                        web_app: { url: webappUrl }
-                    },
-                    {
-                        text: '💻 DESCARGAR WIREGUARD',
-                        callback_data: 'download_wireguard'
-                    }
-                ],
-                [
-                    {
-                        text: '🆘 CONTACTAR SOPORTE', 
-                        url: 'https://t.me/L0quen2'
-                    }
-                ],
-                [
-                    {
-                        text: '🏠 MENÚ PRINCIPAL',
-                        callback_data: 'main_menu'
-                    }
-                ]
-            ];
-            
-            try {
-                await ctx.editMessageText(
+                
+                const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+                await ctx.reply(
                     mensajeEstado,
                     { 
                         parse_mode: 'Markdown',
                         reply_markup: {
-                            inline_keyboard: keyboard
+                            inline_keyboard: [
+                                [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
+                                [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                            ]
                         }
                     }
                 );
-            } catch (error) {
-                if (error.response && error.response.description && 
-                    error.response.description.includes('message is not modified')) {
-                    return;
-                }
-                throw error;
-            }
-        } else if (user?.trial_requested) {
-            let trialMessage = `🎁 *SOLICITASTE UNA PRUEBA GRATUITA*\n\n`;
-            
-            if (user.trial_received) {
-                const trialSentAt = formatearFecha(user.trial_sent_at);
-                trialMessage += `✅ *Prueba recibida:* ${trialSentAt}\n`;
-                trialMessage += `⏰ *Duración:* ${user.trial_plan_type || '1h'}\n`;
-                trialMessage += `📋 *Estado:* Completada\n\n`;
-                trialMessage += `Si quieres acceso ilimitado, adquiere uno de nuestros planes.`;
             } else {
-                trialMessage += `⏳ *Estado:* Pendiente de envío\n`;
-                trialMessage += `⏰ *Duración:* ${user.trial_plan_type || '1h'}\n`;
-                trialMessage += `📋 *Solicitada:* ${formatearFecha(user.trial_requested_at)}\n\n`;
-                trialMessage += `Recibirás la configuración por este chat en minutos.`;
-            }
-            
-            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-            const keyboard = [
-                [
-                    { 
-                        text: '📋 VER PLANES',
-                        web_app: { url: webappUrl }
-                    }
-                ],
-                [
-                    {
-                        text: '💻 DESCARGAR WIREGUARD',
-                        callback_data: 'download_wireguard'
-                    }
-                ],
-                [
-                    {
-                        text: '🆘 CONTACTAR SOPORTE', 
-                        url: 'https://t.me/L0quen2'
-                    }
-                ],
-                [
-                    {
-                        text: '🏠 MENÚ PRINCIPAL',
-                        callback_data: 'main_menu'
-                    }
-                ]
-            ];
-    
-            try {
-                await ctx.editMessageText(
-                    trialMessage,
-                    { 
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: keyboard
-                        }
-                    }
-                );
-            } catch (error) {
-                if (error.response && error.response.description && 
-                    error.response.description.includes('message is not modified')) {
-                    return;
-                }
-                throw error;
-            }
-        } else {
-            const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-            const keyboard = [
-                [
-                    { 
-                        text: '📋 VER PLANES', 
-                        web_app: { url: webappUrl }
-                    },
-                    {
-                        text: '💻 DESCARGAR WIREGUARD',
-                        callback_data: 'download_wireguard'
-                    }
-                ],
-                [
-                    {
-                        text: '🆘 SOPORTE',
-                        url: 'https://t.me/L0quen2'
-                    }
-                ],
-                [
-                    {
-                        text: '🏠 MENÚ PRINCIPAL',
-                        callback_data: 'main_menu'
-                    }
-                ]
-            ];
-            
-            try {
-                await ctx.editMessageText(
+                const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+                await ctx.reply(
                     `❌ *NO ERES USUARIO VIP*\n\n` +
                     `Actualmente no tienes acceso a los servicios premium.\n\n` +
-                    `Haz clic en los botones para ver nuestros planes o descargar WireGuard:`,
+                    `Haz clic en el botón para ver nuestros planes.`,
                     {
                         parse_mode: 'Markdown',
                         reply_markup: {
-                            inline_keyboard: keyboard
+                            inline_keyboard: [
+                                [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
+                                [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                            ]
                         }
                     }
                 );
-            } catch (error) {
-                if (error.response && error.response.description && 
-                    error.response.description.includes('message is not modified')) {
-                    return;
-                }
-                throw error;
             }
-        }
-    } catch (error) {
-        console.error('❌ Error en check_status:', error);
-        
-        // Solo reenviar mensaje si no es el error de "message not modified"
-        if (error.response && error.response.description && 
-            error.response.description.includes('message is not modified')) {
-            return;
-        }
-        
-        const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
-        try {
-            await ctx.editMessageText(
-                `❌ Error al verificar tu estado.`,
-                {
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: keyboard
-                    }
-                }
-            );
-        } catch (editError) {
-            if (!editError.response || !editError.response.description || 
-                !editError.response.description.includes('message is not modified')) {
-                console.error('❌ Error al editar mensaje de error:', editError);
-            }
+        } catch (error) {
+            console.error('❌ Error en check_status:', error);
+            await ctx.reply(`❌ Error al verificar tu estado.`);
         }
     }
-});
-
-// Botón: Información de Referidos
-bot.action('referral_info', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const userName = ctx.from.first_name;
     
-    // Obtener información del usuario para ver si ya tiene referidos
-    const user = await db.getUser(userId);
-    let referralStats = null;
-    if (user) {
-        referralStats = await db.getReferralStats(userId);
-    }
-    
-    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-    
-    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
-    message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
-    message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
-    message += `*Cómo funciona:*\n`;
-    message += `1. Comparte este enlace con amigos\n`;
-    message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
-    message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
-    message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
-    message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-    
-    if (referralStats) {
-        message += `*Tus estadísticas:*\n`;
-        message += `• Referidos directos (Nivel 1): ${referralStats.level1.total} (${referralStats.level1.paid} pagados)\n`;
-        message += `• Referidos nivel 2: ${referralStats.level2.total} (${referralStats.level2.paid} pagados)\n`;
-        message += `• Descuento total acumulado: ${referralStats.discount_percentage}%\n\n`;
-    }
-    
-    message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
-    
-    const keyboard = [
-        [
+    // Opción: ☄ DESCARGAR WIREGUARD
+    else if (text === '☄ DESCARGAR WIREGUARD') {
+        await ctx.reply(
+            `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
+            `*Para Windows*\n` +
+            `Aplicación Oficial de WireGuard para Windows:\n` +
+            `Enlace: https://www.wireguard.com/install/\n\n` +
+            `*Para Android*\n` +
+            `Aplicación Oficial de WireGuard en Google Play Store:\n` +
+            `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
+            `*Selecciona tu sistema operativo:*`,
             {
-                text: '📋 COPIAR ENLACE',
-                callback_data: 'copy_referral_link'
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' },
+                            { text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }
+                        ],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
             }
-        ],
-        [
-            {
-                text: '🏠 MENÚ PRINCIPAL',
-                callback_data: 'main_menu'
-            }
-        ]
-    ];
+        );
+    }
     
-    try {
-        await ctx.editMessageText(
+    // Opción: ☏ SOPORTE
+    else if (text === '☏ SOPORTE') {
+        await ctx.reply(
+            `🆘 *SOPORTE TÉCNICO*\n\n` +
+            `Para cualquier duda o problema, contacta con nuestro soporte:\n` +
+            `👉 @L0quen2\n\n` +
+            `Responde rápido y te ayudaremos.`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '💬 IR AL SOPORTE', url: 'https://t.me/L0quen2' }],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
+            }
+        );
+    }
+    
+    // Opción: ♻ REFERIDOS
+    else if (text === '♻ REFERIDOS') {
+        const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+        const user = await db.getUser(userId);
+        let referralStats = null;
+        if (user) {
+            referralStats = await db.getReferralStats(userId);
+        }
+        
+        let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
+        message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
+        message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
+        message += `*Cómo funciona:*\n`;
+        message += `1. Comparte este enlace con amigos\n`;
+        message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
+        message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
+        message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
+        message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
+        
+        if (referralStats) {
+            message += `*Tus estadísticas:*\n`;
+            message += `• Referidos directos (Nivel 1): ${referralStats.level1.total} (${referralStats.level1.paid} pagados)\n`;
+            message += `• Referidos nivel 2: ${referralStats.level2.total} (${referralStats.level2.paid} pagados)\n`;
+            message += `• Descuento total acumulado: ${referralStats.discount_percentage}%\n\n`;
+        }
+        
+        message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
+        
+        await ctx.reply(
             message,
             {
                 parse_mode: 'Markdown',
                 reply_markup: {
-                    inline_keyboard: keyboard
+                    inline_keyboard: [
+                        [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
                 }
             }
         );
-    } catch (error) {
-        if (error.response && error.response.description && 
-            error.response.description.includes('message is not modified')) {
-            return;
-        }
-        throw error;
     }
-});
-
-// Botón: Cómo Funciona
-bot.action('how_it_works', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const esAdmin = isAdmin(userId);
     
-    const keyboard = [
-        [
-            {
-                text: '🏠 MENÚ PRINCIPAL',
-                callback_data: 'main_menu'
-            }
-        ]
-    ];
-
-    try {
-        await ctx.editMessageText(
+    // Opción: ✎ CÓMO FUNCIONA
+    else if (text === '✎ CÓMO FUNCIONA') {
+        await ctx.reply(
             `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
             `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
             `*¿Cómo lo logramos?*\n\n` +
@@ -3630,54 +3371,209 @@ bot.action('how_it_works', async (ctx) => {
             {
                 parse_mode: 'Markdown',
                 reply_markup: {
-                    inline_keyboard: keyboard
+                    inline_keyboard: [
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
                 }
             }
         );
-    } catch (error) {
-        if (error.response && error.response.description && 
-            error.response.description.includes('message is not modified')) {
-            return;
-        }
-        throw error;
     }
+    
+    // Opción: ❏ VPN CANAL
+    else if (text === '❏ VPN CANAL') {
+        await ctx.reply(
+            `📢 *CANAL OFICIAL DE VPN CUBA*\n\n` +
+            `Únete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n` +
+            `👉 https://t.me/vpncubaw`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📢 IR AL CANAL', url: 'https://t.me/vpncubaw' }],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
+            }
+        );
+    }
+    
+    // Opción: ✆ WHATSAPP
+    else if (text === '✆ WHATSAPP') {
+        await ctx.reply(
+            `📱 *GRUPO DE WHATSAPP*\n\n` +
+            `Únete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte.\n\n` +
+            `👉 https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📱 IR AL GRUPO', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
+            }
+        );
+    }
+    
+    // Opción: ⚿ Politicas (nuevo botón)
+    else if (text === '⚿ Politicas') {
+        // Aquí puedes escribir el contenido definitivo de las políticas
+        await ctx.reply(
+            `⚿ *POLÍTICAS DEL SERVICIO*\n\n` +
+            `()\n\n` +
+            `Próximamente disponible.`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
+            }
+        );
+    }
+    
+    // Opción: ⌨ PANEL ADMIN (solo admin)
+    else if (text === '⌨ PANEL ADMIN' && esAdmin) {
+        const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
+        await ctx.reply(
+            `🔧 *PANEL DE ADMINISTRACIÓN*\n\n` +
+            `Haz clic para abrir el panel web:`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🔧 ABRIR PANEL WEB', web_app: { url: adminUrl } }],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
+            }
+        );
+    }
+    
+    // Si no coincide con ninguna opción, ignoramos (o podríamos mostrar un mensaje de ayuda)
 });
 
-// Botón: Copiar enlace de referido
+// Botón: Menú Principal (acción inline)
+bot.action('main_menu', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const firstName = ctx.from.first_name;
+    const esAdmin = isAdmin(userId);
+    
+    const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
+    
+    // Enviamos un nuevo mensaje con el teclado nativo
+    await ctx.reply(
+        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+        `Selecciona una opción:`,
+        {
+            parse_mode: 'Markdown',
+            ...keyboard
+        }
+    );
+    // Respondemos a la callback para que desaparezca el "cargando"
+    await ctx.answerCbQuery();
+});
+
+// Botón: Copiar enlace de referido (acción inline)
 bot.action('copy_referral_link', async (ctx) => {
     try {
         const userId = ctx.from.id.toString();
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         
-        // Primero responder a la callback query
         await ctx.answerCbQuery('📋 Enlace listo para copiar');
         
-        // Determinar el message_id de manera segura
-        let replyToMessageId = null;
-        if (ctx.callbackQuery && ctx.callbackQuery.message) {
-            replyToMessageId = ctx.callbackQuery.message.message_id;
-        }
-        
-        // Enviar mensaje con el enlace
         await ctx.reply(
             `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\n` +
             `Para copiar, mantén presionado el enlace y selecciona "Copiar".`,
             { 
                 parse_mode: 'Markdown',
-                reply_to_message_id: replyToMessageId
+                reply_to_message_id: ctx.callbackQuery.message.message_id
             }
         );
-        
     } catch (error) {
         console.error('❌ Error en copy_referral_link:', error);
-        
-        // Intentar respuesta alternativa
-        try {
-            await ctx.answerCbQuery('❌ Error, intenta nuevamente');
-        } catch (e) {
-            // Ignorar error secundario
-        }
+        await ctx.answerCbQuery('❌ Error, intenta nuevamente');
     }
+});
+
+// Botón: Politicas (acción inline, por si se llega a usar)
+bot.action('politicas', async (ctx) => {
+    await ctx.answerCbQuery('📜 Políticas del servicio');
+    await ctx.reply(
+        `📜 *POLÍTICAS DEL SERVICIO*\n\n` +
+        `(​Términos de Servicio y Uso Aceptable de VPN Cuba
+​Última actualización: Noviembre de 2025
+​Al adquirir y utilizar los servicios de VPN Cuba, usted (el "Cliente") acepta y se compromete a cumplir con los siguientes Términos y Condiciones.  
+​1. Responsabilidad del Cliente
+​1.1. Cumplimiento Legal: El Cliente es el único responsable de conocer y cumplir con todas las leyes y regulaciones locales, nacionales e internacionales aplicables en su ubicación al utilizar el servicio.  
+​1.2. Uso Legal: El servicio VPN Cuba debe ser utilizado exclusivamente con fines lícitos. El uso del servicio para cualquier actividad ilegal, fraudulenta o abusiva está estrictamente prohibido y será motivo de suspensión o cancelación inmediata.  
+​1.3. Datos de Cuenta: El Cliente es responsable de mantener la confidencialidad de su archivo de configuración (llave privada) y de su cuenta.  
+​2. Uso Aceptable del Servicio (Prohibiciones)
+​Para garantizar la estabilidad y baja latencia para todos, el Cliente se compromete a NO utilizar el servicio para las siguientes actividades:  
+​Actividades Ilegales: Distribución o acceso a material ilegal, piratería (incluyendo torrents de contenido con derechos de autor), phishing, o cualquier forma de ciberdelincuencia.  
+​Ataques a la Red: Intentos de interrupción, hackeo o explotación de sistemas informáticos ajenos (incluyendo ataques DDoS, escaneo de puertos o spam).  
+​Abuso de Ancho de Banda: Uso excesivo y continuo que degrade significativamente el rendimiento del servidor para otros usuarios (ej. minería de criptomonedas o descargas masivas 24/7).  
+​Compartición No Autorizada: Compartir el archivo de configuración con terceros. Cada cuenta está destinada a un uso personal o familiar limitado.  
+​3. Exclusión de Garantías y Limitación de Responsabilidad
+​3.1. Rendimiento: Aunque VPN Cuba se esfuerza por ofrecer la mejor latencia y estabilidad, no garantiza que el servicio sea ininterrumpido, esté libre de errores o que el rendimiento del ping sea el mismo en todas las ubicaciones y momentos. El rendimiento puede variar debido a factores fuera de nuestro control.  
+​3.2. Interrupción de Servicio: VPN Cuba puede realizar mantenimiento o experimentar fallas imprevistas. El Cliente acepta que no habrá reembolso o compensación por la interrupción temporal del servicio.  
+​4. Suspensión y Terminación
+​4.1. Violación: VPN Cuba se reserva el derecho de suspender o terminar inmediatamente el servicio de cualquier Cliente que viole estos Términos de Servicio o nuestra Política de Uso Aceptable, sin previo aviso ni reembolso.)\n\n` +
+        `​Política de Reembolso y Garantía de VPN Cuba
+​Última actualización: Noviembre de 2025  
+​En VPN Cuba, estamos seguros de ofrecer la mejor conexión de baja latencia para tu experiencia gamer. Si por alguna razón técnica nuestro servicio no cumple con lo prometido, ofrecemos una garantía clara:  
+​1. Garantía de Devolución de Dinero (7 Días)
+​Ofrecemos una Garantía de Devolución de Dinero de 7 Días (siete días naturales) a partir de la fecha de la compra inicial del plan.  
+​Si no estás satisfecho con la calidad, velocidad, o estabilidad de la conexión durante este periodo, puedes solicitar un reembolso completo.  
+​Esta garantía solo aplica a la primera compra de un cliente. Las renovaciones o compras posteriores no son elegibles.  
+​2. Condiciones Específicas para el Reembolso
+​Para solicitar un reembolso dentro del periodo de 7 días, el cliente debe cumplir con lo siguiente:  
+​Motivo Técnico: La solicitud debe basarse en un problema técnico no resuelto (incapacidad de conectar o latencia inusualmente alta) que el equipo de soporte no pudo solucionar.  
+​Limitaciones Locales: Las velocidades o latencias consistentes con las limitaciones de la conexión local del cliente no son motivo de reembolso.  
+​Cumplimiento de Términos: El cliente no debe haber violado los Términos de Servicio (ej. compartir clave, abuso de ancho de banda o actividades ilegales).  
+​3. Exclusiones y No Elegibilidad
+​No se otorgará un reembolso bajo las siguientes circunstancias:  
+​Expiración del Período: Solicitudes realizadas después del día 7 de la compra inicial.  
+​Renovaciones: Los pagos por renovación automática o manual no son reembolsables.  
+​Uso Abusivo: Si se comprueba el uso del servicio para actividades ilegales o violación de términos.  
+​4. Proceso de Solicitud de Reembolso
+​Para iniciar el proceso:  
+​Envía un correo electrónico a: lolitogarcia0707@gmail.com.  
+​Incluye tu ID de Cliente, la Fecha de Compra y una Explicación Detallada del problema técnico no resuelto.  
+​El equipo de soporte revisará la solicitud y responderá en un plazo máximo de 72 horas hábiles.
+
+​Política de Privacidad de VPN Cuba (Política No-Logs)
+​Última actualización: Noviembre de 2025.  
+​En VPN Cuba, la privacidad y seguridad son la máxima prioridad. Operan bajo una estricta política de Cero Registros (No-Logs Policy) para asegurar que la actividad en línea de los usuarios permanezca privada.  
+​1. Nuestro Compromiso: Cero Registros de Actividad
+​VPN Cuba NO registra, almacena ni monitorea la actividad de sus usuarios. Específicamente, no se registra:  
+​Actividad de navegación: Historial de sitios visitados o contenido de comunicaciones.  
+​Registros de tráfico: Datos enviados o recibidos.  
+​Registros de DNS: Solicitudes a sitios web.  
+​Direcciones IP: Ni la dirección IP real (externa) ni la asignada por la VPN.  
+​Esto garantiza que no existe información que compartir sobre la actividad del usuario, incluso si fuera solicitada por terceros.  
+​2. Información Necesaria que Sí Recolectamos
+​Para el funcionamiento y mantenimiento del servicio, solo se recopila la información mínima necesaria:
+​Información de la Cuenta: Nombre de usuario o ID de Cliente y contacto (correo electrónico o nombre de Telegram) para la gestión de la cuenta.  
+​Información de Pago: Datos para procesar la compra, como confirmación de transferencia o ID de transacción (PayPal o USDT). Nunca se almacenan números de tarjetas de crédito o información bancaria sensible.  
+​Datos de Conexión Mínimos y Anónimos: Registro agregado del total de ancho de banda o tiempo de conexión para gestión de red y optimización del servidor. Esta información no puede ser vinculada a una actividad específica.  
+​3. El Protocolo WireGuard®
+​Se utiliza el protocolo WireGuard por su seguridad y eficiencia. Se han implementado configuraciones personalizadas para eliminar riesgos de privacidad relacionados con registros temporales de IP, cumpliendo estrictamente con la política No-Logs.  
+​4. Uso de la Información
+​La información mínima recolectada se utiliza únicamente para:
+​Crear, mantener y gestionar la cuenta del usuario.  
+​Procesar pagos y facturación.  
+​Responder a solicitudes de soporte al cliente.`,
+        {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                ]
+            }
+        }
+    );
 });
 
 // Comando /referidos
@@ -3830,35 +3726,40 @@ bot.command('cupon', async (ctx) => {
 bot.command('help', async (ctx) => {
     const userId = ctx.from.id.toString();
     const esAdmin = isAdmin(userId);
-    const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
     
-    await ctx.reply(
-        `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
-        `Usa los botones para navegar por todas las funciones.\n\n` +
+    let ayuda = `🆘 *AYUDA - VPN CUBA* 🚀\n\n` +
+        `Usa los botones del menú para navegar por todas las funciones.\n\n` +
         `*BOTONES DISPONIBLES:*\n` +
-        `📋 VER PLANES - Ver y comprar planes\n` +
-        `👑 MI ESTADO - Ver tu estado VIP y días restantes\n` +
-        `💻 DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
-        `🤝 REFERIDOS - Obtener tu enlace de referidos\n` +
-        `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
-        `📢 VPN CANAL - Unirse al canal oficial\n` +
-        `🎬 PELÍCULAS - Bot de películas\n` +
-        `📱 WHATSAPP - Grupo de WhatsApp\n` +
-        `🆘 SOPORTE - Contactar con soporte técnico\n` +
-        `${esAdmin ? '🔧 PANEL ADMIN - Panel de administración\n' : ''}` +
-        `\n*COMANDOS DISPONIBLES:*\n` +
+        `⎙ VER PLANES - Ver y comprar planes\n` +
+        `♕ MI ESTADO - Ver tu estado VIP y días restantes\n` +
+        `☄ DESCARGAR WIREGUARD - Instrucciones de instalación\n` +
+        `♻ REFERIDOS - Obtener tu enlace de referidos\n` +
+        `✎ CÓMO FUNCIONA - Explicación del servicio\n` +
+        `❏ VPN CANAL - Unirse al canal oficial\n` +
+        `⚿ Politicas - Políticas del servicio\n` +
+        `✆ WHATSAPP - Grupo de WhatsApp\n` +
+        `☏ SOPORTE - Contactar con soporte técnico\n`;
+    
+    if (esAdmin) {
+        ayuda += `⌨ PANEL ADMIN - Panel de administración\n`;
+    }
+    
+    ayuda += `\n*COMANDOS DISPONIBLES:*\n` +
         `/start - Iniciar el bot\n` +
         `/referidos - Obtener tu enlace de referidos\n` +
         `/cupon <código> - Verificar un cupón de descuento\n` +
         `/trialstatus - Ver estado de prueba gratuita\n` +
         `/help - Mostrar esta ayuda\n` +
         `${esAdmin ? '/admin - Panel de administración\n/enviar - Enviar configuración\n' : ''}` +
-        `\n¡Todo está disponible en los botones! 🚀`,
+        `\n¡Todo está disponible en los botones! 🚀`;
+    
+    const keyboard = crearMenuPrincipal(userId, ctx.from.first_name, esAdmin);
+    
+    await ctx.reply(
+        ayuda,
         {
             parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: keyboard
-            }
+            ...keyboard
         }
     );
 });

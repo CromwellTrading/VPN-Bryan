@@ -3972,10 +3972,9 @@ app.listen(PORT, async () => {
     console.log(`👤 Sistema mejorado de envío: Usuarios inactivos marcados automáticamente`);
 });
 
-// Manejar errores no capturados para reiniciar el bot (si está en polling, pero ya no se usa)
+// Manejar errores no capturados
 process.on('uncaughtException', async (error) => {
     console.error('❌ Error no capturado:', error);
-    // Con webhook, Express maneja los errores, pero si algo grave ocurre podemos reiniciar el proceso
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
@@ -3985,12 +3984,11 @@ process.on('unhandledRejection', async (reason, promise) => {
 // Manejar cierre
 process.on('SIGINT', () => {
     console.log('\n👋 Cerrando aplicación...');
-    // Eliminar webhook al salir (opcional)
     bot.telegram.deleteWebhook().catch(() => {});
     process.exit(0);
 });
 
-// Función keep-alive
+// Función keep-alive (si no la tienes, agrégala)
 function startKeepAlive() {
     const keepAliveInterval = 4 * 60 * 1000;
     const healthCheckUrl = `http://localhost:${PORT}/api/health`;
@@ -4009,7 +4007,7 @@ function startKeepAlive() {
     console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
 }
 
-// Exportar para pruebas
+// Exportar para pruebas (opcional)
 module.exports = {
     app,
     isAdmin,

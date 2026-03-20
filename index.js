@@ -181,84 +181,40 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     
     const buttons = [
         [
-            {
-                text: "VER PLANES",
-                custom_emoji_id: "6005986106703613755",
-                web_app: { url: plansUrl }
-            },
-            {
-                text: "MI PERFIL",
-                custom_emoji_id: "6021659919835469581",
-                callback_data: "check_status"
-            }
+            { text: "VER PLANES", custom_emoji_id: "6005986106703613755", web_app: { url: plansUrl } },
+            { text: "MI PERFIL", custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
         ],
         [
-            {
-                text: "DESCARGAR WIREGUARD",
-                custom_emoji_id: "5899757765743615694",
-                callback_data: "download_wireguard"
-            },
-            {
-                text: "SOPORTE",
-                custom_emoji_id: "6019320644422867543",
-                callback_data: "show_support"
-            }
+            { text: "DESCARGAR WIREGUARD", custom_emoji_id: "5899757765743615694", callback_data: "download_wireguard" },
+            { text: "SOPORTE", custom_emoji_id: "6019320644422867543", callback_data: "show_support" }
         ],
         [
-            {
-                text: "REFERIDOS",
-                custom_emoji_id: "5944970130554359187",
-                callback_data: "referral_info"
-            },
-            {
-                text: "CÓMO FUNCIONA",
-                custom_emoji_id: "5873121512445187130",
-                callback_data: "how_it_works"
-            }
+            { text: "REFERIDOS", custom_emoji_id: "5944970130554359187", callback_data: "referral_info" },
+            { text: "CÓMO FUNCIONA", custom_emoji_id: "5873121512445187130", callback_data: "how_it_works" }
         ],
         [
-            {
-                text: "VPN CANAL",
-                custom_emoji_id: "5771695636411847302",
-                url: "https://t.me/vpncubaw"
-            },
-            {
-                text: "POLÍTICAS",
-                custom_emoji_id: "6021738534916854774",
-                callback_data: "politicas"
-            }
+            { text: "VPN CANAL", custom_emoji_id: "5771695636411847302", url: "https://t.me/vpncubaw" },
+            { text: "POLÍTICAS", custom_emoji_id: "6021738534916854774", callback_data: "politicas" }
         ],
         [
-            {
-                text: "WHATSAPP",
-                custom_emoji_id: "5884179047482659474",
-                url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t"
-            },
-            {
-                text: "FAQ",
-                custom_emoji_id: "5879501875341955281",
-                callback_data: "faq"
-            }
+            { text: "WHATSAPP", custom_emoji_id: "5884179047482659474", url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" },
+            { text: "FAQ", custom_emoji_id: "5879501875341955281", callback_data: "faq" }
         ]
     ];
 
     if (esAdmin) {
         buttons.push([
-            {
-                text: "PANEL ADMIN",
-                custom_emoji_id: "5839116473951328489",
-                web_app: { url: adminUrl }
-            }
+            { text: "PANEL ADMIN", custom_emoji_id: "5839116473951328489", web_app: { url: adminUrl } }
         ]);
     }
 
     return {
         reply_markup: {
             inline_keyboard: buttons
-            // Se elimina resize_keyboard porque no aplica a inline_keyboard
         }
     };
 }
+            
 
 // ==================== FUNCIONES DE VERIFICACIÓN USDT (MODIFICADAS) ====================
 
@@ -3457,8 +3413,7 @@ bot.action('faq', async (ctx) => {
 
 // ==================== COMANDOS DEL BOT ====================
 
-// Comando /start con sistema de referidos
-bot.start(async (ctx) => {
+// Comando /start con sistema de referido.
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;

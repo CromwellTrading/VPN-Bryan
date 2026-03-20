@@ -3462,6 +3462,54 @@ bot.action('faq', async (ctx) => {
     // Eliminar teclado reply persistente
     await ctx.telegram.sendMessage(ctx.chat.id, '', {
         reply_markup: { remove_keyboard: true }
+bot.start(async (ctx) => {
+    const userId = ctx.from.id;
+    const firstName = ctx.from.first_name;
+    const esAdmin = isAdmin(userId);
+    
+    const startPayload = ctx.startPayload;
+    let referrerId = null;
+    let referrerUsername = null;
+    
+    if (startPayload && startPayload.startsWith('ref')) {
+        referrerId = startPayload.replace('ref', '');
+        try {
+            const referrer = await db.getUser(referrerId);
+            if (referrer) referrerUsername = referrer.username;
+        } catch (error) {
+            console.error('Error obteniendo referidor:', error);
+        }
+        
+        if (referrerId) {
+            try {
+                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
+            } catch (refError) {
+                console.error('Error creando referido:', refError);
+            }
+        }
+    }
+    
+    try {
+        const userData = {
+            telegram_id: userId.toString(),
+            username: ctx.from.username,
+            first_name: firstName,
+            last_name: ctx.from.last_name,
+            created_at: new Date().toISOString(),
+            is_active: true
+        };
+        if (referrerId) {
+            userData.referrer_id = referrerId;
+            userData.referrer_username = referrerUsername;
+        }
+        await db.saveUser(userId.toString(), userData);
+    } catch (error) {
+        console.error('Error guardando usuario:', error);
+    }
+    
+    // Eliminar teclado reply persistente
+    await ctx.telegram.sendMessage(ctx.chat.id, '', {
+        reply_markup: { remove_keyboard: true }
     });
     
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
@@ -3486,6 +3534,7 @@ bot.action('faq', async (ctx) => {
         reply_markup: keyboard.reply_markup
     });
 });
+   
 // Mantener los handlers de texto para compatibilidad con el menú anterior
 bot.on('text', async (ctx) => {
     const text = ctx.message.text;
@@ -3908,8 +3957,8 @@ async function setWebhook() {
 }
 
 // ==================== SERVIDOR ====================
+// ==================== SERVIDOR ====================
 
-// Iniciar servidor
 app.listen(PORT, async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
@@ -3918,22 +3967,17 @@ app.listen(PORT, async () => {
     console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'}`);
     console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
     
-    // Verificar buckets primero
     console.log('🔍 Verificando buckets de almacenamiento...');
     await verifyStorageBuckets();
     
-    // Inicializar buckets de almacenamiento
     console.log('📦 Inicializando buckets de almacenamiento...');
     await initializeStorageBuckets();
     
-    // Inicializar sistema USDT (modo manual)
     console.log('💸 Inicializando sistema USDT en modo MANUAL...');
     await initializeUsdtSystem();
     
-    // Configurar webhook (o polling si falla)
     await setWebhook();
     
-    // Configurar comandos del bot
     try {
         const commands = [
             { command: 'start', description: 'Iniciar el bot' },
@@ -3951,7 +3995,6 @@ app.listen(PORT, async () => {
         console.error('❌ Error configurando comandos:', error);
     }
 
-    // Iniciar keep-alive
     startKeepAlive();
     
     console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
@@ -3976,14 +4019,12 @@ process.on('unhandledRejection', async (reason, promise) => {
     console.error('❌ Promesa rechazada no manejada:', reason);
 });
 
-// Manejar cierre
 process.on('SIGINT', () => {
     console.log('\n👋 Cerrando aplicación...');
     bot.telegram.deleteWebhook().catch(() => {});
     process.exit(0);
 });
 
-// Función keep-alive (si no la tienes, agrégala)
 function startKeepAlive() {
     const keepAliveInterval = 4 * 60 * 1000;
     const healthCheckUrl = `http://localhost:${PORT}/api/health`;
@@ -4002,7 +4043,6 @@ function startKeepAlive() {
     console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
 }
 
-// Exportar para pruebas (opcional)
 module.exports = {
     app,
     isAdmin,

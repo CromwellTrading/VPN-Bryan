@@ -3372,7 +3372,6 @@ bot.action('faq', async (ctx) => {
 
 // Comando /start con sistema de referido.
 bot.start(async (ctx) => {
-bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
@@ -3892,7 +3891,6 @@ async function setWebhook() {
     }
 }
 
-// ==================== SERVIDOR ====================
 // ==================== SERVIDOR ====================
 
 app.listen(PORT, async () => {

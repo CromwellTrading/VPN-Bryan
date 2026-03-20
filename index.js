@@ -3533,6 +3533,7 @@ bot.start(async (ctx) => {
             parse_mode: 'Markdown',
             ...keyboard
         }
+      }
     );
 });
 // Mantener los handlers de texto para compatibilidad con el menú anterior

@@ -3460,9 +3460,9 @@ bot.start(async (ctx) => {
     }
     
     // Eliminar teclado reply persistente
-    await ctx.telegram.sendMessage(ctx.chat.id, '', {
-        reply_markup: { remove_keyboard: true }
-    });
+    await ctx.telegram.sendMessage(ctx.chat.id, '⌛', {
+    reply_markup: { remove_keyboard: true }
+});
     
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
     

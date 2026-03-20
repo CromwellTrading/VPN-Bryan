@@ -20,10 +20,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// IDs de administradores
+// IDs de administradores (AGREGADO NUEVO ID)
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604'];
+    ['6373481979', '5376388604', '6974850309'];  // NUEVO ID AÑADIDO
 
 // ==================== CONFIGURACIÓN USDT (MODIFICADA) ====================
 const USDT_CONFIG = {
@@ -173,68 +173,40 @@ function formatearFecha(fecha) {
     }
 }
 
-// En la función crearMenuPrincipal, agregar los nuevos botones
+// ==================== MENÚ PRINCIPAL REORGANIZADO ====================
 function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
-    // Crear teclado BASE para TODOS los usuarios (NATIVO)
+    // Crear teclado en dos columnas (y una fila completa al final para admin)
     const keyboard = [
         [
-            { 
-                text: '📁 VER PLANES', 
-                web_app: { url: plansUrl }
-            },
-            {
-                text: '👑 MI ESTADO',
-                callback_data: 'check_status'
-            }
+            { text: '📁 VER PLANES', web_app: { url: plansUrl } },
+            { text: '👑 MI ESTADO', callback_data: 'check_status' }
         ],
         [
-            {
-                text: '💻 DESCARGAR WIREGUARD',
-                callback_data: 'download_wireguard'
-            },
-            {
-                text: '🆘 SOPORTE',
-                url: 'https://t.me/L0quen2'
-            }
+            { text: '💻 DESCARGAR WIREGUARD', callback_data: 'download_wireguard' },
+            { text: '🆘 SOPORTE', url: 'https://t.me/L0quen2' }
         ],
         [
-            {
-                text: '♻️ REFERIDOS',
-                callback_data: 'referral_info'
-            },
-            {
-                text: '❓ CÓMO FUNCIONA',
-                callback_data: 'how_it_works'
-            }
+            { text: '♻️ REFERIDOS', callback_data: 'referral_info' },
+            { text: '❓ CÓMO FUNCIONA', callback_data: 'how_it_works' }
         ],
-        // NUEVA FILA CON LOS TRES BOTONES (se reemplazó PELÍCULAS por POLITICAS)
         [
-            {
-                text: '🔈 VPN CANAL',
-                url: 'https://t.me/vpncubaw'
-            },
-            {
-                text: '📜 Politicas',  // Nuevo botón (placeholder)
-                callback_data: 'politicas'
-            },
-            {
-                text: '📲 WHATSAPP',
-                url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t'
-            }
+            { text: '🔈 VPN CANAL', url: 'https://t.me/vpncubaw' },
+            { text: '📜 Politicas', callback_data: 'politicas' }
+        ],
+        [
+            { text: '📲 WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' },
+            { text: '❓ FAQ', callback_data: 'faq' }   // NUEVO BOTÓN FAQ
         ]
     ];
 
-    // Si es ADMIN, agregar botón de panel admin
+    // Si es ADMIN, agregar botón de panel admin en una fila completa al final
     if (esAdmin) {
         keyboard.push([
-            { 
-                text: '⌨ PANEL ADMIN', 
-                web_app: { url: adminUrl }
-            }
+            { text: '⌨ PANEL ADMIN', web_app: { url: adminUrl } }
         ]);
     }
 
@@ -3313,83 +3285,82 @@ bot.on('text', async (ctx) => {
     }
 
     // Opción: ♻️ REFERIDOS
-else if (text === '♻️ REFERIDOS') {
-    try {
-        const userId = ctx.from.id.toString();
-        const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-        
-        // Obtener estadísticas del usuario
-        const user = await db.getUser(userId);
-        let referralStats = null;
-        
-        if (user) {
-            try {
-                referralStats = await db.getReferralStats(userId);
-            } catch (statsError) {
-                console.error('❌ Error obteniendo estadísticas de referidos:', statsError);
-                // Continuamos sin estadísticas
-            }
-        }
-        
-        let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
-        message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
-        message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
-        message += `*Cómo funciona:*\n`;
-        message += `1. Comparte este enlace con amigos\n`;
-        message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
-        message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
-        message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
-        message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-        
-        if (referralStats) {
-            message += `*Tus estadísticas:*\n`;
-            message += `• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n`;
-            message += `• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n`;
-            message += `• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
-        } else {
-            message += `*Tus estadísticas:*\n`;
-            message += `• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
-        }
-        
-        message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
-        
-        await ctx.reply(
-            message,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
+    else if (text === '♻️ REFERIDOS') {
+        try {
+            const userId = ctx.from.id.toString();
+            const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+            
+            // Obtener estadísticas del usuario
+            const user = await db.getUser(userId);
+            let referralStats = null;
+            
+            if (user) {
+                try {
+                    referralStats = await db.getReferralStats(userId);
+                } catch (statsError) {
+                    console.error('❌ Error obteniendo estadísticas de referidos:', statsError);
+                    // Continuamos sin estadísticas
                 }
             }
-        );
-    } catch (error) {
-        console.error('❌ Error en handler de referidos:', error);
-        
-        // Mensaje de fallback en caso de error
-        const userId = ctx.from.id.toString();
-        const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-        
-        await ctx.reply(
-            `🤝 *SISTEMA DE REFERIDOS*\n\n` +
-            `Tu enlace de referido:\n\`${referralLink}\`\n\n` +
-            `Comparte este enlace con tus amigos y obtén descuentos.\n\n` +
-            `*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
+            
+            let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
+            message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
+            message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
+            message += `*Cómo funciona:*\n`;
+            message += `1. Comparte este enlace con amigos\n`;
+            message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
+            message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
+            message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
+            message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
+            
+            if (referralStats) {
+                message += `*Tus estadísticas:*\n`;
+                message += `• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n`;
+                message += `• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n`;
+                message += `• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
+            } else {
+                message += `*Tus estadísticas:*\n`;
+                message += `• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
             }
-        );
+            
+            message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
+            
+            await ctx.reply(
+                message,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
+                            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                        ]
+                    }
+                }
+            );
+        } catch (error) {
+            console.error('❌ Error en handler de referidos:', error);
+            
+            // Mensaje de fallback en caso de error
+            const userId = ctx.from.id.toString();
+            const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+            
+            await ctx.reply(
+                `🤝 *SISTEMA DE REFERIDOS*\n\n` +
+                `Tu enlace de referido:\n\`${referralLink}\`\n\n` +
+                `Comparte este enlace con tus amigos y obtén descuentos.\n\n` +
+                `*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
+                            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                        ]
+                    }
+                }
+            );
+        }
     }
-}
-  
     
     // Opción: ✎ CÓMO FUNCIONA
     else if (text === '❓ CÓMO FUNCIONA') {
@@ -3434,71 +3405,95 @@ else if (text === '♻️ REFERIDOS') {
     }
     
     // Opción: 📲 WHATSAPP
-else if (text === '📲 WHATSAPP') {
-    try {
+    else if (text === '📲 WHATSAPP') {
+        try {
+            await ctx.reply(
+                '📱 *GRUPO DE WHATSAPP*\n\n' +
+                'Únete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n' +
+                '👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)',
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '📱 ABRIR WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }],
+                            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                        ]
+                    }
+                }
+            );
+        } catch (error) {
+            console.error('❌ Error en handler de WhatsApp:', error);
+            await ctx.reply('❌ Error al abrir WhatsApp. Intenta más tarde o contacta a soporte.');
+        }
+    }
+    
+    // Opción: 📜 Politicas
+    else if (text === '📜 Politicas') {
+        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+        
+        const inlineKeyboard = [
+            [
+                { 
+                    text: '📜 TÉRMINOS DE SERVICIO', 
+                    web_app: { url: `${webappUrl}/politicas.html?section=terminos` }
+                }
+            ],
+            [
+                { 
+                    text: '💳 POLÍTICA DE REEMBOLSO', 
+                    web_app: { url: `${webappUrl}/politicas.html?section=reembolso` }
+                }
+            ],
+            [
+                { 
+                    text: '🔒 POLÍTICA DE PRIVACIDAD', 
+                    web_app: { url: `${webappUrl}/politicas.html?section=privacidad` }
+                }
+            ],
+            [
+                { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }
+            ]
+        ];
+
         await ctx.reply(
-            '📱 *GRUPO DE WHATSAPP*\n\n' +
-            'Únete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n' +
-            '👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)',
+            '📜 *Políticas de VPN Cuba*\n\n' +
+            'Selecciona una sección para ver los detalles completos en nuestra Web App:',
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: inlineKeyboard
+                }
+            }
+        );
+    }
+    
+    // Opción: ❓ FAQ (NUEVO)
+    else if (text === '❓ FAQ') {
+        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+        
+        await ctx.reply(
+            '❓ *PREGUNTAS FRECUENTES (FAQ)*\n\n' +
+            'Encuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\n' +
+            'Haz clic en el botón para abrir la sección de preguntas frecuentes:',
             {
                 parse_mode: 'Markdown',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: '📱 ABRIR WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }],
+                        [
+                            { 
+                                text: '❓ VER PREGUNTAS FRECUENTES', 
+                                web_app: { url: `${webappUrl}/faq.html` }
+                            }
+                        ],
                         [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
                     ]
                 }
             }
         );
-    } catch (error) {
-        console.error('❌ Error en handler de WhatsApp:', error);
-        await ctx.reply('❌ Error al abrir WhatsApp. Intenta más tarde o contacta a soporte.');
     }
-}
-    
-    // Opción: 📜 Politicas
-else if (text === '📜 Politicas') {
-    const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-    
-    const inlineKeyboard = [
-        [
-            { 
-                text: '📜 TÉRMINOS DE SERVICIO', 
-                web_app: { url: `${webappUrl}/politicas.html?section=terminos` }
-            }
-        ],
-        [
-            { 
-                text: '💳 POLÍTICA DE REEMBOLSO', 
-                web_app: { url: `${webappUrl}/politicas.html?section=reembolso` }
-            }
-        ],
-        [
-            { 
-                text: '🔒 POLÍTICA DE PRIVACIDAD', 
-                web_app: { url: `${webappUrl}/politicas.html?section=privacidad` }
-            }
-        ],
-        [
-            { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }
-        ]
-    ];
-
-    await ctx.reply(
-        '📜 *Políticas de VPN Cuba*\n\n' +
-        'Selecciona una sección para ver los detalles completos en nuestra Web App:',
-        {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: inlineKeyboard
-            }
-        }
-    );
-}
-    
     
     // Opción: ⌨ PANEL ADMIN (solo admin)
-    else if (text === '🔐 PANEL ADMIN' && esAdmin) {
+    else if (text === '⌨ PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
         await ctx.reply(
             `🔧 *PANEL DE ADMINISTRACIÓN*\n\n` +
@@ -3561,7 +3556,7 @@ bot.action('copy_referral_link', async (ctx) => {
     }
 });
 
-        // Botón: Políticas (acción inline) - Menú principal de políticas
+// Botón: Políticas (acción inline) - Menú principal de políticas
 bot.action('politicas', async (ctx) => {
     try {
         const userId = ctx.from.id.toString();
@@ -3620,6 +3615,38 @@ bot.action('politicas', async (ctx) => {
     } catch (error) {
         console.error('❌ Error en action de políticas:', error);
         await ctx.answerCbQuery('❌ Error al abrir políticas. Intenta de nuevo.');
+    }
+});
+
+// Botón: FAQ (acción inline) - Menú de preguntas frecuentes
+bot.action('faq', async (ctx) => {
+    try {
+        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+        
+        await ctx.answerCbQuery('❓ Abriendo preguntas frecuentes...');
+        
+        await ctx.reply(
+            '❓ *PREGUNTAS FRECUENTES (FAQ)*\n\n' +
+            'Encuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\n' +
+            'Haz clic en el botón para abrir la sección de preguntas frecuentes:',
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { 
+                                text: '❓ VER PREGUNTAS FRECUENTES', 
+                                web_app: { url: `${webappUrl}/faq.html` }
+                            }
+                        ],
+                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+                    ]
+                }
+            }
+        );
+    } catch (error) {
+        console.error('❌ Error en action de FAQ:', error);
+        await ctx.answerCbQuery('❌ Error al abrir FAQ.');
     }
 });
 
@@ -3710,6 +3737,7 @@ bot.action('privacidad_webapp', async (ctx) => {
         await ctx.answerCbQuery('❌ Error al abrir privacidad.');
     }
 });
+
 // Comando /referidos
 bot.command('referidos', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -3871,11 +3899,12 @@ bot.command('help', async (ctx) => {
         `❓ CÓMO FUNCIONA - Explicación del servicio\n` +
         `🔈 VPN CANAL - Unirse al canal oficial\n` +
         `📜 Politicas - Políticas del servicio\n` +
+        `❓ FAQ - Preguntas frecuentes\n` +
         `📲 WHATSAPP - Grupo de WhatsApp\n` +
         `🆘 SOPORTE - Contactar con soporte técnico\n`;
     
     if (esAdmin) {
-        ayuda += `🔐 PANEL ADMIN - Panel de administración\n`;
+        ayuda += `⌨ PANEL ADMIN - Panel de administración\n`;
     }
     
     ayuda += `\n*COMANDOS DISPONIBLES:*\n` +

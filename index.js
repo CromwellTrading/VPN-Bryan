@@ -179,9 +179,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
     
-    // Definir los botones con sus emojis personalizados
     const buttons = [
-        // Primera fila: Ver planes y Mi perfil
         [
             {
                 text: "VER PLANES",
@@ -194,7 +192,6 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
                 callback_data: "check_status"
             }
         ],
-        // Segunda fila: Descargar Wireguard y Soporte
         [
             {
                 text: "DESCARGAR WIREGUARD",
@@ -207,7 +204,6 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
                 callback_data: "show_support"
             }
         ],
-        // Tercera fila: Referidos y Cómo funciona
         [
             {
                 text: "REFERIDOS",
@@ -220,7 +216,6 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
                 callback_data: "how_it_works"
             }
         ],
-        // Cuarta fila: VPN Canal y Políticas
         [
             {
                 text: "VPN CANAL",
@@ -233,7 +228,6 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
                 callback_data: "politicas"
             }
         ],
-        // Quinta fila: WhatsApp y FAQ
         [
             {
                 text: "WHATSAPP",
@@ -248,7 +242,6 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
         ]
     ];
 
-    // Si es ADMIN, agregar botón de panel admin en una fila completa al final
     if (esAdmin) {
         buttons.push([
             {
@@ -261,8 +254,8 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
 
     return {
         reply_markup: {
-            inline_keyboard: buttons,
-            resize_keyboard: true
+            inline_keyboard: buttons
+            // Se elimina resize_keyboard porque no aplica a inline_keyboard
         }
     };
 }
@@ -3466,32 +3459,33 @@ bot.action('faq', async (ctx) => {
 
 // Comando /start con sistema de referidos
 bot.start(async (ctx) => {
+bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
     
-    // Verificar si hay referidor en el comando (ej: /start ref123456)
+    // Procesar referido si existe
     const startPayload = ctx.startPayload;
     let referrerId = null;
     let referrerUsername = null;
     
     if (startPayload && startPayload.startsWith('ref')) {
         referrerId = startPayload.replace('ref', '');
-        console.log(`🔗 Usuario ${userId} referido por ${referrerId}`);
-        
-        // Obtener información del referidor
+        // Obtener información del referidor (puedes llamar a tu base de datos)
         try {
             const referrer = await db.getUser(referrerId);
-            if (referrer) {
-                referrerUsername = referrer.username;
-                console.log(`✅ Referidor encontrado: ${referrer.first_name} (@${referrer.username})`);
-            }
-        } catch (error) {
-            console.log('❌ Error obteniendo información del referidor:', error.message);
+            if (referrer) referrerUsername = referrer.username;
+        } catch (error) {}
+        
+        // Crear el registro de referido (llamar a tu función)
+        if (referrerId) {
+            try {
+                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
+            } catch (refError) {}
         }
     }
     
-    // Guardar/actualizar usuario en la base de datos
+    // Guardar usuario en la base de datos
     try {
         const userData = {
             telegram_id: userId.toString(),
@@ -3499,42 +3493,39 @@ bot.start(async (ctx) => {
             first_name: firstName,
             last_name: ctx.from.last_name,
             created_at: new Date().toISOString(),
-            is_active: true // Marcar como activo al iniciar el bot
+            is_active: true
         };
-        
-        // Si hay referidor, guardarlo
         if (referrerId) {
             userData.referrer_id = referrerId;
             userData.referrer_username = referrerUsername;
-            
-            // Crear registro de referido
-            try {
-                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
-                console.log(`✅ Referido creado: ${referrerId} -> ${userId}`);
-            } catch (refError) {
-                console.log('⚠️ Error creando referido, continuando...', refError.message);
-            }
         }
-        
         await db.saveUser(userId.toString(), userData);
     } catch (error) {
-        console.error('❌ Error guardando usuario:', error);
+        console.error('Error guardando usuario:', error);
     }
     
+    // *** IMPORTANTE: Eliminar cualquier teclado reply persistente ***
+    await ctx.reply('', {
+        reply_markup: { remove_keyboard: true }
+    });
+    
+    // Mostrar menú principal con inline keyboard
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
     
     let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
         `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
         `Conéctate con la mejor latencia para gaming y navegación.\n\n`;
     
-    // Informar sobre referido si aplica
     if (referrerId) {
         welcomeMessage += `👥 *¡Te invitó un amigo!*\n` +
             `Obtendrás beneficios especiales por ser referido.\n\n`;
     }
     
-    welcomeMessage += `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
-        `*Selecciona una opción:*`;
+    if (esAdmin) {
+        welcomeMessage += `🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n`;
+    }
+    
+    welcomeMessage += `*Selecciona una opción:*`;
     
     await ctx.reply(
         welcomeMessage,
@@ -3544,7 +3535,6 @@ bot.start(async (ctx) => {
         }
     );
 });
-
 // Mantener los handlers de texto para compatibilidad con el menú anterior
 bot.on('text', async (ctx) => {
     const text = ctx.message.text;

@@ -3414,54 +3414,6 @@ bot.action('faq', async (ctx) => {
 // ==================== COMANDOS DEL BOT ====================
 
 // Comando /start con sistema de referido.
- bot.start(async (ctx) => {
-    const userId = ctx.from.id;
-    const firstName = ctx.from.first_name;
-    const esAdmin = isAdmin(userId);
-    
-    const startPayload = ctx.startPayload;
-    let referrerId = null;
-    let referrerUsername = null;
-    
-    if (startPayload && startPayload.startsWith('ref')) {
-        referrerId = startPayload.replace('ref', '');
-        try {
-            const referrer = await db.getUser(referrerId);
-            if (referrer) referrerUsername = referrer.username;
-        } catch (error) {
-            console.error('Error obteniendo referidor:', error);
-        }
-        
-        if (referrerId) {
-            try {
-                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
-            } catch (refError) {
-                console.error('Error creando referido:', refError);
-            }
-        }
-    }
-    
-    try {
-        const userData = {
-            telegram_id: userId.toString(),
-            username: ctx.from.username,
-            first_name: firstName,
-            last_name: ctx.from.last_name,
-            created_at: new Date().toISOString(),
-            is_active: true
-        };
-        if (referrerId) {
-            userData.referrer_id = referrerId;
-            userData.referrer_username = referrerUsername;
-        }
-        await db.saveUser(userId.toString(), userData);
-    } catch (error) {
-        console.error('Error guardando usuario:', error);
-    }
-    
-    // Eliminar teclado reply persistente
-    await ctx.telegram.sendMessage(ctx.chat.id, '', {
-        reply_markup: { remove_keyboard: true }
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;

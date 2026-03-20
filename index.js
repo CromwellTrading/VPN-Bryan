@@ -185,7 +185,7 @@ function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
         [
             {
                 text: "VER PLANES",
-                custom_emoji_id: "6030664675253820292",
+                custom_emoji_id: "6005986106703613755",
                 web_app: { url: plansUrl }
             },
             {

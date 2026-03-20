@@ -173,49 +173,6 @@ function formatearFecha(fecha) {
     }
 }
 
-// ==================== MENÚ PRINCIPAL CON INLINE KEYBOARD Y EMOJIS PERSONALIZADOS ====================
-function crearMenuPrincipal(userId, firstName = 'usuario', esAdmin = false) {
-    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
-    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
-    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
-    
-    const buttons = [
-        [
-            { text: "VER PLANES", custom_emoji_id: "6005986106703613755", web_app: { url: plansUrl } },
-            { text: "MI PERFIL", custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
-        ],
-        [
-            { text: "DESCARGAR WIREGUARD", custom_emoji_id: "5899757765743615694", callback_data: "download_wireguard" },
-            { text: "SOPORTE", custom_emoji_id: "6019320644422867543", callback_data: "show_support" }
-        ],
-        [
-            { text: "REFERIDOS", custom_emoji_id: "5944970130554359187", callback_data: "referral_info" },
-            { text: "CÓMO FUNCIONA", custom_emoji_id: "5873121512445187130", callback_data: "how_it_works" }
-        ],
-        [
-            { text: "VPN CANAL", custom_emoji_id: "5771695636411847302", url: "https://t.me/vpncubaw" },
-            { text: "POLÍTICAS", custom_emoji_id: "6021738534916854774", callback_data: "politicas" }
-        ],
-        [
-            { text: "WHATSAPP", custom_emoji_id: "5884179047482659474", url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" },
-            { text: "FAQ", custom_emoji_id: "5879501875341955281", callback_data: "faq" }
-        ]
-    ];
-
-    if (esAdmin) {
-        buttons.push([
-            { text: "PANEL ADMIN", custom_emoji_id: "5839116473951328489", web_app: { url: adminUrl } }
-        ]);
-    }
-
-    return {
-        reply_markup: {
-            inline_keyboard: buttons
-        }
-    };
-}
-            
-
 // ==================== FUNCIONES DE VERIFICACIÓN USDT (MODIFICADAS) ====================
 
 // Función para verificar transacciones USDT en BSCScan (DESACTIVADA)
@@ -3415,6 +3372,7 @@ bot.action('faq', async (ctx) => {
 
 // Comando /start con sistema de referido.
 bot.start(async (ctx) => {
+bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
@@ -3431,7 +3389,6 @@ bot.start(async (ctx) => {
         } catch (error) {
             console.error('Error obteniendo referidor:', error);
         }
-        
         if (referrerId) {
             try {
                 await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
@@ -3459,31 +3416,58 @@ bot.start(async (ctx) => {
         console.error('Error guardando usuario:', error);
     }
     
-    // Eliminar teclado reply persistente
+    // Eliminar teclado reply persistente (con texto no vacío)
     await ctx.telegram.sendMessage(ctx.chat.id, '⌛', {
-    reply_markup: { remove_keyboard: true }
-});
+        reply_markup: { remove_keyboard: true }
+    });
     
-    const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
-    
-    let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
-        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-        `Conéctate con la mejor latencia para gaming y navegación.\n\n`;
-    
-    if (referrerId) {
-        welcomeMessage += `👥 *¡Te invitó un amigo!*\n` +
-            `Obtendrás beneficios especiales por ser referido.\n\n`;
-    }
-    
+    // Construir menú principal
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
+    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
+    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
+
+    const inlineKeyboard = [
+        [
+            { text: "VER PLANES", custom_emoji_id: "6005986106703613755", web_app: { url: plansUrl } },
+            { text: "MI PERFIL", custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
+        ],
+        [
+            { text: "DESCARGAR WIREGUARD", custom_emoji_id: "5899757765743615694", callback_data: "download_wireguard" },
+            { text: "SOPORTE", custom_emoji_id: "6019320644422867543", callback_data: "show_support" }
+        ],
+        [
+            { text: "REFERIDOS", custom_emoji_id: "5944970130554359187", callback_data: "referral_info" },
+            { text: "CÓMO FUNCIONA", custom_emoji_id: "5873121512445187130", callback_data: "how_it_works" }
+        ],
+        [
+            { text: "VPN CANAL", custom_emoji_id: "5771695636411847302", url: "https://t.me/vpncubaw" },
+            { text: "POLÍTICAS", custom_emoji_id: "6021738534916854774", callback_data: "politicas" }
+        ],
+        [
+            { text: "WHATSAPP", custom_emoji_id: "5884179047482659474", url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" },
+            { text: "FAQ", custom_emoji_id: "5879501875341955281", callback_data: "faq" }
+        ]
+    ];
+
     if (esAdmin) {
-        welcomeMessage += `🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n`;
+        inlineKeyboard.push([
+            { text: "PANEL ADMIN", custom_emoji_id: "5839116473951328489", web_app: { url: adminUrl } }
+        ]);
     }
-    
-    welcomeMessage += `*Selecciona una opción:*`;
-    
-    await ctx.telegram.sendMessage(ctx.chat.id, welcomeMessage, {
+
+    const welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
+        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
+        `Conéctate con la mejor latencia para gaming y navegación.\n\n` +
+        (referrerId ? `👥 *¡Te invitó un amigo!*\nObtendrás beneficios especiales por ser referido.\n\n` : '') +
+        (esAdmin ? `🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n` : '') +
+        `*Selecciona una opción:*`;
+
+    // Enviar con API cruda
+    await bot.telegram.callApi('sendMessage', {
+        chat_id: ctx.chat.id,
+        text: welcomeMessage,
         parse_mode: 'Markdown',
-        reply_markup: keyboard.reply_markup
+        reply_markup: { inline_keyboard: inlineKeyboard }
     });
 });
    

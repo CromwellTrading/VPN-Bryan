@@ -3414,33 +3414,33 @@ bot.action('faq', async (ctx) => {
 // ==================== COMANDOS DEL BOT ====================
 
 // Comando /start con sistema de referido.
-bot.start(async (ctx) => {
+ bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
     
-    // Procesar referido si existe
     const startPayload = ctx.startPayload;
     let referrerId = null;
     let referrerUsername = null;
     
     if (startPayload && startPayload.startsWith('ref')) {
         referrerId = startPayload.replace('ref', '');
-        // Obtener información del referidor (puedes llamar a tu base de datos)
         try {
             const referrer = await db.getUser(referrerId);
             if (referrer) referrerUsername = referrer.username;
-        } catch (error) {}
+        } catch (error) {
+            console.error('Error obteniendo referidor:', error);
+        }
         
-        // Crear el registro de referido (llamar a tu función)
         if (referrerId) {
             try {
                 await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
-            } catch (refError) {}
+            } catch (refError) {
+                console.error('Error creando referido:', refError);
+            }
         }
     }
     
-    // Guardar usuario en la base de datos
     try {
         const userData = {
             telegram_id: userId.toString(),
@@ -3459,12 +3459,11 @@ bot.start(async (ctx) => {
         console.error('Error guardando usuario:', error);
     }
     
-    // *** IMPORTANTE: Eliminar cualquier teclado reply persistente ***
-    await ctx.reply('', {
+    // Eliminar teclado reply persistente
+    await ctx.telegram.sendMessage(ctx.chat.id, '', {
         reply_markup: { remove_keyboard: true }
     });
     
-    // Mostrar menú principal con inline keyboard
     const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
     
     let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
@@ -3482,14 +3481,10 @@ bot.start(async (ctx) => {
     
     welcomeMessage += `*Selecciona una opción:*`;
     
-    await ctx.reply(
-        welcomeMessage,
-        {
-            parse_mode: 'Markdown',
-            ...keyboard
-        }
-      }
-    );
+    await ctx.telegram.sendMessage(ctx.chat.id, welcomeMessage, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard.reply_markup
+    });
 });
 // Mantener los handlers de texto para compatibilidad con el menú anterior
 bot.on('text', async (ctx) => {

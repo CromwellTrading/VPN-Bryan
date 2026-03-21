@@ -14,448 +14,379 @@
         }
 
         :root {
-            --bg-dark: #0a0c12;
-            --bg-card: #11161fcc;
-            --accent-blue: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --text-primary: #f0f4ff;
-            --text-secondary: #b9c8f0;
-            --border-blue: rgba(59, 130, 246, 0.3);
-            --border-blue-hover: rgba(59, 130, 246, 0.7);
-            --scan-color: rgba(59, 130, 246, 0.08);
+            --bg-deep: #05070c;
+            --card-bg: rgba(12, 20, 30, 0.7);
+            --accent: #2b6ef0;
+            --accent-glow: rgba(43, 110, 240, 0.5);
+            --text-primary: #eef2ff;
+            --text-secondary: #a0b3d9;
+            --border-glow: rgba(43, 110, 240, 0.4);
         }
 
         body {
-            background: var(--bg-dark);
+            background: var(--bg-deep);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: var(--text-primary);
             line-height: 1.5;
             min-height: 100vh;
-            position: relative;
             overflow-x: hidden;
+            position: relative;
         }
 
-        /* === EFECTO GLITCH / TV (sutil) === */
-        body::before {
-            content: "";
+        /* Fondo dinámico */
+        .bg-glow {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0) 0px,
-                rgba(0, 0, 0, 0) 2px,
-                rgba(59, 130, 246, 0.02) 2px,
-                rgba(59, 130, 246, 0.02) 4px
-            );
-            pointer-events: none;
-            z-index: 1;
-            animation: scanlines 8s linear infinite;
+            background: radial-gradient(circle at 20% 40%, rgba(43,110,240,0.08), transparent 70%);
+            z-index: -2;
         }
-
-        @keyframes scanlines {
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJmIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjciIG51bU9jdGF2ZXM9IjMiLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjZikiIG9wYWNpdHk9IjAuMDYiLz48L3N2Zz4=');
+            background-repeat: repeat;
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: -1;
+        }
+        /* Líneas de exploración CRT */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0, 255, 255, 0) 0px, rgba(0, 255, 255, 0) 2px, rgba(43,110,240,0.03) 2px, rgba(43,110,240,0.03) 4px);
+            pointer-events: none;
+            z-index: 2;
+            animation: scanMove 12s linear infinite;
+        }
+        @keyframes scanMove {
             0% { transform: translateY(0); }
             100% { transform: translateY(4px); }
         }
 
-        /* ruido estático muy sutil */
-        body::after {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="noise"><feTurbulence baseFrequency="0.65" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.03"/></svg>');
-            background-repeat: repeat;
-            opacity: 0.2;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        /* contenedor principal */
+        /* Contenedor principal */
         .container {
             max-width: 1300px;
-            margin: 1.5rem auto;
-            padding: 1rem 1.5rem 2rem;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 2rem;
             position: relative;
             z-index: 10;
         }
 
-        /* header */
+        /* Header futurista */
         .hero {
             text-align: center;
             margin-bottom: 3rem;
         }
         .hero h1 {
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #fff, var(--accent-blue));
+            background: linear-gradient(135deg, #fff, var(--accent), #60a5fa);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             display: inline-flex;
             align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 0.75rem;
+            gap: 1rem;
+            letter-spacing: -0.02em;
+            text-shadow: 0 0 15px rgba(43,110,240,0.3);
         }
         .hero h1 i {
             background: none;
-            color: var(--accent-blue);
+            color: var(--accent);
             -webkit-text-fill-color: initial;
-            filter: drop-shadow(0 0 8px var(--accent-glow));
+            filter: drop-shadow(0 0 12px var(--accent-glow));
         }
         .hero p {
             color: var(--text-secondary);
-            font-size: 1.1rem;
-            max-width: 700px;
-            margin: 0 auto;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 1rem auto 0;
         }
 
-        /* Grid horizontal de características (flex, sin carrusel) */
-        .features-grid {
+        /* Cards horizontales */
+        .cards-row {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 1.8rem;
-            margin: 2.5rem 0 3rem;
+            gap: 2rem;
+            margin: 3rem 0;
         }
-        .feature-card {
-            flex: 1 1 240px;
-            min-width: 220px;
-            background: var(--bg-card);
-            backdrop-filter: blur(4px);
-            border: 1px solid var(--border-blue);
-            border-radius: 32px;
-            padding: 1.6rem 1.2rem;
-            transition: all 0.25s ease;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        .card {
+            flex: 1 1 260px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            border: 1px solid rgba(43,110,240,0.25);
+            padding: 1.8rem 1.5rem;
+            transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 15px 35px -15px rgba(0,0,0,0.5);
         }
-        .feature-card:hover {
-            border-color: var(--accent-blue);
-            transform: translateY(-6px);
-            box-shadow: 0 20px 30px -12px rgba(59,130,246,0.3);
-            background: rgba(20, 28, 40, 0.85);
+        .card:hover {
+            transform: translateY(-12px);
+            border-color: var(--accent);
+            box-shadow: 0 25px 40px -15px var(--accent-glow);
+            background: rgba(12, 22, 40, 0.85);
         }
-        /* brillo metálico sutil */
-        .feature-card::after {
+        .card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 200%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--accent), transparent, var(--accent));
+            border-radius: 2rem;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.4s;
+            z-index: -1;
         }
-        .feature-card:hover::after {
-            opacity: 0.6;
-            animation: shine 1.2s ease;
+        .card:hover::before {
+            opacity: 0.15;
         }
-        @keyframes shine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+        .card-icon {
+            font-size: 2.8rem;
+            color: var(--accent);
+            margin-bottom: 1.2rem;
+            filter: drop-shadow(0 0 8px var(--accent-glow));
         }
-
-        .feature-icon {
-            font-size: 2.5rem;
-            color: var(--accent-blue);
-            margin-bottom: 1rem;
-            text-shadow: 0 0 8px var(--accent-glow);
-        }
-        .feature-card h3 {
-            font-size: 1.35rem;
+        .card h3 {
+            font-size: 1.6rem;
             font-weight: 700;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 8px;
         }
-        .feature-card p {
+        .card p {
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             line-height: 1.5;
+            margin-bottom: 1rem;
         }
         .highlight {
             color: #ffd966;
             font-weight: 600;
         }
-        .small-badge {
-            background: rgba(59,130,246,0.2);
-            padding: 2px 8px;
-            border-radius: 50px;
-            font-size: 0.7rem;
-            font-weight: 500;
+        .badge-save {
             display: inline-block;
-            margin-top: 8px;
+            background: rgba(43,110,240,0.2);
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
         }
 
-        /* bloque de "QUÉ NECESITO" */
-        .info-panel {
+        /* Sección qué necesito + prueba */
+        .requirements-section {
             background: rgba(0, 0, 0, 0.4);
-            border-radius: 32px;
-            border: 1px solid var(--border-blue);
+            border-radius: 2rem;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(43,110,240,0.3);
             padding: 2rem;
-            margin: 2rem 0;
-            backdrop-filter: blur(4px);
-        }
-        .info-panel h2 {
-            font-size: 1.8rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 1.5rem;
-        }
-        .requirements {
+            margin: 2rem 0 2rem;
             display: flex;
             flex-wrap: wrap;
             gap: 2rem;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
         }
         .req-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+            flex: 2;
+            min-width: 200px;
         }
         .req-item {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
             font-size: 1rem;
         }
         .req-item i {
             width: 28px;
-            color: var(--accent-blue);
+            color: var(--accent);
             font-size: 1.3rem;
         }
-        .trial-area {
-            text-align: center;
-            background: radial-gradient(circle at 70% 30%, rgba(59,130,246,0.1), transparent);
-            border-radius: 24px;
+        .trial-cta {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(43,110,240,0.1), rgba(0,0,0,0.4));
+            border-radius: 1.5rem;
             padding: 1.5rem;
+            text-align: center;
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 15px rgba(43,110,240,0.2);
+        }
+        .trial-cta i {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
         }
         .btn-trial {
-            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            background: linear-gradient(95deg, #1e3a8a, #3b82f6);
             border: none;
-            padding: 14px 32px;
-            border-radius: 60px;
+            padding: 12px 28px;
+            border-radius: 40px;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: white;
             display: inline-flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: 0.2s;
+            margin-top: 1rem;
             box-shadow: 0 8px 20px rgba(59,130,246,0.3);
-            margin-top: 8px;
-        }
-        .btn-trial i {
-            font-size: 1.2rem;
+            text-decoration: none;
         }
         .btn-trial:hover {
             transform: scale(1.02);
-            box-shadow: 0 12px 28px rgba(59,130,246,0.5);
-            background: linear-gradient(135deg, #2563eb, #60a5fa);
+            box-shadow: 0 12px 30px rgba(59,130,246,0.5);
+            background: linear-gradient(95deg, #2563eb, #60a5fa);
         }
 
-        /* cierre */
+        /* Separador glitch */
+        .glitch-divider {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), #ffd966, var(--accent), transparent);
+            margin: 1.5rem 0;
+            position: relative;
+            animation: flicker 3s infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Botón cerrar */
         .close-btn {
             width: 100%;
             padding: 14px;
-            margin-top: 30px;
-            background: rgba(20, 28, 40, 0.8);
-            border: 1px solid var(--border-blue);
-            border-radius: 50px;
+            background: rgba(20, 30, 45, 0.8);
+            border: 1px solid var(--accent);
+            border-radius: 60px;
             color: white;
             font-weight: 600;
             font-size: 1rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
+            margin-top: 2rem;
         }
         .close-btn i {
-            color: var(--accent-blue);
+            color: var(--accent);
         }
         .close-btn:hover {
-            background: #1e2a3a;
-            border-color: var(--accent-blue);
+            background: #1e2f42;
+            border-color: #60a5fa;
         }
 
-        /* separadores */
-        .divider {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
-            margin: 2rem 0 1rem;
-        }
-
-        /* Responsive */
-        @media (max-width: 750px) {
+        @media (max-width: 780px) {
             .container { padding: 1rem; }
-            .hero h1 { font-size: 1.9rem; flex-wrap: wrap; justify-content: center; }
-            .features-grid { gap: 1rem; }
-            .feature-card { min-width: 180px; }
-            .requirements { flex-direction: column; align-items: flex-start; }
-        }
-
-        /* modal simple para prueba */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(6px);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: #121826;
-            border: 1px solid var(--accent-blue);
-            border-radius: 32px;
-            padding: 2rem;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-        }
-        .modal-content h3 { margin-bottom: 1rem; }
-        .modal-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-        .modal-buttons button {
-            padding: 0.6rem 1.5rem;
-            border-radius: 40px;
-            background: transparent;
-            border: 1px solid var(--border-blue);
-            color: white;
-            cursor: pointer;
-        }
-        .modal-buttons button:first-child {
-            background: var(--accent-blue);
-            border: none;
+            .hero h1 { font-size: 2rem; flex-wrap: wrap; justify-content: center; }
+            .card { min-width: 220px; }
+            .requirements-section { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="hero">
-            <h1><i class="fas fa-satellite-dish"></i> ¿CÓMO FUNCIONA VPN CUBA?</h1>
-            <p>Nuestro servicio actúa como un túnel privado y seguro entre tu dispositivo y el internet internacional, optimizado específicamente para las redes de ETECSA.</p>
-        </div>
+<div class="bg-glow"></div>
+<div class="noise-overlay"></div>
+<div class="scanline"></div>
 
-        <!-- Grid horizontal de los 4 pilares -->
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-coins"></i></div>
-                <h3>1️⃣ El Truco del Ahorro <span class="highlight">💰</span></h3>
-                <p>Normalmente, navegar en Cuba cuesta <strong>12.50 CUP/h</strong>. Con nuestra VPN usas tu cuenta <strong>@nauta.co.cu</strong> y el sistema reconoce que estás en la "Red Nacional", descontando solo <strong class="highlight">2.50 CUP/h</strong>. ¡Tus 100 CUP rinden 40 horas en vez de 8!</p>
-                <div class="small-badge">Ahorro del 80%</div>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-gamepad"></i></div>
-                <h3>2️⃣ Optimización Gaming <span class="highlight">🎮</span></h3>
-                <p>No es un VPN común. Usamos servidores de baja latencia en puntos estratégicos para acortar el camino hacia servidores de <strong>CoD, Free Fire, Albion, DOTA 2, LoL</strong> y más. <strong>Cero lag</strong> para competitivo.</p>
-                <div class="small-badge">Ping estable</div>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-film"></i></div>
-                <h3>3️⃣ Libertad Total <span class="highlight">🎬</span></h3>
-                <p>¿Cansado de "No disponible en tu región"? Al activar VPN Cuba, tu IP cambia a EE.UU. / Europa. Desbloquea <strong>Netflix, Disney+, ChatGPT</strong>, bancos y cualquier sitio bloqueado en la isla.</p>
-                <div class="small-badge">Streaming sin fronteras</div>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                <h3>4️⃣ Seguridad y Privacidad <span class="highlight">🛡️</span></h3>
-                <p>Protocolo <strong>WireGuard®</strong>, el más rápido y seguro. Toda tu información viaja encriptada. Nadie puede ver lo que descargas ni lo que juegas. Conexión invisible ante terceros.</p>
-                <div class="small-badge">Política No-Logs</div>
-            </div>
-        </div>
-
-        <!-- Sección qué necesito + prueba -->
-        <div class="info-panel">
-            <h2><i class="fas fa-clipboard-list"></i> ¿QUÉ NECESITO PARA EMPEZAR?</h2>
-            <div class="requirements">
-                <div class="req-list">
-                    <div class="req-item"><i class="fas fa-envelope"></i> Cuenta <strong>@nauta.co.cu</strong> (la creas en www.etecsa.cu)</div>
-                    <div class="req-item"><i class="fas fa-download"></i> Instalar <strong>WireGuard</strong> (pide los links en el botón de "Descargas")</div>
-                    <div class="req-item"><i class="fas fa-key"></i> Tu llave de acceso (te la entregamos al activar tu plan)</div>
-                </div>
-                <div class="trial-area">
-                    <i class="fas fa-flask" style="font-size: 2rem; color: #3b82f6;"></i>
-                    <p style="margin: 8px 0;"><strong>💡 CONSEJO:</strong> La mejor forma de entenderlo es probándolo.</p>
-                    <button class="btn-trial" id="openTrialBtn"><i class="fab fa-telegram"></i> Solicitar Prueba Gratis</button>
-                    <p style="font-size: 0.75rem; margin-top: 8px;">1 hora sin compromiso • configuración en minutos</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="divider"></div>
-        
-        <!-- Botón cerrar webapp -->
-        <button class="close-btn" onclick="Telegram.WebApp.close()">
-            <i class="fas fa-times-circle"></i> Cerrar <i class="fas fa-arrow-right"></i>
-        </button>
+<div class="container">
+    <div class="hero">
+        <h1><i class="fas fa-satellite-dish"></i> ¿CÓMO FUNCIONA VPN CUBA?</h1>
+        <p>Túnel privado y ultra seguro entre tu dispositivo e Internet internacional, optimizado para ETECSA.</p>
     </div>
 
-    <!-- Modal simple para simular prueba (sin backend) -->
-    <div id="trialModal" class="modal">
-        <div class="modal-content">
-            <h3><i class="fas fa-gift" style="color:#3b82f6;"></i> Prueba gratuita</h3>
-            <p>Envíanos tu usuario de Telegram y el juego que más usas para enviarte la configuración de prueba.</p>
-            <div class="modal-buttons">
-                <button onclick="closeModalAndNotify()">Solicitar ahora</button>
-                <button onclick="closeModal()">Cerrar</button>
-            </div>
-            <p style="font-size:0.7rem; margin-top: 1rem;">Te contactaremos en breve por Telegram con tus credenciales de prueba (1h).</p>
+    <div class="cards-row">
+        <div class="card">
+            <div class="card-icon"><i class="fas fa-coins"></i></div>
+            <h3>1️⃣ El truco del ahorro <span class="highlight">💰</span></h3>
+            <p>Con cuenta <strong>@nauta.co.cu</strong> pagas solo <strong class="highlight">2.50 CUP/h</strong> en lugar de 12.50 CUP/h. ¡100 CUP te duran <strong>40 horas</strong> en vez de 8!</p>
+            <div class="badge-save">Ahorro del 80%</div>
+        </div>
+        <div class="card">
+            <div class="card-icon"><i class="fas fa-gamepad"></i></div>
+            <h3>2️⃣ Gaming zero lag <span class="highlight">🎮</span></h3>
+            <p>Servidores de baja latencia enrutados para <strong>COD, Free Fire, Albion, DOTA 2, LoL</strong>. Optimización exclusiva para competitivo.</p>
+            <div class="badge-save">Ping estable</div>
+        </div>
+        <div class="card">
+            <div class="card-icon"><i class="fas fa-film"></i></div>
+            <h3>3️⃣ Libertad total <span class="highlight">🎬</span></h3>
+            <p>IP de EE.UU. / Europa. Desbloquea <strong>Netflix, Disney+, ChatGPT, bancos</strong> y todo el contenido geobloqueado.</p>
+            <div class="badge-save">Streaming sin límites</div>
+        </div>
+        <div class="card">
+            <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
+            <h3>4️⃣ Privacidad extrema <span class="highlight">🛡️</span></h3>
+            <p>Protocolo <strong>WireGuard®</strong> con cifrado militar. Política <strong>No-Logs</strong>: nadie monitorea tu actividad.</p>
+            <div class="badge-save">100% anónimo</div>
         </div>
     </div>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        // Inicializar Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        tg.MainButton.hide();
+    <div class="requirements-section">
+        <div class="req-list">
+            <div class="req-item"><i class="fas fa-envelope"></i> <strong>Cuenta @nauta.co.cu</strong> (creala en www.etecsa.cu)</div>
+            <div class="req-item"><i class="fas fa-download"></i> <strong>WireGuard</strong> (te damos los enlaces de descarga)</div>
+            <div class="req-item"><i class="fas fa-key"></i> <strong>Llave de acceso personal</strong> (la generamos al activar tu plan)</div>
+        </div>
+        <div class="trial-cta">
+            <i class="fas fa-flask"></i>
+            <p><strong>💡 Pruébalo sin riesgos</strong><br>1 hora de conexión gratuita</p>
+            <a href="#" id="trialBtn" class="btn-trial"><i class="fab fa-telegram"></i> Solicitar Prueba Gratis</a>
+            <p style="font-size: 0.7rem; margin-top: 0.6rem;">Sin compromiso, configuración instantánea</p>
+        </div>
+    </div>
 
-        // Modal trial
-        const modal = document.getElementById('trialModal');
-        function openTrialModal() {
-            modal.classList.add('active');
-        }
-        function closeModal() {
-            modal.classList.remove('active');
-        }
-        function closeModalAndNotify() {
-            // simular envío (en entorno real sería una petición al bot)
-            const userId = tg.initDataUnsafe?.user?.id;
-            const username = tg.initDataUnsafe?.user?.username || 'Usuario';
-            // Mostramos alerta y cerramos modal
-            alert(`✅ Solicitud recibida ${username ? '@'+username : ''}. Te enviaremos la configuración de prueba en breve.`);
-            modal.classList.remove('active');
-            // Opcional: enviar evento a backend
-            // fetch('/api/request-trial', { method: 'POST', body: JSON.stringify({userId, username}) })
-        }
+    <div class="glitch-divider"></div>
+    <button class="close-btn" onclick="Telegram.WebApp.close()">
+        <i class="fas fa-times-circle"></i> Cerrar <i class="fas fa-arrow-right"></i>
+    </button>
+</div>
 
-        document.getElementById('openTrialBtn').addEventListener('click', openTrialModal);
-        // Cerrar modal si se hace clic fuera (opcional)
-        window.onclick = function(e) {
-            if (e.target === modal) modal.classList.remove('active');
-        };
-    </script>
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    tg.MainButton.hide();
+
+    // Obtener userId de la URL (query param)
+    const urlParams = new URLSearchParams(window.location.search);
+    let userId = urlParams.get('userId');
+
+    // Si no hay userId, intentar obtener del objeto Telegram (si existe)
+    if (!userId && tg.initDataUnsafe?.user?.id) {
+        userId = tg.initDataUnsafe.user.id;
+    }
+
+    // Construir enlace a la página de planes
+    const plansUrl = `plans.html${userId ? `?userId=${userId}` : ''}`;
+
+    // Asignar el enlace al botón de prueba
+    const trialBtn = document.getElementById('trialBtn');
+    if (trialBtn) {
+        trialBtn.href = plansUrl;
+    }
+
+    // Opcional: si se quiere forzar que el enlace se abra dentro de la misma WebApp
+    // (ya que es un enlace a otra página de la misma app, se abrirá normalmente)
+</script>
 </body>
 </html>

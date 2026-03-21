@@ -3,403 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VPN Cuba · Holographic Nexus OS</title>
+    <title>VPN Cuba | Secure Edge</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
-            }
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --holo-cyan: #00f3ff;
-            --holo-purple: #bc13fe;
-            --holo-blue: #0b55ff;
-            --bg-dark: #030308;
-            --ui-glass: rgba(10, 15, 30, 0.45);
+            --google-blue: #1a73e8;
+            --google-grey: #f8f9fa;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border-color: #dadce0;
+            --surface: #ffffff;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-dark); font-family: 'Rajdhani', sans-serif; overflow-x: hidden; min-height: 100vh; color: #fff; cursor: crosshair; }
-
-        /* --- EFECTOS CRT Y HOLOGRÁFICOS --- */
-        .scanlines {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 3px 100%; z-index: 9999; pointer-events: none; opacity: 0.6;
+        /* Soporte para Modo Oscuro (Preferencia de Google) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --google-blue: #8ab4f8;
+                --google-grey: #202124;
+                --text-primary: #e8eaed;
+                --text-secondary: #9aa0a6;
+                --border-color: #3c4043;
+                --surface: #2d2e31;
+            }
+            body { background-color: #202124; }
         }
-        .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; box-shadow: 0 0 150px rgba(0,0,0,0.9) inset; pointer-events: none; z-index: 9998; }
 
-        /* --- BOOT SCREEN --- */
-        #bootScreen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000;
-            display: flex; flex-direction: column; justify-content: center; padding: 2rem;
-            font-family: 'Share Tech Mono', monospace; color: var(--holo-cyan); text-shadow: 0 0 5px var(--holo-cyan); transition: opacity 1s ease-out;
-        }
-        .boot-line { margin: 5px 0; opacity: 0; }
-        .glitch-text { animation: glitch 0.2s linear infinite; }
-        @keyframes glitch { 2%, 64% { transform: translate(2px, 0) skew(0deg); } 4%, 60% { transform: translate(-2px, 0) skew(0deg); } 62% { transform: translate(0, 0) skew(5deg); } }
-
-        /* --- CANVASES 3D --- */
-        canvas#bgCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; }
-        #hologramCore { position: fixed; bottom: 20px; left: 20px; width: 220px; height: 220px; z-index: 100; cursor: pointer; }
-
-        /* --- HUD --- */
-        .hud-element { position: fixed; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--holo-cyan); opacity: 0.7; pointer-events: none; z-index: 50; text-shadow: 0 0 4px var(--holo-cyan); }
-        .hud-top-left { top: 20px; left: 20px; border-left: 2px solid var(--holo-cyan); padding-left: 10px; }
-        .hud-top-right { top: 20px; right: 20px; text-align: right; border-right: 2px solid var(--holo-cyan); padding-right: 10px; }
-        .hud-bottom-right { bottom: 20px; right: 20px; text-align: right; }
-
-        /* --- MAIN UI --- */
-        .container { max-width: 1400px; margin: 0 auto; padding: 5rem 2rem; position: relative; z-index: 10; }
-        .header { text-align: center; margin-bottom: 4rem; position: relative; }
-        .header h1 { font-size: 4rem; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; background: linear-gradient(180deg, #fff, var(--holo-cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.4)); }
-        .header .subtitle { font-family: 'Share Tech Mono', monospace; color: var(--holo-purple); font-size: 1.2rem; margin-top: 1rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--holo-purple); display: inline-block; border-top: 1px solid var(--holo-purple); border-bottom: 1px solid var(--holo-purple); padding: 5px 20px; }
-
-        /* --- TARJETAS CON ANIMACIÓN ESCALONADA Y LÁSER --- */
-        .plans-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.5rem; perspective: 1500px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        .plan-card {
-            width: 300px; background: var(--ui-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border-radius: 15px; border: 1px solid rgba(0, 243, 255, 0.2); position: relative; overflow: hidden;
-            transform-style: preserve-3d; transition: border-color 0.3s, box-shadow 0.3s, transform 0.1s; cursor: crosshair;
-            opacity: 0; transform: translateY(50px) scale(0.9); /* Estado inicial para la animación de entrada */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--google-grey); 
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: hidden;
         }
 
-        .plan-card.visible {
-            animation: cardEnter 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        /* --- SUTIL FONDO ANIMADO --- */
+        #canvas-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; opacity: 0.4; pointer-events: none;
         }
 
-        @keyframes cardEnter { to { opacity: 1; transform: translateY(0) scale(1); } }
-
-        /* Escáner Láser */
-        .plan-card::after {
-            content: ''; position: absolute; top: -100%; left: 0; width: 100%; height: 2px;
-            background: var(--holo-cyan); box-shadow: 0 0 15px 5px rgba(0, 243, 255, 0.4);
-            animation: laserScan 4s linear infinite; z-index: 5; opacity: 0.5; pointer-events: none;
+        /* --- LOADER PRO --- */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--surface); z-index: 10000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
         }
-        @keyframes laserScan { 0% { top: -10%; opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { top: 110%; opacity: 0; } }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--google-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .plan-card:hover { border-color: var(--holo-cyan); box-shadow: 0 0 30px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0, 243, 255, 0.1); }
-        .card-inner { padding: 2.5rem 2rem; transform: translateZ(30px); pointer-events: none; }
-        .plan-icon { font-size: 3rem; color: var(--holo-cyan); margin-bottom: 1.5rem; text-shadow: 0 0 15px var(--holo-cyan); }
-        .plan-name { font-size: 1.8rem; font-weight: 700; letter-spacing: 1px; color: #fff; margin-bottom: 0.5rem; min-height: 35px; }
-        .plan-price { font-family: 'Share Tech Mono', monospace; font-size: 2.2rem; color: var(--holo-purple); text-shadow: 0 0 10px rgba(188, 19, 254, 0.6); margin-bottom: 1.5rem; }
-        .plan-features { list-style: none; margin-bottom: 2rem; }
-        .plan-features li { font-size: 1rem; color: #a0b0c0; margin: 8px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
-        .plan-features li i { color: var(--holo-blue); font-size: 0.8rem; }
+        /* --- LAYOUT --- */
+        .navbar {
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; background: var(--surface);
+            border-bottom: 1px solid var(--border-color); z-index: 100;
+        }
+        .logo { font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+        .logo i { color: var(--google-blue); }
 
-        .btn-cyber { width: 100%; background: transparent; color: var(--holo-cyan); border: 1px solid var(--holo-cyan); padding: 12px; font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; position: relative; overflow: hidden; transition: 0.3s; pointer-events: auto; }
-        .btn-cyber::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: var(--holo-cyan); transition: 0.4s cubic-bezier(0.77, 0, 0.175, 1); z-index: -1; }
-        .btn-cyber:hover { color: #000; box-shadow: 0 0 20px var(--holo-cyan); }
-        .btn-cyber:hover::before { left: 0; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 3rem 1.5rem; }
 
-        /* --- MODAL HOLOGRÁFICO --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 8, 0.85); backdrop-filter: blur(10px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.4s ease; }
+        .hero { text-align: center; margin-bottom: 4rem; }
+        .hero h1 { font-family: 'Google Sans', sans-serif; font-size: 2.5rem; font-weight: 400; margin-bottom: 1rem; letter-spacing: -0.5px; }
+        .hero p { color: var(--text-secondary); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+
+        /* --- GRIDS & CARDS --- */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: var(--transition);
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        .card:hover { 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            border-color: var(--google-blue);
+            transform: translateY(-4px);
+        }
+
+        .card.featured { border: 2px solid var(--google-blue); }
+        .badge {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: var(--google-blue); color: white;
+            padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+        }
+
+        .card-header { margin-bottom: 1.5rem; }
+        .card-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 0.5rem; }
+        .card-price { font-size: 2rem; font-weight: 500; font-family: 'Google Sans'; }
+        .card-price span { font-size: 1rem; color: var(--text-secondary); font-weight: 400; }
+
+        .features-list { list-style: none; margin-bottom: 2rem; flex-grow: 1; }
+        .features-list li { margin: 12px 0; color: var(--text-secondary); font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+        .features-list li i { color: #34a853; font-size: 0.8rem; }
+
+        /* --- BOTONES MATERIAL --- */
+        .btn-google {
+            background: var(--google-blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: 'Google Sans', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            font-size: 1rem;
+        }
+        .btn-google:hover { filter: brightness(1.1); box-shadow: 0 2px 6px rgba(26,115,232,0.3); }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--google-blue);
+        }
+        .btn-outline:hover { background: rgba(26,115,232,0.04); }
+
+        /* --- FOOTER --- */
+        .footer { text-align: center; margin-top: 4rem; padding-bottom: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
+        .btn-exit { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(32, 33, 36, 0.6); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: var(--transition); z-index: 2000;
+        }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal-card { width: 90%; max-width: 600px; background: linear-gradient(135deg, rgba(10,15,30,0.9), rgba(5,5,10,0.9)); border: 2px solid var(--holo-purple); box-shadow: 0 0 40px rgba(188, 19, 254, 0.3), inset 0 0 20px rgba(188, 19, 254, 0.1); position: relative; transform: scale(0.8) translateY(50px); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); clip-path: polygon(0 20px, 20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%); }
-        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
-        .modal-header { padding: 20px 30px; background: rgba(188, 19, 254, 0.1); border-bottom: 1px solid var(--holo-purple); display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { color: #fff; font-size: 2rem; letter-spacing: 1px; }
-        .btn-close-modal { background: none; border: none; color: var(--holo-purple); font-size: 2rem; cursor: pointer; transition: 0.3s; }
-        .btn-close-modal:hover { color: #fff; transform: rotate(90deg); text-shadow: 0 0 10px #fff; }
-        .modal-body { padding: 30px; }
-        .hologram-data-box { background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 243, 255, 0.3); padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: #8ab4f8; margin: 20px 0; position: relative; }
-        .hologram-data-box::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--holo-cyan); box-shadow: 0 0 10px var(--holo-cyan); }
-        .close-app-btn { display: block; width: 250px; margin: 4rem auto 0; background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.5); color: #ff4444; padding: 15px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; text-align: center; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
-        .close-app-btn:hover { background: #ff4444; color: #000; box-shadow: 0 0 20px #ff4444; }
+        .modal {
+            background: var(--surface); width: 90%; max-width: 450px;
+            border-radius: 16px; padding: 2rem; transform: scale(0.9); transition: var(--transition);
+        }
+        .modal-overlay.active .modal { transform: scale(1); }
 
-        @media (max-width: 768px) { .header h1 { font-size: 2.5rem; } #hologramCore { width: 140px; height: 140px; bottom: 10px; left: 10px; } .hud-top-left, .hud-top-right { font-size: 0.6rem; } }
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2rem; }
+            .container { padding: 2rem 1rem; }
+        }
     </style>
 </head>
 <body>
 
-<div id="bootScreen">
-    <div class="boot-line">> INICIANDO SECUENCIA DE ARRANQUE...</div>
-    <div class="boot-line">> ESTABLECIENDO CONEXIÓN SEGURA...</div>
-    <div class="boot-line">> EVADIENDO RESTRICCIONES [██████████] 100%</div>
-    <div class="boot-line">> SINCRONIZANDO NODOS... OK</div>
-    <div class="boot-line glitch-text">> ACCESO CONCEDIDO. BIENVENIDO.</div>
+<div id="loader">
+    <div class="spinner"></div>
+    <p style="margin-top: 20px; color: var(--text-secondary); font-family: 'Google Sans';">Cargando consola...</p>
 </div>
 
-<div class="scanlines"></div>
-<div class="vignette"></div>
+<div id="canvas-container"></div>
 
-<div class="hud-element hud-top-left" id="hudCoords">LAT: 00.0000<br>LNG: 00.0000<br>ESTADO: ESTABLE</div>
-<div class="hud-element hud-top-right">VPN CUBA OS v3.2<br>MEM: <span id="hudMem">4096</span> MB<br>CIFRADO: AES-256</div>
-<div class="hud-element hud-bottom-right" id="hudPing">PING: 12ms</div>
-
-<canvas id="bgCanvas"></canvas>
-
-<div class="container" id="mainUI" style="opacity: 0; transition: opacity 1s 0.5s;">
-    <div class="header">
-        <h1>VPN CUBA</h1>
-        <div class="subtitle">CONEXIÓN HOLOGRÁFICA</div>
+<nav class="navbar">
+    <div class="logo">
+        <i class="fas fa-shield-halved"></i>
+        <span>VPN Cuba Pro</span>
     </div>
-    
+    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+        <i class="fas fa-circle" style="color: #34a853; font-size: 0.5rem;"></i> Nodo: Miami-01
+    </div>
+</nav>
+
+<div class="container">
+    <header class="hero">
+        <h1>Conectividad sin límites</h1>
+        <p>Infraestructura global optimizada para Cuba. Privacidad de grado empresarial con la simplicidad de Google.</p>
+    </header>
+
     <div class="plans-grid" id="plansGrid">
         </div>
 
-    <button class="close-app-btn" onclick="Telegram.WebApp.close()">[ CERRAR_SESION ]</button>
+    <footer class="footer">
+        <button class="btn-exit" onclick="Telegram.WebApp.close()">Cerrar sesión de forma segura</button>
+    </footer>
 </div>
 
-<div id="planModal" class="modal-overlay">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3 id="modalTitle">PLAN</h3>
-            <button class="btn-close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="plan-price" id="modalPrice"></div>
-            <div class="hologram-data-box" id="holoDetail"></div>
-            <ul class="plan-features" id="modalFeatures"></ul>
-            <button class="btn-cyber" id="modalBuyBtn" style="border-color: var(--holo-purple); color: var(--holo-purple);">
-                [ ACTIVAR_PLAN ]
-            </button>
-        </div>
+<div id="paymentModal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="font-family: 'Google Sans'; margin-bottom: 1rem;" id="mTitle">Plan Seleccionado</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Confirme su suscripción para proceder al despliegue del túnel cifrado.</p>
+        <div id="mPrice" style="font-size: 1.5rem; font-weight: 500; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;"></div>
+        <button class="btn-google" id="btnConfirm">Confirmar y Pagar</button>
+        <button class="btn-exit" style="width: 100%; margin-top: 1rem; text-decoration: none;" onclick="closeModal()">Cancelar</button>
     </div>
 </div>
 
-<canvas id="hologramCore"></canvas>
-
 <script type="module">
-    import * as THREE from 'three';
+    import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
 
-    // ==========================================
-    // AUDIO ENGINE
-    // ==========================================
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx;
-    function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
-    function playSound(type) {
-        if(!audioCtx) return;
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
-        if (type === 'hover') { osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05); gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
-        else if (type === 'click') { osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
-        else if (type === 'boot') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(800, now + 0.5); gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.1, now + 0.2); gain.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(now); osc.stop(now + 0.6); }
-    }
-    document.body.addEventListener('pointerdown', initAudio, { once: true });
+    // Animación de Fondo Minimalista (Sutiles orbes de luz)
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    // ==========================================
-    // DECODE TEXT ANIMATION (SCRAMBLE)
-    // ==========================================
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
-    function scrambleText(element, originalText) {
-        let iterations = 0;
-        const interval = setInterval(() => {
-            element.innerText = originalText.split("").map((letter, index) => {
-                if(index < iterations) return originalText[index];
-                return letters[Math.floor(Math.random() * letters.length)];
-            }).join("");
-            if(iterations >= originalText.length) clearInterval(interval);
-            iterations += 1 / 3;
-        }, 30);
-    }
+    const geometry = new THREE.SphereGeometry(2, 32, 32);
+    const material = new THREE.MeshBasicMaterial({ color: 0x1a73e8, wireframe: true, transparent: true, opacity: 0.05 });
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+    camera.position.z = 5;
 
-    // ==========================================
-    // BOOT SEQUENCE & HUD
-    // ==========================================
-    const bootLines = document.querySelectorAll('.boot-line');
-    let delay = 0;
-    bootLines.forEach((line, index) => {
-        setTimeout(() => {
-            line.style.opacity = 1;
-            if(index === bootLines.length - 1) {
-                setTimeout(() => {
-                    document.getElementById('bootScreen').style.opacity = 0;
-                    document.getElementById('mainUI').style.opacity = 1;
-                    
-                    // Trigger staggered animation for cards
-                    const cards = document.querySelectorAll('.plan-card');
-                    cards.forEach((card, i) => {
-                        setTimeout(() => card.classList.add('visible'), i * 150);
-                    });
-
-                    setTimeout(() => document.getElementById('bootScreen').remove(), 1000);
-                    initAudio(); playSound('boot');
-                }, 1500);
-            }
-        }, delay);
-        delay += 600 + Math.random() * 400;
-    });
-
-    setInterval(() => {
-        document.getElementById('hudCoords').innerHTML = `LAT: ${(Math.random()*90).toFixed(4)}<br>LNG: ${(Math.random()*180).toFixed(4)}<br>ESTADO: ${Math.random() > 0.95 ? 'RECALIBRANDO' : 'ESTABLE'}`;
-        document.getElementById('hudPing').innerText = `PING: ${Math.floor(Math.random()*15 + 8)}ms`;
-        document.getElementById('hudMem').innerText = Math.floor(Math.random()*1024 + 3000);
-    }, 2000);
-
-    // ==========================================
-    // THREE.JS - BACKGROUND CYBER-GRID
-    // ==========================================
-    const bgCanvas = document.getElementById('bgCanvas');
-    const bgScene = new THREE.Scene(); bgScene.fog = new THREE.FogExp2(0x030308, 0.04);
-    const bgCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-    bgCamera.position.set(0, 2, 10); bgCamera.lookAt(0, 2, 0);
-    const bgRenderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true, alpha: false });
-    bgRenderer.setSize(window.innerWidth, window.innerHeight); bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    const gridHelper = new THREE.GridHelper(100, 100, 0x00f3ff, 0x002244); gridHelper.position.y = -2; bgScene.add(gridHelper);
-
-    const pGeo = new THREE.BufferGeometry(); const pMat = new THREE.PointsMaterial({ color: 0xbc13fe, size: 0.05, blending: THREE.AdditiveBlending, transparent: true });
-    const pPos = []; for(let i=0; i<800; i++){ pPos.push((Math.random()-0.5)*40, Math.random()*20 - 2, (Math.random()-0.5)*40); }
-    pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3)); const bgParticles = new THREE.Points(pGeo, pMat); bgScene.add(bgParticles);
-
-    // ==========================================
-    // THREE.JS - NÚCLEO HOLOGRÁFICO ENRIQUECIDO
-    // ==========================================
-    const coreCanvas = document.getElementById('hologramCore');
-    const coreScene = new THREE.Scene(); const coreCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100); coreCamera.position.z = 5;
-    const coreRenderer = new THREE.WebGLRenderer({ canvas: coreCanvas, alpha: true, antialias: true }); coreRenderer.setSize(220, 220);
-
-    const coreGroup = new THREE.Group();
-    
-    // Núcleo interno
-    const innerGeo = new THREE.OctahedronGeometry(0.8, 0);
-    const innerMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
-    const innerMesh = new THREE.Mesh(innerGeo, innerMat); coreGroup.add(innerMesh);
-
-    // Nube de partículas
-    const outerGeo = new THREE.IcosahedronGeometry(1.2, 1);
-    const outerMat = new THREE.PointsMaterial({ color: 0xbc13fe, size: 0.04, transparent: true, blending: THREE.AdditiveBlending });
-    const outerMesh = new THREE.Points(outerGeo, outerMat); coreGroup.add(outerMesh);
-
-    // Anillos Orbitales (NUEVO)
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
-    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.02, 4, 30), ringMat); ring1.rotation.x = Math.PI/2; coreGroup.add(ring1);
-    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.02, 4, 30), ringMat); ring2.rotation.y = Math.PI/3; coreGroup.add(ring2);
-
-    coreScene.add(coreGroup);
-
-    // Interacción Core (Explosión/Aceleración al clic)
-    let coreSpeedMultiplier = 1;
-    coreCanvas.addEventListener('click', () => {
-        playSound('click');
-        coreSpeedMultiplier = 10; // Acelera
-        innerMesh.scale.set(1.5, 1.5, 1.5); // Pulso visual
-        setTimeout(() => { innerMesh.scale.set(1, 1, 1); }, 150);
-    });
-
-    let mouseX = 0; let mouseY = 0; let targetX = 0; let targetY = 0;
-    document.addEventListener('mousemove', (e) => { mouseX = (e.clientX - window.innerWidth / 2); mouseY = (e.clientY - window.innerHeight / 2); });
-
-    const clock = new THREE.Clock();
     function animate() {
         requestAnimationFrame(animate);
-        const time = clock.getElapsedTime();
-
-        gridHelper.position.z = (time * 2) % 1;
-        const positions = bgParticles.geometry.attributes.position.array;
-        for(let i=1; i<positions.length; i+=3) { positions[i] += 0.02; if(positions[i] > 15) positions[i] = -2; }
-        bgParticles.geometry.attributes.position.needsUpdate = true;
-        bgRenderer.render(bgScene, bgCamera);
-
-        // Animar Core y Anillos
-        coreSpeedMultiplier += (1 - coreSpeedMultiplier) * 0.05; // Fricción para volver a vel normal
-        targetX = mouseX * 0.001; targetY = mouseY * 0.001;
-        coreGroup.rotation.y += (0.01 * coreSpeedMultiplier) + (targetX - coreGroup.rotation.y) * 0.05;
-        coreGroup.rotation.x += (0.005 * coreSpeedMultiplier) + (targetY - coreGroup.rotation.x) * 0.05;
-        
-        innerMesh.rotation.y = -time * 0.5 * coreSpeedMultiplier;
-        ring1.rotation.z = time * 0.8 * coreSpeedMultiplier;
-        ring2.rotation.x = time * 0.6 * coreSpeedMultiplier;
-        
-        const scale = 1 + Math.sin(time * 3) * 0.05;
-        coreGroup.scale.set(scale, scale, scale);
-        
-        coreRenderer.render(coreScene, coreCamera);
+        sphere.rotation.y += 0.002;
+        sphere.rotation.x += 0.001;
+        renderer.render(scene, camera);
     }
     animate();
 
-    // ==========================================
-    // DATOS DE PLANES - MANTENIENDO NOMBRES ORIGINALES
-    // ==========================================
+    // Lógica de Negocio
     const plans = [
-        { name: "TRIAL", icon: "fas fa-flask", price: "0 CUP", usdt: "0", features: ["1 hora de prueba", "Ancho de banda ilimitado", "Seguridad encriptada"], hologram: "NODO: PRUEBA // DUR: 1H // ESTADO: LIBRE", type: "trial" },
-        { name: "BÁSICO", icon: "fas fa-globe", price: "800 CUP", usdt: "1.6", features: ["1 mes de acceso", "Streaming fluido 4K", "10 Servidores globales"], hologram: "NODO: BÁSICO // DUR: 30D // ESTADO: ACTIVO", type: "basico" },
-        { name: "AVANZADO", icon: "fas fa-star", price: "1,300 CUP", usdt: "2.7", features: ["2 meses continuos", "Soporte técnico 24/7", "Bypass de latencia gaming"], hologram: "NODO: AVANZADO // DUR: 60D // ESTADO: ÓPTIMO", type: "avanzado" },
-        { name: "PREMIUM", icon: "fas fa-gem", price: "1,200 CUP", usdt: "2.5", features: ["Servidor Privado Aislado", "Latencia ultra baja", "Prioridad de ruteo Nivel 1"], hologram: "NODO: PREMIUM // DUR: VIP // ESTADO: MÁXIMO", type: "premium" },
-        { name: "ANUAL", icon: "fas fa-calendar-alt", price: "15,000 CUP", usdt: "30", features: ["12 meses sin cortes", "Línea de comando directa", "Inmunidad DPI máxima"], hologram: "NODO: ANUAL // DUR: 365D // ESTADO: INFINITO", type: "anual" }
+        { name: "Prueba", id: "trial", price: "0 CUP", val: "Gratis", features: ["1 hora de acceso", "Ubicación aleatoria", "Soporte básico"] },
+        { name: "Estándar", id: "basico", price: "800 CUP", val: "1.6 USDT", features: ["30 días de acceso", "Streaming HD", "2 Dispositivos"] },
+        { name: "Premium", id: "premium", price: "1,200 CUP", val: "2.5 USDT", featured: true, features: ["Acceso VIP", "Latencia Gaming", "5 Dispositivos", "IP Dedicada"] },
+        { name: "Anual", id: "anual", price: "15,000 CUP", val: "30 USDT", features: ["12 meses (Ahorro 20%)", "Todo lo de Premium", "Prioridad en red"] }
     ];
 
-    function renderPlans() {
+    function render() {
         const grid = document.getElementById('plansGrid');
-        grid.innerHTML = plans.map((plan, i) => `
-            <div class="plan-card" data-index="${i}">
-                <div class="card-inner">
-                    <div class="plan-icon"><i class="${plan.icon}"></i></div>
-                    <div class="plan-name" data-val="${plan.name}">${plan.name}</div>
-                    <div class="plan-price">${plan.price}</div>
-                    <ul class="plan-features">
-                        ${plan.features.slice(0,3).map(f => `<li><i class="fas fa-angle-right"></i> ${f}</li>`).join('')}
-                    </ul>
-                    <button class="btn-cyber">[ ANALIZAR ]</button>
+        grid.innerHTML = plans.map(p => `
+            <div class="card ${p.featured ? 'featured' : ''}">
+                ${p.featured ? '<div class="badge">RECOMENDADO</div>' : ''}
+                <div class="card-header">
+                    <div class="card-title">${p.name}</div>
+                    <div class="card-price">${p.price} <span>/ ${p.val}</span></div>
                 </div>
+                <ul class="features-list">
+                    ${p.features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                </ul>
+                <button class="btn-google ${p.featured ? '' : 'btn-outline'}" onclick="openModal('${p.id}')">
+                    ${p.id === 'trial' ? 'Probar ahora' : 'Seleccionar'}
+                </button>
             </div>
         `).join('');
-
-        document.querySelectorAll('.plan-card').forEach(card => {
-            const titleElem = card.querySelector('.plan-name');
-            const originalTitle = titleElem.dataset.val;
-
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-                const centerX = rect.width / 2; const centerY = rect.height / 2;
-                const rotateX = ((y - centerY) / centerY) * -10; const rotateY = ((x - centerX) / centerX) * 10;
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
-            });
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-                titleElem.innerText = originalTitle; // Reset title on leave
-            });
-            card.addEventListener('mouseenter', () => {
-                playSound('hover');
-                scrambleText(titleElem, originalTitle); // Ejecuta el efecto hacker en el texto
-            });
-            card.addEventListener('click', (e) => {
-                playSound('click');
-                openModal(plans[card.dataset.index]);
-            });
-        });
     }
 
-    const modal = document.getElementById('planModal');
-    
-    window.openModal = function(plan) {
-        document.getElementById('modalTitle').innerHTML = `<i class="${plan.icon}"></i> ${plan.name}`;
-        document.getElementById('modalPrice').innerHTML = `${plan.price} <span style="font-size:1rem; color: #fff;">// ≈ ${plan.usdt} USDT</span>`;
-        document.getElementById('modalFeatures').innerHTML = plan.features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('');
+    window.openModal = (id) => {
+        const p = plans.find(x => x.id === id);
+        document.getElementById('mTitle').innerText = `Plan ${p.name}`;
+        document.getElementById('mPrice').innerText = `${p.price} (Aprox. ${p.val})`;
+        document.getElementById('paymentModal').classList.add('active');
         
-        let hash = ''; for(let i=0; i<32; i++) hash += Math.floor(Math.random()*16).toString(16).toUpperCase();
-        document.getElementById('holoDetail').innerHTML = `> EXTRACCION DE DATOS...<br>> ${plan.hologram}<br>> HASH: ${hash}<br>> ESTADO: <span style="color: #0f0;">LISTO PARA DESPLIEGUE</span>`;
-        
-        document.getElementById('modalBuyBtn').onclick = () => {
-            playSound('click');
-            const uid = Telegram.WebApp.initDataUnsafe?.user?.id || new URLSearchParams(window.location.search).get('userId') || 'UNKNOWN_OP';
-            const targetUrl = plan.type === 'trial' ? 'how.html' : 'payment.html';
-            document.getElementById('modalBuyBtn').innerText = '[ ENLAZANDO_CONEXION... ]';
-            setTimeout(() => { window.location.href = `${targetUrl}?plan=${plan.type}&userId=${uid}`; }, 800);
+        document.getElementById('btnConfirm').onclick = () => {
+            const uid = Telegram.WebApp.initDataUnsafe?.user?.id || "USER_ID";
+            const url = p.id === 'trial' ? 'how.html' : 'payment.html';
+            window.location.href = `${url}?plan=${p.id}&userId=${uid}`;
         };
-        modal.classList.add('active');
-    }
+    };
 
-    window.closeModal = function() {
-        playSound('hover'); modal.classList.remove('active');
-        setTimeout(() => { document.getElementById('modalBuyBtn').innerText = '[ ACTIVAR_PLAN ]'; }, 500);
-    }
+    window.closeModal = () => {
+        document.getElementById('paymentModal').classList.remove('active');
+    };
 
-    window.addEventListener('resize', () => { bgCamera.aspect = window.innerWidth / window.innerHeight; bgCamera.updateProjectionMatrix(); bgRenderer.setSize(window.innerWidth, window.innerHeight); });
+    // Quitar loader
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => document.getElementById('loader').remove(), 500);
+        }, 1000);
+    });
 
-    renderPlans();
-    
-    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); Telegram.WebApp.setHeaderColor('#030308'); Telegram.WebApp.setBackgroundColor('#030308'); } catch(e) {}
+    render();
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch(e) {}
 </script>
 </body>
 </html>

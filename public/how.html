@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>VPN Cuba · Cómo funciona</title>
+    <title>VPN Cuba · Optimización Gaming</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -14,36 +17,38 @@
         }
 
         :root {
-            --bg-deep: #05070c;
-            --card-bg: rgba(12, 20, 30, 0.7);
+            --bg-dark: #03060b;
+            --surface: #0a1018cc;
             --accent: #2b6ef0;
-            --accent-glow: rgba(43, 110, 240, 0.5);
-            --text-primary: #eef2ff;
-            --text-secondary: #a0b3d9;
-            --border-glow: rgba(43, 110, 240, 0.4);
+            --accent-glow: rgba(43,110,240,0.5);
+            --text-primary: #f0f4ff;
+            --text-secondary: #9aaec9;
+            --border-glow: rgba(43,110,240,0.4);
+            --grad-1: #0a1928;
+            --grad-2: #07121c;
         }
 
         body {
-            background: var(--bg-deep);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
             color: var(--text-primary);
             line-height: 1.5;
             min-height: 100vh;
-            overflow-x: hidden;
             position: relative;
+            overflow-x: hidden;
         }
 
-        /* Fondo dinámico */
-        .bg-glow {
+        /* Fondo dinámico con gradiente y partículas */
+        .bg-dynamic {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 20% 40%, rgba(43,110,240,0.08), transparent 70%);
+            background: radial-gradient(circle at 30% 20%, rgba(43,110,240,0.1), transparent 70%);
             z-index: -2;
         }
-        .noise-overlay {
+        .noise {
             position: fixed;
             top: 0;
             left: 0;
@@ -51,18 +56,17 @@
             height: 100%;
             background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJmIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjciIG51bU9jdGF2ZXM9IjMiLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjZikiIG9wYWNpdHk9IjAuMDYiLz48L3N2Zz4=');
             background-repeat: repeat;
-            opacity: 0.25;
+            opacity: 0.2;
             pointer-events: none;
             z-index: -1;
         }
-        /* Líneas de exploración CRT */
-        .scanline {
+        .scanlines {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: repeating-linear-gradient(0deg, rgba(0, 255, 255, 0) 0px, rgba(0, 255, 255, 0) 2px, rgba(43,110,240,0.03) 2px, rgba(43,110,240,0.03) 4px);
+            background: repeating-linear-gradient(0deg, rgba(43,110,240,0) 0px, rgba(43,110,240,0) 2px, rgba(43,110,240,0.02) 2px, rgba(43,110,240,0.02) 4px);
             pointer-events: none;
             z-index: 2;
             animation: scanMove 12s linear infinite;
@@ -72,7 +76,6 @@
             100% { transform: translateY(4px); }
         }
 
-        /* Contenedor principal */
         .container {
             max-width: 1300px;
             margin: 0 auto;
@@ -81,12 +84,13 @@
             z-index: 10;
         }
 
-        /* Header futurista */
+        /* Header */
         .hero {
             text-align: center;
             margin-bottom: 3rem;
         }
         .hero h1 {
+            font-family: 'Orbitron', monospace;
             font-size: 3rem;
             font-weight: 800;
             background: linear-gradient(135deg, #fff, var(--accent), #60a5fa);
@@ -105,15 +109,21 @@
             -webkit-text-fill-color: initial;
             filter: drop-shadow(0 0 12px var(--accent-glow));
         }
-        .hero p {
-            color: var(--text-secondary);
+        .hero .tagline {
             font-size: 1.2rem;
-            max-width: 800px;
+            color: var(--text-secondary);
+            max-width: 700px;
             margin: 1rem auto 0;
+            background: rgba(43,110,240,0.1);
+            display: inline-block;
+            padding: 0.3rem 1.5rem;
+            border-radius: 50px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(43,110,240,0.3);
         }
 
-        /* Cards horizontales */
-        .cards-row {
+        /* Tarjetas horizontales */
+        .cards-grid {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
@@ -122,42 +132,26 @@
         }
         .card {
             flex: 1 1 260px;
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
+            background: rgba(10, 16, 24, 0.7);
+            backdrop-filter: blur(12px);
             border-radius: 2rem;
             border: 1px solid rgba(43,110,240,0.25);
             padding: 1.8rem 1.5rem;
-            transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             position: relative;
             overflow: hidden;
             box-shadow: 0 15px 35px -15px rgba(0,0,0,0.5);
         }
         .card:hover {
-            transform: translateY(-12px);
+            transform: translateY(-10px);
             border-color: var(--accent);
-            box-shadow: 0 25px 40px -15px var(--accent-glow);
+            box-shadow: 0 25px 45px -15px var(--accent-glow);
             background: rgba(12, 22, 40, 0.85);
-        }
-        .card::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--accent), transparent, var(--accent));
-            border-radius: 2rem;
-            opacity: 0;
-            transition: opacity 0.4s;
-            z-index: -1;
-        }
-        .card:hover::before {
-            opacity: 0.15;
         }
         .card-icon {
             font-size: 2.8rem;
             color: var(--accent);
-            margin-bottom: 1.2rem;
+            margin-bottom: 1rem;
             filter: drop-shadow(0 0 8px var(--accent-glow));
         }
         .card h3 {
@@ -166,110 +160,103 @@
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 0.5rem;
+        }
+        .card-number {
+            background: rgba(43,110,240,0.2);
+            border-radius: 30px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent);
         }
         .card p {
             color: var(--text-secondary);
             font-size: 0.95rem;
             line-height: 1.5;
-            margin-bottom: 1rem;
         }
-        .highlight {
-            color: #ffd966;
-            font-weight: 600;
-        }
-        .badge-save {
+        .badge {
             display: inline-block;
             background: rgba(43,110,240,0.2);
             border-radius: 30px;
             padding: 0.2rem 1rem;
             font-size: 0.75rem;
             font-weight: 500;
-            margin-top: 0.5rem;
+            margin-top: 1rem;
         }
 
-        /* Sección qué necesito + prueba */
-        .requirements-section {
-            background: rgba(0, 0, 0, 0.4);
+        /* Sección "¿Cómo funciona?" */
+        .how-section {
+            background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(10,20,30,0.6));
             border-radius: 2rem;
-            backdrop-filter: blur(8px);
             border: 1px solid rgba(43,110,240,0.3);
             padding: 2rem;
-            margin: 2rem 0 2rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(8px);
+        }
+        .how-section h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: var(--accent);
+        }
+        .steps {
             display: flex;
             flex-wrap: wrap;
-            gap: 2rem;
-            align-items: center;
+            gap: 1.5rem;
             justify-content: space-between;
         }
-        .req-list {
-            flex: 2;
-            min-width: 200px;
-        }
-        .req-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.2rem;
-            font-size: 1rem;
-        }
-        .req-item i {
-            width: 28px;
-            color: var(--accent);
-            font-size: 1.3rem;
-        }
-        .trial-cta {
+        .step {
             flex: 1;
-            background: linear-gradient(135deg, rgba(43,110,240,0.1), rgba(0,0,0,0.4));
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            text-align: center;
-            border: 1px solid var(--accent);
-            box-shadow: 0 0 15px rgba(43,110,240,0.2);
+            min-width: 180px;
+            background: rgba(0,0,0,0.3);
+            padding: 1.2rem;
+            border-radius: 1.2rem;
+            border-left: 3px solid var(--accent);
         }
-        .trial-cta i {
-            font-size: 2.5rem;
+        .step-number {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 800;
             color: var(--accent);
+            opacity: 0.6;
             margin-bottom: 0.5rem;
         }
-        .btn-trial {
+        .step p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* CTA final */
+        .final-cta {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .btn-primary {
             background: linear-gradient(95deg, #1e3a8a, #3b82f6);
             border: none;
-            padding: 12px 28px;
-            border-radius: 40px;
+            padding: 14px 36px;
+            border-radius: 60px;
             font-weight: 700;
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             color: white;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             cursor: pointer;
             transition: 0.2s;
-            margin-top: 1rem;
-            box-shadow: 0 8px 20px rgba(59,130,246,0.3);
             text-decoration: none;
+            box-shadow: 0 8px 20px rgba(59,130,246,0.3);
         }
-        .btn-trial:hover {
+        .btn-primary:hover {
             transform: scale(1.02);
             box-shadow: 0 12px 30px rgba(59,130,246,0.5);
             background: linear-gradient(95deg, #2563eb, #60a5fa);
         }
 
-        /* Separador glitch */
-        .glitch-divider {
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent), #ffd966, var(--accent), transparent);
-            margin: 1.5rem 0;
-            position: relative;
-            animation: flicker 3s infinite;
-        }
-        @keyframes flicker {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* Botón cerrar */
         .close-btn {
             width: 100%;
             padding: 14px;
@@ -299,63 +286,70 @@
             .container { padding: 1rem; }
             .hero h1 { font-size: 2rem; flex-wrap: wrap; justify-content: center; }
             .card { min-width: 220px; }
-            .requirements-section { flex-direction: column; }
+            .steps { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-<div class="bg-glow"></div>
-<div class="noise-overlay"></div>
-<div class="scanline"></div>
+<div class="bg-dynamic"></div>
+<div class="noise"></div>
+<div class="scanlines"></div>
 
 <div class="container">
     <div class="hero">
-        <h1><i class="fas fa-satellite-dish"></i> ¿CÓMO FUNCIONA VPN CUBA?</h1>
-        <p>Túnel privado y ultra seguro entre tu dispositivo e Internet internacional, optimizado para ETECSA.</p>
+        <h1><i class="fas fa-bolt"></i> Optimización Gaming</h1>
+        <div class="tagline">Conecta con servidores internacionales con la menor latencia posible</div>
     </div>
 
-    <div class="cards-row">
+    <div class="cards-grid">
         <div class="card">
             <div class="card-icon"><i class="fas fa-coins"></i></div>
-            <h3>1️⃣ El truco del ahorro <span class="highlight">💰</span></h3>
-            <p>Con cuenta <strong>@nauta.co.cu</strong> pagas solo <strong class="highlight">2.50 CUP/h</strong> en lugar de 12.50 CUP/h. ¡100 CUP te duran <strong>40 horas</strong> en vez de 8!</p>
-            <div class="badge-save">Ahorro del 80%</div>
+            <h3><span class="card-number">01</span> Ahorro inteligente</h3>
+            <p>Usa tu cuenta <strong>@nauta.co.cu</strong> y paga solo <strong>2.50 CUP/h</strong> en lugar de 12.50 CUP/h. Tus 100 CUP rinden 40 horas de juego.</p>
+            <div class="badge">80% menos</div>
         </div>
         <div class="card">
-            <div class="card-icon"><i class="fas fa-gamepad"></i></div>
-            <h3>2️⃣ Gaming zero lag <span class="highlight">🎮</span></h3>
-            <p>Servidores de baja latencia enrutados para <strong>COD, Free Fire, Albion, DOTA 2, LoL</strong>. Optimización exclusiva para competitivo.</p>
-            <div class="badge-save">Ping estable</div>
+            <div class="card-icon"><i class="fas fa-tachometer-alt"></i></div>
+            <h3><span class="card-number">02</span> Zero lag</h3>
+            <p>Rutas optimizadas para servidores de <strong>CoD, Free Fire, LoL, DOTA 2, Albion</strong>. Ping estable, sin spikes.</p>
+            <div class="badge">Latencia < 30ms*</div>
         </div>
         <div class="card">
-            <div class="card-icon"><i class="fas fa-film"></i></div>
-            <h3>3️⃣ Libertad total <span class="highlight">🎬</span></h3>
-            <p>IP de EE.UU. / Europa. Desbloquea <strong>Netflix, Disney+, ChatGPT, bancos</strong> y todo el contenido geobloqueado.</p>
-            <div class="badge-save">Streaming sin límites</div>
+            <div class="card-icon"><i class="fas fa-globe"></i></div>
+            <h3><span class="card-number">03</span> Libertad total</h3>
+            <p>IP de EE.UU./Europa. Desbloquea <strong>Netflix, Disney+, ChatGPT, bancos</strong> y todo el contenido geobloqueado.</p>
+            <div class="badge">Streaming sin fronteras</div>
         </div>
         <div class="card">
             <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
-            <h3>4️⃣ Privacidad extrema <span class="highlight">🛡️</span></h3>
-            <p>Protocolo <strong>WireGuard®</strong> con cifrado militar. Política <strong>No-Logs</strong>: nadie monitorea tu actividad.</p>
-            <div class="badge-save">100% anónimo</div>
+            <h3><span class="card-number">04</span> Privacidad extrema</h3>
+            <p>Protocolo WireGuard® con cifrado militar. Política <strong>No-Logs</strong>: nadie vigila tu actividad.</p>
+            <div class="badge">Anonimato garantizado</div>
         </div>
     </div>
 
-    <div class="requirements-section">
-        <div class="req-list">
-            <div class="req-item"><i class="fas fa-envelope"></i> <strong>Cuenta @nauta.co.cu</strong> (creala en www.etecsa.cu)</div>
-            <div class="req-item"><i class="fas fa-download"></i> <strong>WireGuard</strong> (te damos los enlaces de descarga)</div>
-            <div class="req-item"><i class="fas fa-key"></i> <strong>Llave de acceso personal</strong> (la generamos al activar tu plan)</div>
-        </div>
-        <div class="trial-cta">
-            <i class="fas fa-flask"></i>
-            <p><strong>💡 Pruébalo sin riesgos</strong><br>1 hora de conexión gratuita</p>
-            <a href="#" id="trialBtn" class="btn-trial"><i class="fab fa-telegram"></i> Solicitar Prueba Gratis</a>
-            <p style="font-size: 0.7rem; margin-top: 0.6rem;">Sin compromiso, configuración instantánea</p>
+    <div class="how-section">
+        <h2><i class="fas fa-question-circle"></i> ¿Cómo funciona?</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <p><strong>Túnel privado</strong> entre tu dispositivo y servidores internacionales, optimizado para las redes ETECSA.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <p><strong>Enrutamiento gaming</strong> – elegimos la ruta más corta a servidores de juegos, reduciendo el ping drásticamente.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <p><strong>Cifrado WireGuard</strong> – velocidad máxima con la mejor seguridad. Tus datos viajan encriptados.</p>
+            </div>
         </div>
     </div>
 
-    <div class="glitch-divider"></div>
+    <div class="final-cta">
+        <a href="#" id="plansLink" class="btn-primary"><i class="fas fa-rocket"></i> Ver planes y probar gratis</a>
+    </div>
+
     <button class="close-btn" onclick="Telegram.WebApp.close()">
         <i class="fas fa-times-circle"></i> Cerrar <i class="fas fa-arrow-right"></i>
     </button>
@@ -367,26 +361,14 @@
     tg.expand();
     tg.MainButton.hide();
 
-    // Obtener userId de la URL (query param)
     const urlParams = new URLSearchParams(window.location.search);
     let userId = urlParams.get('userId');
+    if (!userId && tg.initDataUnsafe?.user?.id) userId = tg.initDataUnsafe.user.id;
 
-    // Si no hay userId, intentar obtener del objeto Telegram (si existe)
-    if (!userId && tg.initDataUnsafe?.user?.id) {
-        userId = tg.initDataUnsafe.user.id;
+    const plansLink = document.getElementById('plansLink');
+    if (plansLink) {
+        plansLink.href = `plans.html${userId ? `?userId=${userId}` : ''}`;
     }
-
-    // Construir enlace a la página de planes
-    const plansUrl = `plans.html${userId ? `?userId=${userId}` : ''}`;
-
-    // Asignar el enlace al botón de prueba
-    const trialBtn = document.getElementById('trialBtn');
-    if (trialBtn) {
-        trialBtn.href = plansUrl;
-    }
-
-    // Opcional: si se quiere forzar que el enlace se abra dentro de la misma WebApp
-    // (ya que es un enlace a otra página de la misma app, se abrirá normalmente)
 </script>
 </body>
 </html>

@@ -69,7 +69,7 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin) {
 
     const inlineKeyboard = [
         [
-            { text: "VER PLANES", icon_custom_emoji_id: "6005986106703613755", web_app: { url: plansUrl } },
+            { text: "VER PLANES", icon_custom_emoji_id: "6030664675253820292", web_app: { url: plansUrl } },
             { text: "MI PERFIL", icon_custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
         ],
         [

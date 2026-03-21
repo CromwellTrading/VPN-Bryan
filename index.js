@@ -20,26 +20,20 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// IDs de administradores (AGREGADO NUEVO ID)
+// IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604', '6974850309'];  // NUEVO ID AÑADIDO
+    ['6373481979', '5376388604', '6974850309'];
 
-// ==================== CONFIGURACIÓN USDT (MODIFICADA) ====================
+// ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {
-    // Dirección fija USDT (BEP20)
     WALLET_ADDRESS: '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519',
-    // API Key de BSCScan - DESACTIVADA PARA FLUJO MANUAL
-    BSCSCAN_API_KEY: '', // Vacía para desactivar verificación automática
-    // Contrato USDT en BSC (BEP20)
+    BSCSCAN_API_KEY: '',
     USDT_CONTRACT_ADDRESS: '0x55d398326f99059ff775485246999027b3197955',
-    // Tiempo de verificación (desactivado)
-    CHECK_INTERVAL: 0, // 0 para desactivar
-    // Mínimo de confirmaciones requeridas
+    CHECK_INTERVAL: 0,
     MIN_CONFIRMATIONS: 3
 };
 
-// Precios USDT por plan
 const USDT_PRICES = {
     'basico': '1.6',
     'avanzado': '2.7',
@@ -55,7 +49,6 @@ function isAdmin(userId) {
 // Función para verificar si un usuario puede recibir mensajes
 async function canSendMessageToUser(telegramId) {
     try {
-        // Intentar enviar un mensaje silencioso de prueba
         await bot.telegram.sendChatAction(telegramId, 'typing');
         return { canSend: true, reason: 'Usuario disponible' };
     } catch (error) {
@@ -66,6 +59,48 @@ async function canSendMessageToUser(telegramId) {
             errorCode: error.response?.error_code || 400
         };
     }
+}
+
+// ==================== FUNCIÓN PARA CONSTRUIR EL MENÚ PRINCIPAL ====================
+function buildMainMenuKeyboard(userId, firstName, esAdmin) {
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
+    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
+    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
+
+    const inlineKeyboard = [
+        [
+            { text: "VER PLANES", icon_custom_emoji_id: "6005986106703613755", web_app: { url: plansUrl } },
+            { text: "MI PERFIL", icon_custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
+        ],
+        [
+            { text: "DESCARGAR WIREGUARD", icon_custom_emoji_id: "5899757765743615694", callback_data: "download_wireguard" },
+            { text: "SOPORTE", icon_custom_emoji_id: "6019320644422867543", callback_data: "show_support" }
+        ],
+        [
+            { text: "REFERIDOS", icon_custom_emoji_id: "5944970130554359187", callback_data: "referral_info" },
+            { text: "CÓMO FUNCIONA", icon_custom_emoji_id: "5873121512445187130", callback_data: "how_it_works" }
+        ],
+        [
+            { text: "VPN CANAL", icon_custom_emoji_id: "5771695636411847302", url: "https://t.me/vpncubaw" },
+            { text: "POLÍTICAS", icon_custom_emoji_id: "6021738534916854774", callback_data: "politicas" }
+        ],
+        [
+            { text: "WHATSAPP", icon_custom_emoji_id: "5884179047482659474", url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" },
+            { text: "FAQ", icon_custom_emoji_id: "5879501875341955281", callback_data: "faq" }
+        ]
+    ];
+
+    if (esAdmin) {
+        inlineKeyboard.push([
+            { text: "PANEL ADMIN", icon_custom_emoji_id: "5839116473951328489", web_app: { url: adminUrl } }
+        ]);
+    }
+
+    return {
+        reply_markup: {
+            inline_keyboard: inlineKeyboard
+        }
+    };
 }
 
 // Middleware
@@ -144,18 +179,11 @@ function generateUniqueUsdtAddress() {
 // Función para formatear fecha
 function formatearFecha(fecha) {
     if (!fecha) return 'N/A';
-    
-    // Intentar diferentes formatos de fecha
     try {
         const date = new Date(fecha);
-        
-        // Verificar si es una fecha válida
         if (isNaN(date.getTime())) {
-            console.log(`⚠️ Fecha inválida: ${fecha}`);
             return 'Fecha inválida';
         }
-        
-        // Formatear con múltiples formatos para compatibilidad
         const options = { 
             day: '2-digit', 
             month: '2-digit', 
@@ -165,132 +193,55 @@ function formatearFecha(fecha) {
             second: '2-digit',
             timeZone: 'America/Havana'
         };
-        
         return date.toLocaleDateString('es-ES', options);
     } catch (error) {
-        console.error(`❌ Error formateando fecha ${fecha}:`, error);
         return 'Error fecha';
     }
 }
 
-// ==================== FUNCIONES DE VERIFICACIÓN USDT (MODIFICADAS) ====================
-
-// Función para verificar transacciones USDT en BSCScan (DESACTIVADA)
+// ==================== FUNCIONES DE VERIFICACIÓN USDT (DESACTIVADAS) ====================
 async function checkUsdtTransactions() {
-    console.log('⚠️ Verificación automática USDT desactivada - Flujo manual activado');
-    return { success: true, message: 'Verificación automática desactivada - Flujo manual' };
+    console.log('⚠️ Verificación automática USDT desactivada');
+    return { success: true, message: 'Flujo manual' };
 }
 
-// Inicializar sistema USDT (DESACTIVADO)
 async function initializeUsdtSystem() {
-    console.log('💸 Sistema USDT inicializado en modo MANUAL');
-    console.log('📝 Todos los pagos USDT requieren captura y aprobación manual');
-    
-    // Informar sobre el modo manual
-    if (!USDT_CONFIG.BSCSCAN_API_KEY) {
-        console.log('✅ Sistema USDT en modo manual - No se requiere API Key');
-    }
-    
-    if (!USDT_CONFIG.WALLET_ADDRESS) {
-        console.log('⚠️ Dirección USDT no configurada.');
-    }
-    
-    console.log('✅ Sistema USDT inicializado en modo manual');
+    console.log('💸 Sistema USDT en modo MANUAL');
 }
 
 // ==================== CREACIÓN DE BUCKETS ====================
 async function createStorageBucket(bucketName, isPublic = true) {
   try {
-    console.log(`📦 Intentando crear bucket: ${bucketName}`);
-    
-    // Verificar si el bucket ya existe
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
-    
     if (listError) {
       console.error('❌ Error listando buckets:', listError.message);
       return { success: false, error: listError.message };
     }
-    
     const bucketExists = buckets?.some(b => b.name === bucketName);
-    
     if (bucketExists) {
       console.log(`✅ Bucket ${bucketName} ya existe`);
       return { success: true, exists: true };
     }
-    
-    // Crear el nuevo bucket
     const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
       public: isPublic,
-      allowedMimeTypes: null, // Permitir todos los tipos
-      fileSizeLimit: 20971520, // 20MB
+      allowedMimeTypes: null,
+      fileSizeLimit: 20971520,
       avifAutodetection: false
     });
-    
     if (error) {
       console.error(`❌ Error creando bucket ${bucketName}:`, error.message);
-      
-      // Intentar método alternativo usando fetch directo
       return await createBucketViaAPI(bucketName, isPublic);
     }
-    
     console.log(`✅ Bucket ${bucketName} creado exitosamente`);
     return { success: true, data };
-    
   } catch (error) {
-    console.error(`❌ Error en createStorageBucket para ${bucketName}:`, error.message);
+    console.error(`❌ Error en createStorageBucket:`, error.message);
     return { success: false, error: error.message };
   }
 }
 
-// Función para verificar y crear buckets automáticamente
-async function verifyStorageBuckets() {
-  try {
-    console.log('🔍 Verificando buckets de almacenamiento...');
-    
-    const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
-    
-    for (const bucketName of buckets) {
-      try {
-        // Intentar listar archivos para verificar si el bucket existe
-        const { data, error } = await supabaseAdmin.storage
-          .from(bucketName)
-          .list();
-        
-        if (error && error.message.includes('not found')) {
-          console.log(`📦 Bucket ${bucketName} no existe, creando...`);
-          
-          // Intentar crear el bucket
-          const { data: bucketData, error: createError } = await supabaseAdmin.storage
-            .createBucket(bucketName, {
-              public: true,
-              allowedMimeTypes: null,
-              fileSizeLimit: 20971520 // 20MB
-            });
-          
-          if (createError) {
-            console.error(`❌ Error creando bucket ${bucketName}:`, createError.message);
-          } else {
-            console.log(`✅ Bucket ${bucketName} creado exitosamente`);
-          }
-        } else if (error) {
-          console.error(`⚠️ Error verificando bucket ${bucketName}:`, error.message);
-        } else {
-          console.log(`✅ Bucket ${bucketName} existe y es accesible`);
-        }
-      } catch (bucketError) {
-        console.error(`⚠️ Error procesando bucket ${bucketName}:`, bucketError.message);
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error en verifyStorageBuckets:', error.message);
-  }
-}
-
-// Método alternativo usando API REST directa
 async function createBucketViaAPI(bucketName, isPublic = true) {
   try {
-    console.log(`🔄 Intentando crear bucket via API REST: ${bucketName}`);
-    
     const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/bucket`, {
       method: 'POST',
       headers: {
@@ -305,7 +256,6 @@ async function createBucketViaAPI(bucketName, isPublic = true) {
         file_size_limit: 20971520
       })
     });
-    
     if (response.ok) {
       console.log(`✅ Bucket ${bucketName} creado via API REST`);
       return { success: true };
@@ -315,196 +265,120 @@ async function createBucketViaAPI(bucketName, isPublic = true) {
       return { success: false, error: errorText };
     }
   } catch (error) {
-    console.error(`❌ Error en createBucketViaAPI:`, error.message);
     return { success: false, error: error.message };
   }
 }
 
-// Función para inicializar todos los buckets necesarios
+async function verifyStorageBuckets() {
+  try {
+    const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
+    for (const bucketName of buckets) {
+      try {
+        const { data, error } = await supabaseAdmin.storage.from(bucketName).list();
+        if (error && error.message.includes('not found')) {
+          console.log(`📦 Creando bucket ${bucketName}...`);
+          await createStorageBucket(bucketName, true);
+        } else if (error) {
+          console.error(`⚠️ Error verificando ${bucketName}:`, error.message);
+        } else {
+          console.log(`✅ Bucket ${bucketName} existe`);
+        }
+      } catch (bucketError) {
+        console.error(`⚠️ Error procesando ${bucketName}:`, bucketError.message);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error en verifyStorageBuckets:', error.message);
+  }
+}
+
 async function initializeStorageBuckets() {
-  console.log('🚀 Inicializando buckets de almacenamiento...');
-  
+  console.log('🚀 Inicializando buckets...');
   const buckets = [
     { name: 'payments-screenshots', public: true },
     { name: 'plan-files', public: true },
     { name: 'trial-files', public: true }
   ];
-  
   for (const bucket of buckets) {
-    const result = await createStorageBucket(bucket.name, bucket.public);
-    
-    if (result.success) {
-      console.log(`✅ Bucket ${bucket.name} listo`);
-    } else {
-      console.log(`⚠️ Bucket ${bucket.name} no pudo crearse: ${result.error}`);
-    }
+    await createStorageBucket(bucket.name, bucket.public);
   }
-  
   console.log('✅ Inicialización de buckets completada');
 }
 
 // ==================== FUNCIONES AUXILIARES DEL BOT ====================
-
-// Función para calcular días restantes según el plan
 function calcularDiasRestantes(user) {
-    if (!user.vip || !user.vip_since || !user.plan) {
-        return 0;
-    }
-
+    if (!user.vip || !user.vip_since || !user.plan) return 0;
     const fechaInicio = new Date(user.vip_since);
     const fechaActual = new Date();
-    
     let duracionDias;
     switch(user.plan.toLowerCase()) {
-        case 'basico':
-            duracionDias = 30;
-            break;
-        case 'avanzado':
-            duracionDias = 60;
-            break;
-        case 'premium':
-            duracionDias = 30;
-            break;
-        case 'anual':
-            duracionDias = 365;
-            break;
-        default:
-            duracionDias = 30;
+        case 'basico': duracionDias = 30; break;
+        case 'avanzado': duracionDias = 60; break;
+        case 'premium': duracionDias = 30; break;
+        case 'anual': duracionDias = 365; break;
+        default: duracionDias = 30;
     }
-    
     const fechaExpiracion = new Date(fechaInicio);
     fechaExpiracion.setDate(fechaExpiracion.getDate() + duracionDias);
-    
     const diferenciaMs = fechaExpiracion - fechaActual;
-    const diasRestantes = Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
-    
-    return diasRestantes;
+    return Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
 }
 
-// ==================== FUNCIONES DE ENVÍO MEJORADAS ====================
-
-// Función mejorada para enviar pruebas pendientes
 async function sendTrialToValidUsers(adminId) {
   try {
     console.log('🎯 Enviando pruebas solo a usuarios disponibles...');
-    
-    // Obtener pruebas pendientes
     const pendingTrials = await db.getPendingTrials();
-    
     if (!pendingTrials || pendingTrials.length === 0) {
       console.log('📭 No hay pruebas pendientes');
       return { success: true, message: 'No hay pruebas pendientes' };
     }
-    
-    console.log(`📋 ${pendingTrials.length} pruebas pendientes encontradas`);
-    
-    let sentCount = 0;
-    let failedCount = 0;
-    let unavailableCount = 0;
-    
+    let sentCount = 0, failedCount = 0, unavailableCount = 0;
     for (let i = 0; i < pendingTrials.length; i++) {
       const user = pendingTrials[i];
-      
       try {
-        if (!user.telegram_id) {
-          console.log(`⚠️ Usuario sin telegram_id, saltando`);
-          failedCount++;
-          continue;
-        }
-        
-        console.log(`🎁 Procesando prueba para ${user.telegram_id} (${i+1}/${pendingTrials.length})`);
-        
-        // Verificar si el usuario puede recibir mensajes
+        if (!user.telegram_id) { failedCount++; continue; }
         const canSend = await canSendMessageToUser(user.telegram_id);
-        
         if (!canSend.canSend) {
-          console.log(`❌ Usuario ${user.telegram_id} no disponible para prueba: ${canSend.reason}`);
-          unavailableCount++;
-          failedCount++;
-          
-          // Marcar como inactivo si es error permanente
-          if (canSend.reason.includes('chat not found') || 
-              canSend.reason.includes('blocked')) {
-            try {
-              await db.updateUser(user.telegram_id, {
-                is_active: false,
-                last_error: canSend.reason,
-                updated_at: new Date().toISOString()
-              });
-            } catch (updateError) {
-              console.log(`⚠️ Error actualizando usuario ${user.telegram_id}:`, updateError.message);
-            }
+          unavailableCount++; failedCount++;
+          if (canSend.reason.includes('chat not found') || canSend.reason.includes('blocked')) {
+            await db.updateUser(user.telegram_id, { is_active: false, last_error: canSend.reason, updated_at: new Date().toISOString() });
           }
           continue;
         }
-        
-        // Usuario disponible, enviar prueba
         await sendTrialConfigToUser(user.telegram_id, adminId);
         sentCount++;
-        
-        // Pequeña pausa
         await new Promise(resolve => setTimeout(resolve, 100));
-        
       } catch (error) {
         failedCount++;
         console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, error.message);
       }
     }
-    
     console.log(`✅ Envío de pruebas completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
-    
-    return {
-      success: true,
-      sent: sentCount,
-      failed: failedCount,
-      unavailable: unavailableCount,
-      total: pendingTrials.length
-    };
-    
+    return { success: true, sent: sentCount, failed: failedCount, unavailable: unavailableCount, total: pendingTrials.length };
   } catch (error) {
     console.error('❌ Error en sendTrialToValidUsers:', error);
     return { success: false, error: error.message };
   }
 }
 
-// Función auxiliar para enviar prueba a un usuario específico
 async function sendTrialConfigToUser(telegramId, adminId) {
   try {
     const user = await db.getUser(telegramId);
-    
-    if (!user) {
-      throw new Error(`Usuario ${telegramId} no encontrado`);
-    }
-    
-    // Buscar archivo de prueba
+    if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
     const planFile = await db.getPlanFile('trial');
-    
     if (planFile && planFile.public_url) {
       const fileName = planFile.original_name || 'config_trial.conf';
       const gameServer = user.trial_game_server || 'No especificado';
       const connectionType = user.trial_connection_type || 'No especificado';
-      
       await bot.telegram.sendDocument(
         telegramId,
         planFile.public_url,
         {
-          caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
-                  `📁 *Archivo de configuración para 1 hora de prueba*\n\n` +
-                  `🎮 *Juego/Servidor:* ${gameServer}\n` +
-                  `📡 *Conexión:* ${connectionType}\n\n` +
-                  `*Instrucciones de instalación:*\n` +
-                  `1. Descarga este archivo\n` +
-                  `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                  `3. Activa la conexión\n` +
-                  `4. ¡Disfruta de 1 hora de prueba gratis! 🎉\n\n` +
-                  `⏰ *Duración:* 1 hora\n` +
-                  `*Importante:* Esta configuración expirará en 1 hora.`,
+          caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n📁 *Archivo de configuración para 1 hora de prueba*\n\n🎮 *Juego/Servidor:* ${gameServer}\n📡 *Conexión:* ${connectionType}\n\n*Instrucciones de instalación:*\n1. Descarga este archivo\n2. Importa el archivo .conf en tu cliente WireGuard\n3. Activa la conexión\n4. ¡Disfruta de 1 hora de prueba gratis! 🎉\n\n⏰ *Duración:* 1 hora\n*Importante:* Esta configuración expirará en 1 hora.`,
           parse_mode: 'Markdown'
         }
       );
-      
       await db.markTrialAsSent(telegramId, adminId);
-      
       console.log(`✅ Prueba enviada a ${telegramId}`);
       return true;
     } else {
@@ -516,9 +390,6 @@ async function sendTrialConfigToUser(telegramId, adminId) {
     throw error;
   }
 }
-
-// ==================== RUTAS DE LA API ====================
-
 // 1. Verificar si es administrador
 app.get('/api/check-admin/:telegramId', (req, res) => {
   const isAdminUser = isAdmin(req.params.telegramId);
@@ -2969,164 +2840,88 @@ app.get('/api/coupons/history/:code', async (req, res) => {
 });
 
 // ==================== SERVIR ARCHIVOS HTML ====================
-
-// Ruta principal
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
-});
-
-// Ruta para planes
-app.get('/plans.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/plans.html'));
-});
-
-// Ruta para pago
-app.get('/payment.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/payment.html'));
-});
-
-// Ruta para admin
-app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/admin.html'));
-});
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public/index.html')); });
+app.get('/plans.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/plans.html')); });
+app.get('/payment.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/payment.html')); });
+app.get('/admin.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/admin.html')); });
 
 // ==================== BOT DE TELEGRAM ====================
 
-// Manejador global de errores del bot
-bot.catch((err, ctx) => {
-  console.error('❌ Error no manejado en el bot:', err);
-  // Aquí podrías notificar a los admins, pero no interrumpimos el flujo
-});
+bot.catch((err, ctx) => { console.error('❌ Error no manejado en el bot:', err); });
 
-// ==================== ACCIONES INLINE ====================
+// ACCIONES INLINE
 
-// Acción: mostrar soporte con dos contactos
 bot.action('show_support', async (ctx) => {
   try {
     await ctx.answerCbQuery();
     await ctx.reply(
-      `🆘 *SOPORTE TÉCNICO*\n\n` +
-      `Para cualquier duda o problema, contacta con nuestro soporte:\n\n` +
-      `👉 @L0quen2\n` +
-      `👉 @ErenJeager129182\n\n` +
-      `Responde rápido y te ayudaremos.`,
+      `🆘 *SOPORTE TÉCNICO*\n\nPara cualquier duda o problema, contacta con nuestro soporte:\n\n👉 @L0quen2\n👉 @ErenJeager129182\n\nResponde rápido y te ayudaremos.`,
       {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [
-              { text: '💬 IR AL SOPORTE (L0quen2)', url: 'https://t.me/L0quen2' },
-              { text: '💬 IR AL SOPORTE (Eren)', url: 'https://t.me/ErenJeager129182' }
-            ],
-            [
-              { text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }
-            ],
+            [{ text: '💬 IR AL SOPORTE (L0quen2)', url: 'https://t.me/L0quen2' }, { text: '💬 IR AL SOPORTE (Eren)', url: 'https://t.me/ErenJeager129182' }],
+            [{ text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }],
             [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
           ]
         }
       }
     );
-  } catch (error) {
-    console.error('❌ Error en show_support:', error);
-    await ctx.answerCbQuery('❌ Error al abrir soporte.');
-  }
+  } catch (error) { console.error('❌ Error en show_support:', error); await ctx.answerCbQuery('❌ Error al abrir soporte.'); }
 });
 
-// Acción: ver estado (mi perfil)
 bot.action('check_status', async (ctx) => {
   const userId = ctx.from.id.toString();
   const firstName = ctx.from.first_name;
-  const esAdmin = isAdmin(userId);
-  
   try {
     const user = await db.getUser(userId);
-    
     if (!user) {
-      await ctx.reply(
-        `❌ *NO ESTÁS REGISTRADO*\n\n` +
-        `Usa el botón "VER PLANES" para registrarte y comenzar.`,
-        { parse_mode: 'Markdown' }
-      );
+      await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' });
       await ctx.answerCbQuery();
       return;
     }
-    
     if (user?.vip) {
       const vipSince = formatearFecha(user.vip_since);
       const diasRestantes = calcularDiasRestantes(user);
       const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-      
-      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
-      mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
-      mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
-      mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
-      mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-      
-      if (diasRestantes <= 7) {
-        mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
-        mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
-      } else {
-        mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
-      }
-      
+      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n📅 *Activado:* ${vipSince}\n📋 *Plan:* ${planNombre}\n⏳ *Días restantes:* ${diasRestantes} días\n💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
+      if (diasRestantes <= 7) mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\nRenueva ahora para mantener tu acceso VIP.\n\n`;
+      else mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(
-        mensajeEstado,
-        { 
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
-              [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-            ]
-          }
+      await ctx.reply(mensajeEstado, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
+            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+          ]
         }
-      );
+      });
     } else {
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(
-        `❌ *NO ERES USUARIO VIP*\n\n` +
-        `Actualmente no tienes acceso a los servicios premium.\n\n` +
-        `Haz clic en el botón para ver nuestros planes.`,
-        {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
-              [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-            ]
-          }
+      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
+            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+          ]
         }
-      );
+      });
     }
     await ctx.answerCbQuery();
-  } catch (error) {
-    console.error('❌ Error en check_status:', error);
-    await ctx.reply(`❌ Error al verificar tu estado.`);
-    await ctx.answerCbQuery();
-  }
+  } catch (error) { console.error('❌ Error en check_status:', error); await ctx.reply(`❌ Error al verificar tu estado.`); await ctx.answerCbQuery(); }
 });
 
-// Acción: descargar WireGuard
 bot.action('download_wireguard', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.reply(
-    `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
-    `*Para Windows*\n` +
-    `Aplicación Oficial de WireGuard para Windows:\n` +
-    `Enlace: https://www.wireguard.com/install/\n\n` +
-    `*Para Android*\n` +
-    `Aplicación Oficial de WireGuard en Google Play Store:\n` +
-    `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
-    `*Selecciona tu sistema operativo:*`,
+    `💻 *DESCARGAR WIREGUARD* 📱\n\n*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n*Selecciona tu sistema operativo:*`,
     {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [
-            { text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' },
-            { text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }
-          ],
+          [{ text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' }, { text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }],
           [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
         ]
       }
@@ -3134,270 +2929,146 @@ bot.action('download_wireguard', async (ctx) => {
   );
 });
 
-// Acción: información de referidos
 bot.action('referral_info', async (ctx) => {
   const userId = ctx.from.id.toString();
   const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-  
   try {
     const user = await db.getUser(userId);
     let referralStats = null;
-    
-    if (user) {
-      try {
-        referralStats = await db.getReferralStats(userId);
-      } catch (statsError) {
-        console.error('❌ Error obteniendo estadísticas de referidos:', statsError);
-      }
-    }
-    
-    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
-    message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
-    message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
-    message += `*Cómo funciona:*\n`;
-    message += `1. Comparte este enlace con amigos\n`;
-    message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
-    message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
-    message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
-    message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-    
+    if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
+    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n*Tu enlace único:*\n\`${referralLink}\`\n\n*Cómo funciona:*\n1. Comparte este enlace con amigos\n2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n3. Por cada referido que pague un plan, obtienes un descuento:\n   • Nivel 1 (referido directo): 20% de descuento\n   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
     if (referralStats) {
-      message += `*Tus estadísticas:*\n`;
-      message += `• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n`;
-      message += `• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n`;
-      message += `• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
+      message += `*Tus estadísticas:*\n• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
     } else {
-      message += `*Tus estadísticas:*\n`;
-      message += `• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
+      message += `*Tus estadísticas:*\n• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
     }
-    
     message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
-    
     await ctx.answerCbQuery();
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
+          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error en referral_info:', error);
+    await ctx.answerCbQuery();
+    await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.\n\n*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
+          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+        ]
+      }
+    });
+  }
+});
+
+// *** ACCIÓN CÓMO FUNCIONA MODIFICADA PARA USAR WEB APP ***
+bot.action('how_it_works', async (ctx) => {
+  try {
+    const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+    await ctx.answerCbQuery('🔍 Abriendo guía de uso...');
     await ctx.reply(
-      message,
+      '🚀 *¿CÓMO FUNCIONA VPN CUBA?*\n\nDescubre cómo optimizamos tu conexión para gaming y navegación.\n\nHaz clic en el botón para ver la guía completa en nuestra Web App:',
       {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
+            [{ text: '🔍 VER GUÍA COMPLETA', web_app: { url: `${webappUrl}/how.html` } }],
             [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
           ]
         }
       }
     );
   } catch (error) {
-    console.error('❌ Error en referral_info:', error);
-    await ctx.answerCbQuery();
-    await ctx.reply(
-      `🤝 *SISTEMA DE REFERIDOS*\n\n` +
-      `Tu enlace de referido:\n\`${referralLink}\`\n\n` +
-      `Comparte este enlace con tus amigos y obtén descuentos.\n\n` +
-      `*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-          ]
-        }
-      }
-    );
+    console.error('❌ Error en how_it_works:', error);
+    await ctx.answerCbQuery('❌ Error al abrir guía.');
   }
 });
 
-// Acción: cómo funciona
-bot.action('how_it_works', async (ctx) => {
-  await ctx.answerCbQuery();
-  await ctx.reply(
-    `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
-    `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
-    `*¿Cómo lo logramos?*\n\n` +
-    `1️⃣ *Rutas VIP*: Tu tráfico viaja por una 'vía rápida' privada, evitando la saturación de tu proveedor de internet.\n` +
-    `2️⃣ *Tecnología Wireguard*: Es el protocolo más veloz del mundo; procesa datos casi al instante sin calentar tu celular.\n\n` +
-    `⚠️ *REQUISITO IMPORTANTE:*\n` +
-    `Para que esta configuración haga su magia, necesitas tener una conexión a internet estable. 📶\n` +
-    `Wireguard optimiza y estabiliza tu ping, pero no puede arreglar un internet que se desconecta o que tiene una velocidad base excesivamente baja.\n\n` +
-    `Si tu internet es decente pero el juego te va mal, ¡nosotros somos la pieza que te falta para llegar a los 50-70ms constantes! 🏎️💨\n\n` +
-    `¡Mejora tu respuesta en las Teamfights hoy mismo! Dale al botón de Ver planes y elige tu plan.`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-        ]
-      }
-    }
-  );
-});
-
-// Acción: menú principal
+// *** ACCIÓN MENÚ PRINCIPAL CORREGIDA ***
 bot.action('main_menu', async (ctx) => {
+  await ctx.answerCbQuery(); // Confirmación del callback
   const userId = ctx.from.id.toString();
   const firstName = ctx.from.first_name;
   const esAdmin = isAdmin(userId);
-  
-  const keyboard = crearMenuPrincipal(userId, firstName, esAdmin);
-  
-  // Enviamos un nuevo mensaje con el inline keyboard
+  const keyboard = buildMainMenuKeyboard(userId, firstName, esAdmin);
   await ctx.reply(
-    `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-    `Selecciona una opción:`,
+    `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:`,
     {
       parse_mode: 'Markdown',
       ...keyboard
     }
   );
-  await ctx.answerCbQuery();
 });
 
-// Acción: copiar enlace de referido
 bot.action('copy_referral_link', async (ctx) => {
   try {
     const userId = ctx.from.id.toString();
     const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-    
     await ctx.answerCbQuery('📋 Enlace listo para copiar');
-    
-    await ctx.reply(
-      `📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\n` +
-      `Para copiar, mantén presionado el enlace y selecciona "Copiar".`,
-      { 
-        parse_mode: 'Markdown',
-        reply_to_message_id: ctx.callbackQuery.message.message_id
-      }
-    );
-  } catch (error) {
-    console.error('❌ Error en copy_referral_link:', error);
-    await ctx.answerCbQuery('❌ Error, intenta nuevamente');
-  }
+    await ctx.reply(`📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\nPara copiar, mantén presionado el enlace y selecciona "Copiar".`, { parse_mode: 'Markdown', reply_to_message_id: ctx.callbackQuery.message.message_id });
+  } catch (error) { console.error('❌ Error en copy_referral_link:', error); await ctx.answerCbQuery('❌ Error, intenta nuevamente'); }
 });
 
-// Acción: Políticas (ya existente, la mantenemos)
 bot.action('politicas', async (ctx) => {
   try {
-    const userId = ctx.from.id.toString();
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-    
     await ctx.answerCbQuery('📜 Abriendo políticas del servicio...');
-    
     const inlineKeyboard = [
-      [
-        { 
-          text: '📜 TÉRMINOS DE SERVICIO', 
-          web_app: { url: `${webappUrl}/politicas.html?section=terminos` }
-        }
-      ],
-      [
-        { 
-          text: '💳 POLÍTICA DE REEMBOLSO', 
-          web_app: { url: `${webappUrl}/politicas.html?section=reembolso` }
-        }
-      ],
-      [
-        { 
-          text: '🔒 POLÍTICA DE PRIVACIDAD', 
-          web_app: { url: `${webappUrl}/politicas.html?section=privacidad` }
-        }
-      ],
-      [
-        { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }
-      ]
+      [{ text: '📜 TÉRMINOS DE SERVICIO', web_app: { url: `${webappUrl}/politicas.html?section=terminos` } }],
+      [{ text: '💳 POLÍTICA DE REEMBOLSO', web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } }],
+      [{ text: '🔒 POLÍTICA DE PRIVACIDAD', web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } }],
+      [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
     ];
-
-    // Editar el mensaje actual si existe, o enviar uno nuevo
     if (ctx.callbackQuery.message) {
-      await ctx.editMessageText(
-        '📜 *Políticas de VPN Cuba*\n\n' +
-        'Selecciona una sección para ver los detalles completos en nuestra Web App:',
-        {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: inlineKeyboard
-          }
-        }
-      );
+      await ctx.editMessageText('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
     } else {
-      await ctx.reply(
-        '📜 *Políticas de VPN Cuba*\n\n' +
-        'Selecciona una sección para ver los detalles completos en nuestra Web App:',
-        {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: inlineKeyboard
-          }
-        }
-      );
+      await ctx.reply('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
     }
-  } catch (error) {
-    console.error('❌ Error en action de políticas:', error);
-    await ctx.answerCbQuery('❌ Error al abrir políticas. Intenta de nuevo.');
-  }
+  } catch (error) { console.error('❌ Error en action de políticas:', error); await ctx.answerCbQuery('❌ Error al abrir políticas.'); }
 });
 
-// Acción: FAQ (ya existente, la mantenemos)
 bot.action('faq', async (ctx) => {
   try {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-    
     await ctx.answerCbQuery('❓ Abriendo preguntas frecuentes...');
-    
-    await ctx.reply(
-      '❓ *PREGUNTAS FRECUENTES (FAQ)*\n\n' +
-      'Encuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\n' +
-      'Haz clic en el botón para abrir la sección de preguntas frecuentes:',
-      {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { 
-                text: '❓ VER PREGUNTAS FRECUENTES', 
-                web_app: { url: `${webappUrl}/faq.html` }
-              }
-            ],
-            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-          ]
-        }
+    await ctx.reply('❓ *PREGUNTAS FRECUENTES (FAQ)*\n\nEncuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\nHaz clic en el botón para abrir la sección de preguntas frecuentes:', {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '❓ VER PREGUNTAS FRECUENTES', web_app: { url: `${webappUrl}/faq.html` } }],
+          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+        ]
       }
-    );
-  } catch (error) {
-    console.error('❌ Error en action de FAQ:', error);
-    await ctx.answerCbQuery('❌ Error al abrir FAQ.');
-  }
+    });
+  } catch (error) { console.error('❌ Error en action de FAQ:', error); await ctx.answerCbQuery('❌ Error al abrir FAQ.'); }
 });
 
 // ==================== COMANDOS DEL BOT ====================
-
-// Comando /start con sistema de referido.
 
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
-    
     const startPayload = ctx.startPayload;
     let referrerId = null;
     let referrerUsername = null;
-    
     if (startPayload && startPayload.startsWith('ref')) {
         referrerId = startPayload.replace('ref', '');
         try {
             const referrer = await db.getUser(referrerId);
             if (referrer) referrerUsername = referrer.username;
-        } catch (error) {
-            console.error('Error obteniendo referidor:', error);
-        }
+        } catch (error) { console.error('Error obteniendo referidor:', error); }
         if (referrerId) {
-            try {
-                await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName);
-            } catch (refError) {
-                console.error('Error creando referido:', refError);
-            }
+            try { await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName); } catch (refError) { console.error('Error creando referido:', refError); }
         }
     }
-    
     try {
         const userData = {
             telegram_id: userId.toString(),
@@ -3407,514 +3078,126 @@ bot.start(async (ctx) => {
             created_at: new Date().toISOString(),
             is_active: true
         };
-        if (referrerId) {
-            userData.referrer_id = referrerId;
-            userData.referrer_username = referrerUsername;
-        }
+        if (referrerId) { userData.referrer_id = referrerId; userData.referrer_username = referrerUsername; }
         await db.saveUser(userId.toString(), userData);
-    } catch (error) {
-        console.error('Error guardando usuario:', error);
-    }
-    
-    // Eliminar teclado reply persistente (con texto no vacío)
-    await ctx.telegram.sendMessage(ctx.chat.id, '⌛', {
-        reply_markup: { remove_keyboard: true }
-    });
-    
-    // Construir menú principal
-    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
-    const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
-    const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
-
-    const inlineKeyboard = [
-        [
-            { text: "VER PLANES", icon_custom_emoji_id: "6005986106703613755", web_app: { url: plansUrl } },
-            { text: "MI PERFIL", icon_custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
-        ],
-        [
-            { text: "DESCARGAR WIREGUARD", icon_custom_emoji_id: "5899757765743615694", callback_data: "download_wireguard" },
-            { text: "SOPORTE", icon_custom_emoji_id: "6019320644422867543", callback_data: "show_support" }
-        ],
-        [
-            { text: "REFERIDOS", icon_custom_emoji_id: "5944970130554359187", callback_data: "referral_info" },
-            { text: "CÓMO FUNCIONA", icon_custom_emoji_id: "5873121512445187130", callback_data: "how_it_works" }
-        ],
-        [
-            { text: "VPN CANAL", icon_custom_emoji_id: "5771695636411847302", url: "https://t.me/vpncubaw" },
-            { text: "POLÍTICAS", icon_custom_emoji_id: "6021738534916854774", callback_data: "politicas" }
-        ],
-        [
-            { text: "WHATSAPP", icon_custom_emoji_id: "5884179047482659474", url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" },
-            { text: "FAQ", icon_custom_emoji_id: "5879501875341955281", callback_data: "faq" }
-        ]
-    ];
-
-    if (esAdmin) {
-        inlineKeyboard.push([
-            { text: "PANEL ADMIN", icon_custom_emoji_id: "5839116473951328489", web_app: { url: adminUrl } }
-        ]);
-    }
-
-    const welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
-        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-        `Conéctate con la mejor latencia para gaming y navegación.\n\n` +
-        (referrerId ? `👥 *¡Te invitó un amigo!*\nObtendrás beneficios especiales por ser referido.\n\n` : '') +
-        (esAdmin ? `🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n` : '') +
-        `*Selecciona una opción:*`;
-
-    // Enviar con API cruda
+    } catch (error) { console.error('Error guardando usuario:', error); }
+    await ctx.telegram.sendMessage(ctx.chat.id, '⌛', { reply_markup: { remove_keyboard: true } });
+    const keyboard = buildMainMenuKeyboard(userId.toString(), firstName, esAdmin);
+    const welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nConéctate con la mejor latencia para gaming y navegación.\n\n${referrerId ? '👥 *¡Te invitó un amigo!*\nObtendrás beneficios especiales por ser referido.\n\n' : ''}${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}*Selecciona una opción:*`;
     await bot.telegram.callApi('sendMessage', {
         chat_id: ctx.chat.id,
         text: welcomeMessage,
         parse_mode: 'Markdown',
-        reply_markup: { inline_keyboard: inlineKeyboard }
+        ...keyboard
     });
 });
-   
-// Mantener los handlers de texto para compatibilidad con el menú anterior
+
+// Handler de texto (se mantiene igual, solo adaptado)
 bot.on('text', async (ctx) => {
     const text = ctx.message.text;
     const userId = ctx.from.id.toString();
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
-    
     console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
-    
-    // Opción: ⎙ VER PLANES
     if (text === '📁 VER PLANES') {
         const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-        await ctx.reply(
-            `📋 *NUESTROS PLANES* 🚀\n\n` +
-            `*PRUEBA GRATIS (1 hora)*\n` +
-            `💵 $0 CUP\n` +
-            `🎁 ¡Prueba completamente gratis!\n\n` +
-            `*BÁSICO (1 mes)*\n` +
-            `💵 $800 CUP\n` +
-            `💰 1.6 USDT\n\n` +
-            `*AVANZADO (2 meses)*\n` +
-            `💵 $1,300 CUP\n` +
-            `💰 2.7 USDT\n` +
-            `🎯 ¡Recomendado!\n\n` +
-            `*PREMIUM (1 mes)*\n` +
-            `💵 $1,200 CUP\n` +
-            `💰 2.5 USDT\n` +
-            `👑 Servidor privado\n\n` +
-            `*ANUAL (12 meses)*\n` +
-            `💵 $15,000 CUP\n` +
-            `💰 30 USDT\n` +
-            `🏆 ¡El mejor valor!\n\n` +
-            `Puedes ver los planes y adquirirlos en la web:`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🚀 ABRIR WEB DE PLANES', web_app: { url: webappUrl } }],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
-    }
-    
-    // Opción: ♕ MI ESTADO (compatibilidad con nombre anterior)
-    else if (text === '👑 MI ESTADO') {
-        // Llamar a la acción check_status
+        await ctx.reply(`📋 *NUESTROS PLANES* 🚀\n\n*PRUEBA GRATIS (1 hora)*\n💵 $0 CUP\n🎁 ¡Prueba completamente gratis!\n\n*BÁSICO (1 mes)*\n💵 $800 CUP\n💰 1.6 USDT\n\n*AVANZADO (2 meses)*\n💵 $1,300 CUP\n💰 2.7 USDT\n🎯 ¡Recomendado!\n\n*PREMIUM (1 mes)*\n💵 $1,200 CUP\n💰 2.5 USDT\n👑 Servidor privado\n\n*ANUAL (12 meses)*\n💵 $15,000 CUP\n💰 30 USDT\n🏆 ¡El mejor valor!\n\nPuedes ver los planes y adquirirlos en la web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 ABRIR WEB DE PLANES', web_app: { url: webappUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+    } else if (text === '👑 MI ESTADO') {
         await ctx.answerCbQuery();
-        // Simular la acción
         await checkStatusHandler(ctx, userId);
-    }
-    
-    // Opción: ☄ DESCARGAR WIREGUARD
-    else if (text === '💻 DESCARGAR WIREGUARD') {
-        await ctx.reply(
-            `💻 *DESCARGAR WIREGUARD* 📱\n\n` +
-            `*Para Windows*\n` +
-            `Aplicación Oficial de WireGuard para Windows:\n` +
-            `Enlace: https://www.wireguard.com/install/\n\n` +
-            `*Para Android*\n` +
-            `Aplicación Oficial de WireGuard en Google Play Store:\n` +
-            `Enlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
-            `*Selecciona tu sistema operativo:*`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' },
-                            { text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }
-                        ],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
-    }
-    
-    // Opción: ☏ SOPORTE
-    else if (text === '🆘 SOPORTE') {
-        await ctx.reply(
-            `🆘 *SOPORTE TÉCNICO*\n\n` +
-            `Para cualquier duda o problema, contacta con nuestro soporte:\n\n` +
-            `👉 @L0quen2\n` +
-            `👉 @ErenJeager129182\n\n` +
-            `Responde rápido y te ayudaremos.`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: '💬 IR AL SOPORTE (L0quen2)', url: 'https://t.me/L0quen2' },
-                            { text: '💬 IR AL SOPORTE (Eren)', url: 'https://t.me/ErenJeager129182' }
-                        ],
-                        [
-                            { text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }
-                        ],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
-    }
-
-    // Opción: ♻️ REFERIDOS
-    else if (text === '♻️ REFERIDOS') {
+    } else if (text === '💻 DESCARGAR WIREGUARD') {
+        await ctx.reply(`💻 *DESCARGAR WIREGUARD* 📱\n\n*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n*Selecciona tu sistema operativo:*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' },{ text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+    } else if (text === '🆘 SOPORTE') {
+        await ctx.reply(`🆘 *SOPORTE TÉCNICO*\n\nPara cualquier duda o problema, contacta con nuestro soporte:\n\n👉 @L0quen2\n👉 @ErenJeager129182\n\nResponde rápido y te ayudaremos.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💬 IR AL SOPORTE (L0quen2)', url: 'https://t.me/L0quen2' },{ text: '💬 IR AL SOPORTE (Eren)', url: 'https://t.me/ErenJeager129182' }],[{ text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+    } else if (text === '♻️ REFERIDOS') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-        
         try {
             const user = await db.getUser(userId);
             let referralStats = null;
-            
-            if (user) {
-                try {
-                    referralStats = await db.getReferralStats(userId);
-                } catch (statsError) {
-                    console.error('❌ Error obteniendo estadísticas de referidos:', statsError);
-                }
-            }
-            
-            let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n`;
-            message += `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n`;
-            message += `*Tu enlace único:*\n\`${referralLink}\`\n\n`;
-            message += `*Cómo funciona:*\n`;
-            message += `1. Comparte este enlace con amigos\n`;
-            message += `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n`;
-            message += `3. Por cada referido que pague un plan, obtienes un descuento:\n`;
-            message += `   • Nivel 1 (referido directo): 20% de descuento\n`;
-            message += `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-            
+            if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
+            let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n*Tu enlace único:*\n\`${referralLink}\`\n\n*Cómo funciona:*\n1. Comparte este enlace con amigos\n2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n3. Por cada referido que pague un plan, obtienes un descuento:\n   • Nivel 1 (referido directo): 20% de descuento\n   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
             if (referralStats) {
-                message += `*Tus estadísticas:*\n`;
-                message += `• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n`;
-                message += `• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n`;
-                message += `• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
-            } else {
-                message += `*Tus estadísticas:*\n`;
-                message += `• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
-            }
-            
+                message += `*Tus estadísticas:*\n• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
+            } else { message += `*Tus estadísticas:*\n• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`; }
             message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
-            
-            await ctx.reply(
-                message,
-                {
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-                            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                        ]
-                    }
-                }
-            );
+            await ctx.reply(message, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
         } catch (error) {
             console.error('❌ Error en handler de referidos:', error);
-            
-            await ctx.reply(
-                `🤝 *SISTEMA DE REFERIDOS*\n\n` +
-                `Tu enlace de referido:\n\`${referralLink}\`\n\n` +
-                `Comparte este enlace con tus amigos y obtén descuentos.\n\n` +
-                `*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`,
-                {
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-                            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                        ]
-                    }
-                }
-            );
+            await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.\n\n*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
         }
-    }
-    
-    // Opción: ✎ CÓMO FUNCIONA
-    else if (text === '❓ CÓMO FUNCIONA') {
-        await ctx.reply(
-            `🚀 *¡OPTIMIZA TU CONEXIÓN AL MÁXIMO NIVEL!*\n\n` +
-            `Nuestras configuraciones Wireguard crean un túnel ultra rápido y directo hacia los servidores del juego, eliminando los saltos innecesarios que causan el lag. ⚡\n\n` +
-            `*¿Cómo lo logramos?*\n\n` +
-            `1️⃣ *Rutas VIP*: Tu tráfico viaja por una 'vía rápida' privada, evitando la saturación de tu proveedor de internet.\n` +
-            `2️⃣ *Tecnología Wireguard*: Es el protocolo más veloz del mundo; procesa datos casi al instante sin calentar tu celular.\n\n` +
-            `⚠️ *REQUISITO IMPORTANTE:*\n` +
-            `Para que esta configuración haga su magia, necesitas tener una conexión a internet estable. 📶\n` +
-            `Wireguard optimiza y estabiliza tu ping, pero no puede arreglar un internet que se desconecta o que tiene una velocidad base excesivamente baja.\n\n` +
-            `Si tu internet es decente pero el juego te va mal, ¡nosotros somos la pieza que te falta para llegar a los 50-70ms constantes! 🏎️💨\n\n` +
-            `¡Mejora tu respuesta en las Teamfights hoy mismo! Dale al botón de Ver planes y elige tu plan.`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
-    }
-    
-    // Opción: ❏ VPN CANAL
-    else if (text === '🔈 VPN CANAL') {
-        await ctx.reply(
-            `📢 *CANAL OFICIAL DE VPN CUBA*\n\n` +
-            `Únete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n` +
-            `👉 https://t.me/vpncubaw`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '📢 IR AL CANAL', url: 'https://t.me/vpncubaw' }],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
-    }
-    
-    // Opción: 📲 WHATSAPP
-    else if (text === '📲 WHATSAPP') {
+    } else if (text === '❓ CÓMO FUNCIONA') {
+        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+        await ctx.reply('🚀 *¿CÓMO FUNCIONA VPN CUBA?*\n\nDescubre cómo optimizamos tu conexión para gaming y navegación.\n\nHaz clic en el botón para ver la guía completa en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔍 VER GUÍA COMPLETA', web_app: { url: `${webappUrl}/how.html` } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+    } else if (text === '🔈 VPN CANAL') {
+        await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n👉 https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📢 IR AL CANAL', url: 'https://t.me/vpncubaw' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+    } else if (text === '📲 WHATSAPP') {
         try {
-            await ctx.reply(
-                '📱 *GRUPO DE WHATSAPP*\n\n' +
-                'Únete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n' +
-                '👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)',
-                {
-                    parse_mode: 'Markdown',
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: '📱 ABRIR WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }],
-                            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                        ]
-                    }
-                }
-            );
-        } catch (error) {
-            console.error('❌ Error en handler de WhatsApp:', error);
-            await ctx.reply('❌ Error al abrir WhatsApp. Intenta más tarde o contacta a soporte.');
-        }
-    }
-    
-    // Opción: 📜 Politicas
-    else if (text === '📜 Politicas') {
+            await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📱 ABRIR WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        } catch (error) { console.error('❌ Error en handler de WhatsApp:', error); await ctx.reply('❌ Error al abrir WhatsApp. Intenta más tarde o contacta a soporte.'); }
+    } else if (text === '📜 Politicas') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        
-        const inlineKeyboard = [
-            [
-                { 
-                    text: '📜 TÉRMINOS DE SERVICIO', 
-                    web_app: { url: `${webappUrl}/politicas.html?section=terminos` }
-                }
-            ],
-            [
-                { 
-                    text: '💳 POLÍTICA DE REEMBOLSO', 
-                    web_app: { url: `${webappUrl}/politicas.html?section=reembolso` }
-                }
-            ],
-            [
-                { 
-                    text: '🔒 POLÍTICA DE PRIVACIDAD', 
-                    web_app: { url: `${webappUrl}/politicas.html?section=privacidad` }
-                }
-            ],
-            [
-                { text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }
-            ]
-        ];
-
-        await ctx.reply(
-            '📜 *Políticas de VPN Cuba*\n\n' +
-            'Selecciona una sección para ver los detalles completos en nuestra Web App:',
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: inlineKeyboard
-                }
-            }
-        );
-    }
-    
-    // Opción: ❓ FAQ
-    else if (text === '❓ FAQ') {
+        const inlineKeyboard = [[{ text: '📜 TÉRMINOS DE SERVICIO', web_app: { url: `${webappUrl}/politicas.html?section=terminos` } }],[{ text: '💳 POLÍTICA DE REEMBOLSO', web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } }],[{ text: '🔒 POLÍTICA DE PRIVACIDAD', web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]];
+        await ctx.reply('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
+    } else if (text === '❓ FAQ') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        
-        await ctx.reply(
-            '❓ *PREGUNTAS FRECUENTES (FAQ)*\n\n' +
-            'Encuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\n' +
-            'Haz clic en el botón para abrir la sección de preguntas frecuentes:',
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { 
-                                text: '❓ VER PREGUNTAS FRECUENTES', 
-                                web_app: { url: `${webappUrl}/faq.html` }
-                            }
-                        ],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
-    }
-    
-    // Opción: ⌨ PANEL ADMIN (solo admin)
-    else if (text === '⌨ PANEL ADMIN' && esAdmin) {
+        await ctx.reply('❓ *PREGUNTAS FRECUENTES (FAQ)*\n\nEncuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\nHaz clic en el botón para abrir la sección de preguntas frecuentes:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❓ VER PREGUNTAS FRECUENTES', web_app: { url: `${webappUrl}/faq.html` } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+    } else if (text === '⌨ PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-        await ctx.reply(
-            `🔧 *PANEL DE ADMINISTRACIÓN*\n\n` +
-            `Haz clic para abrir el panel web:`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🔧 ABRIR PANEL WEB', web_app: { url: adminUrl } }],
-                        [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-                    ]
-                }
-            }
-        );
+        await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔧 ABRIR PANEL WEB', web_app: { url: adminUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
     }
-    
-    // Si no coincide con ninguna opción, ignoramos (o podríamos mostrar un mensaje de ayuda)
 });
 
-// Función auxiliar para manejar check_status desde el handler de texto
 async function checkStatusHandler(ctx, userId) {
   try {
     const user = await db.getUser(userId);
-    
-    if (!user) {
-      await ctx.reply(
-        `❌ *NO ESTÁS REGISTRADO*\n\n` +
-        `Usa el botón "VER PLANES" para registrarte y comenzar.`,
-        { parse_mode: 'Markdown' }
-      );
-      return;
-    }
-    
+    if (!user) { await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' }); return; }
     if (user?.vip) {
       const vipSince = formatearFecha(user.vip_since);
       const diasRestantes = calcularDiasRestantes(user);
       const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-      
-      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n`;
-      mensajeEstado += `📅 *Activado:* ${vipSince}\n`;
-      mensajeEstado += `📋 *Plan:* ${planNombre}\n`;
-      mensajeEstado += `⏳ *Días restantes:* ${diasRestantes} días\n`;
-      mensajeEstado += `💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-      
-      if (diasRestantes <= 7) {
-        mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\n`;
-        mensajeEstado += `Renueva ahora para mantener tu acceso VIP.\n\n`;
-      } else {
-        mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
-      }
-      
+      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n📅 *Activado:* ${vipSince}\n📋 *Plan:* ${planNombre}\n⏳ *Días restantes:* ${diasRestantes} días\n💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
+      if (diasRestantes <= 7) mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\nRenueva ahora para mantener tu acceso VIP.\n\n`;
+      else mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(
-        mensajeEstado,
-        { 
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
-              [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-            ]
-          }
-        }
-      );
+      await ctx.reply(mensajeEstado, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
     } else {
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(
-        `❌ *NO ERES USUARIO VIP*\n\n` +
-        `Actualmente no tienes acceso a los servicios premium.\n\n` +
-        `Haz clic en el botón para ver nuestros planes.`,
-        {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
-              [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
-            ]
-          }
-        }
-      );
+      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
     }
-  } catch (error) {
-    console.error('❌ Error en checkStatusHandler:', error);
-    await ctx.reply(`❌ Error al verificar tu estado.`);
-  }
+  } catch (error) { console.error('❌ Error en checkStatusHandler:', error); await ctx.reply(`❌ Error al verificar tu estado.`); }
 }
 
 // ==================== CONFIGURACIÓN DEL WEBHOOK ====================
+app.post('/webhook', (req, res) => { bot.handleUpdate(req.body, res); });
 
-// Ruta para recibir actualizaciones de Telegram
-app.post('/webhook', (req, res) => {
-    // Pasar la solicitud al bot para que la procese
-    bot.handleUpdate(req.body, res);
-});
-
-// Función para establecer el webhook
 async function setWebhook() {
-    const webhookUrl = `${process.env.WEBAPP_URL}/webhook`; // Usamos la misma URL base de la webapp
+    const webhookUrl = `${process.env.WEBAPP_URL}/webhook`;
     try {
         await bot.telegram.setWebhook(webhookUrl);
         console.log(`✅ Webhook establecido en: ${webhookUrl}`);
-        
-        // Obtener información del webhook para verificar
         const webhookInfo = await bot.telegram.getWebhookInfo();
         console.log(`📡 Información del webhook:`, webhookInfo);
     } catch (error) {
         console.error('❌ Error estableciendo webhook:', error);
-        // Si falla, intentar con polling como fallback
         console.log('⚠️ Usando polling como fallback...');
         await bot.launch();
     }
 }
 
 // ==================== SERVIDOR ====================
-
 app.listen(PORT, async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
-    console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`👑 Admins configurados: ${ADMIN_IDS.join(', ')}`);
-    
-    console.log('🔍 Verificando buckets de almacenamiento...');
+    console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅' : '❌'}`);
+    console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
+    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅' : '❌'}`);
+    console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅' : '❌'}`);
+    console.log(`👑 Admins: ${ADMIN_IDS.join(', ')}`);
     await verifyStorageBuckets();
-    
-    console.log('📦 Inicializando buckets de almacenamiento...');
     await initializeStorageBuckets();
-    
-    console.log('💸 Inicializando sistema USDT en modo MANUAL...');
     await initializeUsdtSystem();
-    
     await setWebhook();
-    
     try {
-        const commands = [
+        await bot.telegram.setMyCommands([
             { command: 'start', description: 'Iniciar el bot' },
             { command: 'help', description: 'Mostrar ayuda' },
             { command: 'referidos', description: 'Obtener enlace de referidos' },
@@ -3922,67 +3205,32 @@ app.listen(PORT, async () => {
             { command: 'trialstatus', description: 'Ver estado de prueba gratuita' },
             { command: 'admin', description: 'Panel de administración (solo admins)' },
             { command: 'enviar', description: 'Enviar configuración (solo admins)' }
-        ];
-        
-        await bot.telegram.setMyCommands(commands);
+        ]);
         console.log('📝 Comandos del bot configurados');
-    } catch (error) {
-        console.error('❌ Error configurando comandos:', error);
-    }
-
+    } catch (error) { console.error('❌ Error configurando comandos:', error); }
     startKeepAlive();
-    
     console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
-    console.log(`📊 Estadísticas completas: /api/stats`);
+    console.log(`📊 Estadísticas: /api/stats`);
     console.log(`🎫 Sistema de cupones: Habilitado`);
-    console.log(`💰 Sistema USDT: MODO MANUAL`);
-    console.log(`   • Dirección: ${USDT_CONFIG.WALLET_ADDRESS}`);
-    console.log(`   • Verificación: DESACTIVADA - Flujo manual`);
-    console.log(`   • Todos los pagos requieren captura`);
+    console.log(`💰 Sistema USDT: MODO MANUAL - Captura requerida`);
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: DESACTIVADO - Envío manual`);
-    console.log(`📦 Buckets de almacenamiento: Verificados`);
-    console.log(`👤 Sistema mejorado de envío: Usuarios inactivos marcados automáticamente`);
 });
 
-// Manejar errores no capturados
-process.on('uncaughtException', async (error) => {
-    console.error('❌ Error no capturado:', error);
-});
-
-process.on('unhandledRejection', async (reason, promise) => {
-    console.error('❌ Promesa rechazada no manejada:', reason);
-});
-
-process.on('SIGINT', () => {
-    console.log('\n👋 Cerrando aplicación...');
-    bot.telegram.deleteWebhook().catch(() => {});
-    process.exit(0);
-});
+process.on('uncaughtException', async (error) => { console.error('❌ Error no capturado:', error); });
+process.on('unhandledRejection', async (reason, promise) => { console.error('❌ Promesa rechazada no manejada:', reason); });
+process.on('SIGINT', () => { console.log('\n👋 Cerrando...'); bot.telegram.deleteWebhook().catch(() => {}); process.exit(0); });
 
 function startKeepAlive() {
     const keepAliveInterval = 4 * 60 * 1000;
     const healthCheckUrl = `http://localhost:${PORT}/api/health`;
-
     setInterval(async () => {
         try {
             const response = await fetch(healthCheckUrl);
-            if (response.ok) {
-                console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
-            }
-        } catch (error) {
-            console.error('❌ Error en keep-alive ping:', error.message);
-        }
+            if (response.ok) console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
+        } catch (error) { console.error('❌ Error en keep-alive ping:', error.message); }
     }, keepAliveInterval);
-
     console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
 }
 
-module.exports = {
-    app,
-    isAdmin,
-    ADMIN_IDS,
-    initializeStorageBuckets,
-    initializeUsdtSystem,
-    sendTrialToValidUsers
-};
+module.exports = { app, isAdmin, ADMIN_IDS, initializeStorageBuckets, initializeUsdtSystem, sendTrialToValidUsers };

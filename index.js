@@ -61,6 +61,33 @@ async function canSendMessageToUser(telegramId) {
     }
 }
 
+// ==================== MAPA DE ICONOS PERSONALIZADOS ====================
+// Asocia el texto del botón (en mayúsculas) con el ID del emoji personalizado
+const BUTTON_ICONS = {
+    'VER PLANES': '6030664675253820292',
+    'MI PERFIL': '6021659919835469581',
+    'DESCARGAR WIREGUARD': '5899757765743615694',
+    'SOPORTE': '6019320644422867543',
+    'REFERIDOS': '5944970130554359187',
+    'CÓMO FUNCIONA': '5873121512445187130',
+    'VPN CANAL': '5771695636411847302',
+    'POLÍTICAS': '6021738534916854774',
+    'WHATSAPP': '5884179047482659474',
+    'FAQ': '5879501875341955281',
+    'PANEL ADMIN': '5839116473951328489'
+};
+
+// Función auxiliar para crear un botón inline con icono si existe
+function createButton(text, options) {
+    const button = { text };
+    const iconId = BUTTON_ICONS[text.toUpperCase()];
+    if (iconId) {
+        button.icon_custom_emoji_id = iconId;
+    }
+    Object.assign(button, options);
+    return button;
+}
+
 // ==================== FUNCIÓN PARA CONSTRUIR EL MENÚ PRINCIPAL ====================
 function buildMainMenuKeyboard(userId, firstName, esAdmin) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
@@ -69,30 +96,30 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin) {
 
     const inlineKeyboard = [
         [
-            { text: "VER PLANES", icon_custom_emoji_id: "6030664675253820292", web_app: { url: plansUrl } },
-            { text: "MI PERFIL", icon_custom_emoji_id: "6021659919835469581", callback_data: "check_status" }
+            createButton("VER PLANES", { web_app: { url: plansUrl } }),
+            createButton("MI PERFIL", { callback_data: "check_status" })
         ],
         [
-            { text: "DESCARGAR WIREGUARD", icon_custom_emoji_id: "5899757765743615694", callback_data: "download_wireguard" },
-            { text: "SOPORTE", icon_custom_emoji_id: "6019320644422867543", callback_data: "show_support" }
+            createButton("DESCARGAR WIREGUARD", { callback_data: "download_wireguard" }),
+            createButton("SOPORTE", { callback_data: "show_support" })
         ],
         [
-            { text: "REFERIDOS", icon_custom_emoji_id: "5944970130554359187", callback_data: "referral_info" },
-            { text: "CÓMO FUNCIONA", icon_custom_emoji_id: "5873121512445187130", callback_data: "how_it_works" }
+            createButton("REFERIDOS", { callback_data: "referral_info" }),
+            createButton("CÓMO FUNCIONA", { callback_data: "how_it_works" })
         ],
         [
-            { text: "VPN CANAL", icon_custom_emoji_id: "5771695636411847302", url: "https://t.me/vpncubaw" },
-            { text: "POLÍTICAS", icon_custom_emoji_id: "6021738534916854774", callback_data: "politicas" }
+            createButton("VPN CANAL", { url: "https://t.me/vpncubaw" }),
+            createButton("POLÍTICAS", { callback_data: "politicas" })
         ],
         [
-            { text: "WHATSAPP", icon_custom_emoji_id: "5884179047482659474", url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" },
-            { text: "FAQ", icon_custom_emoji_id: "5879501875341955281", callback_data: "faq" }
+            createButton("WHATSAPP", { url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" }),
+            createButton("FAQ", { callback_data: "faq" })
         ]
     ];
 
     if (esAdmin) {
         inlineKeyboard.push([
-            { text: "PANEL ADMIN", icon_custom_emoji_id: "5839116473951328489", web_app: { url: adminUrl } }
+            createButton("PANEL ADMIN", { web_app: { url: adminUrl } })
         ]);
     }
 
@@ -2860,9 +2887,9 @@ bot.action('show_support', async (ctx) => {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '💬 IR AL SOPORTE (L0quen2)', url: 'https://t.me/L0quen2' }, { text: '💬 IR AL SOPORTE (Eren)', url: 'https://t.me/ErenJeager129182' }],
-            [{ text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }],
-            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+            [createButton("CEO", { url: 'https://t.me/L0quen2' }), createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],
+            [createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })],
+            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
       }
@@ -2892,8 +2919,8 @@ bot.action('check_status', async (ctx) => {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
-            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+            [createButton("VER PLANES", { web_app: { url: webappUrl } })],
+            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
       });
@@ -2903,8 +2930,8 @@ bot.action('check_status', async (ctx) => {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],
-            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+            [createButton("VER PLANES", { web_app: { url: webappUrl } })],
+            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
       });
@@ -2921,8 +2948,8 @@ bot.action('download_wireguard', async (ctx) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' }, { text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }],
-          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+          [createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }), createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],
+          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
         ]
       }
     }
@@ -2948,8 +2975,8 @@ bot.action('referral_info', async (ctx) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+          [createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],
+          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
         ]
       }
     });
@@ -2960,15 +2987,14 @@ bot.action('referral_info', async (ctx) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],
-          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+          [createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],
+          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
         ]
       }
     });
   }
 });
 
-// *** ACCIÓN CÓMO FUNCIONA MODIFICADA PARA USAR WEB APP ***
 bot.action('how_it_works', async (ctx) => {
   try {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
@@ -2979,8 +3005,8 @@ bot.action('how_it_works', async (ctx) => {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '🔍 VER GUÍA COMPLETA', web_app: { url: `${webappUrl}/how.html` } }],
-            [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+            [createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],
+            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
       }
@@ -2991,9 +3017,8 @@ bot.action('how_it_works', async (ctx) => {
   }
 });
 
-// *** ACCIÓN MENÚ PRINCIPAL CORREGIDA ***
 bot.action('main_menu', async (ctx) => {
-  await ctx.answerCbQuery(); // Confirmación del callback
+  await ctx.answerCbQuery();
   const userId = ctx.from.id.toString();
   const firstName = ctx.from.first_name;
   const esAdmin = isAdmin(userId);
@@ -3021,10 +3046,10 @@ bot.action('politicas', async (ctx) => {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
     await ctx.answerCbQuery('📜 Abriendo políticas del servicio...');
     const inlineKeyboard = [
-      [{ text: '📜 TÉRMINOS DE SERVICIO', web_app: { url: `${webappUrl}/politicas.html?section=terminos` } }],
-      [{ text: '💳 POLÍTICA DE REEMBOLSO', web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } }],
-      [{ text: '🔒 POLÍTICA DE PRIVACIDAD', web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } }],
-      [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+      [createButton("TÉRMINOS DE SERVICIO", { web_app: { url: `${webappUrl}/politicas.html?section=terminos` } })],
+      [createButton("POLÍTICA DE REEMBOLSO", { web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } })],
+      [createButton("POLÍTICA DE PRIVACIDAD", { web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } })],
+      [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
     ];
     if (ctx.callbackQuery.message) {
       await ctx.editMessageText('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
@@ -3042,8 +3067,8 @@ bot.action('faq', async (ctx) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '❓ VER PREGUNTAS FRECUENTES', web_app: { url: `${webappUrl}/faq.html` } }],
-          [{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]
+          [createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],
+          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
         ]
       }
     });
@@ -3101,14 +3126,14 @@ bot.on('text', async (ctx) => {
     console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
     if (text === '📁 VER PLANES') {
         const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-        await ctx.reply(`📋 *NUESTROS PLANES* 🚀\n\n*PRUEBA GRATIS (1 hora)*\n💵 $0 CUP\n🎁 ¡Prueba completamente gratis!\n\n*BÁSICO (1 mes)*\n💵 $800 CUP\n💰 1.6 USDT\n\n*AVANZADO (2 meses)*\n💵 $1,300 CUP\n💰 2.7 USDT\n🎯 ¡Recomendado!\n\n*PREMIUM (1 mes)*\n💵 $1,200 CUP\n💰 2.5 USDT\n👑 Servidor privado\n\n*ANUAL (12 meses)*\n💵 $15,000 CUP\n💰 30 USDT\n🏆 ¡El mejor valor!\n\nPuedes ver los planes y adquirirlos en la web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 ABRIR WEB DE PLANES', web_app: { url: webappUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply(`📋 *NUESTROS PLANES* 🚀\n\n*PRUEBA GRATIS (1 hora)*\n💵 $0 CUP\n🎁 ¡Prueba completamente gratis!\n\n*BÁSICO (1 mes)*\n💵 $800 CUP\n💰 1.6 USDT\n\n*AVANZADO (2 meses)*\n💵 $1,300 CUP\n💰 2.7 USDT\n🎯 ¡Recomendado!\n\n*PREMIUM (1 mes)*\n💵 $1,200 CUP\n💰 2.5 USDT\n👑 Servidor privado\n\n*ANUAL (12 meses)*\n💵 $15,000 CUP\n💰 30 USDT\n🏆 ¡El mejor valor!\n\nPuedes ver los planes y adquirirlos en la web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '👑 MI ESTADO') {
         await ctx.answerCbQuery();
         await checkStatusHandler(ctx, userId);
     } else if (text === '💻 DESCARGAR WIREGUARD') {
-        await ctx.reply(`💻 *DESCARGAR WIREGUARD* 📱\n\n*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n*Selecciona tu sistema operativo:*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💻 WINDOWS', url: 'https://www.wireguard.com/install/' },{ text: '📱 ANDROID', url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply(`💻 *DESCARGAR WIREGUARD* 📱\n\n*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n*Selecciona tu sistema operativo:*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🆘 SOPORTE') {
-        await ctx.reply(`🆘 *SOPORTE TÉCNICO*\n\nPara cualquier duda o problema, contacta con nuestro soporte:\n\n👉 @L0quen2\n👉 @ErenJeager129182\n\nResponde rápido y te ayudaremos.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💬 IR AL SOPORTE (L0quen2)', url: 'https://t.me/L0quen2' },{ text: '💬 IR AL SOPORTE (Eren)', url: 'https://t.me/ErenJeager129182' }],[{ text: '💬 IR AL SOPORTE WHATSAPP', url: 'https://wa.me/message/3LUGXYGD55UBO1' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply(`🆘 *SOPORTE TÉCNICO*\n\nPara cualquier duda o problema, contacta con nuestro soporte:\n\n👉 @L0quen2\n👉 @ErenJeager129182\n\nResponde rápido y te ayudaremos.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("CEO", { url: 'https://t.me/L0quen2' }),createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],[createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '♻️ REFERIDOS') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         try {
@@ -3120,30 +3145,30 @@ bot.on('text', async (ctx) => {
                 message += `*Tus estadísticas:*\n• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
             } else { message += `*Tus estadísticas:*\n• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`; }
             message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
-            await ctx.reply(message, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+            await ctx.reply(message, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         } catch (error) {
             console.error('❌ Error en handler de referidos:', error);
-            await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.\n\n*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 COPIAR ENLACE', callback_data: 'copy_referral_link' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+            await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.\n\n*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         }
     } else if (text === '❓ CÓMO FUNCIONA') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply('🚀 *¿CÓMO FUNCIONA VPN CUBA?*\n\nDescubre cómo optimizamos tu conexión para gaming y navegación.\n\nHaz clic en el botón para ver la guía completa en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔍 VER GUÍA COMPLETA', web_app: { url: `${webappUrl}/how.html` } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply('🚀 *¿CÓMO FUNCIONA VPN CUBA?*\n\nDescubre cómo optimizamos tu conexión para gaming y navegación.\n\nHaz clic en el botón para ver la guía completa en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🔈 VPN CANAL') {
-        await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n👉 https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📢 IR AL CANAL', url: 'https://t.me/vpncubaw' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n👉 https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("IR AL CANAL", { url: 'https://t.me/vpncubaw' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '📲 WHATSAPP') {
         try {
-            await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📱 ABRIR WHATSAPP', url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+            await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WHATSAPP", { url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         } catch (error) { console.error('❌ Error en handler de WhatsApp:', error); await ctx.reply('❌ Error al abrir WhatsApp. Intenta más tarde o contacta a soporte.'); }
     } else if (text === '📜 Politicas') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        const inlineKeyboard = [[{ text: '📜 TÉRMINOS DE SERVICIO', web_app: { url: `${webappUrl}/politicas.html?section=terminos` } }],[{ text: '💳 POLÍTICA DE REEMBOLSO', web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } }],[{ text: '🔒 POLÍTICA DE PRIVACIDAD', web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]];
+        const inlineKeyboard = [[createButton("TÉRMINOS DE SERVICIO", { web_app: { url: `${webappUrl}/politicas.html?section=terminos` } })],[createButton("POLÍTICA DE REEMBOLSO", { web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } })],[createButton("POLÍTICA DE PRIVACIDAD", { web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]];
         await ctx.reply('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
     } else if (text === '❓ FAQ') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply('❓ *PREGUNTAS FRECUENTES (FAQ)*\n\nEncuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\nHaz clic en el botón para abrir la sección de preguntas frecuentes:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❓ VER PREGUNTAS FRECUENTES', web_app: { url: `${webappUrl}/faq.html` } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply('❓ *PREGUNTAS FRECUENTES (FAQ)*\n\nEncuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\nHaz clic en el botón para abrir la sección de preguntas frecuentes:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '⌨ PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-        await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔧 ABRIR PANEL WEB', web_app: { url: adminUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+        await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", { web_app: { url: adminUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     }
 });
 
@@ -3159,10 +3184,10 @@ async function checkStatusHandler(ctx, userId) {
       if (diasRestantes <= 7) mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\nRenueva ahora para mantener tu acceso VIP.\n\n`;
       else mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(mensajeEstado, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+      await ctx.reply(mensajeEstado, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else {
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '📋 VER PLANES', web_app: { url: webappUrl } }],[{ text: '🏠 MENÚ PRINCIPAL', callback_data: 'main_menu' }]] } });
+      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     }
   } catch (error) { console.error('❌ Error en checkStatusHandler:', error); await ctx.reply(`❌ Error al verificar tu estado.`); }
 }

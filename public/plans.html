@@ -292,7 +292,6 @@
       font-weight:1000;
       letter-spacing:-.05em;
       line-height:1;
-      background:linear-gradient(135deg, #ffffff 0%, #dfe7ff 40%, var(--blue) 100%);
       -webkit-background-clip:text;
       background-clip:text;
       -webkit-text-fill-color:transparent;
@@ -300,7 +299,6 @@
 
     .usdt{
       margin-top:6px;
-      color:var(--gold);
       font-size:.95rem;
       font-weight:700;
     }
@@ -325,9 +323,7 @@
       color:#fff;
     }
 
-    .chip.soft{
-      color:var(--gold);
-    }
+    .chip.soft{ color:var(--gold); }
 
     .savings{
       margin:10px 0 14px;
@@ -411,16 +407,23 @@
       transform:none;
     }
 
+    /* Trial */
     .trial .tag::before{background:rgba(59,130,246,.80)}
     .trial .action{background:linear-gradient(135deg,#3b82f6,#2563eb)}
     .trial .feature i{color:#60a5fa}
     .trial .tag{box-shadow:0 0 18px rgba(59,130,246,.18), inset 0 0 16px rgba(59,130,246,.06)}
+    .trial .cup{background:linear-gradient(135deg, #ffffff 0%, #dfe7ff 40%, #3b82f6 100%);}
 
+    /* Basic */
     .basic .tag::before{background:rgba(95,125,255,.80)}
     .basic .action{background:linear-gradient(135deg,var(--blue),#3a5fcf)}
     .basic .feature i{color:var(--blue)}
     .basic .tag{box-shadow:0 0 18px rgba(95,125,255,.18), inset 0 0 16px rgba(95,125,255,.06)}
+    .basic .cup{background:linear-gradient(135deg, #ffffff 0%, #dfe7ff 40%, var(--blue) 100%);}
+    .basic .usdt{ color: var(--blue); }
+    .basic .usdt strong{ color: var(--blue); }
 
+    /* Advanced */
     .advanced .tag{
       background:rgba(255,217,102,.12);
       color:#0c0f14;
@@ -429,12 +432,20 @@
     .advanced .action{background:linear-gradient(135deg,var(--gold),#d4af37); color:#0b0d10}
     .advanced .feature i{color:var(--gold)}
     .advanced .tag{box-shadow:0 0 18px rgba(255,217,102,.18), inset 0 0 16px rgba(255,217,102,.08)}
+    .advanced .cup{background:linear-gradient(135deg, #ffffff 0%, #fff2bf 40%, var(--gold) 100%);}
+    .advanced .usdt{ color: var(--gold); }
+    .advanced .usdt strong{ color: var(--gold); }
 
+    /* Premium */
     .premium .tag::before{background:rgba(255,77,77,.84)}
     .premium .action{background:linear-gradient(135deg,var(--red),#cc0000)}
     .premium .feature i{color:var(--red)}
     .premium .tag{box-shadow:0 0 18px rgba(255,77,77,.18), inset 0 0 16px rgba(255,77,77,.06)}
+    .premium .cup{background:linear-gradient(135deg, #ffffff 0%, #ffd0d0 40%, var(--red) 100%);}
+    .premium .usdt{ color: var(--red); }
+    .premium .usdt strong{ color: var(--red); }
 
+    /* Annual */
     .annual .tag{
       background:rgba(57,255,20,.12);
       color:#0b0f11;
@@ -443,6 +454,9 @@
     .annual .action{background:linear-gradient(135deg,var(--green),#00b300); color:#081006}
     .annual .feature i{color:var(--green)}
     .annual .tag{box-shadow:0 0 18px rgba(57,255,20,.16), inset 0 0 16px rgba(57,255,20,.06)}
+    .annual .cup{background:linear-gradient(135deg, #ffffff 0%, #d8ffd3 40%, var(--green) 100%);}
+    .annual .usdt{ color: var(--green); }
+    .annual .usdt strong{ color: var(--green); }
 
     .whatsapp-float{
       position:fixed;

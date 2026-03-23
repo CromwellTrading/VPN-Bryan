@@ -4,8 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
   <title>VPN Cuba - Planes</title>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
@@ -29,7 +33,7 @@
       --shadow2:0 18px 48px -28px rgba(95,125,255,.24);
       --radius:28px;
       --radius2:18px;
-      --font:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      --font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
@@ -44,6 +48,9 @@
         linear-gradient(180deg, var(--bg0), var(--bg1) 42%, var(--bg0));
       overflow-x:hidden;
       line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      text-rendering:optimizeLegibility;
     }
 
     .grid{
@@ -176,6 +183,52 @@
     .shell{
       position:relative;
       padding-top:14px;
+
+      --accent: var(--blue);
+      --accent-2: #3a5fcf;
+      --accent-soft: rgba(95,125,255,.12);
+      --accent-glow: rgba(95,125,255,.18);
+      --accent-text: var(--blue);
+    }
+
+    .shell.trial{
+      --accent:#3b82f6;
+      --accent-2:#2563eb;
+      --accent-soft:rgba(59,130,246,.12);
+      --accent-glow:rgba(59,130,246,.18);
+      --accent-text:#60a5fa;
+    }
+
+    .shell.basic{
+      --accent: var(--blue);
+      --accent-2: #3a5fcf;
+      --accent-soft: rgba(95,125,255,.12);
+      --accent-glow: rgba(95,125,255,.18);
+      --accent-text: var(--blue);
+    }
+
+    .shell.advanced{
+      --accent: var(--gold);
+      --accent-2: #d4af37;
+      --accent-soft: rgba(255,217,102,.12);
+      --accent-glow: rgba(255,217,102,.18);
+      --accent-text: var(--gold);
+    }
+
+    .shell.premium{
+      --accent: var(--red);
+      --accent-2: #cc0000;
+      --accent-soft: rgba(255,77,77,.12);
+      --accent-glow: rgba(255,77,77,.18);
+      --accent-text: var(--red);
+    }
+
+    .shell.annual{
+      --accent: var(--green);
+      --accent-2: #00b300;
+      --accent-soft: rgba(57,255,20,.12);
+      --accent-glow: rgba(57,255,20,.16);
+      --accent-text: var(--green);
     }
 
     .tag{
@@ -196,7 +249,7 @@
       backdrop-filter:blur(14px);
       box-shadow:
         0 0 0 1px rgba(255,255,255,.02),
-        0 0 20px rgba(95,125,255,.10),
+        0 0 20px var(--accent-glow),
         inset 0 0 16px rgba(255,255,255,.02);
       white-space:nowrap;
     }
@@ -292,18 +345,24 @@
       font-weight:1000;
       letter-spacing:-.05em;
       line-height:1;
-      -webkit-background-clip:text;
-      background-clip:text;
-      -webkit-text-fill-color:transparent;
+      color:var(--accent-text);
+      -webkit-text-fill-color:var(--accent-text);
+      background:none;
+      filter:drop-shadow(0 0 10px rgba(255,255,255,.04));
     }
 
     .usdt{
       margin-top:6px;
+      color:var(--accent-text);
       font-size:.95rem;
       font-weight:700;
     }
 
-    .usdt strong{font-size:1.08rem;font-weight:900}
+    .usdt strong{
+      font-size:1.08rem;
+      font-weight:900;
+      color:inherit;
+    }
 
     .chips{
       display:flex;
@@ -323,15 +382,19 @@
       color:#fff;
     }
 
-    .chip.soft{ color:var(--gold); }
+    .chip.soft{
+      color:var(--accent-text);
+      border-color:rgba(255,255,255,.10);
+      background:var(--accent-soft);
+    }
 
     .savings{
       margin:10px 0 14px;
       border-radius:18px;
       padding:10px 12px;
-      background:rgba(255,255,255,.04);
+      background:var(--accent-soft);
       border:1px solid rgba(255,255,255,.08);
-      color:var(--gold);
+      color:var(--accent-text);
       font-size:.92rem;
       font-weight:850;
       display:flex;
@@ -362,6 +425,7 @@
       text-align:center;
       font-size:.95rem;
       flex:0 0 auto;
+      color:var(--accent-text);
     }
 
     .feature span{
@@ -407,56 +471,34 @@
       transform:none;
     }
 
-    /* Trial */
     .trial .tag::before{background:rgba(59,130,246,.80)}
     .trial .action{background:linear-gradient(135deg,#3b82f6,#2563eb)}
     .trial .feature i{color:#60a5fa}
     .trial .tag{box-shadow:0 0 18px rgba(59,130,246,.18), inset 0 0 16px rgba(59,130,246,.06)}
-    .trial .cup{background:linear-gradient(135deg, #ffffff 0%, #dfe7ff 40%, #3b82f6 100%);}
 
-    /* Basic */
     .basic .tag::before{background:rgba(95,125,255,.80)}
     .basic .action{background:linear-gradient(135deg,var(--blue),#3a5fcf)}
-    .basic .feature i{color:var(--blue)}
     .basic .tag{box-shadow:0 0 18px rgba(95,125,255,.18), inset 0 0 16px rgba(95,125,255,.06)}
-    .basic .cup{background:linear-gradient(135deg, #ffffff 0%, #dfe7ff 40%, var(--blue) 100%);}
-    .basic .usdt{ color: var(--blue); }
-    .basic .usdt strong{ color: var(--blue); }
 
-    /* Advanced */
     .advanced .tag{
       background:rgba(255,217,102,.12);
       color:#0c0f14;
     }
     .advanced .tag::before{background:rgba(255,217,102,.84)}
     .advanced .action{background:linear-gradient(135deg,var(--gold),#d4af37); color:#0b0d10}
-    .advanced .feature i{color:var(--gold)}
     .advanced .tag{box-shadow:0 0 18px rgba(255,217,102,.18), inset 0 0 16px rgba(255,217,102,.08)}
-    .advanced .cup{background:linear-gradient(135deg, #ffffff 0%, #fff2bf 40%, var(--gold) 100%);}
-    .advanced .usdt{ color: var(--gold); }
-    .advanced .usdt strong{ color: var(--gold); }
 
-    /* Premium */
     .premium .tag::before{background:rgba(255,77,77,.84)}
     .premium .action{background:linear-gradient(135deg,var(--red),#cc0000)}
-    .premium .feature i{color:var(--red)}
     .premium .tag{box-shadow:0 0 18px rgba(255,77,77,.18), inset 0 0 16px rgba(255,77,77,.06)}
-    .premium .cup{background:linear-gradient(135deg, #ffffff 0%, #ffd0d0 40%, var(--red) 100%);}
-    .premium .usdt{ color: var(--red); }
-    .premium .usdt strong{ color: var(--red); }
 
-    /* Annual */
     .annual .tag{
       background:rgba(57,255,20,.12);
       color:#0b0f11;
     }
     .annual .tag::before{background:rgba(57,255,20,.84)}
     .annual .action{background:linear-gradient(135deg,var(--green),#00b300); color:#081006}
-    .annual .feature i{color:var(--green)}
     .annual .tag{box-shadow:0 0 18px rgba(57,255,20,.16), inset 0 0 16px rgba(57,255,20,.06)}
-    .annual .cup{background:linear-gradient(135deg, #ffffff 0%, #d8ffd3 40%, var(--green) 100%);}
-    .annual .usdt{ color: var(--green); }
-    .annual .usdt strong{ color: var(--green); }
 
     .whatsapp-float{
       position:fixed;

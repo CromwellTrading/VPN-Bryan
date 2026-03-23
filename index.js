@@ -64,7 +64,7 @@ async function canSendMessageToUser(telegramId) {
 // ==================== MAPA DE ICONOS PERSONALIZADOS ====================
 // Asocia el texto del botón (en mayúsculas) con el ID del emoji personalizado
 const BUTTON_ICONS = {
-    'VER PLANES': '6030664675253820292',
+    'VER PLANES': '5983399041197675256',
     'MI PERFIL': '6021659919835469581',
     'DESCARGAR WIREGUARD': '5899757765743615694',
     'SOPORTE': '6019320644422867543',
@@ -74,7 +74,17 @@ const BUTTON_ICONS = {
     'POLÍTICAS': '6021738534916854774',
     'WHATSAPP': '5884179047482659474',
     'FAQ': '5879501875341955281',
-    'PANEL ADMIN': '5839116473951328489'
+    'PANEL ADMIN': '5839116473951328489',
+    'WINDOWS': '5933679370202778681',
+    'ANDROID': '5931415565955503486',
+    'CEO': '6021659919835469581',
+    'MOD': '6021401276904905698',
+    'COPIAR ENLACE': '5877465816030515018',
+    'VER GUÍA COMPLETA': '6028435952299413210',
+    'TÉRMINOS DE SERVICIO': '6021744990252702234',
+    'POLÍTICA DE REEMBOLSO': '6021435576513730578',
+    'POLÍTICA DE PRIVACIDAD': '6021745995275048956',
+    'VER PREGUNTAS FRECUENTES': '5873121512445187130'
 };
 
 // Función auxiliar para crear un botón inline con icono si existe
@@ -86,6 +96,82 @@ function createButton(text, options) {
     }
     Object.assign(button, options);
     return button;
+}
+
+// ==================== FUNCIONES PARA GENERAR TEXTO CON EMOJIS PERSONALIZADOS ====================
+function getVipStatusHtml(user) {
+    const vipSince = formatearFecha(user.vip_since);
+    const diasRestantes = calcularDiasRestantes(user);
+    const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
+    
+    let html = `<tg-emoji emoji-id="6019175208240289774">👑</tg-emoji> <b>¡ERES USUARIO VIP!</b>\n\n`;
+    html += `<tg-emoji emoji-id="6023880246128810031">📅</tg-emoji> <b>Activado:</b> ${vipSince}\n`;
+    html += `<tg-emoji emoji-id="6021435576513730578">📋</tg-emoji> <b>Plan:</b> ${planNombre}\n`;
+    html += `<tg-emoji emoji-id="5778202206922608769">⏳</tg-emoji> <b>Días restantes:</b> ${diasRestantes} días\n`;
+    html += `<tg-emoji emoji-id="5992430854909989581">💰</tg-emoji> <b>Precio:</b> $${user.plan_price || '0'} CUP\n\n`;
+    
+    if (diasRestantes <= 7) {
+        html += `<tg-emoji emoji-id="6019102674832595118">⚠️</tg-emoji> <b>TU PLAN ESTÁ POR EXPIRAR PRONTO</b>\nRenueva ahora para mantener tu acceso VIP.\n\n`;
+    } else {
+        html += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
+    }
+    return html;
+}
+
+function getDownloadWireguardHtml() {
+    return `<tg-emoji emoji-id="6019168392127190964">💻</tg-emoji> <b>DESCARGAR WIREGUARD</b> <tg-emoji emoji-id="6019099814384378473">📱</tg-emoji>\n\n` +
+           `<b>Para Windows</b>\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n` +
+           `<b>Para Android</b>\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
+           `Selecciona tu sistema operativo:`;
+}
+
+function getSupportHtml() {
+    return `<tg-emoji emoji-id="5886412370347036129">🆘</tg-emoji> <b>SOPORTE TÉCNICO</b>\n\n` +
+           `Para cualquier duda o problema, contacta con nuestro soporte:\n\n` +
+           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @L0quen2\n` +
+           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @ErenJeager129182\n\n` +
+           `Responde rápido y te ayudaremos.`;
+}
+
+function getReferralInfoHtml(userId, referralStats) {
+    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+    let html = `<tg-emoji emoji-id="5258362837411045098">🤝</tg-emoji> <b>SISTEMA DE REFERIDOS</b> <tg-emoji emoji-id="5877410604225924969">🚀</tg-emoji>\n\n` +
+               `¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n` +
+               `<b>Tu enlace único:</b>\n<code>${referralLink}</code>\n\n` +
+               `<b>Cómo funciona:</b>\n` +
+               `1. Comparte este enlace con amigos\n` +
+               `2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n` +
+               `3. Por cada referido que pague un plan, obtienes un descuento:\n` +
+               `   • Nivel 1 (referido directo): 20% de descuento\n` +
+               `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
+    
+    if (referralStats) {
+        html += `<b>Tus estadísticas:</b>\n` +
+                `• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n` +
+                `• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n` +
+                `• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
+    } else {
+        html += `<b>Tus estadísticas:</b>\n• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
+    }
+    html += `¡Cada vez que un referido pague, tu descuento aumentará! <tg-emoji emoji-id="6021793768196282527">🎉</tg-emoji>`;
+    return html;
+}
+
+function getHowItWorksHtml() {
+    return `<tg-emoji emoji-id="5873121512445187130">🚀</tg-emoji> <b>¿CÓMO FUNCIONA VPN CUBA?</b>\n\n` +
+           `Descubre cómo optimizamos tu conexión para gaming y navegación.\n\n` +
+           `Haz clic en el botón para ver la guía completa en nuestra Web App:`;
+}
+
+function getPoliticasHtml() {
+    return `<tg-emoji emoji-id="5956561916573782596">📜</tg-emoji> <b>Políticas de VPN Cuba</b>\n\n` +
+           `Selecciona una sección para ver los detalles completos en nuestra Web App:`;
+}
+
+function getFaqHtml() {
+    return `<tg-emoji emoji-id="5873121512445187130">❓</tg-emoji> <b>PREGUNTAS FRECUENTES (FAQ)</b>\n\n` +
+           `Encuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\n` +
+           `Haz clic en el botón para abrir la sección de preguntas frecuentes:`;
 }
 
 // ==================== FUNCIÓN PARA CONSTRUIR EL MENÚ PRINCIPAL ====================
@@ -2882,9 +2968,9 @@ bot.action('show_support', async (ctx) => {
   try {
     await ctx.answerCbQuery();
     await ctx.reply(
-      `🆘 *SOPORTE TÉCNICO*\n\nPara cualquier duda o problema, contacta con nuestro soporte:\n\n👉 @L0quen2\n👉 @ErenJeager129182\n\nResponde rápido y te ayudaremos.`,
+      getSupportHtml(),
       {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [createButton("CEO", { url: 'https://t.me/L0quen2' }), createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],
@@ -2908,15 +2994,9 @@ bot.action('check_status', async (ctx) => {
       return;
     }
     if (user?.vip) {
-      const vipSince = formatearFecha(user.vip_since);
-      const diasRestantes = calcularDiasRestantes(user);
-      const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n📅 *Activado:* ${vipSince}\n📋 *Plan:* ${planNombre}\n⏳ *Días restantes:* ${diasRestantes} días\n💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-      if (diasRestantes <= 7) mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\nRenueva ahora para mantener tu acceso VIP.\n\n`;
-      else mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(mensajeEstado, {
-        parse_mode: 'Markdown',
+      await ctx.reply(getVipStatusHtml(user), {
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [createButton("VER PLANES", { web_app: { url: webappUrl } })],
@@ -2943,9 +3023,9 @@ bot.action('check_status', async (ctx) => {
 bot.action('download_wireguard', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.reply(
-    `💻 *DESCARGAR WIREGUARD* 📱\n\n*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n*Selecciona tu sistema operativo:*`,
+    getDownloadWireguardHtml(),
     {
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }), createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],
@@ -2963,16 +3043,10 @@ bot.action('referral_info', async (ctx) => {
     const user = await db.getUser(userId);
     let referralStats = null;
     if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
-    let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n*Tu enlace único:*\n\`${referralLink}\`\n\n*Cómo funciona:*\n1. Comparte este enlace con amigos\n2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n3. Por cada referido que pague un plan, obtienes un descuento:\n   • Nivel 1 (referido directo): 20% de descuento\n   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-    if (referralStats) {
-      message += `*Tus estadísticas:*\n• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
-    } else {
-      message += `*Tus estadísticas:*\n• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`;
-    }
-    message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
+    let message = getReferralInfoHtml(userId, referralStats);
     await ctx.answerCbQuery();
     await ctx.reply(message, {
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],
@@ -3000,9 +3074,9 @@ bot.action('how_it_works', async (ctx) => {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
     await ctx.answerCbQuery('🔍 Abriendo guía de uso...');
     await ctx.reply(
-      '🚀 *¿CÓMO FUNCIONA VPN CUBA?*\n\nDescubre cómo optimizamos tu conexión para gaming y navegación.\n\nHaz clic en el botón para ver la guía completa en nuestra Web App:',
+      getHowItWorksHtml(),
       {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],
@@ -3052,9 +3126,9 @@ bot.action('politicas', async (ctx) => {
       [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
     ];
     if (ctx.callbackQuery.message) {
-      await ctx.editMessageText('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
+      await ctx.editMessageText(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
     } else {
-      await ctx.reply('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
+      await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
     }
   } catch (error) { console.error('❌ Error en action de políticas:', error); await ctx.answerCbQuery('❌ Error al abrir políticas.'); }
 });
@@ -3063,8 +3137,8 @@ bot.action('faq', async (ctx) => {
   try {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
     await ctx.answerCbQuery('❓ Abriendo preguntas frecuentes...');
-    await ctx.reply('❓ *PREGUNTAS FRECUENTES (FAQ)*\n\nEncuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\nHaz clic en el botón para abrir la sección de preguntas frecuentes:', {
-      parse_mode: 'Markdown',
+    await ctx.reply(getFaqHtml(), {
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],
@@ -3131,28 +3205,23 @@ bot.on('text', async (ctx) => {
         await ctx.answerCbQuery();
         await checkStatusHandler(ctx, userId);
     } else if (text === '💻 DESCARGAR WIREGUARD') {
-        await ctx.reply(`💻 *DESCARGAR WIREGUARD* 📱\n\n*Para Windows*\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n*Para Android*\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n*Selecciona tu sistema operativo:*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🆘 SOPORTE') {
-        await ctx.reply(`🆘 *SOPORTE TÉCNICO*\n\nPara cualquier duda o problema, contacta con nuestro soporte:\n\n👉 @L0quen2\n👉 @ErenJeager129182\n\nResponde rápido y te ayudaremos.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("CEO", { url: 'https://t.me/L0quen2' }),createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],[createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getSupportHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("CEO", { url: 'https://t.me/L0quen2' }),createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],[createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '♻️ REFERIDOS') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         try {
             const user = await db.getUser(userId);
             let referralStats = null;
             if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
-            let message = `🤝 *SISTEMA DE REFERIDOS* 🚀\n\n¡Comparte tu enlace y gana descuentos en tus próximas compras!\n\n*Tu enlace único:*\n\`${referralLink}\`\n\n*Cómo funciona:*\n1. Comparte este enlace con amigos\n2. Cuando alguien se registra con tu enlace, se convierte en tu referido\n3. Por cada referido que pague un plan, obtienes un descuento:\n   • Nivel 1 (referido directo): 20% de descuento\n   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-            if (referralStats) {
-                message += `*Tus estadísticas:*\n• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n• Referidos nivel 2: ${referralStats.level2?.total || 0} (${referralStats.level2?.paid || 0} pagados)\n• Descuento total acumulado: ${referralStats.discount_percentage || 0}%\n\n`;
-            } else { message += `*Tus estadísticas:*\n• Aún no tienes referidos. ¡Comparte tu enlace y empieza a ganar!\n\n`; }
-            message += `¡Cada vez que un referido pague, tu descuento aumentará! 🎉`;
-            await ctx.reply(message, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+            await ctx.reply(getReferralInfoHtml(userId, referralStats), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         } catch (error) {
             console.error('❌ Error en handler de referidos:', error);
             await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.\n\n*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         }
     } else if (text === '❓ CÓMO FUNCIONA') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply('🚀 *¿CÓMO FUNCIONA VPN CUBA?*\n\nDescubre cómo optimizamos tu conexión para gaming y navegación.\n\nHaz clic en el botón para ver la guía completa en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getHowItWorksHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🔈 VPN CANAL') {
         await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n👉 https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("IR AL CANAL", { url: 'https://t.me/vpncubaw' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '📲 WHATSAPP') {
@@ -3162,10 +3231,10 @@ bot.on('text', async (ctx) => {
     } else if (text === '📜 Politicas') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
         const inlineKeyboard = [[createButton("TÉRMINOS DE SERVICIO", { web_app: { url: `${webappUrl}/politicas.html?section=terminos` } })],[createButton("POLÍTICA DE REEMBOLSO", { web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } })],[createButton("POLÍTICA DE PRIVACIDAD", { web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]];
-        await ctx.reply('📜 *Políticas de VPN Cuba*\n\nSelecciona una sección para ver los detalles completos en nuestra Web App:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineKeyboard } });
+        await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
     } else if (text === '❓ FAQ') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply('❓ *PREGUNTAS FRECUENTES (FAQ)*\n\nEncuentra respuestas a las dudas más comunes sobre nuestros servicios, pagos, instalación y más.\n\nHaz clic en el botón para abrir la sección de preguntas frecuentes:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getFaqHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '⌨ PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
         await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", { web_app: { url: adminUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
@@ -3177,14 +3246,8 @@ async function checkStatusHandler(ctx, userId) {
     const user = await db.getUser(userId);
     if (!user) { await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' }); return; }
     if (user?.vip) {
-      const vipSince = formatearFecha(user.vip_since);
-      const diasRestantes = calcularDiasRestantes(user);
-      const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-      let mensajeEstado = `✅ *¡ERES USUARIO VIP!* 👑\n\n📅 *Activado:* ${vipSince}\n📋 *Plan:* ${planNombre}\n⏳ *Días restantes:* ${diasRestantes} días\n💰 *Precio:* $${user.plan_price || '0'} CUP\n\n`;
-      if (diasRestantes <= 7) mensajeEstado += `⚠️ *TU PLAN ESTÁ POR EXPIRAR PRONTO*\nRenueva ahora para mantener tu acceso VIP.\n\n`;
-      else mensajeEstado += `Tu acceso está activo. ¡Disfruta de baja latencia! 🚀\n\n`;
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(mensajeEstado, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+      await ctx.reply(getVipStatusHtml(user), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else {
       const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
       await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });

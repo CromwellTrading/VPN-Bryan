@@ -487,8 +487,18 @@ async function sendTrialConfigToUser(telegramId, adminId) {
         telegramId,
         planFile.public_url,
         {
-          caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n📁 *Archivo de configuración para 1 hora de prueba*\n\n🎮 *Juego/Servidor:* ${gameServer}\n📡 *Conexión:* ${connectionType}\n\n*Instrucciones de instalación:*\n1. Descarga este archivo\n2. Importa el archivo .conf en tu cliente WireGuard\n3. Activa la conexión\n4. ¡Disfruta de 1 hora de prueba gratis! 🎉\n\n⏰ *Duración:* 1 hora\n*Importante:* Esta configuración expirará en 1 hora.`,
-          parse_mode: 'Markdown'
+          caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
+                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
+                   `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
+                   `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
+                   `<b>Instrucciones de instalación:</b>\n` +
+                   `1. Descarga este archivo\n` +
+                   `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                   `3. Activa la conexión\n` +
+                   `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
+                   `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+                   `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
+          parse_mode: 'HTML'
         }
       );
       await db.markTrialAsSent(telegramId, adminId);
@@ -857,20 +867,20 @@ app.post('/api/payments/:id/approve', async (req, res) => {
 
     // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
     try {
-      let userMessage = '🎉 *¡Tu pago ha sido aprobado!*\n\n' +
+      let userMessage = '<tg-emoji emoji-id="6019175208240289774">🎉</tg-emoji> <b>¡Tu pago ha sido aprobado!</b>\n\n' +
         'Ahora eres usuario VIP de VPN Cuba.\n' +
         'El administrador te enviará manualmente el archivo de configuración por este mismo chat en breve.\n\n';
       
       if (payment.coupon_used && payment.coupon_discount) {
-        userMessage += `🎫 *Cupón aplicado:* ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
+        userMessage += `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón aplicado:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
       }
       
-      userMessage += '*Nota:* Sistema de envío automático desactivado.';
+      userMessage += '<b>Nota:</b> Sistema de envío automático desactivado.';
       
       await bot.telegram.sendMessage(
         payment.telegram_id,
         userMessage,
-        { parse_mode: 'Markdown' }
+        { parse_mode: 'HTML' }
       );
     } catch (botError) {
       console.log('❌ No se pudo notificar al usuario:', botError.message);
@@ -1135,18 +1145,18 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         chatId,
         { source: req.file.path, filename: req.file.originalname },
         {
-          caption: `🎉 *¡Tu configuración de VPN Cuba está lista!*\n\n` +
-                  `📁 *Archivo:* ${req.file.originalname}\n` +
-                  `📋 *Plan:* ${getPlanName(payment.plan)}\n` +
-                  `${payment.coupon_used ? `🎫 *Cupón aplicado:* ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n` : ''}` +
-                  `\n*Instrucciones de instalación:*\n` +
-                  `1. Descarga este archivo\n` +
-                  `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
-                  `3. Importa el archivo .conf en tu cliente WireGuard\n` +
-                  `4. Activa la conexión\n` +
-                  `5. ¡Disfruta de baja latencia! 🚀\n\n` +
-                  `*Soporte:* Contacta con soporte si tienes problemas.`,
-          parse_mode: 'Markdown'
+          caption: `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu configuración VPN Cuba está lista!</b>\n\n` +
+                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${req.file.originalname}\n` +
+                   `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Plan:</b> ${getPlanName(payment.plan)}\n` +
+                   `${payment.coupon_used ? `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón aplicado:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n` : ''}` +
+                   `\n<b>Instrucciones de instalación:</b>\n` +
+                   `1. Descarga este archivo\n` +
+                   `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
+                   `3. Importa el archivo .conf en tu cliente WireGuard\n` +
+                   `4. Activa la conexión\n` +
+                   `5. ¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>\n\n` +
+                   `<b>Soporte:</b> Contacta con soporte si tienes problemas.`,
+          parse_mode: 'HTML'
         }
       );
       
@@ -1389,15 +1399,15 @@ app.post('/api/request-trial', async (req, res) => {
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
           telegramId,
-          '✅ *Solicitud de prueba recibida*\n\n' +
+          `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\n` +
           'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
-          '📋 *Proceso:*\n' +
+          `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Proceso:</b>\n` +
           '1. Un administrador revisará tu solicitud\n' +
           '2. Recibirás la configuración por este chat\n' +
           '3. Tendrás 1 hora de acceso completo\n\n' +
-          '⏰ *Tiempo estimado:* Minutos\n\n' +
-          '¡Gracias por probar VPN Cuba! 🚀',
-          { parse_mode: 'Markdown' }
+          `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Tiempo estimado:</b> Minutos\n\n` +
+          '¡Gracias por probar VPN Cuba! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>',
+          { parse_mode: 'HTML' }
         );
       } else {
         console.log(`⚠️ Usuario ${telegramId} no disponible para notificación: ${canSend.reason}`);
@@ -1473,11 +1483,11 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
           req.params.telegramId,
-          '🎉 *¡Tu prueba gratuita está lista!*\n\n' +
+          '<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita está lista!</b>\n\n' +
           'Has recibido la configuración de prueba de 1 hora.\n' +
-          '¡Disfruta de baja latencia! 🚀\n\n' +
-          '*Nota:* Esta prueba expirará en 1 hora.',
-          { parse_mode: 'Markdown' }
+          '¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>\n\n' +
+          '<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Nota:</b> Esta prueba expirará en 1 hora.',
+          { parse_mode: 'HTML' }
         );
       } else {
         console.log(`⚠️ No se pudo notificar al usuario ${req.params.telegramId}: ${canSend.reason}`);
@@ -1554,18 +1564,18 @@ app.post('/api/send-trial-config', async (req, res) => {
         chatId,
         planFile.public_url,
         {
-          caption: `🎁 *¡Tu prueba gratuita de VPN Cuba está lista!*\n\n` +
-                  `📁 *Archivo de configuración para 1 hora de prueba*\n\n` +
-                  `🎮 *Juego/Servidor:* ${gameServer}\n` +
-                  `📡 *Conexión:* ${connectionType}\n\n` +
-                  `*Instrucciones de instalación:*\n` +
-                  `1. Descarga este archivo\n` +
-                  `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                  `3. Activa la conexión\n` +
-                  `4. ¡Disfruta de 1 hora de prueba gratis! 🎉\n\n` +
-                  `⏰ *Duración:* 1 hora\n` +
-                  `*Importante:* Esta configuración expirará en 1 hora.`,
-          parse_mode: 'Markdown'
+          caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
+                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo de configuración para 1 hora de prueba</b>\n\n` +
+                   `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
+                   `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
+                   `<b>Instrucciones de instalación:</b>\n` +
+                   `1. Descarga este archivo\n` +
+                   `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                   `3. Activa la conexión\n` +
+                   `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
+                   `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+                   `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
+          parse_mode: 'HTML'
         }
       );
       

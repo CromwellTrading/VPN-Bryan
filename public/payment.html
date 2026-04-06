@@ -62,7 +62,6 @@
             background: radial-gradient(ellipse at 30% 40%, #0f0f2a, #03030f);
         }
 
-        /* Estrellas brillantes */
         .stars {
             position: absolute;
             width: 100%;
@@ -144,7 +143,6 @@
             50% { opacity: 0.25; transform: translate(-50%, -50%) scale(1.1); }
         }
 
-        /* contenedor principal */
         .main-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -153,7 +151,7 @@
             z-index: 10;
         }
 
-        /* Header holográfico */
+        /* Header */
         .header {
             text-align: center;
             padding: 2rem 1rem 1.8rem;
@@ -199,7 +197,7 @@
             padding-bottom: 0.5rem;
         }
 
-        /* PROGRESS 3D */
+        /* Progress 3D */
         .progress-container {
             margin: 2rem auto 3rem;
             max-width: 800px;
@@ -257,7 +255,6 @@
             font-size: 1.4rem;
             color: white;
             transition: all 0.3s;
-            box-shadow: 0 0 0 rgba(0,255,255,0);
         }
 
         .step.active .step-circle {
@@ -279,7 +276,7 @@
             font-size: 0.85rem;
         }
 
-        /* TARJETAS GLASS + 3D + NEON */
+        /* Tarjetas Glass con bordes redondeados y elementos internos espaciados */
         .coupon-section, .summary-card, .payment-method-selector, .upload-card {
             background: rgba(8, 12, 28, 0.7);
             backdrop-filter: blur(16px);
@@ -290,6 +287,7 @@
             margin-bottom: 2rem;
             position: relative;
             overflow: hidden;
+            padding: 1.8rem; /* Padding general para que ningún elemento toque el borde */
         }
 
         .coupon-section:hover, .summary-card:hover, .payment-method-selector:hover, .upload-card:hover {
@@ -298,17 +296,7 @@
             box-shadow: 0 25px 45px rgba(0, 255, 255, 0.2);
         }
 
-        .coupon-section::before, .summary-card::before, .payment-method-selector::before, .upload-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 20% 30%, rgba(0,255,255,0.08), transparent);
-            pointer-events: none;
-        }
-
+        /* Cabeceras de tarjeta con suficiente separación */
         .card-header, .coupon-header, .method-selector-header {
             display: flex;
             align-items: center;
@@ -316,11 +304,13 @@
             margin-bottom: 1.8rem;
             border-bottom: 1px solid rgba(0,255,255,0.2);
             padding-bottom: 0.8rem;
+            padding-left: 0.2rem; /* Evita que el ícono toque el borde izquierdo */
         }
 
         .card-icon, .coupon-icon, .method-selector-icon {
             font-size: 2rem;
             filter: drop-shadow(0 0 5px cyan);
+            flex-shrink: 0; /* Evita que se reduzca */
         }
 
         .card-title, .coupon-title, .method-selector-title {
@@ -332,7 +322,7 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* inputs futuristas */
+        /* Inputs */
         .coupon-input, .method-selector select {
             background: rgba(0, 0, 0, 0.6);
             border: 1.5px solid rgba(0, 255, 255, 0.5);
@@ -342,6 +332,7 @@
             font-weight: 500;
             transition: all 0.3s;
         }
+
         .coupon-input:focus, .method-selector select:focus {
             outline: none;
             border-color: var(--neon-blue);
@@ -357,18 +348,21 @@
             font-weight: bold;
             transition: transform 0.2s, box-shadow 0.2s;
             color: white;
+            cursor: pointer;
         }
+
         .coupon-btn:hover:not(:disabled) {
             transform: scale(1.02);
             box-shadow: 0 0 20px #ff44cc;
         }
 
-        /* resumen item 3D */
+        /* Resumen */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
         }
+
         .summary-item {
             background: rgba(255,255,255,0.03);
             border-radius: 1.5rem;
@@ -376,16 +370,18 @@
             border-left: 4px solid var(--neon-blue);
             transition: all 0.3s;
         }
+
         .summary-item:hover {
             transform: translateX(8px);
             background: rgba(0, 255, 255, 0.08);
         }
 
-        /* método de pago cards */
+        /* Métodos de pago */
         .method-info-container {
             display: none;
             animation: fadeUp 0.5s;
         }
+
         .method-info-container.active {
             display: block;
         }
@@ -397,16 +393,6 @@
             border: 1px solid rgba(0,255,255,0.3);
             position: relative;
         }
-        .method-info-card.usdt::before, .method-info-card.mobile::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(ellipse at 30% 20%, rgba(240,185,11,0.1), transparent);
-            pointer-events: none;
-        }
 
         .payment-info .info-row {
             display: flex;
@@ -416,6 +402,7 @@
             padding: 1rem 0;
             border-bottom: 1px dashed rgba(255,255,255,0.1);
         }
+
         .copy-btn {
             background: rgba(0,255,255,0.15);
             border: 1px solid cyan;
@@ -426,6 +413,7 @@
             color: white;
             cursor: pointer;
         }
+
         .copy-btn:hover {
             background: cyan;
             color: black;
@@ -440,6 +428,7 @@
             border: 1px solid var(--usdt-gold);
             margin: 1rem 0;
         }
+
         .amount-value {
             font-size: 3rem;
             font-weight: 800;
@@ -447,7 +436,7 @@
             color: var(--usdt-gold);
         }
 
-        /* ÁREA DE UPLOAD MODERNA + AVISO */
+        /* Upload con aviso */
         .upload-area {
             background: rgba(0, 10, 20, 0.7);
             border: 2px dashed var(--neon-blue);
@@ -457,17 +446,20 @@
             text-align: center;
             padding: 2.5rem 1.5rem;
         }
+
         .upload-area:hover {
             border-color: cyan;
             background: rgba(0, 255, 255, 0.05);
             transform: scale(1.01);
             box-shadow: 0 0 25px rgba(0,255,255,0.2);
         }
+
         .upload-icon {
             font-size: 3rem;
             color: cyan;
             filter: drop-shadow(0 0 8px);
         }
+
         .upload-note-warning {
             background: rgba(255, 70, 0, 0.2);
             border-left: 5px solid #ffaa33;
@@ -480,12 +472,8 @@
             gap: 0.7rem;
             color: #ffdf99;
         }
-        .upload-note-warning i {
-            font-size: 1.3rem;
-            color: #ffaa33;
-        }
 
-        /* Botón submit épico */
+        /* Botón submit */
         .submit-btn {
             background: linear-gradient(125deg, var(--accent-1), var(--accent-2));
             border: none;
@@ -499,29 +487,43 @@
             color: white;
             cursor: pointer;
         }
+
         .submit-btn:not(:disabled):hover {
             transform: scale(1.02) translateY(-3px);
             box-shadow: 0 20px 35px rgba(0, 200, 255, 0.3);
         }
+
         .submit-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .remove-coupon {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 40px;
-            padding: 0.5rem 1.2rem;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .remove-coupon:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
+        /* Contenedor del paso número 2 (círculo) - ajuste de márgenes para evitar corte */
+        .step-container {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
         }
 
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-left: 0.2rem; /* Separación del borde izquierdo de la tarjeta */
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        /* Otros elementos */
         .discount-info {
             background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(244, 114, 182, 0.05));
             border: 1px solid rgba(236, 72, 153, 0.2);
@@ -563,7 +565,7 @@
             color: var(--text-muted);
         }
 
-        /* Notificación moderna */
+        /* Notificaciones */
         .notification {
             position: fixed;
             top: 20px;
@@ -591,11 +593,11 @@
             to { opacity: 0; visibility: hidden; }
         }
 
-        /* Animaciones generales */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
         .fade-in {
             animation: fadeUp 0.6s ease forwards;
         }
@@ -606,56 +608,24 @@
 
         /* Responsive */
         @media (max-width: 760px) {
+            .main-container { padding: 1rem; }
             .title { font-size: 2rem; }
             .card-title, .coupon-title { font-size: 1.3rem; }
             .step-circle { width: 40px; height: 40px; font-size: 1rem; }
             .info-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
             .copy-btn { margin-left: 0; width: 100%; justify-content: center; }
-            .main-container { padding: 1rem; }
+            .step-container { flex-direction: column; align-items: flex-start; }
+            .step-number { margin-left: 0; margin-bottom: 0.5rem; }
+            .coupon-section, .summary-card, .payment-method-selector, .upload-card { padding: 1.2rem; }
         }
 
-        .preview-container {
-            margin-top: 1rem;
-        }
-
-        .preview-image {
-            max-width: 100%;
-            border-radius: 1rem;
-            border: 1px solid cyan;
-        }
-
-        .remove-btn {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid #ef4444;
-            border-radius: 2rem;
-            padding: 0.4rem 1rem;
-            color: #f87171;
-            cursor: pointer;
-        }
-
-        .upload-note {
-            margin-top: 1rem;
-            padding: 0.8rem;
-            background: rgba(245, 158, 11, 0.1);
-            border-radius: 0.8rem;
-            color: #fbbf24;
-        }
-
-        .plan-badge, .discount-badge {
-            display: inline-block;
-            padding: 0.2rem 0.8rem;
-            border-radius: 2rem;
-            font-size: 0.75rem;
-            margin-left: 0.5rem;
-        }
-
-        .plan-badge {
-            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-        }
-
-        .discount-badge {
-            background: linear-gradient(135deg, var(--discount-neon), #ff66aa);
-        }
+        .preview-container { margin-top: 1rem; }
+        .preview-image { max-width: 100%; border-radius: 1rem; border: 1px solid cyan; }
+        .remove-btn { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 2rem; padding: 0.4rem 1rem; color: #f87171; cursor: pointer; }
+        .upload-note { margin-top: 1rem; padding: 0.8rem; background: rgba(245, 158, 11, 0.1); border-radius: 0.8rem; color: #fbbf24; }
+        .plan-badge, .discount-badge { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; margin-left: 0.5rem; }
+        .plan-badge { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); }
+        .discount-badge { background: linear-gradient(135deg, var(--discount-neon), #ff66aa); }
     </style>
 </head>
 <body>
@@ -686,7 +656,7 @@
             </div>
         </div>
         
-        <!-- SECCIÓN DE CUPONES -->
+        <!-- Cupón -->
         <div class="coupon-section fade-in delay-1">
             <div class="coupon-header">
                 <i class="fas fa-tag coupon-icon"></i>
@@ -708,7 +678,7 @@
             </div>
         </div>
         
-        <!-- RESUMEN DEL PLAN -->
+        <!-- Resumen -->
         <div class="summary-card fade-in delay-2">
             <div class="card-header"><i class="fas fa-receipt card-icon"></i><h2 class="card-title">Resumen de tu compra</h2></div>
             <div class="summary-grid">
@@ -719,7 +689,7 @@
             </div>
         </div>
         
-        <!-- SELECTOR DE MÉTODO DE PAGO -->
+        <!-- Método de pago -->
         <div class="payment-method-selector fade-in delay-3">
             <div class="method-selector-header"><i class="fas fa-credit-card method-selector-icon"></i><h2 class="method-selector-title">Selecciona método de pago</h2></div>
             <div class="method-selector"><select id="paymentMethod" onchange="changePaymentMethod()"><option value="transfer">Tarjeta BPA</option><option value="metropolitan">Tarjeta Metropolitana</option><option value="mitransfer">Monedero MITRANSFER</option><option value="mobile">Saldo Móvil</option><option value="usdt">USDT (BEP20)</option></select></div>
@@ -732,23 +702,42 @@
             <div id="usdtInfo" class="method-info-container"><div class="method-info-card usdt"><div class="method-header"><i class="fab fa-bitcoin method-icon"></i><h3>USDT (BEP20)</h3></div><div class="amount-display"><div class="amount-label">Monto a pagar en USDT:</div><div class="amount-value" id="usdtAmount">1.6</div><div class="amount-currency">USDT</div></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-wallet"></i><span>Dirección BEP20</span></div><div class="info-value" id="usdtAddress">0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2</div><button class="copy-btn" onclick="copyToClipboard(document.getElementById('usdtAddress').textContent, this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-network-wired"></i><span>Red</span></div><div class="info-value">BEP20 (Binance Smart Chain)</div></div></div><div class="usdt-instructions" style="background: rgba(240,185,11,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><h4><i class="fas fa-info-circle"></i> Instrucciones</h4><ul style="list-style: none;"><li><i class="fas fa-check-circle"></i> Envía exactamente el monto mostrado</li><li><i class="fas fa-check-circle"></i> Solo red BEP20</li></ul></div></div></div>
         </div>
         
-        <!-- SUBIDA DE COMPROBANTE con aviso añadido -->
+        <!-- Subida de comprobante con aviso (círculo del paso 2 con margen) -->
         <div id="uploadSection" class="upload-card fade-in delay-4">
             <div class="card-header"><i class="fas fa-camera card-icon"></i><h2 class="card-title">Sube el comprobante</h2></div>
-            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;"><div style="width: 60px; height: 60px; background: var(--neon-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold;">2</div><div style="flex: 1;"><h3 class="step-title" style="margin-bottom: 0.5rem;">Captura del comprobante</h3><p class="step-description" style="color: var(--text-muted); margin-bottom: 1rem;">Toma una captura de pantalla clara. Asegúrate de que se vean: monto, confirmación, fecha y destinatario.</p>
-            <div class="upload-section">
-                <div class="upload-area" id="uploadArea"><i class="fas fa-cloud-upload-alt upload-icon"></i><div class="upload-text">Arrastra o haz clic para subir</div><div class="upload-subtext">Formatos: JPG, PNG, GIF • Máximo 5MB</div></div>
-                <input type="file" id="screenshotInput" accept="image/*" hidden>
-                <!-- NUEVO AVISO VISUAL: "Si el envío de la imagen falla, por favor recorte la imagen" -->
-                <div class="upload-note-warning">
-                    <i class="fas fa-crop-alt"></i>
-                    <span><strong>Aviso:</strong> Si el envío de la imagen falla, por favor recorte la imagen (reduce tamaño o recorta bordes innecesarios).</span>
+            <div class="step-container">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3 class="step-title" style="margin-bottom: 0.5rem;">Captura del comprobante</h3>
+                    <p class="step-description" style="color: var(--text-muted); margin-bottom: 1rem;">Toma una captura de pantalla clara. Asegúrate de que se vean: monto, confirmación, fecha y destinatario.</p>
+                    <div class="upload-section">
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <div class="upload-text">Arrastra o haz clic para subir</div>
+                            <div class="upload-subtext">Formatos: JPG, PNG, GIF • Máximo 5MB</div>
+                        </div>
+                        <input type="file" id="screenshotInput" accept="image/*" hidden>
+                        <!-- Aviso añadido -->
+                        <div class="upload-note-warning">
+                            <i class="fas fa-crop-alt"></i>
+                            <span><strong>Aviso:</strong> Si el envío de la imagen falla, por favor recorte la imagen (reduce tamaño o recorta bordes innecesarios).</span>
+                        </div>
+                        <div class="preview-container" id="previewContainer" style="display: none;">
+                            <div class="preview-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div class="preview-title"><i class="fas fa-image"></i><span>Vista previa</span></div>
+                                <button class="remove-btn" id="removeBtn"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                            </div>
+                            <img id="imagePreview" class="preview-image" alt="Vista previa">
+                        </div>
+                    </div>
                 </div>
-                <div class="preview-container" id="previewContainer" style="display: none;"><div class="preview-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;"><div class="preview-title"><i class="fas fa-image"></i><span>Vista previa</span></div><button class="remove-btn" id="removeBtn"><i class="fas fa-trash-alt"></i> Eliminar</button></div><img id="imagePreview" class="preview-image" alt="Vista previa" style="max-width: 100%; border-radius: 1rem;"></div>
-            </div></div></div>
+            </div>
         </div>
         
-        <div class="submit-section fade-in delay-4" style="text-align: center;"><button id="submitBtn" class="submit-btn" disabled onclick="submitPayment()"><i class="fas fa-paper-plane"></i><span id="submitBtnText">Enviar comprobante</span></button><div class="processing-info"><i class="fas fa-clock processing-icon"></i><div class="processing-text"><strong>Verificación manual:</strong> 1-12 horas. Recibirás notificación por Telegram.</div></div></div>
+        <div class="submit-section fade-in delay-4" style="text-align: center;">
+            <button id="submitBtn" class="submit-btn" disabled onclick="submitPayment()"><i class="fas fa-paper-plane"></i><span id="submitBtnText">Enviar comprobante</span></button>
+            <div class="processing-info"><i class="fas fa-clock processing-icon"></i><div class="processing-text"><strong>Verificación manual:</strong> 1-12 horas. Recibirás notificación por Telegram.</div></div>
+        </div>
         
         <footer class="footer fade-in delay-4"><p>© 2025 VPN Cuba · Cifrado cuántico</p><p style="margin-top: 8px; font-size: 0.8rem;">Protegido con tecnología blockchain</p></footer>
     </div>
@@ -792,4 +781,4 @@
         document.addEventListener('DOMContentLoaded', () => { initializePage(); document.getElementById('couponCode').addEventListener('keypress', e => { if(e.key === 'Enter') applyCoupon(); }); });
     </script>
 </body>
-                                                                </html>
+</html>

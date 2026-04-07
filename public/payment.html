@@ -276,7 +276,7 @@
             font-size: 0.85rem;
         }
 
-        /* Tarjetas Glass con bordes redondeados y elementos internos espaciados */
+        /* Tarjetas Glass */
         .coupon-section, .summary-card, .payment-method-selector, .upload-card {
             background: rgba(8, 12, 28, 0.7);
             backdrop-filter: blur(16px);
@@ -287,7 +287,7 @@
             margin-bottom: 2rem;
             position: relative;
             overflow: hidden;
-            padding: 1.8rem; /* Padding general para que ningún elemento toque el borde */
+            padding: 1.8rem;
         }
 
         .coupon-section:hover, .summary-card:hover, .payment-method-selector:hover, .upload-card:hover {
@@ -296,7 +296,6 @@
             box-shadow: 0 25px 45px rgba(0, 255, 255, 0.2);
         }
 
-        /* Cabeceras de tarjeta con suficiente separación */
         .card-header, .coupon-header, .method-selector-header {
             display: flex;
             align-items: center;
@@ -304,13 +303,13 @@
             margin-bottom: 1.8rem;
             border-bottom: 1px solid rgba(0,255,255,0.2);
             padding-bottom: 0.8rem;
-            padding-left: 0.2rem; /* Evita que el ícono toque el borde izquierdo */
+            padding-left: 0.2rem;
         }
 
         .card-icon, .coupon-icon, .method-selector-icon {
             font-size: 2rem;
             filter: drop-shadow(0 0 5px cyan);
-            flex-shrink: 0; /* Evita que se reduzca */
+            flex-shrink: 0;
         }
 
         .card-title, .coupon-title, .method-selector-title {
@@ -322,7 +321,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Inputs */
         .coupon-input, .method-selector select {
             background: rgba(0, 0, 0, 0.6);
             border: 1.5px solid rgba(0, 255, 255, 0.5);
@@ -356,7 +354,6 @@
             box-shadow: 0 0 20px #ff44cc;
         }
 
-        /* Resumen */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -376,7 +373,6 @@
             background: rgba(0, 255, 255, 0.08);
         }
 
-        /* Métodos de pago */
         .method-info-container {
             display: none;
             animation: fadeUp 0.5s;
@@ -436,7 +432,6 @@
             color: var(--usdt-gold);
         }
 
-        /* Upload con aviso */
         .upload-area {
             background: rgba(0, 10, 20, 0.7);
             border: 2px dashed var(--neon-blue);
@@ -473,7 +468,6 @@
             color: #ffdf99;
         }
 
-        /* Botón submit */
         .submit-btn {
             background: linear-gradient(125deg, var(--accent-1), var(--accent-2));
             border: none;
@@ -498,7 +492,6 @@
             cursor: not-allowed;
         }
 
-        /* Contenedor del paso número 2 (círculo) - ajuste de márgenes para evitar corte */
         .step-container {
             display: flex;
             gap: 1.5rem;
@@ -516,14 +509,13 @@
             font-size: 1.8rem;
             font-weight: bold;
             flex-shrink: 0;
-            margin-left: 0.2rem; /* Separación del borde izquierdo de la tarjeta */
+            margin-left: 0.2rem;
         }
 
         .step-content {
             flex: 1;
         }
 
-        /* Otros elementos */
         .discount-info {
             background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(244, 114, 182, 0.05));
             border: 1px solid rgba(236, 72, 153, 0.2);
@@ -565,7 +557,6 @@
             color: var(--text-muted);
         }
 
-        /* Notificaciones */
         .notification {
             position: fixed;
             top: 20px;
@@ -606,7 +597,6 @@
         .delay-3 { animation-delay: 0.3s; opacity: 0; animation-fill-mode: forwards; }
         .delay-4 { animation-delay: 0.4s; opacity: 0; animation-fill-mode: forwards; }
 
-        /* Responsive */
         @media (max-width: 760px) {
             .main-container { padding: 1rem; }
             .title { font-size: 2rem; }
@@ -683,7 +673,7 @@
             <div class="card-header"><i class="fas fa-receipt card-icon"></i><h2 class="card-title">Resumen de tu compra</h2></div>
             <div class="summary-grid">
                 <div class="summary-item"><div class="item-label">Plan seleccionado</div><div class="item-value"><span id="planName">Básico</span><span class="plan-badge" id="planBadge">1 MES</span><span class="discount-badge" id="discountBadge" style="display: none;">-0%</span></div></div>
-                <div class="summary-item"><div class="item-label">Precio total</div><div class="item-value"><span id="planPrice">$800 CUP</span></div></div>
+                <div class="summary-item"><div class="item-label">Precio total</div><div class="item-value"><span id="planPrice">$938 CUP</span></div></div>
                 <div class="summary-item"><div class="item-label">ID de usuario</div><div class="item-value" id="userIdDisplay">---</div></div>
                 <div class="summary-item"><div class="item-label">Fecha de solicitud</div><div class="item-value" id="requestDate">---</div></div>
             </div>
@@ -698,11 +688,11 @@
             <div id="transferInfo" class="method-info-container active"><div class="method-info-card"><div class="method-header"><i class="fas fa-credit-card method-icon"></i><h3>Tarjeta BPA</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-credit-card"></i><span>Número de tarjeta</span></div><div class="info-value">9248-1299-7027-1730</div><button class="copy-btn" onclick="copyToClipboard('9248129970271730', this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Móvil a confirmar</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div><div class="upload-note"><i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> Incluye número de confirmación.</div></div></div>
             <div id="metropolitanInfo" class="method-info-container"><div class="method-info-card"><div class="method-header"><i class="fas fa-university method-icon"></i><h3>Tarjeta Metropolitana</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-credit-card"></i><span>Número de tarjeta</span></div><div class="info-value">9238-9598-7118-1386</div><button class="copy-btn" onclick="copyToClipboard('9238959871181386', this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Móvil a confirmar</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div></div></div>
             <div id="mitransferInfo" class="method-info-container"><div class="method-info-card"><div class="method-header"><i class="fas fa-wallet method-icon"></i><h3>Monedero MITRANSFER</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Número de teléfono</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div></div></div>
-            <div id="mobileInfo" class="method-info-container"><div class="method-info-card mobile"><div class="method-header"><i class="fas fa-mobile-alt method-icon"></i><h3>Saldo Móvil</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Número de teléfono</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div><div class="mobile-price-info" id="mobilePriceDisplay" style="background: rgba(37,211,102,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">360 CUP</div><p>Plan Básico</p></div><div class="upload-note"><i class="fas fa-exclamation-circle"></i> Precio según plan seleccionado.</div></div></div>
-            <div id="usdtInfo" class="method-info-container"><div class="method-info-card usdt"><div class="method-header"><i class="fab fa-bitcoin method-icon"></i><h3>USDT (BEP20)</h3></div><div class="amount-display"><div class="amount-label">Monto a pagar en USDT:</div><div class="amount-value" id="usdtAmount">1.6</div><div class="amount-currency">USDT</div></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-wallet"></i><span>Dirección BEP20</span></div><div class="info-value" id="usdtAddress">0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2</div><button class="copy-btn" onclick="copyToClipboard(document.getElementById('usdtAddress').textContent, this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-network-wired"></i><span>Red</span></div><div class="info-value">BEP20 (Binance Smart Chain)</div></div></div><div class="usdt-instructions" style="background: rgba(240,185,11,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><h4><i class="fas fa-info-circle"></i> Instrucciones</h4><ul style="list-style: none;"><li><i class="fas fa-check-circle"></i> Envía exactamente el monto mostrado</li><li><i class="fas fa-check-circle"></i> Solo red BEP20</li></ul></div></div></div>
+            <div id="mobileInfo" class="method-info-container"><div class="method-info-card mobile"><div class="method-header"><i class="fas fa-mobile-alt method-icon"></i><h3>Saldo Móvil</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Número de teléfono</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div><div class="mobile-price-info" id="mobilePriceDisplay" style="background: rgba(37,211,102,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">938 CUP</div><p>Plan Básico</p></div><div class="upload-note"><i class="fas fa-exclamation-circle"></i> Precio según plan seleccionado.</div></div></div>
+            <div id="usdtInfo" class="method-info-container"><div class="method-info-card usdt"><div class="method-header"><i class="fab fa-bitcoin method-icon"></i><h3>USDT (BEP20)</h3></div><div class="amount-display"><div class="amount-label">Monto a pagar en USDT:</div><div class="amount-value" id="usdtAmount">1.4</div><div class="amount-currency">USDT</div></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-wallet"></i><span>Dirección BEP20</span></div><div class="info-value" id="usdtAddress">0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2</div><button class="copy-btn" onclick="copyToClipboard(document.getElementById('usdtAddress').textContent, this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-network-wired"></i><span>Red</span></div><div class="info-value">BEP20 (Binance Smart Chain)</div></div></div><div class="usdt-instructions" style="background: rgba(240,185,11,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><h4><i class="fas fa-info-circle"></i> Instrucciones</h4><ul style="list-style: none;"><li><i class="fas fa-check-circle"></i> Envía exactamente el monto mostrado</li><li><i class="fas fa-check-circle"></i> Solo red BEP20</li></ul></div></div></div>
         </div>
         
-        <!-- Subida de comprobante con aviso (círculo del paso 2 con margen) -->
+        <!-- Subida de comprobante con aviso -->
         <div id="uploadSection" class="upload-card fade-in delay-4">
             <div class="card-header"><i class="fas fa-camera card-icon"></i><h2 class="card-title">Sube el comprobante</h2></div>
             <div class="step-container">
@@ -743,7 +733,7 @@
     </div>
 
     <script>
-        // ---------- TODAS LAS FUNCIONES ORIGINALES PERMANECEN SIN MODIFICACIONES ----------
+        // ---------- FUNCIONES CON PRECIOS ACTUALIZADOS SEGÚN PLANS.HTML ----------
         const tg = window.Telegram.WebApp;
         if(tg) { tg.expand(); tg.MainButton.hide(); }
         let selectedFile = null;
@@ -753,32 +743,313 @@
         let currentMethod = 'transfer';
         let activeCoupon = null;
         const FIXED_USDT_ADDRESS = '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2';
-        const usdtPrices = { 'basico': '1.6', 'avanzado': '2.5', 'premium': '2.7', 'anual': '30' };
-        const mobilePrices = { 'basico': '360', 'avanzado': '500', 'premium': '560', 'anual': '15000' };
-        const cupPrices = { 'basico': '800', 'avanzado': '1300', 'premium': '1200', 'anual': '30000' };
-        const methodDescriptions = { 'transfer': 'Transfiere el monto exacto a la tarjeta BPA.', 'metropolitan': 'Transfiere a tarjeta Metropolitana.', 'mitransfer': 'Envía al monedero MITRANSFER.', 'mobile': 'Recarga saldo móvil.', 'usdt': 'Envía USDT por BEP20.' };
+        
+        // Precios oficiales desde plans.html
+        const usdtPrices = {
+            'basico': '1.4',
+            'avanzado': '1.8',
+            'premium': '2.3',
+            'anual': '30'
+        };
+        
+        const mobilePrices = {
+            'basico': '938',
+            'avanzado': '1206',
+            'premium': '1500',
+            'anual': '15000'
+        };
+        
+        const cupPrices = {
+            'basico': '938',
+            'avanzado': '1206',
+            'premium': '1500',
+            'anual': '15000'
+        };
+        
+        const methodDescriptions = { 
+            'transfer': 'Transfiere el monto exacto a la tarjeta BPA.', 
+            'metropolitan': 'Transfiere a tarjeta Metropolitana.', 
+            'mitransfer': 'Envía al monedero MITRANSFER.', 
+            'mobile': 'Recarga saldo móvil.', 
+            'usdt': 'Envía USDT por BEP20.' 
+        };
 
-        function checkTermsAccepted(userId) { const accepted = localStorage.getItem(`termsAccepted_${userId}`); const termsVersion = localStorage.getItem(`termsVersion_${userId}`); return accepted === 'true' && termsVersion === '2025-11'; }
-        function getUrlParameters() { const urlParams = new URLSearchParams(window.location.search); return { userId: urlParams.get('userId'), plan: urlParams.get('plan'), price: urlParams.get('price'), usdtAmount: urlParams.get('usdtAmount') }; }
-        function copyToClipboard(text, buttonElement) { navigator.clipboard.writeText(text.replace(/-/g, '')).then(function() { const originalText = buttonElement.innerHTML; buttonElement.classList.add('copied'); buttonElement.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>'; setTimeout(function() { buttonElement.classList.remove('copied'); buttonElement.innerHTML = originalText; }, 2000); showNotification('Texto copiado', 'success'); }).catch(() => showNotification('Error al copiar', 'error')); }
-        function initializePage() { const params = getUrlParameters(); currentUserId = params.userId; planType = params.plan; price = params.price; if (!currentUserId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) { currentUserId = tg.initDataUnsafe.user.id.toString(); const newUrl = `${window.location.pathname}?userId=${currentUserId}&plan=${planType}&price=${price}`; window.history.replaceState({}, '', newUrl); } if (!currentUserId || !checkTermsAccepted(currentUserId)) { window.location.href = `/index.html${currentUserId ? `?userId=${currentUserId}` : ''}`; return false; } loadPageContent(); return true; }
-        function loadPageContent() { const planNames = { 'basico': 'Básico','avanzado':'Avanzado','premium':'Premium','anual':'Anual' }; const planPeriods = { 'basico':'1 MES','avanzado':'2 MESES','premium':'1 MES','anual':'12 MESES' }; document.getElementById('planName').textContent = planNames[planType] || 'Básico'; document.getElementById('planBadge').textContent = planPeriods[planType] || '1 MES'; const basePrice = cupPrices[planType] || '800'; price = price || basePrice; document.getElementById('planPrice').textContent = `$${price} CUP`; document.getElementById('userIdDisplay').textContent = currentUserId || 'No disponible'; document.getElementById('requestDate').textContent = new Date().toLocaleDateString('es-ES'); document.getElementById('usdtAddress').textContent = FIXED_USDT_ADDRESS; updateMethodSpecificPrices(); setupUploadArea(); changePaymentMethod(); loadSavedCoupon(); }
-        function updateMethodSpecificPrices() { let baseCupPrice = parseInt(cupPrices[planType] || '800'); let baseUsdtPrice = parseFloat(usdtPrices[planType] || '1.6'); let baseMobilePrice = parseInt(mobilePrices[planType] || '360'); if (activeCoupon) { const discount = activeCoupon.discount || 0; baseCupPrice = Math.round(baseCupPrice * (1 - discount/100)); baseUsdtPrice = baseUsdtPrice * (1 - discount/100); baseMobilePrice = Math.round(baseMobilePrice * (1 - discount/100)); } document.getElementById('planPrice').textContent = `$${baseCupPrice} CUP`; document.getElementById('usdtAmount').textContent = baseUsdtPrice.toFixed(2); document.getElementById('mobilePriceDisplay').innerHTML = `<div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">${baseMobilePrice} CUP</div><p>Plan ${document.getElementById('planName').textContent}</p>`; }
-        function changePaymentMethod() { const select = document.getElementById('paymentMethod'); currentMethod = select.value; document.querySelectorAll('.method-info-container').forEach(c => c.classList.remove('active')); document.getElementById(`${currentMethod}Info`).classList.add('active'); document.getElementById('methodDescription').textContent = methodDescriptions[currentMethod] || ''; document.getElementById('submitBtnText').textContent = currentMethod === 'usdt' ? 'Enviar comprobante USDT' : 'Enviar comprobante'; updateSubmitButtonState(); }
-        function updateSubmitButtonState() { document.getElementById('submitBtn').disabled = !selectedFile; }
-        function setupUploadArea() { const uploadArea = document.getElementById('uploadArea'); const fileInput = document.getElementById('screenshotInput'); const removeBtn = document.getElementById('removeBtn'); uploadArea.addEventListener('click', () => fileInput.click()); uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); }); uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover')); uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); }); fileInput.addEventListener('change', e => { if(e.target.files.length) handleFile(e.target.files[0]); }); removeBtn.addEventListener('click', removeImage); }
-        function handleFile(file) { if (file.size > 5*1024*1024) return showNotification('El archivo es demasiado grande. Máximo 5MB.', 'error'); if (!['image/jpeg','image/png','image/gif'].includes(file.type)) return showNotification('Formato no válido. Solo JPG, PNG o GIF.', 'error'); selectedFile = file; const reader = new FileReader(); reader.onload = e => { document.getElementById('imagePreview').src = e.target.result; document.getElementById('previewContainer').style.display = 'block'; document.getElementById('progressBar').style.width = '66%'; document.querySelectorAll('.step')[1].classList.add('active'); updateSubmitButtonState(); showNotification('Imagen cargada correctamente.', 'success'); }; reader.readAsDataURL(file); }
-        function removeImage() { selectedFile = null; document.getElementById('previewContainer').style.display = 'none'; document.getElementById('screenshotInput').value = ''; updateSubmitButtonState(); document.getElementById('progressBar').style.width = '33%'; document.querySelectorAll('.step')[1].classList.remove('active'); showNotification('Imagen eliminada.', 'info'); }
-        async function verifyCoupon(couponCode) { try { const response = await fetch(`/api/coupons/verify/${couponCode}`, { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ telegramId: currentUserId, planType: planType }) }); const result = await response.json(); if(result.success) return { valid:true, code:result.coupon.code, discount:result.coupon.discount, name:result.coupon.description || `Descuento ${result.coupon.discount}%`, expires:'No expira' }; else return { valid:false, message: result.error || 'Cupón no válido' }; } catch(e) { return { valid:false, message:'Error al verificar cupón' }; } }
-        async function applyCoupon() { const code = document.getElementById('couponCode').value.trim().toUpperCase(); const msgDiv = document.getElementById('couponMessage'); if(!code) { msgDiv.textContent='Introduce código.'; msgDiv.className='coupon-message error'; return; } const btn = document.getElementById('applyCouponBtn'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verificando...'; try { const data = await verifyCoupon(code); if(data.valid) { activeCoupon = data; showDiscountInfo(data); updateMethodSpecificPrices(); saveCoupon(data); msgDiv.textContent=`¡Cupón "${code}" aplicado!`; msgDiv.className='coupon-message success'; document.getElementById('discountBadge').style.display='inline-block'; document.getElementById('discountBadge').textContent=`-${data.discount}%`; showNotification(`Descuento del ${data.discount}% aplicado`,'success'); } else { msgDiv.textContent=data.message; msgDiv.className='coupon-message error'; showNotification('Cupón no válido','error'); } } catch(e) { msgDiv.textContent='Error al verificar'; msgDiv.className='coupon-message error'; } finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i><span>Aplicar cupón</span>'; } }
-        function showDiscountInfo(couponData) { const baseCupPrice = parseInt(cupPrices[planType] || '800'); const discountAmount = Math.round(baseCupPrice * (couponData.discount/100)); const newPrice = baseCupPrice - discountAmount; document.getElementById('appliedCouponCode').textContent = couponData.code; document.getElementById('discountPercentage').textContent = `${couponData.discount}%`; document.getElementById('discountAmount').textContent = `$${discountAmount} CUP`; document.getElementById('originalPrice').textContent = `$${baseCupPrice} CUP`; document.getElementById('newPrice').textContent = `$${newPrice} CUP`; document.getElementById('couponExpiry') && (document.getElementById('couponExpiry').textContent = 'No expira'); document.getElementById('discountInfo').style.display = 'block'; document.getElementById('couponCode').value = ''; }
-        function removeCoupon() { activeCoupon = null; document.getElementById('discountInfo').style.display = 'none'; document.getElementById('discountBadge').style.display='none'; updateMethodSpecificPrices(); document.getElementById('couponMessage').className='coupon-message'; document.getElementById('couponMessage').textContent=''; localStorage.removeItem(`coupon_${currentUserId}`); showNotification('Cupón eliminado','info'); }
-        function saveCoupon(couponData) { localStorage.setItem(`coupon_${currentUserId}`, JSON.stringify({ ...couponData, appliedAt: new Date().toISOString(), userId: currentUserId, planType })); }
-        function loadSavedCoupon() { const saved = localStorage.getItem(`coupon_${currentUserId}`); if(saved) { try { const data = JSON.parse(saved); activeCoupon = data; showDiscountInfo(data); document.getElementById('discountBadge').style.display='inline-block'; document.getElementById('discountBadge').textContent=`-${data.discount}%`; } catch(e) { localStorage.removeItem(`coupon_${currentUserId}`); } } }
-        async function submitPayment() { const button = document.getElementById('submitBtn'); const originalHtml = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando...</span>'; if (!selectedFile) { showNotification('Debes subir el comprobante', 'warning'); button.disabled=false; button.innerHTML=originalHtml; return; } try { const formData = new FormData(); formData.append('telegramId', currentUserId); formData.append('plan', planType); formData.append('price', price); formData.append('method', currentMethod); formData.append('screenshot', selectedFile); if(activeCoupon) { formData.append('couponCode', activeCoupon.code); formData.append('discount', activeCoupon.discount); formData.append('finalPrice', calculateFinalPrice()); } if(currentMethod === 'usdt') formData.append('usdtAmount', document.getElementById('usdtAmount').textContent); const resp = await fetch('/api/payment', { method:'POST', body: formData }); if(!resp.ok) throw new Error('Error servidor'); const data = await resp.json(); if(activeCoupon) localStorage.removeItem(`coupon_${currentUserId}`); document.getElementById('progressBar').style.width = '100%'; document.querySelectorAll('.step')[2].classList.add('active'); showNotification('Comprobante enviado. Recibirás confirmación por Telegram.', 'success'); setTimeout(() => { if(tg && tg.platform !== 'unknown') tg.close(); else window.location.href='https://t.me/vpncubabot'; }, 3000); } catch(e) { showNotification('Error al enviar: '+e.message, 'error'); button.disabled=false; button.innerHTML=originalHtml; } }
-        function calculateFinalPrice() { const base = parseInt(cupPrices[planType] || '800'); return activeCoupon ? Math.round(base * (1 - activeCoupon.discount/100)) : base; }
-        function showNotification(message, type='info') { const notif = document.createElement('div'); notif.className = 'notification'; let bg='#00aaff'; let icon='fa-info-circle'; if(type==='success'){ bg='#10b981'; icon='fa-check-circle'; } else if(type==='error'){ bg='#ef4444'; icon='fa-exclamation-circle'; } else if(type==='warning'){ bg='#f59e0b'; icon='fa-exclamation-triangle'; } notif.style.backgroundColor = bg; notif.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`; document.body.appendChild(notif); setTimeout(() => notif.remove(), 4000); }
-        document.addEventListener('DOMContentLoaded', () => { initializePage(); document.getElementById('couponCode').addEventListener('keypress', e => { if(e.key === 'Enter') applyCoupon(); }); });
+        function checkTermsAccepted(userId) { 
+            const accepted = localStorage.getItem(`termsAccepted_${userId}`); 
+            const termsVersion = localStorage.getItem(`termsVersion_${userId}`); 
+            return accepted === 'true' && termsVersion === '2025-11'; 
+        }
+        
+        function getUrlParameters() { 
+            const urlParams = new URLSearchParams(window.location.search); 
+            return { userId: urlParams.get('userId'), plan: urlParams.get('plan'), price: urlParams.get('price'), usdtAmount: urlParams.get('usdtAmount') }; 
+        }
+        
+        function copyToClipboard(text, buttonElement) { 
+            navigator.clipboard.writeText(text.replace(/-/g, '')).then(function() { 
+                const originalText = buttonElement.innerHTML; 
+                buttonElement.classList.add('copied'); 
+                buttonElement.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>'; 
+                setTimeout(function() { 
+                    buttonElement.classList.remove('copied'); 
+                    buttonElement.innerHTML = originalText; 
+                }, 2000); 
+                showNotification('Texto copiado', 'success'); 
+            }).catch(() => showNotification('Error al copiar', 'error')); 
+        }
+        
+        function initializePage() { 
+            const params = getUrlParameters(); 
+            currentUserId = params.userId; 
+            planType = params.plan; 
+            price = params.price; 
+            if (!currentUserId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) { 
+                currentUserId = tg.initDataUnsafe.user.id.toString(); 
+                const newUrl = `${window.location.pathname}?userId=${currentUserId}&plan=${planType}&price=${price}`; 
+                window.history.replaceState({}, '', newUrl); 
+            } 
+            if (!currentUserId || !checkTermsAccepted(currentUserId)) { 
+                window.location.href = `/index.html${currentUserId ? `?userId=${currentUserId}` : ''}`; 
+                return false; 
+            } 
+            loadPageContent(); 
+            return true; 
+        }
+        
+        function loadPageContent() { 
+            const planNames = { 'basico': 'Básico', 'avanzado': 'Avanzado', 'premium': 'Gaming', 'anual': 'Anual' }; 
+            const planPeriods = { 'basico': '1 MES', 'avanzado': '2 MESES', 'premium': '1 MES', 'anual': '12 MESES' }; 
+            document.getElementById('planName').textContent = planNames[planType] || 'Básico'; 
+            document.getElementById('planBadge').textContent = planPeriods[planType] || '1 MES'; 
+            const basePrice = cupPrices[planType] || '938'; 
+            price = price || basePrice; 
+            document.getElementById('planPrice').textContent = `$${price} CUP`; 
+            document.getElementById('userIdDisplay').textContent = currentUserId || 'No disponible'; 
+            document.getElementById('requestDate').textContent = new Date().toLocaleDateString('es-ES'); 
+            document.getElementById('usdtAddress').textContent = FIXED_USDT_ADDRESS; 
+            updateMethodSpecificPrices(); 
+            setupUploadArea(); 
+            changePaymentMethod(); 
+            loadSavedCoupon(); 
+        }
+        
+        function updateMethodSpecificPrices() { 
+            let baseCupPrice = parseInt(cupPrices[planType] || '938'); 
+            let baseUsdtPrice = parseFloat(usdtPrices[planType] || '1.4'); 
+            let baseMobilePrice = parseInt(mobilePrices[planType] || '938'); 
+            if (activeCoupon) { const discount = activeCoupon.discount || 0; baseCupPrice = Math.round(baseCupPrice * (1 - discount/100)); baseUsdtPrice = baseUsdtPrice * (1 - discount/100); baseMobilePrice = Math.round(baseMobilePrice * (1 - discount/100)); } 
+            document.getElementById('planPrice').textContent = `$${baseCupPrice} CUP`; 
+            document.getElementById('usdtAmount').textContent = baseUsdtPrice.toFixed(2); 
+            document.getElementById('mobilePriceDisplay').innerHTML = `<div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">${baseMobilePrice} CUP</div><p>Plan ${document.getElementById('planName').textContent}</p>`; 
+        }
+        
+        function changePaymentMethod() { 
+            const select = document.getElementById('paymentMethod'); 
+            currentMethod = select.value; 
+            document.querySelectorAll('.method-info-container').forEach(c => c.classList.remove('active')); 
+            document.getElementById(`${currentMethod}Info`).classList.add('active'); 
+            document.getElementById('methodDescription').textContent = methodDescriptions[currentMethod] || ''; 
+            document.getElementById('submitBtnText').textContent = currentMethod === 'usdt' ? 'Enviar comprobante USDT' : 'Enviar comprobante'; 
+            updateSubmitButtonState(); 
+        }
+        
+        function updateSubmitButtonState() { 
+            document.getElementById('submitBtn').disabled = !selectedFile; 
+        }
+        
+        function setupUploadArea() { 
+            const uploadArea = document.getElementById('uploadArea'); 
+            const fileInput = document.getElementById('screenshotInput'); 
+            const removeBtn = document.getElementById('removeBtn'); 
+            uploadArea.addEventListener('click', () => fileInput.click()); 
+            uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); }); 
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover')); 
+            uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); }); 
+            fileInput.addEventListener('change', e => { if(e.target.files.length) handleFile(e.target.files[0]); }); 
+            removeBtn.addEventListener('click', removeImage); 
+        }
+        
+        function handleFile(file) { 
+            if (file.size > 5*1024*1024) return showNotification('El archivo es demasiado grande. Máximo 5MB.', 'error'); 
+            if (!['image/jpeg','image/png','image/gif'].includes(file.type)) return showNotification('Formato no válido. Solo JPG, PNG o GIF.', 'error'); 
+            selectedFile = file; 
+            const reader = new FileReader(); 
+            reader.onload = e => { 
+                document.getElementById('imagePreview').src = e.target.result; 
+                document.getElementById('previewContainer').style.display = 'block'; 
+                document.getElementById('progressBar').style.width = '66%'; 
+                document.querySelectorAll('.step')[1].classList.add('active'); 
+                updateSubmitButtonState(); 
+                showNotification('Imagen cargada correctamente.', 'success'); 
+            }; 
+            reader.readAsDataURL(file); 
+        }
+        
+        function removeImage() { 
+            selectedFile = null; 
+            document.getElementById('previewContainer').style.display = 'none'; 
+            document.getElementById('screenshotInput').value = ''; 
+            updateSubmitButtonState(); 
+            document.getElementById('progressBar').style.width = '33%'; 
+            document.querySelectorAll('.step')[1].classList.remove('active'); 
+            showNotification('Imagen eliminada.', 'info'); 
+        }
+        
+        async function verifyCoupon(couponCode) { 
+            try { 
+                const response = await fetch(`/api/coupons/verify/${couponCode}`, { 
+                    method: 'POST', 
+                    headers:{'Content-Type':'application/json'}, 
+                    body: JSON.stringify({ telegramId: currentUserId, planType: planType }) 
+                }); 
+                const result = await response.json(); 
+                if(result.success) return { valid:true, code:result.coupon.code, discount:result.coupon.discount, name:result.coupon.description || `Descuento ${result.coupon.discount}%`, expires:'No expira' }; 
+                else return { valid:false, message: result.error || 'Cupón no válido' }; 
+            } catch(e) { return { valid:false, message:'Error al verificar cupón' }; } 
+        }
+        
+        async function applyCoupon() { 
+            const code = document.getElementById('couponCode').value.trim().toUpperCase(); 
+            const msgDiv = document.getElementById('couponMessage'); 
+            if(!code) { msgDiv.textContent='Introduce código.'; msgDiv.className='coupon-message error'; return; } 
+            const btn = document.getElementById('applyCouponBtn'); 
+            btn.disabled=true; 
+            btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Verificando...'; 
+            try { 
+                const data = await verifyCoupon(code); 
+                if(data.valid) { 
+                    activeCoupon = data; 
+                    showDiscountInfo(data); 
+                    updateMethodSpecificPrices(); 
+                    saveCoupon(data); 
+                    msgDiv.textContent=`¡Cupón "${code}" aplicado!`; 
+                    msgDiv.className='coupon-message success'; 
+                    document.getElementById('discountBadge').style.display='inline-block'; 
+                    document.getElementById('discountBadge').textContent=`-${data.discount}%`; 
+                    showNotification(`Descuento del ${data.discount}% aplicado`,'success'); 
+                } else { 
+                    msgDiv.textContent=data.message; 
+                    msgDiv.className='coupon-message error'; 
+                    showNotification('Cupón no válido','error'); 
+                } 
+            } catch(e) { 
+                msgDiv.textContent='Error al verificar'; 
+                msgDiv.className='coupon-message error'; 
+            } finally { 
+                btn.disabled=false; 
+                btn.innerHTML='<i class="fas fa-check-circle"></i><span>Aplicar cupón</span>'; 
+            } 
+        }
+        
+        function showDiscountInfo(couponData) { 
+            const baseCupPrice = parseInt(cupPrices[planType] || '938'); 
+            const discountAmount = Math.round(baseCupPrice * (couponData.discount/100)); 
+            const newPrice = baseCupPrice - discountAmount; 
+            document.getElementById('appliedCouponCode').textContent = couponData.code; 
+            document.getElementById('discountPercentage').textContent = `${couponData.discount}%`; 
+            document.getElementById('discountAmount').textContent = `$${discountAmount} CUP`; 
+            document.getElementById('originalPrice').textContent = `$${baseCupPrice} CUP`; 
+            document.getElementById('newPrice').textContent = `$${newPrice} CUP`; 
+            if(document.getElementById('couponExpiry')) document.getElementById('couponExpiry').textContent = 'No expira'; 
+            document.getElementById('discountInfo').style.display = 'block'; 
+            document.getElementById('couponCode').value = ''; 
+        }
+        
+        function removeCoupon() { 
+            activeCoupon = null; 
+            document.getElementById('discountInfo').style.display = 'none'; 
+            document.getElementById('discountBadge').style.display='none'; 
+            updateMethodSpecificPrices(); 
+            document.getElementById('couponMessage').className='coupon-message'; 
+            document.getElementById('couponMessage').textContent=''; 
+            localStorage.removeItem(`coupon_${currentUserId}`); 
+            showNotification('Cupón eliminado','info'); 
+        }
+        
+        function saveCoupon(couponData) { 
+            localStorage.setItem(`coupon_${currentUserId}`, JSON.stringify({ ...couponData, appliedAt: new Date().toISOString(), userId: currentUserId, planType })); 
+        }
+        
+        function loadSavedCoupon() { 
+            const saved = localStorage.getItem(`coupon_${currentUserId}`); 
+            if(saved) { 
+                try { 
+                    const data = JSON.parse(saved); 
+                    activeCoupon = data; 
+                    showDiscountInfo(data); 
+                    document.getElementById('discountBadge').style.display='inline-block'; 
+                    document.getElementById('discountBadge').textContent=`-${data.discount}%`; 
+                } catch(e) { 
+                    localStorage.removeItem(`coupon_${currentUserId}`); 
+                } 
+            } 
+        }
+        
+        async function submitPayment() { 
+            const button = document.getElementById('submitBtn'); 
+            const originalHtml = button.innerHTML; 
+            button.disabled = true; 
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando...</span>'; 
+            if (!selectedFile) { 
+                showNotification('Debes subir el comprobante', 'warning'); 
+                button.disabled=false; 
+                button.innerHTML=originalHtml; 
+                return; 
+            } 
+            try { 
+                const formData = new FormData(); 
+                formData.append('telegramId', currentUserId); 
+                formData.append('plan', planType); 
+                formData.append('price', price); 
+                formData.append('method', currentMethod); 
+                formData.append('screenshot', selectedFile); 
+                if(activeCoupon) { 
+                    formData.append('couponCode', activeCoupon.code); 
+                    formData.append('discount', activeCoupon.discount); 
+                    formData.append('finalPrice', calculateFinalPrice()); 
+                } 
+                if(currentMethod === 'usdt') formData.append('usdtAmount', document.getElementById('usdtAmount').textContent); 
+                const resp = await fetch('/api/payment', { method:'POST', body: formData }); 
+                if(!resp.ok) throw new Error('Error servidor'); 
+                const data = await resp.json(); 
+                if(activeCoupon) localStorage.removeItem(`coupon_${currentUserId}`); 
+                document.getElementById('progressBar').style.width = '100%'; 
+                document.querySelectorAll('.step')[2].classList.add('active'); 
+                showNotification('Comprobante enviado. Recibirás confirmación por Telegram.', 'success'); 
+                setTimeout(() => { 
+                    if(tg && tg.platform !== 'unknown') tg.close(); 
+                    else window.location.href='https://t.me/vpncubabot'; 
+                }, 3000); 
+            } catch(e) { 
+                showNotification('Error al enviar: '+e.message, 'error'); 
+                button.disabled=false; 
+                button.innerHTML=originalHtml; 
+            } 
+        }
+        
+        function calculateFinalPrice() { 
+            const base = parseInt(cupPrices[planType] || '938'); 
+            return activeCoupon ? Math.round(base * (1 - activeCoupon.discount/100)) : base; 
+        }
+        
+        function showNotification(message, type='info') { 
+            const notif = document.createElement('div'); 
+            notif.className = 'notification'; 
+            let bg='#00aaff'; 
+            let icon='fa-info-circle'; 
+            if(type==='success'){ bg='#10b981'; icon='fa-check-circle'; } 
+            else if(type==='error'){ bg='#ef4444'; icon='fa-exclamation-circle'; } 
+            else if(type==='warning'){ bg='#f59e0b'; icon='fa-exclamation-triangle'; } 
+            notif.style.backgroundColor = bg; 
+            notif.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`; 
+            document.body.appendChild(notif); 
+            setTimeout(() => notif.remove(), 4000); 
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => { 
+            initializePage(); 
+            document.getElementById('couponCode').addEventListener('keypress', e => { if(e.key === 'Enter') applyCoupon(); }); 
+        });
     </script>
 </body>
-</html>
+    </html>

@@ -13,11 +13,11 @@
 
   <style>
     :root{
-      --bg0:#05070b;
-      --bg1:#090d14;
-      --bg2:#0f1520;
-      --panel:rgba(18,22,32,.84);
-      --panel-strong:rgba(24,29,41,.96);
+      --bg0:#000000;
+      --bg1:#0a0a0f;
+      --bg2:#111118;
+      --panel:rgba(18,22,32,.92);
+      --panel-strong:rgba(12,15,25,.98);
       --line:rgba(255,255,255,.08);
       --text:#f2f6ff;
       --muted:#a8b3cf;
@@ -41,11 +41,7 @@
     body{
       font-family:var(--font);
       color:var(--text);
-      background:
-        radial-gradient(circle at 15% 10%, rgba(95,125,255,.14), transparent 23%),
-        radial-gradient(circle at 85% 10%, rgba(255,217,102,.10), transparent 20%),
-        radial-gradient(circle at 50% 100%, rgba(57,255,20,.08), transparent 28%),
-        linear-gradient(180deg, var(--bg0), var(--bg1) 42%, var(--bg0));
+      background: #000000;
       overflow-x:hidden;
       line-height:1.5;
       -webkit-font-smoothing:antialiased;
@@ -53,15 +49,32 @@
       text-rendering:optimizeLegibility;
     }
 
-    .grid{
+    /* Fondo negro con estrellas fijas */
+    .stars-bg{
       position:fixed;
-      inset:0;
-      z-index:-3;
-      background-image:
-        linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
-      background-size:44px 44px;
-      mask-image:linear-gradient(180deg, rgba(0,0,0,.92), transparent 115%);
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      background: #000000;
+      z-index:-2;
+    }
+    .stars-bg::before{
+      content:"";
+      position:absolute;
+      width:100%;
+      height:100%;
+      background-image: 
+        radial-gradient(2px 2px at 5% 10%, white, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 15% 35%, rgba(255,255,200,0.8), rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 35% 70%, rgba(255,200,100,0.6), rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 55% 15%, white, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 70% 85%, rgba(200,200,255,0.7), rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 85% 45%, white, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 95% 75%, rgba(255,255,180,0.8), rgba(0,0,0,0));
+      background-repeat: no-repeat;
+      background-size: 200px 200px, 300px 300px, 400px 400px, 250px 250px, 350px 350px, 280px 280px, 320px 320px;
+      opacity: 0.8;
       pointer-events:none;
     }
 
@@ -71,8 +84,8 @@
       height:420px;
       border-radius:50%;
       filter:blur(72px);
-      opacity:.18;
-      z-index:-4;
+      opacity:.12;
+      z-index:-1;
       pointer-events:none;
       animation: drift 16s ease-in-out infinite;
     }
@@ -89,6 +102,8 @@
       width:min(1020px,100%);
       margin:0 auto;
       padding:26px 16px 28px;
+      position:relative;
+      z-index:2;
     }
 
     .hero{
@@ -243,7 +258,7 @@
       font-weight:900;
       letter-spacing:.08em;
       text-transform:uppercase;
-      background:rgba(255,255,255,.08);
+      background:rgba(0,0,0,.7);
       color:#fff;
       border:1px solid rgba(255,255,255,.14);
       backdrop-filter:blur(14px);
@@ -269,7 +284,7 @@
       overflow:hidden;
       border-radius:var(--radius);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.016)),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)),
         linear-gradient(180deg, var(--panel), var(--panel-strong));
       border:1px solid rgba(255,255,255,.09);
       box-shadow:var(--shadow);
@@ -377,7 +392,7 @@
       font-size:.78rem;
       font-weight:800;
       letter-spacing:.02em;
-      background:rgba(255,255,255,.045);
+      background:rgba(0,0,0,.5);
       border:1px solid rgba(255,255,255,.08);
       color:#fff;
     }
@@ -415,7 +430,7 @@
       gap:12px;
       padding:10px 12px;
       border-radius:16px;
-      background:rgba(255,255,255,.03);
+      background:rgba(0,0,0,.3);
       border:1px solid rgba(255,255,255,.05);
       min-height:48px;
     }
@@ -481,8 +496,8 @@
     .basic .tag{box-shadow:0 0 18px rgba(95,125,255,.18), inset 0 0 16px rgba(95,125,255,.06)}
 
     .advanced .tag{
-      background:rgba(255,217,102,.12);
-      color:#0c0f14;
+      background:rgba(0,0,0,.7);
+      color:#fff;
     }
     .advanced .tag::before{background:rgba(255,217,102,.84)}
     .advanced .action{background:linear-gradient(135deg,var(--gold),#d4af37); color:#0b0d10}
@@ -493,8 +508,8 @@
     .premium .tag{box-shadow:0 0 18px rgba(255,77,77,.18), inset 0 0 16px rgba(255,77,77,.06)}
 
     .annual .tag{
-      background:rgba(57,255,20,.12);
-      color:#0b0f11;
+      background:rgba(0,0,0,.7);
+      color:#fff;
     }
     .annual .tag::before{background:rgba(57,255,20,.84)}
     .annual .action{background:linear-gradient(135deg,var(--green),#00b300); color:#081006}
@@ -522,7 +537,7 @@
       position:absolute;
       right:0;
       bottom:72px;
-      background:rgba(8,10,14,.94);
+      background:rgba(0,0,0,.9);
       border:1px solid rgba(255,255,255,.10);
       color:#fff;
       padding:8px 12px;
@@ -555,7 +570,7 @@
       display:none;
       position:fixed;
       inset:0;
-      background:rgba(0,0,0,.78);
+      background:rgba(0,0,0,.9);
       backdrop-filter:blur(10px);
       z-index:2000;
       align-items:center;
@@ -565,7 +580,7 @@
     .modal.active{display:flex}
     .modal-content{
       width:min(520px,100%);
-      background:linear-gradient(180deg, rgba(27,32,44,.98), rgba(18,21,30,.98));
+      background:linear-gradient(180deg, rgba(10,15,25,.98), rgba(5,8,15,.98));
       border:1px solid rgba(255,255,255,.10);
       border-radius:28px;
       box-shadow:0 34px 90px -34px rgba(0,0,0,.95);
@@ -593,7 +608,7 @@
       position:fixed;
       top:20px;
       right:20px;
-      background:rgba(20,24,34,.96);
+      background:rgba(0,0,0,.96);
       border:1px solid rgba(255,255,255,.08);
       border-left:4px solid var(--blue);
       padding:.88rem 1.1rem;
@@ -629,7 +644,7 @@
   </style>
 </head>
 <body>
-  <div class="grid"></div>
+  <div class="stars-bg"></div>
   <div class="orb one"></div>
   <div class="orb two"></div>
   <div class="orb three"></div>
@@ -750,6 +765,7 @@
         </article>
       </div>
 
+      <!-- BÁSICO: 938 CUP / 1.4 USDT -->
       <div class="shell basic">
         <div class="tag">🌐 Navegación</div>
         <article class="card" data-plan="basico">
@@ -759,8 +775,8 @@
               <div class="subtitle">1 mes</div>
             </div>
             <div class="price">
-              <div class="cup">800 CUP</div>
-              <div class="usdt">≈ <strong>1.6 USDT</strong></div>
+              <div class="cup">938 CUP</div>
+              <div class="usdt">≈ <strong>1.4 USDT</strong></div>
             </div>
           </div>
 
@@ -776,12 +792,13 @@
             <div class="feature"><i class="fas fa-server"></i><span>4 servidores disponibles</span></div>
           </div>
 
-          <button class="action" onclick="selectPlan('basico', 800, 1.6, this)">
+          <button class="action" onclick="selectPlan('basico', 938, 1.4, this)">
             <i class="fas fa-cart-shopping"></i> Seleccionar
           </button>
         </article>
       </div>
 
+      <!-- AVANZADO: 1206 CUP / 1.8 USDT -->
       <div class="shell advanced">
         <div class="tag">🌟 Recomendado</div>
         <article class="card" data-plan="avanzado">
@@ -791,8 +808,8 @@
               <div class="subtitle">2 meses</div>
             </div>
             <div class="price">
-              <div class="cup">1,300 CUP</div>
-              <div class="usdt">≈ <strong>2.7 USDT</strong></div>
+              <div class="cup">1,206 CUP</div>
+              <div class="usdt">≈ <strong>1.8 USDT</strong></div>
             </div>
           </div>
 
@@ -801,7 +818,7 @@
             <span class="chip">Ahorro real</span>
           </div>
 
-          <div class="savings"><i class="fas fa-tag"></i> Ahorras 300 CUP</div>
+          <div class="savings"><i class="fas fa-tag"></i> Ahorras 670 CUP</div>
 
           <div class="features">
             <div class="feature"><i class="fas fa-check-circle"></i><span>Todo lo del plan básico</span></div>
@@ -810,12 +827,13 @@
             <div class="feature"><i class="fas fa-shield-alt"></i><span>Protección avanzada</span></div>
           </div>
 
-          <button class="action" onclick="selectPlan('avanzado', 1300, 2.7, this)">
+          <button class="action" onclick="selectPlan('avanzado', 1206, 1.8, this)">
             <i class="fas fa-crown"></i> Seleccionar
           </button>
         </article>
       </div>
 
+      <!-- GAMING (Premium): 1500 CUP / 2.3 USDT -->
       <div class="shell premium">
         <div class="tag">🎮 Gaming</div>
         <article class="card" data-plan="premium">
@@ -825,8 +843,8 @@
               <div class="subtitle">1 mes</div>
             </div>
             <div class="price">
-              <div class="cup">1,200 CUP</div>
-              <div class="usdt">≈ <strong>2.5 USDT</strong></div>
+              <div class="cup">1,500 CUP</div>
+              <div class="usdt">≈ <strong>2.3 USDT</strong></div>
             </div>
           </div>
 
@@ -844,12 +862,13 @@
             <div class="feature"><i class="fas fa-server"></i><span>Servidor privado optimizado</span></div>
           </div>
 
-          <button class="action" onclick="selectPlan('premium', 1200, 2.5, this)">
+          <button class="action" onclick="selectPlan('premium', 1500, 2.3, this)">
             <i class="fas fa-gem"></i> Elegir Gaming
           </button>
         </article>
       </div>
 
+      <!-- ANUAL: 15000 CUP / 30 USDT -->
       <div class="shell annual">
         <div class="tag">📅 Anual</div>
         <article class="card" data-plan="anual">

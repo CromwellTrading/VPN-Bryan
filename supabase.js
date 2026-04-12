@@ -385,24 +385,42 @@ const db = {
     }
   },
 
+  // ✅ CORREGIDO: ahora obtiene TODOS los usuarios con paginación
   async getAllUsers() {
     try {
-      console.log('👥 Obteniendo todos los usuarios...');
+      console.log('👥 Obteniendo todos los usuarios (paginación automática)...');
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Error obteniendo todos los usuarios:', error);
-        throw error;
+      let allUsers = [];
+      let from = 0;
+      const pageSize = 1000; // Límite máximo de Supabase por página
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          console.error('❌ Error obteniendo usuarios:', error);
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          allUsers = allUsers.concat(data);
+          from += pageSize;
+          
+          // Si la página está incompleta, significa que ya no hay más registros
+          if (data.length < pageSize) break;
+        } else {
+          break;
+        }
       }
-      
-      console.log(`✅ ${data?.length || 0} usuarios encontrados`);
-      return data || [];
+
+      console.log(`✅ Total de usuarios obtenidos: ${allUsers.length}`);
+      return allUsers;
     } catch (error) {
-      console.error('❌ Error obteniendo todos los usuarios:', error);
+      console.error('❌ Error en getAllUsers:', error);
       return [];
     }
   },

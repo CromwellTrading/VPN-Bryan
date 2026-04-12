@@ -3516,7 +3516,7 @@
             }
         }
 
-        // Cargar sistema de referidos mejorado
+        // Cargar sistema de referidos mejorado - CORREGIDO BUG 999 (límite descuento 100%)
         async function loadReferrals() {
             try {
                 document.getElementById('referralsListLoading').style.display = 'block';
@@ -3534,10 +3534,13 @@
                 document.getElementById('level1Referrals').textContent = stats.level1_referrals || 0;
                 document.getElementById('level2Referrals').textContent = stats.level2_referrals || 0;
                 
-                // Calcular descuentos
-                const level1Discount = (stats.paid_level1 || 0) * 20;
-                const level2Discount = (stats.paid_level2 || 0) * 10;
-                const totalDiscount = level1Discount + level2Discount;
+                // Calcular descuentos con límite máximo de 100% (corrige bug que se quedaba en 999)
+                let level1Discount = (stats.paid_level1 || 0) * 20;
+                let level2Discount = (stats.paid_level2 || 0) * 10;
+                // Limitar cada nivel a 100% máximo
+                level1Discount = Math.min(level1Discount, 100);
+                level2Discount = Math.min(level2Discount, 100);
+                let totalDiscount = Math.min(level1Discount + level2Discount, 100);
                 
                 document.getElementById('level1Discount').textContent = level1Discount + '%';
                 document.getElementById('level2Discount').textContent = level2Discount + '%';
@@ -3556,6 +3559,8 @@
                     document.getElementById('topReferrersNoData').style.display = 'none';
                     
                     topReferrers.forEach((referrer, index) => {
+                        // Calcular descuento individual con límite 100%
+                        let individualDiscount = Math.min((referrer.paid_referrals || 0) * 20, 100);
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${index + 1}</td>
@@ -3568,7 +3573,7 @@
                             <td style="text-align: center;">${referrer.paid_referrals || 0}</td>
                             <td style="text-align: center;">
                                 <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399;">
-                                    ${(referrer.paid_referrals || 0) * 20}%
+                                    ${individualDiscount}%
                                 </span>
                             </td>
                             <td style="text-align: center;">
@@ -3807,7 +3812,7 @@
             }
         }
 
-        // Mostrar referidos de un usuario
+        // Mostrar referidos de un usuario - CORREGIDO BUG 999 (límite descuento 100%)
         function displayUserReferrals(data, searchType) {
             if (searchType === 'all') {
                 // Mostrar detalles de un usuario específico
@@ -3835,14 +3840,15 @@
                     <strong>Referidor:</strong> ${referrerInfo}
                 `;
                 
-                // Estadísticas - CON VALIDACIÓN
+                // Estadísticas - CON VALIDACIÓN y límite de descuento 100%
                 document.getElementById('userTotalReferrals').textContent = stats.total_referrals || stats.level1?.total || 0;
                 document.getElementById('userPaidReferrals').textContent = stats.paid_referrals || stats.level1?.paid || 0;
                 document.getElementById('userLevel1Referrals').textContent = stats.level1?.total || 0;
                 document.getElementById('userLevel2Referrals').textContent = stats.level2?.total || 0;
                 
-                const discount = ((stats.level1?.paid || 0) * 20) + ((stats.level2?.paid || 0) * 10);
-                document.getElementById('userDiscount').textContent = Math.min(discount, 100) + '%';
+                let discount = ((stats.level1?.paid || 0) * 20) + ((stats.level2?.paid || 0) * 10);
+                discount = Math.min(discount, 100); // Limitar a 100% máximo
+                document.getElementById('userDiscount').textContent = discount + '%';
                 
                 // Lista de referidos
                 const tableBody = document.getElementById('userReferralsTableBody');
@@ -4411,7 +4417,7 @@
                         <h4 style="margin: 15px 0 10px 0; color: var(--text);">Últimos 10 envíos:</h4>
                         
                         <div class="table-container">
-                            <table>
+                            </table>
                                 <thead>
                                     <tr>
                                         <th>Usuario</th>
@@ -4433,8 +4439,7 @@
                                                 }</td>
                                             </tr>
                                         `).join('') : 
-                                        `<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">No hay envíos recientes</td></tr>`
-                                    }
+                                        `<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">No hay envíos recientes</td>`}
                                 </tbody>
                             </table>
                         </div>
@@ -4616,7 +4621,7 @@ Generado por VPN Cuba Admin Panel
             }
         }
 
-        // Subir archivo de plan
+        // Subir archivo de plan - YA PERMITE .conf, .zip, .rar
         async function uploadPlanFile(event) {
             console.log('📤 Iniciando subida de archivo...');
             
@@ -4663,7 +4668,7 @@ Generado por VPN Cuba Admin Panel
                 return;
             }
             
-            // Validar tipo de archivo
+            // Validar tipo de archivo - PERMITE .conf, .zip, .rar
             const fileName = file.name.toLowerCase();
             const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
             
@@ -5054,7 +5059,7 @@ Generado por VPN Cuba Admin Panel
             }
         }
 
-        // Enviar archivo de configuración (CORREGIDO PARA ENVÍO MANUAL)
+        // Enviar archivo de configuración (CORREGIDO PARA ENVÍO MANUAL Y PERMITIR .conf)
         async function sendConfigFile() {
             const fileInput = document.getElementById('configFile');
             const file = fileInput.files[0];
@@ -5064,7 +5069,7 @@ Generado por VPN Cuba Admin Panel
                 return;
             }
             
-            // Validar que sea ZIP, RAR o CONF
+            // Validar que sea ZIP, RAR o CONF - YA PERMITE .conf
             const fileName = file.name.toLowerCase();
             const isValidFile = fileName.endsWith('.zip') || fileName.endsWith('.rar') || fileName.endsWith('.conf');
             
@@ -5675,4 +5680,4 @@ Generado por VPN Cuba Admin Panel
         });
     </script>
 </body>
-</html>
+    </html>

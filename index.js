@@ -78,6 +78,7 @@ const BUTTON_ICONS = {
     'WINDOWS': '5933679370202778681',
     'ANDROID': '5931415565955503486',
     'CEO': '6021659919835469581',
+    'ADMIN': '5839116473951328489',   // mismo icono que panel admin
     'MOD': '6021401276904905698',
     'COPIAR ENLACE': '5877465816030515018',
     'VER GUÍA COMPLETA': '6028435952299413210',
@@ -128,8 +129,9 @@ function getDownloadWireguardHtml() {
 function getSupportHtml() {
     return `<tg-emoji emoji-id="5886412370347036129">🆘</tg-emoji> <b>SOPORTE TÉCNICO</b>\n\n` +
            `Para cualquier duda o problema, contacta con nuestro soporte:\n\n` +
-           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @L0quen2\n` +
-           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @ErenJeager129182\n\n` +
+           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @L0quen2 (CEO)\n` +
+           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @ErenJeager129182 (Admin)\n` +
+           `<tg-emoji emoji-id="5807453545548487345">👉</tg-emoji> @rov3r777 (Mod)\n\n` +
            `Responde rápido y te ayudaremos.`;
 }
 
@@ -2983,9 +2985,19 @@ bot.action('show_support', async (ctx) => {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [createButton("CEO", { url: 'https://t.me/L0quen2' }), createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],
-            [createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })],
-            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
+            [
+              createButton("CEO", { url: 'https://t.me/L0quen2' }),
+              createButton("ADMIN", { url: 'https://t.me/ErenJeager129182' })
+            ],
+            [
+              createButton("MOD", { url: 'https://t.me/rov3r777' })
+            ],
+            [
+              createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })
+            ],
+            [
+              createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })
+            ]
           ]
         }
       }
@@ -3217,7 +3229,29 @@ bot.on('text', async (ctx) => {
     } else if (text === '💻 DESCARGAR WIREGUARD') {
         await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🆘 SOPORTE') {
-        await ctx.reply(getSupportHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("CEO", { url: 'https://t.me/L0quen2' }),createButton("MOD", { url: 'https://t.me/ErenJeager129182' })],[createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(
+            getSupportHtml(),
+            {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            createButton("CEO", { url: 'https://t.me/L0quen2' }),
+                            createButton("ADMIN", { url: 'https://t.me/ErenJeager129182' })
+                        ],
+                        [
+                            createButton("MOD", { url: 'https://t.me/rov3r777' })
+                        ],
+                        [
+                            createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })
+                        ],
+                        [
+                            createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })
+                        ]
+                    ]
+                }
+            }
+        );
     } else if (text === '♻️ REFERIDOS') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         try {

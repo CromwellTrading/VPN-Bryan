@@ -673,7 +673,8 @@
             <div class="card-header"><i class="fas fa-receipt card-icon"></i><h2 class="card-title">Resumen de tu compra</h2></div>
             <div class="summary-grid">
                 <div class="summary-item"><div class="item-label">Plan seleccionado</div><div class="item-value"><span id="planName">Básico</span><span class="plan-badge" id="planBadge">1 MES</span><span class="discount-badge" id="discountBadge" style="display: none;">-0%</span></div></div>
-                <div class="summary-item"><div class="item-label">Precio total</div><div class="item-value"><span id="planPrice">$938 CUP</span></div></div>
+                <div class="summary-item"><div class="item-label">Precio total (CUP)</div><div class="item-value"><span id="planPrice">938 CUP</span></div></div>
+                <div class="summary-item"><div class="item-label">Saldo móvil (opcional)</div><div class="item-value" id="mobilePriceDisplayResumen">300 CUP</div></div>
                 <div class="summary-item"><div class="item-label">ID de usuario</div><div class="item-value" id="userIdDisplay">---</div></div>
                 <div class="summary-item"><div class="item-label">Fecha de solicitud</div><div class="item-value" id="requestDate">---</div></div>
             </div>
@@ -688,7 +689,7 @@
             <div id="transferInfo" class="method-info-container active"><div class="method-info-card"><div class="method-header"><i class="fas fa-credit-card method-icon"></i><h3>Tarjeta BPA</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-credit-card"></i><span>Número de tarjeta</span></div><div class="info-value">9248-1299-7027-1730</div><button class="copy-btn" onclick="copyToClipboard('9248129970271730', this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Móvil a confirmar</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div><div class="upload-note"><i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> Incluye número de confirmación.</div></div></div>
             <div id="metropolitanInfo" class="method-info-container"><div class="method-info-card"><div class="method-header"><i class="fas fa-university method-icon"></i><h3>Tarjeta Metropolitana</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-credit-card"></i><span>Número de tarjeta</span></div><div class="info-value">9238-9598-7118-1386</div><button class="copy-btn" onclick="copyToClipboard('9238959871181386', this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Móvil a confirmar</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div></div></div>
             <div id="mitransferInfo" class="method-info-container"><div class="method-info-card"><div class="method-header"><i class="fas fa-wallet method-icon"></i><h3>Monedero MITRANSFER</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Número de teléfono</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div></div></div>
-            <div id="mobileInfo" class="method-info-container"><div class="method-info-card mobile"><div class="method-header"><i class="fas fa-mobile-alt method-icon"></i><h3>Saldo Móvil</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Número de teléfono</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div><div class="mobile-price-info" id="mobilePriceDisplay" style="background: rgba(37,211,102,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">938 CUP</div><p>Plan Básico</p></div><div class="upload-note"><i class="fas fa-exclamation-circle"></i> Precio según plan seleccionado.</div></div></div>
+            <div id="mobileInfo" class="method-info-container"><div class="method-info-card mobile"><div class="method-header"><i class="fas fa-mobile-alt method-icon"></i><h3>Saldo Móvil</h3></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-mobile-alt"></i><span>Número de teléfono</span></div><div class="info-value">63806513</div><button class="copy-btn" onclick="copyToClipboard('63806513', this)"><i class="far fa-copy"></i> Copiar</button></div></div><div class="mobile-price-info" id="mobilePriceDisplay" style="background: rgba(37,211,102,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">300 CUP</div><p>Precio especial con saldo móvil</p></div><div class="upload-note"><i class="fas fa-exclamation-circle"></i> Recarga el saldo exacto en el número mostrado.</div></div></div>
             <div id="usdtInfo" class="method-info-container"><div class="method-info-card usdt"><div class="method-header"><i class="fab fa-bitcoin method-icon"></i><h3>USDT (BEP20)</h3></div><div class="amount-display"><div class="amount-label">Monto a pagar en USDT:</div><div class="amount-value" id="usdtAmount">1.4</div><div class="amount-currency">USDT</div></div><div class="payment-info"><div class="info-row"><div class="info-label"><i class="fas fa-wallet"></i><span>Dirección BEP20</span></div><div class="info-value" id="usdtAddress">0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2</div><button class="copy-btn" onclick="copyToClipboard(document.getElementById('usdtAddress').textContent, this)"><i class="far fa-copy"></i> Copiar</button></div><div class="info-row"><div class="info-label"><i class="fas fa-network-wired"></i><span>Red</span></div><div class="info-value">BEP20 (Binance Smart Chain)</div></div></div><div class="usdt-instructions" style="background: rgba(240,185,11,0.1); padding: 1rem; border-radius: 1rem; margin-top: 1rem;"><h4><i class="fas fa-info-circle"></i> Instrucciones</h4><ul style="list-style: none;"><li><i class="fas fa-check-circle"></i> Envía exactamente el monto mostrado</li><li><i class="fas fa-check-circle"></i> Solo red BEP20</li></ul></div></div></div>
         </div>
         
@@ -707,7 +708,6 @@
                             <div class="upload-subtext">Formatos: JPG, PNG, GIF • Máximo 5MB</div>
                         </div>
                         <input type="file" id="screenshotInput" accept="image/*" hidden>
-                        <!-- Aviso añadido -->
                         <div class="upload-note-warning">
                             <i class="fas fa-crop-alt"></i>
                             <span><strong>Aviso:</strong> Si el envío de la imagen falla, por favor recorte la imagen (reduce tamaño o recorta bordes innecesarios).</span>
@@ -744,33 +744,31 @@
         let activeCoupon = null;
         const FIXED_USDT_ADDRESS = '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2';
         
-        // Precios oficiales desde plans.html
-        const usdtPrices = {
-            'basico': '1.4',
-            'avanzado': '1.8',
-            'premium': '2.3',
-            'anual': '30'
-        };
-        
-        const mobilePrices = {
-            'basico': '938',
-            'avanzado': '1206',
-            'premium': '1500',
-            'anual': '15000'
-        };
-        
+        // Precios oficiales desde plans.html (CUP estándar, saldo móvil, USDT)
         const cupPrices = {
-            'basico': '938',
-            'avanzado': '1206',
-            'premium': '1500',
-            'anual': '15000'
+            'basico': 938,
+            'avanzado': 1206,
+            'premium': 1500,
+            'anual': 15000
+        };
+        const mobilePrices = {
+            'basico': 300,
+            'avanzado': 400,
+            'premium': 500,
+            'anual': 5000
+        };
+        const usdtPrices = {
+            'basico': 1.4,
+            'avanzado': 1.8,
+            'premium': 2.3,
+            'anual': 30
         };
         
         const methodDescriptions = { 
             'transfer': 'Transfiere el monto exacto a la tarjeta BPA.', 
             'metropolitan': 'Transfiere a tarjeta Metropolitana.', 
             'mitransfer': 'Envía al monedero MITRANSFER.', 
-            'mobile': 'Recarga saldo móvil.', 
+            'mobile': 'Recarga saldo móvil (precio especial).', 
             'usdt': 'Envía USDT por BEP20.' 
         };
 
@@ -821,9 +819,11 @@
             const planPeriods = { 'basico': '1 MES', 'avanzado': '2 MESES', 'premium': '1 MES', 'anual': '12 MESES' }; 
             document.getElementById('planName').textContent = planNames[planType] || 'Básico'; 
             document.getElementById('planBadge').textContent = planPeriods[planType] || '1 MES'; 
-            const basePrice = cupPrices[planType] || '938'; 
-            price = price || basePrice; 
-            document.getElementById('planPrice').textContent = `$${price} CUP`; 
+            const baseCup = cupPrices[planType] || 938;
+            const baseMobile = mobilePrices[planType] || 300;
+            const baseUsdt = usdtPrices[planType] || 1.4;
+            document.getElementById('planPrice').textContent = `${baseCup} CUP`; 
+            document.getElementById('mobilePriceDisplayResumen').textContent = `${baseMobile} CUP`; 
             document.getElementById('userIdDisplay').textContent = currentUserId || 'No disponible'; 
             document.getElementById('requestDate').textContent = new Date().toLocaleDateString('es-ES'); 
             document.getElementById('usdtAddress').textContent = FIXED_USDT_ADDRESS; 
@@ -834,13 +834,19 @@
         }
         
         function updateMethodSpecificPrices() { 
-            let baseCupPrice = parseInt(cupPrices[planType] || '938'); 
-            let baseUsdtPrice = parseFloat(usdtPrices[planType] || '1.4'); 
-            let baseMobilePrice = parseInt(mobilePrices[planType] || '938'); 
-            if (activeCoupon) { const discount = activeCoupon.discount || 0; baseCupPrice = Math.round(baseCupPrice * (1 - discount/100)); baseUsdtPrice = baseUsdtPrice * (1 - discount/100); baseMobilePrice = Math.round(baseMobilePrice * (1 - discount/100)); } 
-            document.getElementById('planPrice').textContent = `$${baseCupPrice} CUP`; 
-            document.getElementById('usdtAmount').textContent = baseUsdtPrice.toFixed(2); 
-            document.getElementById('mobilePriceDisplay').innerHTML = `<div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">${baseMobilePrice} CUP</div><p>Plan ${document.getElementById('planName').textContent}</p>`; 
+            let baseCup = cupPrices[planType] || 938;
+            let baseMobile = mobilePrices[planType] || 300;
+            let baseUsdt = usdtPrices[planType] || 1.4;
+            if (activeCoupon) { 
+                const discount = activeCoupon.discount / 100; 
+                baseCup = Math.round(baseCup * (1 - discount)); 
+                baseMobile = Math.round(baseMobile * (1 - discount)); 
+                baseUsdt = parseFloat((baseUsdt * (1 - discount)).toFixed(2)); 
+            } 
+            document.getElementById('planPrice').textContent = `${baseCup} CUP`; 
+            document.getElementById('mobilePriceDisplayResumen').textContent = `${baseMobile} CUP`; 
+            document.getElementById('usdtAmount').textContent = baseUsdt; 
+            document.getElementById('mobilePriceDisplay').innerHTML = `<div class="mobile-price" style="color: var(--mobile-green); font-size: 2rem;">${baseMobile} CUP</div><p>Precio especial con saldo móvil</p>`; 
         }
         
         function changePaymentMethod() { 
@@ -942,15 +948,14 @@
         }
         
         function showDiscountInfo(couponData) { 
-            const baseCupPrice = parseInt(cupPrices[planType] || '938'); 
-            const discountAmount = Math.round(baseCupPrice * (couponData.discount/100)); 
-            const newPrice = baseCupPrice - discountAmount; 
+            const baseCup = cupPrices[planType] || 938;
+            const discountAmount = Math.round(baseCup * (couponData.discount/100)); 
+            const newPrice = baseCup - discountAmount; 
             document.getElementById('appliedCouponCode').textContent = couponData.code; 
             document.getElementById('discountPercentage').textContent = `${couponData.discount}%`; 
-            document.getElementById('discountAmount').textContent = `$${discountAmount} CUP`; 
-            document.getElementById('originalPrice').textContent = `$${baseCupPrice} CUP`; 
-            document.getElementById('newPrice').textContent = `$${newPrice} CUP`; 
-            if(document.getElementById('couponExpiry')) document.getElementById('couponExpiry').textContent = 'No expira'; 
+            document.getElementById('discountAmount').textContent = `${discountAmount} CUP`; 
+            document.getElementById('originalPrice').textContent = `${baseCup} CUP`; 
+            document.getElementById('newPrice').textContent = `${newPrice} CUP`; 
             document.getElementById('discountInfo').style.display = 'block'; 
             document.getElementById('couponCode').value = ''; 
         }
@@ -977,6 +982,7 @@
                     const data = JSON.parse(saved); 
                     activeCoupon = data; 
                     showDiscountInfo(data); 
+                    updateMethodSpecificPrices(); 
                     document.getElementById('discountBadge').style.display='inline-block'; 
                     document.getElementById('discountBadge').textContent=`-${data.discount}%`; 
                 } catch(e) { 
@@ -1028,7 +1034,7 @@
         }
         
         function calculateFinalPrice() { 
-            const base = parseInt(cupPrices[planType] || '938'); 
+            const base = cupPrices[planType] || 938; 
             return activeCoupon ? Math.round(base * (1 - activeCoupon.discount/100)) : base; 
         }
         
@@ -1052,4 +1058,4 @@
         });
     </script>
 </body>
-    </html>
+</html>

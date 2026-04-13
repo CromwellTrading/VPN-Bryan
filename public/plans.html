@@ -49,7 +49,6 @@
       text-rendering:optimizeLegibility;
     }
 
-    /* Fondo negro con estrellas fijas */
     .stars-bg{
       position:fixed;
       top:0;
@@ -356,27 +355,29 @@
     }
 
     .cup{
-      font-size:2.08rem;
+      font-size:1.7rem;
       font-weight:1000;
       letter-spacing:-.05em;
       line-height:1;
       color:var(--accent-text);
-      -webkit-text-fill-color:var(--accent-text);
-      background:none;
-      filter:drop-shadow(0 0 10px rgba(255,255,255,.04));
+    }
+
+    .mobile-price{
+      font-size:0.9rem;
+      font-weight:700;
+      margin-top:6px;
+      color:var(--accent-text);
+      background:rgba(0,0,0,.3);
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
     }
 
     .usdt{
       margin-top:6px;
       color:var(--accent-text);
-      font-size:.95rem;
+      font-size:.85rem;
       font-weight:700;
-    }
-
-    .usdt strong{
-      font-size:1.08rem;
-      font-weight:900;
-      color:inherit;
     }
 
     .chips{
@@ -627,7 +628,7 @@
       .top{flex-direction:column; align-items:flex-start}
       .price{text-align:left; min-width:auto}
       .title{font-size:1.55rem}
-      .cup{font-size:2rem}
+      .cup{font-size:1.5rem}
       .wrap{padding-inline:12px}
     }
 
@@ -714,6 +715,7 @@
 
       <p class="subhead">
         Elige el plan que mejor se adapte a tu conexión, con acceso estable, baja latencia y soporte rápido.
+        <strong>Aceptamos pago en CUP, saldo móvil y USDT.</strong>
       </p>
 
       <div class="hero-grid">
@@ -734,6 +736,7 @@
 
     <section class="plans">
 
+      <!-- Prueba gratis (sin cambios) -->
       <div class="shell trial">
         <div class="tag">⚡ 1 hora</div>
         <article class="card" data-plan="trial">
@@ -765,7 +768,7 @@
         </article>
       </div>
 
-      <!-- BÁSICO: 938 CUP / 1.4 USDT -->
+      <!-- BÁSICO: 938 CUP / saldo móvil 300 CUP / USDT 1.4 -->
       <div class="shell basic">
         <div class="tag">🌐 Navegación</div>
         <article class="card" data-plan="basico">
@@ -776,6 +779,7 @@
             </div>
             <div class="price">
               <div class="cup">938 CUP</div>
+              <div class="mobile-price">📱 Saldo móvil: 300 CUP</div>
               <div class="usdt">≈ <strong>1.4 USDT</strong></div>
             </div>
           </div>
@@ -783,6 +787,7 @@
           <div class="chips">
             <span class="chip soft">Entrada</span>
             <span class="chip">Estable</span>
+            <span class="chip">Acepta saldo móvil</span>
           </div>
 
           <div class="features">
@@ -798,7 +803,7 @@
         </article>
       </div>
 
-      <!-- AVANZADO: 1206 CUP / 1.8 USDT -->
+      <!-- AVANZADO: 1206 CUP / saldo móvil 400 CUP / USDT 1.8 -->
       <div class="shell advanced">
         <div class="tag">🌟 Recomendado</div>
         <article class="card" data-plan="avanzado">
@@ -809,6 +814,7 @@
             </div>
             <div class="price">
               <div class="cup">1,206 CUP</div>
+              <div class="mobile-price">📱 Saldo móvil: 400 CUP</div>
               <div class="usdt">≈ <strong>1.8 USDT</strong></div>
             </div>
           </div>
@@ -816,9 +822,10 @@
           <div class="chips">
             <span class="chip soft">Mejor equilibrio</span>
             <span class="chip">Ahorro real</span>
+            <span class="chip">Acepta saldo móvil</span>
           </div>
 
-          <div class="savings"><i class="fas fa-tag"></i> Ahorras 670 CUP</div>
+          <div class="savings"><i class="fas fa-tag"></i> Ahorras 670 CUP (vs. comprar dos meses básico)</div>
 
           <div class="features">
             <div class="feature"><i class="fas fa-check-circle"></i><span>Todo lo del plan básico</span></div>
@@ -833,7 +840,7 @@
         </article>
       </div>
 
-      <!-- GAMING (Premium): 1500 CUP / 2.3 USDT -->
+      <!-- GAMING (Premium): 1500 CUP / saldo móvil 500 CUP / USDT 2.3 -->
       <div class="shell premium">
         <div class="tag">🎮 Gaming</div>
         <article class="card" data-plan="premium">
@@ -844,6 +851,7 @@
             </div>
             <div class="price">
               <div class="cup">1,500 CUP</div>
+              <div class="mobile-price">📱 Saldo móvil: 500 CUP</div>
               <div class="usdt">≈ <strong>2.3 USDT</strong></div>
             </div>
           </div>
@@ -851,9 +859,10 @@
           <div class="chips">
             <span class="chip soft">Baja latencia</span>
             <span class="chip">Servidor privado</span>
+            <span class="chip">Acepta saldo móvil</span>
           </div>
 
-          <div class="savings"><i class="fas fa-tachometer-alt"></i> Máxima velocidad</div>
+          <div class="savings"><i class="fas fa-tachometer-alt"></i> Máxima velocidad + prioridad</div>
 
           <div class="features">
             <div class="feature"><i class="fas fa-check-double"></i><span>Todo lo del plan avanzado</span></div>
@@ -868,7 +877,7 @@
         </article>
       </div>
 
-      <!-- ANUAL: 15000 CUP / 30 USDT -->
+      <!-- ANUAL: 15000 CUP / saldo móvil 5000 CUP / USDT 30 -->
       <div class="shell annual">
         <div class="tag">📅 Anual</div>
         <article class="card" data-plan="anual">
@@ -879,6 +888,7 @@
             </div>
             <div class="price">
               <div class="cup">15,000 CUP</div>
+              <div class="mobile-price">📱 Saldo móvil: 5,000 CUP</div>
               <div class="usdt">≈ <strong>30 USDT</strong></div>
             </div>
           </div>
@@ -886,9 +896,10 @@
           <div class="chips">
             <span class="chip soft">Más valor</span>
             <span class="chip">Exclusivo</span>
+            <span class="chip">Acepta saldo móvil</span>
           </div>
 
-          <div class="savings"><i class="fas fa-star"></i> El mejor valor</div>
+          <div class="savings"><i class="fas fa-star"></i> El mejor valor - ahorro enorme</div>
 
           <div class="features">
             <div class="feature"><i class="fas fa-crown"></i><span>Servidor privado exclusivo</span></div>

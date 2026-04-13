@@ -23,7 +23,7 @@ const supabaseAdmin = createClient(
 // IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604', '6974850309', '5985313284'];
+    ['6373481979', '5376388604', '6974850309'];
 
 // ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {
@@ -62,7 +62,6 @@ async function canSendMessageToUser(telegramId) {
 }
 
 // ==================== MAPA DE ICONOS PERSONALIZADOS ====================
-// Asocia el texto del botón (en mayúsculas) con el ID del emoji personalizado
 const BUTTON_ICONS = {
     'VER PLANES': '5983399041197675256',
     'MI PERFIL': '6021659919835469581',
@@ -78,7 +77,7 @@ const BUTTON_ICONS = {
     'WINDOWS': '5933679370202778681',
     'ANDROID': '5931415565955503486',
     'CEO': '6021659919835469581',
-    'ADMIN': '5839116473951328489',   // mismo icono que panel admin
+    'ADMIN': '5839116473951328489',
     'MOD': '6021401276904905698',
     'COPIAR ENLACE': '5877465816030515018',
     'VER GUÍA COMPLETA': '6028435952299413210',
@@ -88,7 +87,6 @@ const BUTTON_ICONS = {
     'VER PREGUNTAS FRECUENTES': '5873121512445187130'
 };
 
-// Función auxiliar para crear un botón inline con icono si existe
 function createButton(text, options) {
     const button = { text };
     const iconId = BUTTON_ICONS[text.toUpperCase()];
@@ -99,7 +97,6 @@ function createButton(text, options) {
     return button;
 }
 
-// ==================== FUNCIONES PARA GENERAR TEXTO CON EMOJIS PERSONALIZADOS ====================
 function getVipStatusHtml(user) {
     const vipSince = formatearFecha(user.vip_since);
     const diasRestantes = calcularDiasRestantes(user);
@@ -176,7 +173,6 @@ function getFaqHtml() {
            `Haz clic en el botón para abrir la sección de preguntas frecuentes:`;
 }
 
-// ==================== FUNCIÓN PARA CONSTRUIR EL MENÚ PRINCIPAL ====================
 function buildMainMenuKeyboard(userId, firstName, esAdmin) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
@@ -218,12 +214,10 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin) {
     };
 }
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configurar multer para subir imágenes y archivos
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => {
@@ -269,12 +263,10 @@ const upload = multer({
   }
 });
 
-// Crear carpetas necesarias
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 
-// Función auxiliar para nombres de planes
 function getPlanName(planType) {
   const plans = {
     'basico': 'Básico (1 mes)',
@@ -286,12 +278,10 @@ function getPlanName(planType) {
   return plans[planType] || planType;
 }
 
-// Función para generar dirección USDT fija
 function generateUniqueUsdtAddress() {
     return USDT_CONFIG.WALLET_ADDRESS;
 }
 
-// Función para formatear fecha
 function formatearFecha(fecha) {
     if (!fecha) return 'N/A';
     try {
@@ -314,7 +304,24 @@ function formatearFecha(fecha) {
     }
 }
 
-// ==================== FUNCIONES DE VERIFICACIÓN USDT (DESACTIVADAS) ====================
+function calcularDiasRestantes(user) {
+    if (!user.vip || !user.vip_since || !user.plan) return 0;
+    const fechaInicio = new Date(user.vip_since);
+    const fechaActual = new Date();
+    let duracionDias;
+    switch(user.plan.toLowerCase()) {
+        case 'basico': duracionDias = 30; break;
+        case 'avanzado': duracionDias = 60; break;
+        case 'premium': duracionDias = 30; break;
+        case 'anual': duracionDias = 365; break;
+        default: duracionDias = 30;
+    }
+    const fechaExpiracion = new Date(fechaInicio);
+    fechaExpiracion.setDate(fechaExpiracion.getDate() + duracionDias);
+    const diferenciaMs = fechaExpiracion - fechaActual;
+    return Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
+}
+
 async function checkUsdtTransactions() {
     console.log('⚠️ Verificación automática USDT desactivada');
     return { success: true, message: 'Flujo manual' };
@@ -324,7 +331,6 @@ async function initializeUsdtSystem() {
     console.log('💸 Sistema USDT en modo MANUAL');
 }
 
-// ==================== CREACIÓN DE BUCKETS ====================
 async function createStorageBucket(bucketName, isPublic = true) {
   try {
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
@@ -420,23 +426,55 @@ async function initializeStorageBuckets() {
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIONES AUXILIARES DEL BOT ====================
-function calcularDiasRestantes(user) {
-    if (!user.vip || !user.vip_since || !user.plan) return 0;
-    const fechaInicio = new Date(user.vip_since);
-    const fechaActual = new Date();
-    let duracionDias;
-    switch(user.plan.toLowerCase()) {
-        case 'basico': duracionDias = 30; break;
-        case 'avanzado': duracionDias = 60; break;
-        case 'premium': duracionDias = 30; break;
-        case 'anual': duracionDias = 365; break;
-        default: duracionDias = 30;
+// ==================== FUNCIÓN ENVIAR PRUEBA CORREGIDA ====================
+async function sendTrialConfigToUser(telegramId, adminId) {
+  try {
+    const user = await db.getUser(telegramId);
+    if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
+
+    const planFile = await db.getPlanFile('trial');
+    if (!planFile || !planFile.public_url) {
+      console.log(`❌ No hay archivo de prueba disponible para ${telegramId}`);
+      return false;
     }
-    const fechaExpiracion = new Date(fechaInicio);
-    fechaExpiracion.setDate(fechaExpiracion.getDate() + duracionDias);
-    const diferenciaMs = fechaExpiracion - fechaActual;
-    return Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
+
+    // Descargar el archivo desde Supabase usando fetch
+    const response = await fetch(planFile.public_url);
+    if (!response.ok) {
+      throw new Error(`Error descargando archivo: ${response.statusText}`);
+    }
+    const fileBuffer = await response.buffer();
+    const fileName = planFile.original_name || 'config_trial.conf';
+
+    const gameServer = user.trial_game_server || 'No especificado';
+    const connectionType = user.trial_connection_type || 'No especificado';
+
+    await bot.telegram.sendDocument(
+      telegramId,
+      { source: fileBuffer, filename: fileName },
+      {
+        caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
+                 `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
+                 `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
+                 `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
+                 `<b>Instrucciones de instalación:</b>\n` +
+                 `1. Descarga este archivo\n` +
+                 `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                 `3. Activa la conexión\n` +
+                 `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
+                 `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+                 `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
+        parse_mode: 'HTML'
+      }
+    );
+
+    await db.markTrialAsSent(telegramId, adminId);
+    console.log(`✅ Prueba enviada a ${telegramId} usando buffer desde Supabase`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error enviando prueba a ${telegramId}:`, error.message);
+    throw error;
+  }
 }
 
 async function sendTrialToValidUsers(adminId) {
@@ -476,52 +514,13 @@ async function sendTrialToValidUsers(adminId) {
   }
 }
 
-async function sendTrialConfigToUser(telegramId, adminId) {
-  try {
-    const user = await db.getUser(telegramId);
-    if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
-    const planFile = await db.getPlanFile('trial');
-    if (planFile && planFile.public_url) {
-      const fileName = planFile.original_name || 'config_trial.conf';
-      const gameServer = user.trial_game_server || 'No especificado';
-      const connectionType = user.trial_connection_type || 'No especificado';
-      await bot.telegram.sendDocument(
-        telegramId,
-        planFile.public_url,
-        {
-          caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
-                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
-                   `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
-                   `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
-                   `<b>Instrucciones de instalación:</b>\n` +
-                   `1. Descarga este archivo\n` +
-                   `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                   `3. Activa la conexión\n` +
-                   `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
-                   `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
-                   `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
-          parse_mode: 'HTML'
-        }
-      );
-      await db.markTrialAsSent(telegramId, adminId);
-      console.log(`✅ Prueba enviada a ${telegramId}`);
-      return true;
-    } else {
-      console.log(`❌ No hay archivo de prueba disponible para ${telegramId}`);
-      return false;
-    }
-  } catch (error) {
-    console.error(`❌ Error enviando prueba a ${telegramId}:`, error.message);
-    throw error;
-  }
-}
-// 1. Verificar si es administrador
+// ==================== RUTAS API ====================
+
 app.get('/api/check-admin/:telegramId', (req, res) => {
   const isAdminUser = isAdmin(req.params.telegramId);
   res.json({ isAdmin: isAdminUser });
 });
 
-// 2. Aceptar términos
 app.post('/api/accept-terms', async (req, res) => {
   try {
     const { telegramId, username, firstName, referrerId, referrerUsername } = req.body;
@@ -532,15 +531,12 @@ app.post('/api/accept-terms', async (req, res) => {
       first_name: firstName,
       accepted_terms: true,
       terms_date: new Date().toISOString(),
-      is_active: true // Por defecto activo al registrarse
+      is_active: true
     };
 
-    // Si hay referidor, guardarlo
     if (referrerId) {
       userData.referrer_id = referrerId;
       userData.referrer_username = referrerUsername;
-      
-      // Crear registro de referido
       try {
         await db.createReferral(referrerId, telegramId, username, firstName);
         console.log(`✅ Referido creado: ${referrerId} -> ${telegramId}`);
@@ -550,7 +546,6 @@ app.post('/api/accept-terms', async (req, res) => {
     }
 
     const user = await db.saveUser(telegramId, userData);
-
     res.json({ success: true, user });
   } catch (error) {
     console.error('❌ Error aceptando términos:', error);
@@ -558,7 +553,6 @@ app.post('/api/accept-terms', async (req, res) => {
   }
 });
 
-// 3. Verificar términos aceptados
 app.get('/api/check-terms/:telegramId', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
@@ -572,7 +566,6 @@ app.get('/api/check-terms/:telegramId', async (req, res) => {
   }
 });
 
-// 4. Procesar pago - MODIFICADO PARA REQUERIR CAPTURA EN TODOS LOS MÉTODOS
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   try {
     console.log('📥 Pago recibido:', {
@@ -589,14 +582,12 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 
-    // REQUERIR CAPTURA PARA TODOS LOS MÉTODOS, INCLUIDO USDT
     if (!req.file) {
       return res.status(400).json({ error: 'Captura de pantalla requerida para todos los métodos de pago' });
     }
 
     let screenshotUrl = '';
     if (req.file) {
-      // Subir imagen a Supabase Storage
       try {
         screenshotUrl = await db.uploadImage(req.file.path, telegramId);
         fs.unlink(req.file.path, (err) => {
@@ -607,12 +598,10 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       }
     }
 
-    // Obtener información del usuario
     const user = await db.getUser(telegramId);
     const username = user?.username ? `@${user.username}` : 'Sin usuario';
     const firstName = user?.first_name || 'Usuario';
 
-    // Verificar cupón si se proporcionó
     let couponUsed = false;
     let couponDiscount = 0;
     let finalPrice = parseFloat(price);
@@ -626,32 +615,24 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
         if (coupon) {
           console.log(`🔍 Cupón encontrado: ${JSON.stringify(coupon, null, 2)}`);
           
-          // Verificar si el cupón está activo
           if (coupon.status !== 'active') {
             console.log(`⚠️ Cupón no activo: ${couponCode}, estado: ${coupon.status}`);
           } 
-          // Verificar si ha expirado
           else if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
             console.log(`⚠️ Cupón expirado: ${couponCode}, expiry: ${coupon.expiry}`);
             await db.updateCouponStatus(couponCode.toUpperCase(), 'expired', 'system');
           } 
-          // Verificar si hay stock disponible
           else if (coupon.stock <= 0) {
             console.log(`⚠️ Cupón agotado: ${couponCode}, stock: ${coupon.stock}`);
           } 
-          // Verificar si el usuario ya usó este cupón
           else if (await db.hasUserUsedCoupon(telegramId, couponCode.toUpperCase())) {
             console.log(`⚠️ Usuario ya usó este cupón: ${couponCode}`);
           } 
-          // Cupón válido
           else {
             couponUsed = true;
             couponDiscount = coupon.discount;
             appliedCoupon = coupon;
-            
-            // Calcular precio con descuento
             finalPrice = finalPrice * (1 - couponDiscount / 100);
-            
             console.log(`✅ Cupón aplicado: ${couponCode} - ${couponDiscount}% de descuento`);
             console.log(`💰 Precio original: ${price}, Precio final: ${finalPrice.toFixed(2)}`);
           }
@@ -663,12 +644,11 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       }
     }
 
-    // Guardar pago en base de datos - Asegurándonos de incluir telegram_id y datos del cupón
     const payment = await db.createPayment({
-      telegram_id: telegramId, // ¡IMPORTANTE: Incluir telegram_id!
+      telegram_id: telegramId,
       plan: plan,
       price: finalPrice,
-      original_price: parseFloat(price), // Guardar precio original
+      original_price: parseFloat(price),
       method: method || 'transfer',
       screenshot_url: screenshotUrl,
       notes: notes || '',
@@ -685,7 +665,6 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
 
     console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}, cupón: ${couponUsed ? 'Sí' : 'No'}`);
 
-    // Notificar a admins - MENSAJE UNIFICADO PARA TODOS LOS MÉTODOS
     try {
       const methodNames = {
         'transfer': 'BPA',
@@ -724,7 +703,6 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       console.log('❌ Error al notificar a los admins:', adminError.message);
     }
 
-    // Si es pago USDT, informar sobre flujo manual
     if (method === 'usdt') {
       try {
         const usdtAddress = USDT_CONFIG.WALLET_ADDRESS;
@@ -748,7 +726,6 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
           { parse_mode: 'Markdown' }
         );
         
-        // NO crear pago USDT separado - Solo el pago regular con screenshot
         await db.updatePayment(payment.id, {
           notes: 'Pago USDT pendiente - Revisión manual con captura'
         });
@@ -781,7 +758,6 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   }
 });
 
-// 5. Obtener pagos pendientes
 app.get('/api/payments/pending', async (req, res) => {
   try {
     const payments = await db.getPendingPayments();
@@ -801,7 +777,6 @@ app.get('/api/payments/pending', async (req, res) => {
   }
 });
 
-// 6. Obtener pagos aprobados - ACTUALIZADO PARA INCLUIR INFORMACIÓN DE CUPONES
 app.get('/api/payments/approved', async (req, res) => {
   try {
     const payments = await db.getApprovedPayments();
@@ -821,7 +796,6 @@ app.get('/api/payments/approved', async (req, res) => {
   }
 });
 
-// 7. Aprobar pago - MODIFICADO PARA NO ENVIAR CONFIGURACIÓN AUTOMÁTICAMENTE
 app.post('/api/payments/:id/approve', async (req, res) => {
   try {
     const payment = await db.approvePayment(req.params.id);
@@ -832,13 +806,11 @@ app.post('/api/payments/:id/approve', async (req, res) => {
 
     console.log(`✅ Pago aprobado: ${payment.id}, telegram_id: ${payment.telegram_id}`);
 
-    // Verificar que el pago tenga telegram_id
     if (!payment.telegram_id) {
       console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
-    // Aplicar cupón si se usó y tiene stock disponible
     if (payment.coupon_used && payment.coupon_code) {
       try {
         console.log(`🎫 Aplicando cupón ${payment.coupon_code} al pago ${payment.id}`);
@@ -848,7 +820,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
           const applied = await db.applyCouponToPayment(payment.coupon_code, payment.telegram_id, payment.id);
           
           if (applied) {
-            // Reducir stock del cupón
             const newStock = coupon.stock - 1;
             await db.updateCoupon(payment.coupon_code, {
               stock: newStock,
@@ -867,7 +838,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       }
     }
 
-    // Notificar al usuario - NO ENVIAR ARCHIVO AUTOMÁTICO
     try {
       let userMessage = '<tg-emoji emoji-id="6019175208240289774">🎉</tg-emoji> <b>¡Tu pago ha sido aprobado!</b>\n\n' +
         'Ahora eres usuario VIP de VPN Cuba.\n' +
@@ -888,7 +858,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       console.log('❌ No se pudo notificar al usuario:', botError.message);
     }
 
-    // Marcar usuario como VIP
     const user = await db.getUser(payment.telegram_id);
     if (!user.vip) {
       await db.makeUserVIP(payment.telegram_id, {
@@ -898,7 +867,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
       });
     }
 
-    // Verificar si el usuario fue referido y actualizar referidos pagados
     if (user.referrer_id) {
       try {
         await db.markReferralAsPaid(payment.telegram_id);
@@ -915,7 +883,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
   }
 });
 
-// 8. Rechazar pago
 app.post('/api/payments/:id/reject', async (req, res) => {
   try {
     const { reason } = req.body;
@@ -930,13 +897,11 @@ app.post('/api/payments/:id/reject', async (req, res) => {
       return res.status(404).json({ error: 'Pago no encontrado' });
     }
 
-    // Verificar que el pago tenga telegram_id
     if (!payment.telegram_id) {
       console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
       return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
     }
 
-    // Notificar al usuario
     try {
       await bot.telegram.sendMessage(
         payment.telegram_id,
@@ -954,16 +919,11 @@ app.post('/api/payments/:id/reject', async (req, res) => {
   }
 });
 
-// 9. Obtener estadísticas generales
 app.get('/api/stats', async (req, res) => {
   try {
     const stats = await db.getStats();
-    
-    // Obtener estadísticas adicionales de broadcasts
     const broadcasts = await db.getBroadcasts();
     const completedBroadcasts = broadcasts.filter(b => b.status === 'completed').length;
-    
-    // Agregar estadísticas de broadcasts a las estadísticas generales
     stats.broadcasts = {
       total: broadcasts.length,
       completed: completedBroadcasts,
@@ -971,27 +931,19 @@ app.get('/api/stats', async (req, res) => {
       sending: broadcasts.filter(b => b.status === 'sending').length,
       failed: broadcasts.filter(b => b.status === 'failed').length
     };
-    
-    // Información USDT - modo manual
     stats.usdt = {
       wallet_address: USDT_CONFIG.WALLET_ADDRESS,
       verification_enabled: false,
       mode: 'manual',
       message: 'Todos los pagos USDT requieren captura y aprobación manual'
     };
-    
-    // Estadísticas de usuarios activos/inactivos
     const allUsers = await db.getAllUsers();
     const activeUsers = allUsers.filter(u => u.is_active !== false).length;
     const inactiveUsers = allUsers.filter(u => u.is_active === false).length;
-    
     stats.users.active = activeUsers;
     stats.users.inactive = inactiveUsers;
-    
-    // Obtener estadísticas de cupones
     const coupons = await db.getCouponsStats();
     stats.coupons = coupons || { total: 0, active: 0, expired: 0, used: 0 };
-    
     res.json(stats);
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas:', error);
@@ -1006,7 +958,6 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// 10. Obtener usuarios VIP
 app.get('/api/vip-users', async (req, res) => {
   try {
     const users = await db.getVIPUsers();
@@ -1017,7 +968,6 @@ app.get('/api/vip-users', async (req, res) => {
   }
 });
 
-// 11. Obtener todos los usuarios
 app.get('/api/all-users', async (req, res) => {
   try {
     const users = await db.getAllUsers();
@@ -1028,7 +978,6 @@ app.get('/api/all-users', async (req, res) => {
   }
 });
 
-// 12. Obtener información de un pago específico
 app.get('/api/payments/:id', async (req, res) => {
   try {
     const payment = await db.getPayment(req.params.id);
@@ -1038,18 +987,13 @@ app.get('/api/payments/:id', async (req, res) => {
     }
     
     const user = await db.getUser(payment.telegram_id);
-    
-    res.json({
-      ...payment,
-      user: user || null
-    });
+    res.json({ ...payment, user: user || null });
   } catch (error) {
     console.error('❌ Error obteniendo pago:', error);
     res.status(500).json({ error: 'Error obteniendo pago' });
   }
 });
 
-// 13. Enviar archivo de configuración (para pagos aprobados) - CORREGIDO CON VALIDACIÓN DE chat_id
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
     const { paymentId, adminId } = req.body;
@@ -1076,8 +1020,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
-    // Obtener el pago usando el ID
-    console.log(`🔍 Buscando pago con ID: ${paymentId}`);
     const payment = await db.getPayment(paymentId);
     
     if (!payment) {
@@ -1097,7 +1039,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       coupon_code: payment.coupon_code
     });
     
-    // Verificar que el pago esté aprobado
     if (payment.status !== 'approved') {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
@@ -1106,7 +1047,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       return res.status(400).json({ error: 'El pago no está aprobado' });
     }
     
-    // Obtener telegramId del pago - CORREGIDO: VALIDACIÓN COMPLETA
     const telegramId = payment.telegram_id;
     
     console.log(`🔍 Telegram ID del pago: ${telegramId}, tipo: ${typeof telegramId}`);
@@ -1121,11 +1061,9 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
       });
     }
     
-    // Convertir a string si es necesario
     const chatId = telegramId.toString().trim();
     console.log(`📤 Chat ID para envío: ${chatId}`);
     
-    // Verificar si el usuario existe en la base de datos
     const user = await db.getUser(chatId);
     if (!user) {
       fs.unlink(req.file.path, (err) => {
@@ -1142,7 +1080,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     try {
       console.log(`📤 Intentando enviar archivo a ${chatId}...`);
       
-      // Enviar archivo por Telegram
       await bot.telegram.sendDocument(
         chatId,
         { source: req.file.path, filename: req.file.originalname },
@@ -1162,7 +1099,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         }
       );
       
-      // Actualizar pago en la base de datos
       await db.updatePayment(paymentId, {
         config_sent: true,
         config_sent_at: new Date().toISOString(),
@@ -1170,7 +1106,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         config_sent_by: adminId
       });
       
-      // Verificar si el usuario ya es VIP, si no, hacerlo VIP
       if (user && !user.vip) {
         await db.makeUserVIP(chatId, {
           plan: payment.plan,
@@ -1180,7 +1115,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         console.log(`✅ Usuario ${chatId} marcado como VIP`);
       }
       
-      // Eliminar archivo temporal
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
       });
@@ -1202,12 +1136,10 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
       });
       
-      // Verificar si el error es específico de chat_id
       if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id') || 
           telegramError.message.includes('chat not found') || telegramError.message.includes('chat not exist')) {
         console.error(`❌ Error específico de chat_id para usuario ${chatId}:`, telegramError.message);
         
-        // Marcar usuario como inactivo
         try {
           await db.updateUser(chatId, {
             is_active: false,
@@ -1240,10 +1172,8 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   }
 });
 
-// 14. Servir archivos subidos
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// 15. Obtener información del usuario
 app.get('/api/user-info/:telegramId', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
@@ -1253,8 +1183,6 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     }
     
     const admin = isAdmin(req.params.telegramId);
-    
-    // Obtener estadísticas de referidos
     let referralStats = null;
     if (user.referrer_id) {
       referralStats = await db.getReferralStats(req.params.telegramId);
@@ -1271,7 +1199,6 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
   }
 });
 
-// 16. Enviar mensaje a usuario (admin)
 app.post('/api/send-message', async (req, res) => {
   try {
     const { telegramId, message, adminId } = req.body;
@@ -1280,14 +1207,11 @@ app.post('/api/send-message', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
-    // Validar que telegramId sea válido
     if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
       return res.status(400).json({ error: 'ID de usuario inválido' });
     }
     
     const chatId = telegramId.toString().trim();
-    
-    // Verificar si el usuario puede recibir mensajes
     const canSend = await canSendMessageToUser(chatId);
     if (!canSend.canSend) {
       return res.status(400).json({ 
@@ -1306,7 +1230,6 @@ app.post('/api/send-message', async (req, res) => {
   }
 });
 
-// 17. Remover VIP de usuario (admin) - CORREGIDO: Ruta específica
 app.post('/api/user/:userId/remove-vip', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -1323,7 +1246,6 @@ app.post('/api/user/:userId/remove-vip', async (req, res) => {
     }
     
     try {
-      // Verificar si el usuario puede recibir mensajes
       const canSend = await canSendMessageToUser(userId);
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
@@ -1347,12 +1269,10 @@ app.post('/api/user/:userId/remove-vip', async (req, res) => {
   }
 });
 
-// 18. Solicitar prueba gratuita (1 hora)
 app.post('/api/request-trial', async (req, res) => {
   try {
     const { telegramId, username, firstName, trialType = '1h', gameServer, connectionType } = req.body;
     
-    // Verificar elegibilidad para prueba
     const eligibility = await db.checkTrialEligibility(telegramId);
     
     if (!eligibility.eligible) {
@@ -1361,7 +1281,6 @@ app.post('/api/request-trial', async (req, res) => {
       });
     }
     
-    // Guardar/actualizar usuario con solicitud de prueba
     const updatedUser = await db.saveUser(telegramId, {
       telegram_id: telegramId,
       username: username,
@@ -1371,10 +1290,9 @@ app.post('/api/request-trial', async (req, res) => {
       trial_plan_type: trialType,
       trial_game_server: gameServer || '',
       trial_connection_type: connectionType || '',
-      is_active: true // Marcar como activo al solicitar prueba
+      is_active: true
     });
     
-    // Notificar a TODOS los administradores
     const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA ${trialType.toUpperCase()}*\n\n` +
       `👤 *Usuario:* ${firstName}\n` +
       `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
@@ -1386,17 +1304,13 @@ app.post('/api/request-trial', async (req, res) => {
     
     for (const adminId of ADMIN_IDS) {
       try {
-        await bot.telegram.sendMessage(adminId, adminMessage, { 
-          parse_mode: 'Markdown'
-        });
+        await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
       } catch (adminError) {
         console.log(`❌ No se pudo notificar al admin ${adminId}:`, adminError.message);
       }
     }
     
-    // Enviar confirmación al usuario
     try {
-      // Verificar si el usuario puede recibir mensajes
       const canSend = await canSendMessageToUser(telegramId);
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
@@ -1430,7 +1344,6 @@ app.post('/api/request-trial', async (req, res) => {
   }
 });
 
-// 19. Estadísticas de pruebas
 app.get('/api/trial-stats', async (req, res) => {
   try {
     const stats = await db.getTrialStats();
@@ -1441,7 +1354,6 @@ app.get('/api/trial-stats', async (req, res) => {
   }
 });
 
-// 20. Pruebas pendientes
 app.get('/api/trials/pending', async (req, res) => {
   try {
     const trials = await db.getPendingTrials();
@@ -1467,7 +1379,6 @@ app.get('/api/trials/pending', async (req, res) => {
   }
 });
 
-// 21. Marcar prueba como enviada
 app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -1478,9 +1389,7 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
     
     const user = await db.markTrialAsSent(req.params.telegramId, adminId);
     
-    // Notificar al usuario
     try {
-      // Verificar si el usuario puede recibir mensajes
       const canSend = await canSendMessageToUser(req.params.telegramId);
       if (canSend.canSend) {
         await bot.telegram.sendMessage(
@@ -1509,103 +1418,60 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
   }
 });
 
-// 22. Enviar archivo de configuración de prueba
+// ==================== RUTA CORREGIDA PARA ENVIAR PRUEBA ====================
 app.post('/api/send-trial-config', async (req, res) => {
   try {
     const { telegramId, adminId } = req.body;
-    
+
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    
-    // Validar que telegramId sea válido
+
     if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
       return res.status(400).json({ error: 'ID de usuario inválido' });
     }
-    
+
     const chatId = telegramId.toString().trim();
-    
     const user = await db.getUser(chatId);
-    
+
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
-    
+
     if (!user.trial_requested) {
       return res.status(400).json({ error: 'El usuario no solicitó prueba' });
     }
-    
+
     if (user.trial_received) {
       return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
     }
-    
-    // Verificar si el usuario puede recibir mensajes
+
     const canSend = await canSendMessageToUser(chatId);
     if (!canSend.canSend) {
-      // Marcar como inactivo si no puede recibir
       await db.updateUser(chatId, {
         is_active: false,
         last_error: canSend.reason
       });
-      
-      return res.status(400).json({ 
-        error: `El usuario no puede recibir mensajes: ${canSend.reason}. Marcado como inactivo.` 
+      return res.status(400).json({
+        error: `El usuario no puede recibir mensajes: ${canSend.reason}. Marcado como inactivo.`
       });
     }
-    
-    // Buscar si hay archivo de prueba disponible
-    const planFile = await db.getPlanFile('trial');
-    
-    if (planFile && planFile.public_url) {
-      // Enviar archivo automáticamente
-      const fileName = planFile.original_name || 'config_trial.conf';
-      const gameServer = user.trial_game_server || 'No especificado';
-      const connectionType = user.trial_connection_type || 'No especificado';
-      
-      await bot.telegram.sendDocument(
-        chatId,
-        planFile.public_url,
-        {
-          caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
-                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo de configuración para 1 hora de prueba</b>\n\n` +
-                   `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
-                   `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
-                   `<b>Instrucciones de instalación:</b>\n` +
-                   `1. Descarga este archivo\n` +
-                   `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                   `3. Activa la conexión\n` +
-                   `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
-                   `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
-                   `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
-          parse_mode: 'HTML'
-        }
-      );
-      
-      await db.markTrialAsSent(chatId, adminId);
-      
-      res.json({ 
-        success: true, 
-        message: 'Configuración de prueba enviada automáticamente',
-        filename: fileName,
-        trialType: '1h',
-        gameServer: gameServer,
-        connectionType: connectionType
-      });
-      
-    } else {
-      // Notificar al admin que no hay archivo de prueba disponible
-      res.status(404).json({ 
-        error: 'No hay archivo de prueba disponible. Sube uno primero en "Archivos de Planes".' 
-      });
-    }
-    
+
+    await sendTrialConfigToUser(chatId, adminId);
+
+    res.json({
+      success: true,
+      message: 'Configuración de prueba enviada correctamente',
+      trialType: '1h',
+      gameServer: user.trial_game_server || 'No especificado',
+      connectionType: user.trial_connection_type || 'No especificado'
+    });
   } catch (error) {
     console.error('❌ Error en send-trial-config:', error);
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
 
-// 23. Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -1627,7 +1493,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 24. Obtener imagen directa
 app.get('/api/image/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
@@ -1644,12 +1509,10 @@ app.get('/api/image/:filename', (req, res) => {
   }
 });
 
-// 25. Obtener estado de almacenamiento
 app.get('/api/storage-status', async (req, res) => {
   try {
     const buckets = [];
     
-    // Verificar payments-screenshots
     try {
       const { data: screenshots } = await supabaseAdmin.storage
         .from('payments-screenshots')
@@ -1666,7 +1529,6 @@ app.get('/api/storage-status', async (req, res) => {
       });
     }
     
-    // Verificar plan-files
     try {
       const { data: planFiles } = await supabaseAdmin.storage
         .from('plan-files')
@@ -1697,7 +1559,6 @@ app.get('/api/storage-status', async (req, res) => {
   }
 });
 
-// 26. Crear broadcast
 app.post('/api/broadcast/send', async (req, res) => {
   try {
     const { message, target, adminId } = req.body;
@@ -1706,12 +1567,10 @@ app.post('/api/broadcast/send', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' });
     }
     
-    // Validar que el mensaje no esté vacío
     if (!message || message.trim() === '') {
       return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
     }
     
-    // Validar que target sea válido
     const validTargets = ['all', 'vip', 'non_vip', 'trial_pending', 'trial_received', 'active', 'with_referrals', 'usdt_payers'];
     if (!validTargets.includes(target)) {
       return res.status(400).json({ error: 'Target de broadcast inválido' });
@@ -1719,7 +1578,6 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`📢 Creando broadcast para ${target} usuarios...`);
     
-    // Crear broadcast en la base de datos
     const broadcast = await db.createBroadcast(message, target, adminId);
     
     if (!broadcast || !broadcast.id) {
@@ -1728,17 +1586,14 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`✅ Broadcast creado con ID: ${broadcast.id}`);
     
-    // Obtener usuarios según el target
     const users = await db.getUsersForBroadcast(target);
     
     console.log(`👥 ${users.length} usuarios encontrados para el broadcast`);
     
-    // Actualizar broadcast con el total de usuarios
     await db.updateBroadcastStatus(broadcast.id, 'pending', {
       total_users: users.length
     });
     
-    // Iniciar el envío en segundo plano
     setTimeout(() => {
       sendBroadcastToUsers(broadcast.id, message, users, adminId);
     }, 100);
@@ -1762,10 +1617,8 @@ app.post('/api/broadcast/send', async (req, res) => {
   }
 });
 
-// Función auxiliar para enviar broadcast a usuarios
 async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   try {
-    // Validar que broadcastId existe
     if (!broadcastId) {
       console.error('❌ ID de broadcast no proporcionado');
       return;
@@ -1773,7 +1626,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     
     console.log(`🚀 Iniciando envío de broadcast ${broadcastId} a ${users.length} usuarios`);
     
-    // Actualizar estado a "enviando"
     await db.updateBroadcastStatus(broadcastId, 'sending', {
       total_users: users.length,
       sent_count: 0
@@ -1796,7 +1648,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         
         console.log(`📨 Enviando a ${user.telegram_id} (${i+1}/${users.length})`);
         
-        // Verificar si el usuario puede recibir mensajes
         const canSend = await canSendMessageToUser(user.telegram_id);
         
         if (!canSend.canSend) {
@@ -1804,7 +1655,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           unavailableCount++;
           failedCount++;
           
-          // Marcar usuario como no disponible si es error permanente
           if (canSend.reason.includes('chat not found') || 
               canSend.reason.includes('blocked') || 
               canSend.reason.includes('kicked') ||
@@ -1824,7 +1674,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           continue;
         }
         
-        // Si puede recibir, enviar el mensaje
         await bot.telegram.sendMessage(
           user.telegram_id,
           `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
@@ -1832,7 +1681,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         );
         sentCount++;
         
-        // Actualizar progreso cada 10 usuarios
         if ((i + 1) % 10 === 0 || i === users.length - 1) {
           console.log(`📊 Progreso: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
           await db.updateBroadcastStatus(broadcastId, 'sending', {
@@ -1843,7 +1691,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           });
         }
         
-        // Pequeña pausa para no saturar
         await new Promise(resolve => setTimeout(resolve, 100));
         
       } catch (error) {
@@ -1853,7 +1700,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           error: error.message
         });
         
-        // Si el usuario bloqueó al bot, continuar
         if (error.description && (
             error.description.includes('blocked') || 
             error.description.includes('chat not found') ||
@@ -1861,7 +1707,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
             error.description.includes('user is deactivated'))) {
           console.log(`❌ Usuario ${user.telegram_id} no disponible: ${error.description}`);
           
-          // Marcar como inactivo en la base de datos
           try {
             await db.updateUser(user.telegram_id, {
               is_active: false,
@@ -1878,7 +1723,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
       }
     }
     
-    // Actualizar estado final
     console.log(`✅ Broadcast ${broadcastId} completado: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
     await db.updateBroadcastStatus(broadcastId, 'completed', {
       sent_count: sentCount,
@@ -1890,7 +1734,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   } catch (error) {
     console.error(`❌ Error crítico en broadcast ${broadcastId}:`, error);
     
-    // Intentar actualizar el estado a fallido
     try {
       await db.updateBroadcastStatus(broadcastId, 'failed', {
         sent_count: 0,
@@ -1904,7 +1747,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   }
 }
 
-// 27. Obtener todos los broadcasts
 app.get('/api/broadcasts', async (req, res) => {
   try {
     const broadcasts = await db.getBroadcasts();
@@ -1915,12 +1757,10 @@ app.get('/api/broadcasts', async (req, res) => {
   }
 });
 
-// 28. Obtener estado de un broadcast
 app.get('/api/broadcast/status/:id', async (req, res) => {
   try {
     const broadcastId = req.params.id;
     
-    // Validar que broadcastId sea un número
     if (!broadcastId || isNaN(parseInt(broadcastId))) {
       console.error(`❌ ID de broadcast inválido: ${broadcastId}`);
       return res.status(400).json({ error: 'ID de broadcast inválido' });
@@ -1940,7 +1780,6 @@ app.get('/api/broadcast/status/:id', async (req, res) => {
   }
 });
 
-// 29. Reintentar broadcast fallido
 app.post('/api/broadcast/retry/:id', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -1955,10 +1794,8 @@ app.post('/api/broadcast/retry/:id', async (req, res) => {
       return res.status(404).json({ error: 'Broadcast no encontrado' });
     }
     
-    // Obtener usuarios para el broadcast
     const users = await db.getUsersForBroadcast(broadcast.target_users);
     
-    // Iniciar el envío en segundo plano
     setTimeout(() => {
       sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId);
     }, 100);
@@ -1975,7 +1812,6 @@ app.post('/api/broadcast/retry/:id', async (req, res) => {
   }
 });
 
-// 30. Obtener usuarios activos
 app.get('/api/users/active', async (req, res) => {
   try {
     const users = await db.getActiveUsers(30);
@@ -1986,12 +1822,10 @@ app.get('/api/users/active', async (req, res) => {
   }
 });
 
-// 31. Obtener un broadcast específico
 app.get('/api/broadcast/:id', async (req, res) => {
   try {
     const broadcastId = req.params.id;
     
-    // Validar que broadcastId sea un número
     if (!broadcastId || isNaN(parseInt(broadcastId))) {
       return res.status(400).json({ error: 'ID de broadcast inválido' });
     }
@@ -2009,7 +1843,6 @@ app.get('/api/broadcast/:id', async (req, res) => {
   }
 });
 
-// 32. Obtener estadísticas generales de referidos
 app.get('/api/referrals/stats', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
@@ -2020,13 +1853,11 @@ app.get('/api/referrals/stats', async (req, res) => {
   }
 });
 
-// 33. Obtener top referidores
 app.get('/api/referrals/top', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
     const topReferrers = stats.top_referrers || [];
     
-    // Obtener información de usuario para cada referidor
     const referrersWithInfo = await Promise.all(topReferrers.map(async (referrer) => {
       const user = await db.getUser(referrer.referrer_id);
       return {
@@ -2043,13 +1874,11 @@ app.get('/api/referrals/top', async (req, res) => {
   }
 });
 
-// 34. Obtener lista de referidos con información
 app.get('/api/referrals/list', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
     const referrals = stats.recent_referrals || [];
     
-    // Obtener información de usuario para cada referido
     const referralsWithInfo = await Promise.all(referrals.map(async (referral) => {
       const user = await db.getUser(referral.referred_id);
       const referrer = await db.getUser(referral.referrer_id);
@@ -2070,7 +1899,6 @@ app.get('/api/referrals/list', async (req, res) => {
   }
 });
 
-// 35. Obtener estadísticas de referidos por usuario
 app.get('/api/referrals/user/:telegramId', async (req, res) => {
   try {
     const stats = await db.getReferralStats(req.params.telegramId);
@@ -2081,7 +1909,6 @@ app.get('/api/referrals/user/:telegramId', async (req, res) => {
   }
 });
 
-// 36. Obtener usuarios con referidos
 app.get('/api/users/with-referrals', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
@@ -2104,16 +1931,13 @@ app.get('/api/users/with-referrals', async (req, res) => {
   }
 });
 
-// 37. Obtener usuarios sin referidos
 app.get('/api/users/without-referrals', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
     const allUsers = await db.getAllUsers();
     
-    // Usuarios con referidos
     const usersWithReferrals = new Set(stats.top_referrers?.map(u => u.referrer_id) || []);
     
-    // Filtrar usuarios sin referidos
     const usersWithoutReferrals = allUsers.filter(user => {
       return !usersWithReferrals.has(user.telegram_id.toString());
     });
@@ -2125,9 +1949,6 @@ app.get('/api/users/without-referrals', async (req, res) => {
   }
 });
 
-// 38. RUTAS API PARA USDT (MODIFICADAS)
-
-// Verificar estado de wallet USDT
 app.get('/api/usdt/wallet-status', async (req, res) => {
   try {
     res.json({
@@ -2148,7 +1969,6 @@ app.get('/api/usdt/wallet-status', async (req, res) => {
   }
 });
 
-// Verificar transacción específica
 app.get('/api/usdt/verify-transaction/:hash', async (req, res) => {
   try {
     res.json({
@@ -2164,7 +1984,6 @@ app.get('/api/usdt/verify-transaction/:hash', async (req, res) => {
   }
 });
 
-// Forzar verificación de transacciones (para admins)
 app.post('/api/usdt/force-check', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2184,17 +2003,15 @@ app.post('/api/usdt/force-check', async (req, res) => {
   }
 });
 
-// Obtener transacciones no asignadas
 app.get('/api/usdt/unassigned-transactions', async (req, res) => {
   try {
-    res.json([]); // No hay transacciones no asignadas en modo manual
+    res.json([]);
   } catch (error) {
     console.error('❌ Error obteniendo transacciones no asignadas:', error);
     res.status(500).json({ error: 'Error obteniendo transacciones no asignadas' });
   }
 });
 
-// 39. Subir archivo de plan
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
@@ -2222,18 +2039,14 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
-    // Leer archivo
     const fileBuffer = fs.readFileSync(req.file.path);
     
-    // Subir archivo a Supabase Storage
     const uploadResult = await db.uploadPlanFile(fileBuffer, plan, req.file.originalname);
     
-    // Eliminar archivo local
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('❌ Error al eliminar archivo local:', err);
     });
     
-    // Guardar información del archivo en la base de datos
     const planFileData = {
       plan: plan,
       storage_filename: uploadResult.filename,
@@ -2264,7 +2077,6 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   }
 });
 
-// 40. Subir archivo de prueba
 app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
@@ -2277,7 +2089,6 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Archivo de configuración requerido' });
     }
     
-    // Validar que sea archivo de prueba
     if (plan !== 'trial') {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('❌ Error al eliminar archivo:', err);
@@ -2293,18 +2104,14 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
-    // Leer archivo
     const fileBuffer = fs.readFileSync(req.file.path);
     
-    // Subir archivo a Supabase Storage
     const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
     
-    // Eliminar archivo local
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('❌ Error al eliminar archivo local:', err);
     });
     
-    // Guardar información del archivo en la base de datos
     const planFileData = {
       plan: 'trial',
       storage_filename: uploadResult.filename,
@@ -2334,8 +2141,7 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: 'Error subiendo archivo de prueba: ' + error.message });
   }
 });
-  
-// 41. Obtener todos los archivos de planes
+
 app.get('/api/plan-files', async (req, res) => {
   try {
     const planFiles = await db.getAllPlanFiles();
@@ -2346,7 +2152,6 @@ app.get('/api/plan-files', async (req, res) => {
   }
 });
 
-// 42. Obtener archivo de plan específico
 app.get('/api/plan-files/:plan', async (req, res) => {
   try {
     const planFile = await db.getPlanFile(req.params.plan);
@@ -2362,7 +2167,6 @@ app.get('/api/plan-files/:plan', async (req, res) => {
   }
 });
 
-// 43. Obtener archivo de prueba
 app.get('/api/plan-files/trial', async (req, res) => {
   try {
     const planFile = await db.getPlanFile('trial');
@@ -2378,7 +2182,6 @@ app.get('/api/plan-files/trial', async (req, res) => {
   }
 });
 
-// 44. Eliminar archivo de plan
 app.delete('/api/plan-files/:plan', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2400,7 +2203,6 @@ app.delete('/api/plan-files/:plan', async (req, res) => {
   }
 });
 
-// 45. Obtener estadísticas de juegos/servidores
 app.get('/api/games-stats', async (req, res) => {
   try {
     const stats = await db.getGamesStatistics();
@@ -2411,7 +2213,6 @@ app.get('/api/games-stats', async (req, res) => {
   }
 });
 
-// 46. Obtener detalles de usuario (para admin)
 app.get('/api/user/:telegramId/details', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
@@ -2420,13 +2221,8 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     
-    // Obtener estadísticas de referidos
     const referralStats = await db.getReferralStats(req.params.telegramId);
-    
-    // Obtener pagos del usuario
     const payments = await db.getUserPayments(req.params.telegramId);
-    
-    // Obtener referidos del usuario
     const referrals = await db.getReferralsByReferrer(req.params.telegramId);
     
     res.json({
@@ -2445,7 +2241,6 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
   }
 });
 
-// 47. Mensaje directo a usuario desde admin
 app.post('/api/user/:userId/message', async (req, res) => {
   try {
     const { adminId, message } = req.body;
@@ -2459,14 +2254,12 @@ app.post('/api/user/:userId/message', async (req, res) => {
       return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
     }
     
-    // Validar que userId sea válido
     if (!userId || userId === 'undefined' || userId === 'null' || userId === '') {
       return res.status(400).json({ error: 'ID de usuario inválido' });
     }
     
     const chatId = userId.toString().trim();
     
-    // Verificar si el usuario puede recibir mensajes
     const canSend = await canSendMessageToUser(chatId);
     if (!canSend.canSend) {
       return res.status(400).json({ 
@@ -2485,7 +2278,6 @@ app.post('/api/user/:userId/message', async (req, res) => {
   }
 });
 
-// 48. Ruta mejorada para enviar pruebas a usuarios disponibles
 app.post('/api/send-trials-to-valid', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2496,7 +2288,6 @@ app.post('/api/send-trials-to-valid', async (req, res) => {
     
     console.log(`🚀 Iniciando envío de pruebas solo a usuarios disponibles...`);
     
-    // Usar la función mejorada
     const result = await sendTrialToValidUsers(adminId);
     
     res.json(result);
@@ -2512,7 +2303,6 @@ app.post('/api/send-trials-to-valid', async (req, res) => {
 
 // ==================== RUTAS PARA CUPONES ====================
 
-// 49. Crear un nuevo cupón
 app.post('/api/coupons', async (req, res) => {
   try {
     console.log('🎫 RECIBIENDO SOLICITUD PARA CREAR CUPÓN...');
@@ -2532,35 +2322,30 @@ app.post('/api/coupons', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos requeridos: código, descuento y stock' });
     }
     
-    // Validar código
     if (!/^[A-Z0-9]+$/.test(code)) {
       console.log('❌ CÓDIGO INVÁLIDO:', code);
       return res.status(400).json({ error: 'El código solo puede contener letras mayúsculas y números' });
     }
     
-    // Validar descuento
     const discountNum = parseFloat(discount);
     if (isNaN(discountNum) || discountNum < 1 || discountNum > 100) {
       console.log('❌ DESCUENTO INVÁLIDO:', discount);
       return res.status(400).json({ error: 'El descuento debe estar entre 1% y 100%' });
     }
     
-    // Validar stock
     const stockNum = parseInt(stock);
     if (isNaN(stockNum) || stockNum < 1) {
       console.log('❌ STOCK INVÁLIDO:', stock);
       return res.status(400).json({ error: 'El stock debe ser mayor a 0' });
     }
     
-    // Validar fecha de expiración si se proporciona
     let expiryDate = null;
     if (expiry) {
-      // Intentar diferentes formatos de fecha
       const dateFormats = [
-        expiry, // Formato original
-        expiry.replace('T', ' '), // Para fechas ISO con T
-        new Date(expiry).toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
-        new Date(expiry).toISOString() // ISO completo
+        expiry,
+        expiry.replace('T', ' '),
+        new Date(expiry).toISOString().split('T')[0],
+        new Date(expiry).toISOString()
       ];
       
       for (const dateStr of dateFormats) {
@@ -2575,7 +2360,6 @@ app.post('/api/coupons', async (req, res) => {
         return res.status(400).json({ error: 'Fecha de expiración inválida' });
       }
       
-      // Asegurar que la fecha de expiración sea en el futuro
       if (expiryDate <= new Date()) {
         console.log('❌ FECHA DE EXPIRACIÓN DEBE SER FUTURA:', expiry);
         return res.status(400).json({ error: 'La fecha de expiración debe ser en el futuro' });
@@ -2593,7 +2377,6 @@ app.post('/api/coupons', async (req, res) => {
       created_by: adminId
     });
     
-    // Crear cupón
     const coupon = await db.createCoupon({
       code: code.toUpperCase(),
       discount: discountNum,
@@ -2627,7 +2410,6 @@ app.post('/api/coupons', async (req, res) => {
   }
 });
 
-// 50. Obtener todos los cupones
 app.get('/api/coupons', async (req, res) => {
   try {
     const coupons = await db.getCoupons();
@@ -2638,7 +2420,6 @@ app.get('/api/coupons', async (req, res) => {
   }
 });
 
-// 51. Obtener estadísticas de cupones
 app.get('/api/coupons/stats', async (req, res) => {
   try {
     const stats = await db.getCouponsStats();
@@ -2649,7 +2430,6 @@ app.get('/api/coupons/stats', async (req, res) => {
   }
 });
 
-// 52. Obtener un cupón específico
 app.get('/api/coupons/:code', async (req, res) => {
   try {
     const coupon = await db.getCoupon(req.params.code.toUpperCase());
@@ -2665,7 +2445,6 @@ app.get('/api/coupons/:code', async (req, res) => {
   }
 });
 
-// 53. Actualizar cupón
 app.put('/api/coupons/:code', async (req, res) => {
   try {
     const { stock, status, adminId } = req.body;
@@ -2680,7 +2459,6 @@ app.put('/api/coupons/:code', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
-    // Validar stock si se proporciona
     let stockNum = coupon.stock;
     if (stock !== undefined) {
       stockNum = parseInt(stock);
@@ -2689,13 +2467,11 @@ app.put('/api/coupons/:code', async (req, res) => {
       }
     }
     
-    // Validar estado si se proporciona
     let newStatus = coupon.status;
     if (status && ['active', 'inactive', 'expired'].includes(status)) {
       newStatus = status;
     }
     
-    // Actualizar cupón
     const updatedCoupon = await db.updateCoupon(code, {
       stock: stockNum,
       status: newStatus,
@@ -2715,7 +2491,6 @@ app.put('/api/coupons/:code', async (req, res) => {
   }
 });
 
-// 54. Cambiar estado de cupón
 app.put('/api/coupons/:code/status', async (req, res) => {
   try {
     const { status, adminId } = req.body;
@@ -2734,7 +2509,6 @@ app.put('/api/coupons/:code/status', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
-    // Actualizar estado
     const updatedCoupon = await db.updateCouponStatus(code, status, adminId);
     
     res.json({ 
@@ -2749,7 +2523,6 @@ app.put('/api/coupons/:code/status', async (req, res) => {
   }
 });
 
-// 55. Eliminar cupón
 app.delete('/api/coupons/:code', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2764,14 +2537,12 @@ app.delete('/api/coupons/:code', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
-    // Verificar si el cupón ha sido usado
     if (coupon.used && coupon.used > 0) {
       return res.status(400).json({ 
         error: 'No se puede eliminar un cupón que ha sido usado. Puedes desactivarlo en su lugar.' 
       });
     }
     
-    // Eliminar cupón
     await db.deleteCoupon(code);
     
     res.json({ 
@@ -2785,7 +2556,6 @@ app.delete('/api/coupons/:code', async (req, res) => {
   }
 });
 
-// 56. Verificar cupón (para uso en pagos)
 app.post('/api/coupons/verify/:code', async (req, res) => {
   try {
     const { telegramId } = req.body;
@@ -2814,7 +2584,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       used: coupon.used
     });
     
-    // Verificar si el cupón está activo
     if (coupon.status !== 'active') {
       console.log(`⚠️ Cupón no activo: ${coupon.status}`);
       return res.json({ 
@@ -2823,7 +2592,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       });
     }
     
-    // Verificar si ha expirado
     if (coupon.expiry) {
       const expiryDate = new Date(coupon.expiry);
       const now = new Date();
@@ -2832,7 +2600,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       
       if (expiryDate < now) {
         console.log(`⚠️ Cupón expirado`);
-        // Actualizar estado a expirado
         await db.updateCouponStatus(code, 'expired', 'system');
         return res.json({ 
           success: false, 
@@ -2841,7 +2608,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       }
     }
     
-    // Verificar si hay stock disponible
     if (coupon.stock <= 0) {
       console.log(`⚠️ Cupón agotado, stock: ${coupon.stock}`);
       return res.json({ 
@@ -2850,7 +2616,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       });
     }
     
-    // Verificar si el usuario ya usó este cupón
     const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
     if (hasUsed) {
       console.log(`⚠️ Usuario ya usó este cupón`);
@@ -2860,7 +2625,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
       });
     }
     
-    // Cupón válido
     console.log(`✅ Cupón ${code} válido para usuario ${telegramId}`);
     res.json({ 
       success: true,
@@ -2882,7 +2646,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
   }
 });
 
-// 57. Aplicar cupón a un pago
 app.post('/api/coupons/apply/:code', async (req, res) => {
   try {
     const { telegramId, paymentId, adminId } = req.body;
@@ -2897,38 +2660,32 @@ app.post('/api/coupons/apply/:code', async (req, res) => {
       return res.status(404).json({ error: 'Cupón no encontrado' });
     }
     
-    // Verificar si el cupón está activo
     if (coupon.status !== 'active') {
       return res.status(400).json({ 
         error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
       });
     }
     
-    // Verificar si ha expirado
     if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
       await db.updateCouponStatus(code, 'expired', 'system');
       return res.status(400).json({ error: 'Cupón expirado' });
     }
     
-    // Verificar si hay stock disponible
     if (coupon.stock <= 0) {
       return res.status(400).json({ error: 'Cupón agotado' });
     }
     
-    // Verificar si el usuario ya usó este cupón
     const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
     if (hasUsed) {
       return res.status(400).json({ error: 'Ya has usado este cupón' });
     }
     
-    // Aplicar cupón al pago
     const applied = await db.applyCouponToPayment(code, telegramId, paymentId);
     
     if (!applied) {
       return res.status(400).json({ error: 'No se pudo aplicar el cupón al pago' });
     }
     
-    // Reducir stock del cupón
     const newStock = coupon.stock - 1;
     await db.updateCoupon(code, {
       stock: newStock,
@@ -2950,7 +2707,6 @@ app.post('/api/coupons/apply/:code', async (req, res) => {
   }
 });
 
-// 58. Obtener historial de uso de cupones
 app.get('/api/coupons/history/:code', async (req, res) => {
   try {
     const code = req.params.code.toUpperCase();
@@ -2973,8 +2729,6 @@ app.get('/admin.html', (req, res) => { res.sendFile(path.join(__dirname, 'public
 // ==================== BOT DE TELEGRAM ====================
 
 bot.catch((err, ctx) => { console.error('❌ Error no manejado en el bot:', err); });
-
-// ACCIONES INLINE
 
 bot.action('show_support', async (ctx) => {
   try {
@@ -3171,8 +2925,6 @@ bot.action('faq', async (ctx) => {
   } catch (error) { console.error('❌ Error en action de FAQ:', error); await ctx.answerCbQuery('❌ Error al abrir FAQ.'); }
 });
 
-// ==================== COMANDOS DEL BOT ====================
-
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
@@ -3213,7 +2965,6 @@ bot.start(async (ctx) => {
     });
 });
 
-// Handler de texto (se mantiene igual, solo adaptado)
 bot.on('text', async (ctx) => {
     const text = ctx.message.text;
     const userId = ctx.from.id.toString();
@@ -3299,7 +3050,6 @@ async function checkStatusHandler(ctx, userId) {
   } catch (error) { console.error('❌ Error en checkStatusHandler:', error); await ctx.reply(`❌ Error al verificar tu estado.`); }
 }
 
-// ==================== CONFIGURACIÓN DEL WEBHOOK ====================
 app.post('/webhook', (req, res) => { bot.handleUpdate(req.body, res); });
 
 async function setWebhook() {
@@ -3316,7 +3066,6 @@ async function setWebhook() {
     }
 }
 
-// ==================== SERVIDOR ====================
 app.listen(PORT, async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅' : '❌'}`);

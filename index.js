@@ -264,7 +264,9 @@ const upload = multer({
 });
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const TRIAL_FILES_DIR = path.join(__dirname, 'uploads/trial_files');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(TRIAL_FILES_DIR)) fs.mkdirSync(TRIAL_FILES_DIR, { recursive: true });
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 
 function getPlanName(planType) {
@@ -426,32 +428,34 @@ async function initializeStorageBuckets() {
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIÓN ENVIAR PRUEBA CORREGIDA ====================
+// ==================== FUNCIÓN ENVIAR PRUEBA CORREGIDA (USANDO ARCHIVO LOCAL) ====================
 async function sendTrialConfigToUser(telegramId, adminId) {
   try {
     const user = await db.getUser(telegramId);
     if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
 
+    // Obtener la información del archivo de prueba desde la base de datos
     const planFile = await db.getPlanFile('trial');
-    if (!planFile || !planFile.public_url) {
-      console.log(`❌ No hay archivo de prueba disponible para ${telegramId}`);
+    if (!planFile || !planFile.local_path) {
+      console.log(`❌ No hay archivo de prueba local disponible para ${telegramId}`);
       return false;
     }
 
-    // Descargar el archivo desde Supabase usando fetch
-    const response = await fetch(planFile.public_url);
-    if (!response.ok) {
-      throw new Error(`Error descargando archivo: ${response.statusText}`);
+    // Verificar que el archivo existe en el disco
+    const filePath = path.join(__dirname, planFile.local_path);
+    if (!fs.existsSync(filePath)) {
+      console.log(`❌ Archivo de prueba no encontrado en disco: ${filePath}`);
+      return false;
     }
-    const fileBuffer = await response.buffer();
-    const fileName = planFile.original_name || 'config_trial.conf';
 
+    const fileName = planFile.original_name || 'config_trial.conf';
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
 
+    // Enviar el archivo desde el disco local
     await bot.telegram.sendDocument(
       telegramId,
-      { source: fileBuffer, filename: fileName },
+      { source: filePath, filename: fileName },
       {
         caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
                  `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
@@ -469,7 +473,7 @@ async function sendTrialConfigToUser(telegramId, adminId) {
     );
 
     await db.markTrialAsSent(telegramId, adminId);
-    console.log(`✅ Prueba enviada a ${telegramId} usando buffer desde Supabase`);
+    console.log(`✅ Prueba enviada a ${telegramId} usando archivo local: ${fileName}`);
     return true;
   } catch (error) {
     console.error(`❌ Error enviando prueba a ${telegramId}:`, error.message);
@@ -2012,6 +2016,8 @@ app.get('/api/usdt/unassigned-transactions', async (req, res) => {
   }
 });
 
+// ==================== RUTAS PARA ARCHIVOS DE PLANES (CON COPIA LOCAL PARA PRUEBA) ====================
+
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
@@ -2104,12 +2110,18 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
-    const fileBuffer = fs.readFileSync(req.file.path);
+    // Guardar una copia local permanente en uploads/trial_files/
+    const localFilename = `trial_${Date.now()}_${req.file.originalname}`;
+    const localPath = path.join(TRIAL_FILES_DIR, localFilename);
+    fs.copyFileSync(req.file.path, localPath);
     
+    // Subir a Supabase como respaldo
+    const fileBuffer = fs.readFileSync(req.file.path);
     const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
     
+    // Eliminar archivo temporal de multer
     fs.unlink(req.file.path, (err) => {
-      if (err) console.error('❌ Error al eliminar archivo local:', err);
+      if (err) console.error('❌ Error al eliminar archivo temporal:', err);
     });
     
     const planFileData = {
@@ -2117,6 +2129,7 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       storage_filename: uploadResult.filename,
       original_name: uploadResult.originalName,
       public_url: uploadResult.publicUrl,
+      local_path: `uploads/trial_files/${localFilename}`, // Guardar ruta local
       uploaded_by: adminId,
       uploaded_at: new Date().toISOString()
     };
@@ -2125,7 +2138,7 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: `Archivo de prueba subido correctamente`,
+      message: `Archivo de prueba subido correctamente (copia local guardada)`,
       file: savedFile
     });
     
@@ -2191,6 +2204,15 @@ app.delete('/api/plan-files/:plan', async (req, res) => {
     }
     
     const deletedFile = await db.deletePlanFile(req.params.plan);
+    
+    // Si es archivo de prueba y tiene ruta local, eliminar también el archivo físico
+    if (req.params.plan === 'trial' && deletedFile && deletedFile.local_path) {
+      const localFilePath = path.join(__dirname, deletedFile.local_path);
+      if (fs.existsSync(localFilePath)) {
+        fs.unlinkSync(localFilePath);
+        console.log(`🗑️ Archivo local de prueba eliminado: ${localFilePath}`);
+      }
+    }
     
     res.json({ 
       success: true, 
@@ -3096,6 +3118,7 @@ app.listen(PORT, async () => {
     console.log(`💰 Sistema USDT: MODO MANUAL - Captura requerida`);
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: DESACTIVADO - Envío manual`);
+    console.log(`📂 Archivos de prueba: Guardados localmente en ${TRIAL_FILES_DIR}`);
 });
 
 process.on('uncaughtException', async (error) => { console.error('❌ Error no capturado:', error); });

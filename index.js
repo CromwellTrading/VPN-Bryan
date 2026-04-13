@@ -269,6 +269,9 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(TRIAL_FILES_DIR)) fs.mkdirSync(TRIAL_FILES_DIR, { recursive: true });
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 
+// Ruta fija para el archivo de prueba actual (sin depender de BD)
+const TRIAL_CURRENT_FILE = path.join(TRIAL_FILES_DIR, 'trial_current');
+
 function getPlanName(planType) {
   const plans = {
     'basico': 'Básico (1 mes)',
@@ -428,31 +431,32 @@ async function initializeStorageBuckets() {
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIÓN ENVIAR PRUEBA CORREGIDA (USANDO ARCHIVO LOCAL) ====================
+// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO ARCHIVO LOCAL FIJO) ====================
 async function sendTrialConfigToUser(telegramId, adminId) {
   try {
     const user = await db.getUser(telegramId);
     if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
 
-    // Obtener la información del archivo de prueba desde la base de datos
-    const planFile = await db.getPlanFile('trial');
-    if (!planFile || !planFile.local_path) {
+    // Buscar el archivo local con extensiones posibles
+    const extensions = ['.conf', '.zip', '.rar'];
+    let filePath = null;
+    for (const ext of extensions) {
+      const testPath = TRIAL_CURRENT_FILE + ext;
+      if (fs.existsSync(testPath)) {
+        filePath = testPath;
+        break;
+      }
+    }
+
+    if (!filePath) {
       console.log(`❌ No hay archivo de prueba local disponible para ${telegramId}`);
       return false;
     }
 
-    // Verificar que el archivo existe en el disco
-    const filePath = path.join(__dirname, planFile.local_path);
-    if (!fs.existsSync(filePath)) {
-      console.log(`❌ Archivo de prueba no encontrado en disco: ${filePath}`);
-      return false;
-    }
-
-    const fileName = planFile.original_name || 'config_trial.conf';
+    const fileName = path.basename(filePath);
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
 
-    // Enviar el archivo desde el disco local
     await bot.telegram.sendDocument(
       telegramId,
       { source: filePath, filename: fileName },
@@ -2016,7 +2020,7 @@ app.get('/api/usdt/unassigned-transactions', async (req, res) => {
   }
 });
 
-// ==================== RUTAS PARA ARCHIVOS DE PLANES (CON COPIA LOCAL PARA PRUEBA) ====================
+// ==================== RUTAS PARA ARCHIVOS DE PLANES (CON COPIA LOCAL FIJA PARA PRUEBA) ====================
 
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
@@ -2110,36 +2114,35 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
     
-    // Guardar una copia local permanente en uploads/trial_files/
-    const localFilename = `trial_${Date.now()}_${req.file.originalname}`;
-    const localPath = path.join(TRIAL_FILES_DIR, localFilename);
-    fs.copyFileSync(req.file.path, localPath);
+    // Guardar con nombre fijo (manteniendo extensión)
+    const ext = path.extname(req.file.originalname);
+    const targetPath = TRIAL_CURRENT_FILE + ext;
+    fs.copyFileSync(req.file.path, targetPath);
     
-    // Subir a Supabase como respaldo
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
-    
-    // Eliminar archivo temporal de multer
+    // Eliminar temporal
     fs.unlink(req.file.path, (err) => {
       if (err) console.error('❌ Error al eliminar archivo temporal:', err);
     });
+    
+    // También subir a Supabase como respaldo (opcional)
+    const fileBuffer = fs.readFileSync(targetPath);
+    const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
     
     const planFileData = {
       plan: 'trial',
       storage_filename: uploadResult.filename,
       original_name: uploadResult.originalName,
       public_url: uploadResult.publicUrl,
-      local_path: `uploads/trial_files/${localFilename}`, // Guardar ruta local
       uploaded_by: adminId,
       uploaded_at: new Date().toISOString()
     };
     
-    const savedFile = await db.savePlanFile(planFileData);
+    await db.savePlanFile(planFileData);
     
     res.json({ 
       success: true, 
-      message: `Archivo de prueba subido correctamente (copia local guardada)`,
-      file: savedFile
+      message: `Archivo de prueba subido correctamente (local: ${path.basename(targetPath)})`,
+      file: planFileData
     });
     
   } catch (error) {
@@ -2188,7 +2191,26 @@ app.get('/api/plan-files/trial', async (req, res) => {
       return res.status(404).json({ error: 'Archivo de prueba no encontrado' });
     }
     
-    res.json(planFile);
+    // También devolvemos información del archivo local si existe
+    let localFileInfo = null;
+    const extensions = ['.conf', '.zip', '.rar'];
+    for (const ext of extensions) {
+      const testPath = TRIAL_CURRENT_FILE + ext;
+      if (fs.existsSync(testPath)) {
+        localFileInfo = {
+          exists: true,
+          filename: path.basename(testPath),
+          size: fs.statSync(testPath).size,
+          modified: fs.statSync(testPath).mtime
+        };
+        break;
+      }
+    }
+    
+    res.json({
+      ...planFile,
+      local_backup: localFileInfo || { exists: false, message: 'No hay archivo local' }
+    });
   } catch (error) {
     console.error('❌ Error obteniendo archivo de prueba:', error);
     res.status(500).json({ error: 'Error obteniendo archivo de prueba' });
@@ -2205,12 +2227,15 @@ app.delete('/api/plan-files/:plan', async (req, res) => {
     
     const deletedFile = await db.deletePlanFile(req.params.plan);
     
-    // Si es archivo de prueba y tiene ruta local, eliminar también el archivo físico
-    if (req.params.plan === 'trial' && deletedFile && deletedFile.local_path) {
-      const localFilePath = path.join(__dirname, deletedFile.local_path);
-      if (fs.existsSync(localFilePath)) {
-        fs.unlinkSync(localFilePath);
-        console.log(`🗑️ Archivo local de prueba eliminado: ${localFilePath}`);
+    // Si es archivo de prueba, eliminar también el archivo local
+    if (req.params.plan === 'trial') {
+      const extensions = ['.conf', '.zip', '.rar'];
+      for (const ext of extensions) {
+        const filePath = TRIAL_CURRENT_FILE + ext;
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`🗑️ Archivo local de prueba eliminado: ${filePath}`);
+        }
       }
     }
     
@@ -3118,7 +3143,7 @@ app.listen(PORT, async () => {
     console.log(`💰 Sistema USDT: MODO MANUAL - Captura requerida`);
     console.log(`👥 Sistema de referidos: Habilitado`);
     console.log(`📁 Archivos automáticos: DESACTIVADO - Envío manual`);
-    console.log(`📂 Archivos de prueba: Guardados localmente en ${TRIAL_FILES_DIR}`);
+    console.log(`📂 Archivos de prueba guardados localmente en: ${TRIAL_FILES_DIR}`);
 });
 
 process.on('uncaughtException', async (error) => { console.error('❌ Error no capturado:', error); });

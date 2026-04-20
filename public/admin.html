@@ -2762,12 +2762,36 @@
                         <div class="user-detail-value" id="modalUserVip"></div>
                     </div>
                     <div class="user-detail-card">
+                        <div class="user-detail-label">VIP Desde</div>
+                        <div class="user-detail-value" id="modalUserVipSince"></div>
+                    </div>
+                    <div class="user-detail-card">
+                        <div class="user-detail-label">Precio del Plan</div>
+                        <div class="user-detail-value" id="modalUserPlanPrice"></div>
+                    </div>
+                    <div class="user-detail-card">
+                        <div class="user-detail-label">Estado</div>
+                        <div class="user-detail-value" id="modalUserActive"></div>
+                    </div>
+                    <div class="user-detail-card">
                         <div class="user-detail-label">Referidor</div>
                         <div class="user-detail-value" id="modalUserReferrer"></div>
                     </div>
                     <div class="user-detail-card">
-                        <div class="user-detail-label">Referidos Directos</div>
+                        <div class="user-detail-label">Referidos Directos (Niv.1)</div>
                         <div class="user-detail-value" id="modalUserReferrals"></div>
+                    </div>
+                    <div class="user-detail-card">
+                        <div class="user-detail-label">Total Referidos</div>
+                        <div class="user-detail-value" id="modalUserTotalReferrals"></div>
+                    </div>
+                    <div class="user-detail-card">
+                        <div class="user-detail-label">Referidos Pagados</div>
+                        <div class="user-detail-value" id="modalUserPaidReferrals"></div>
+                    </div>
+                    <div class="user-detail-card">
+                        <div class="user-detail-label">Prueba Gratuita</div>
+                        <div class="user-detail-value" id="modalUserTrial"></div>
                     </div>
                     <div class="user-detail-card">
                         <div class="user-detail-label">Fecha de Registro</div>
@@ -2775,7 +2799,7 @@
                     </div>
                 </div>
                 
-                <div class="action-buttons" style="margin-top: 25px; display: flex; gap: 10px;">
+                <div class="action-buttons" style="margin-top: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="action-btn remove-vip" onclick="removeVipFromUser(currentUserDetailsId)" id="removeVipBtn">
                         <i class="fas fa-crown"></i>
                         Quitar VIP
@@ -3048,21 +3072,25 @@
             try {
                 console.log('📊 Cargando estadísticas...');
                 const response = await fetch('/api/stats');
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 const stats = await response.json();
                 
-                document.getElementById('totalUsers').textContent = stats.users?.total || 0;
-                document.getElementById('vipUsers').textContent = stats.users?.vip || 0;
-                document.getElementById('trialRequests').textContent = stats.users?.trial_requests || 0;
-                document.getElementById('pendingPaymentsCount').textContent = stats.payments?.pending || 0;
-                document.getElementById('totalRevenue').textContent = stats.revenue?.total || 0;
-                document.getElementById('trialPendingCount').textContent = stats.users?.trial_pending || 0;
-                document.getElementById('totalReferrals').textContent = stats.referrals?.total || 0;
-                document.getElementById('usdtPayments').textContent = stats.payments?.usdt || 0;
-                document.getElementById('broadcastCount').textContent = stats.broadcasts?.total || 0;
-                document.getElementById('couponsCount').textContent = stats.coupons?.active || 0;
+                const safe = (val) => val !== undefined && val !== null ? val : 0;
+                
+                document.getElementById('totalUsers').textContent = safe(stats.users?.total);
+                document.getElementById('vipUsers').textContent = safe(stats.users?.vip);
+                document.getElementById('trialRequests').textContent = safe(stats.users?.trial_requests);
+                document.getElementById('pendingPaymentsCount').textContent = safe(stats.payments?.pending);
+                document.getElementById('totalRevenue').textContent = safe(stats.revenue?.total);
+                document.getElementById('trialPendingCount').textContent = safe(stats.users?.trial_pending);
+                document.getElementById('totalReferrals').textContent = safe(stats.referrals?.total);
+                document.getElementById('usdtPayments').textContent = safe(stats.payments?.usdt);
+                document.getElementById('broadcastCount').textContent = safe(stats.broadcasts?.total);
+                document.getElementById('couponsCount').textContent = safe(stats.coupons?.active);
                 
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
+                showNotification('⚠️ Error cargando estadísticas generales', 'error');
             }
         }
 
@@ -3269,8 +3297,8 @@
                 document.getElementById('usersNoData').style.display = 'none';
                 document.getElementById('usersPagination').style.display = 'none';
                 
-                console.log('🔍 Cargando usuarios...');
-                const response = await fetch('/api/all-users');
+                console.log('🔍 Cargando usuarios (todos)...');
+                const response = await fetch('/api/all-users?all=true');
                 const users = await response.json();
                 
                 document.getElementById('usersLoading').style.display = 'none';
@@ -3339,7 +3367,7 @@
                     <td>${user.telegram_id || 'N/A'}</td>
                     <td>${user.first_name || 'Usuario'}</td>
                     <td>${user.username ? '@' + user.username : 'sin_usuario'}</td>
-                    <td>${user.current_plan ? getPlanName(user.current_plan) : 'Sin plan'}</td>
+                    <td>${(user.plan || user.current_plan) ? getPlanName(user.plan || user.current_plan) : 'Sin plan'}</td>
                     <td>${vipBadge}</td>
                     <td>${referrerInfo}</td>
                     <td>${user.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
@@ -3387,11 +3415,12 @@
                 filteredUsers = [...allUsers];
             } else {
                 filteredUsers = allUsers.filter(user => {
+                    const planField = user.plan || user.current_plan || '';
                     return (
                         (user.first_name && user.first_name.toLowerCase().includes(searchTerm)) ||
                         (user.username && user.username.toLowerCase().includes(searchTerm)) ||
                         (user.telegram_id && user.telegram_id.toString().includes(searchTerm)) ||
-                        (user.current_plan && getPlanName(user.current_plan).toLowerCase().includes(searchTerm)) ||
+                        (planField && getPlanName(planField).toLowerCase().includes(searchTerm)) ||
                         (user.referrer_username && user.referrer_username.toLowerCase().includes(searchTerm))
                     );
                 });
@@ -3410,37 +3439,74 @@
             
             try {
                 const response = await fetch(`/api/user/${userId}/details`);
-                const user = await response.json();
+                if (!response.ok) throw new Error('No se pudo obtener el usuario');
+                const data = await response.json();
+                
+                // La API ahora devuelve todo aplanado (campos del usuario en el nivel raíz)
+                const user = data;
                 
                 document.getElementById('userDetailsModalLoading').style.display = 'none';
                 document.getElementById('userDetailsModalContent').style.display = 'block';
                 
-                // Actualizar datos del modal
+                // Datos básicos
                 document.getElementById('modalUserIdDetail').textContent = user.telegram_id || 'N/A';
                 document.getElementById('modalUserName').textContent = user.first_name || 'Usuario';
                 document.getElementById('modalUserUsername').textContent = '@' + (user.username || 'sin_usuario');
-                document.getElementById('modalUserPlan').textContent = getPlanName(user.current_plan) || 'Sin plan';
+                document.getElementById('modalUserPlan').textContent = getPlanName(user.plan || user.current_plan) || 'Sin plan';
                 document.getElementById('modalUserVip').innerHTML = user.vip ? 
-                    '<span class="badge vip">VIP</span>' : 
+                    '<span class="badge vip">VIP ✅</span>' : 
                     '<span class="badge non-vip">No VIP</span>';
                 document.getElementById('modalUserReferrer').textContent = user.referrer_id ? 
                     '@' + (user.referrer_username || user.referrer_id) : 'Directo';
                 document.getElementById('modalUserReferrals').textContent = user.level1_referrals || 0;
                 document.getElementById('modalUserJoinDate').textContent = user.created_at ? 
                     new Date(user.created_at).toLocaleDateString('es-ES') : 'N/A';
+
+                // Campos adicionales si existen los elementos en el DOM
+                const vipSinceEl = document.getElementById('modalUserVipSince');
+                if (vipSinceEl) {
+                    vipSinceEl.textContent = user.vip_since ? 
+                        new Date(user.vip_since).toLocaleDateString('es-ES') : 'N/A';
+                }
+                const planPriceEl = document.getElementById('modalUserPlanPrice');
+                if (planPriceEl) {
+                    planPriceEl.textContent = user.plan_price ? user.plan_price + ' CUP' : 'N/A';
+                }
+                const isActiveEl = document.getElementById('modalUserActive');
+                if (isActiveEl) {
+                    isActiveEl.innerHTML = user.is_active !== false ? 
+                        '<span class="badge approved">Activo</span>' : 
+                        '<span class="badge expired">Inactivo</span>';
+                }
+                const totalReferralsEl = document.getElementById('modalUserTotalReferrals');
+                if (totalReferralsEl) {
+                    totalReferralsEl.textContent = user.total_referrals || 0;
+                }
+                const paidReferralsEl = document.getElementById('modalUserPaidReferrals');
+                if (paidReferralsEl) {
+                    paidReferralsEl.textContent = user.paid_referrals || 0;
+                }
+                const trialEl = document.getElementById('modalUserTrial');
+                if (trialEl) {
+                    if (user.trial_received) {
+                        trialEl.innerHTML = '<span class="badge approved">Recibida</span>';
+                    } else if (user.trial_requested) {
+                        trialEl.innerHTML = '<span class="badge pending">Solicitada</span>';
+                    } else {
+                        trialEl.innerHTML = '<span class="badge non-vip">No solicitada</span>';
+                    }
+                }
                 
                 // Mostrar/ocultar botón de quitar VIP
                 const removeVipBtn = document.getElementById('removeVipBtn');
-                if (user.vip) {
-                    removeVipBtn.style.display = 'flex';
-                } else {
-                    removeVipBtn.style.display = 'none';
+                if (removeVipBtn) {
+                    removeVipBtn.style.display = user.vip ? 'flex' : 'none';
                 }
                 
             } catch (error) {
                 console.error('❌ Error cargando detalles del usuario:', error);
                 document.getElementById('userDetailsModalLoading').style.display = 'none';
-                showNotification('❌ Error cargando detalles del usuario', 'error');
+                showNotification('❌ Error cargando detalles del usuario: ' + error.message, 'error');
             }
         }
 
@@ -3525,84 +3591,104 @@
                 console.log('🤝 Cargando sistema de referidos mejorado...');
                 
                 // Cargar estadísticas generales
-                const statsResponse = await fetch('/api/referrals/stats');
-                const stats = await statsResponse.json();
+                let stats = {};
+                try {
+                    const statsResponse = await fetch('/api/referrals/stats');
+                    if (statsResponse.ok) {
+                        stats = await statsResponse.json();
+                    } else {
+                        console.warn('⚠️ No se pudieron cargar estadísticas de referidos');
+                    }
+                } catch(statsErr) {
+                    console.error('❌ Error cargando stats de referidos:', statsErr);
+                }
                 
-                // Actualizar tarjeta de resumen
+                // Actualizar tarjeta de resumen con validación segura
                 document.getElementById('totalReferralsCount').textContent = stats.total_referrals || 0;
                 document.getElementById('paidReferrals').textContent = stats.paid_referrals || 0;
                 document.getElementById('level1Referrals').textContent = stats.level1_referrals || 0;
                 document.getElementById('level2Referrals').textContent = stats.level2_referrals || 0;
                 
-                // Calcular descuentos con límite máximo de 100% (corrige bug que se quedaba en 999)
-                let level1Discount = (stats.paid_level1 || 0) * 20;
-                let level2Discount = (stats.paid_level2 || 0) * 10;
-                // Limitar cada nivel a 100% máximo
-                level1Discount = Math.min(level1Discount, 100);
-                level2Discount = Math.min(level2Discount, 100);
+                // Calcular descuentos con límite máximo de 100%
+                let level1Discount = Math.min((stats.paid_level1 || 0) * 20, 100);
+                let level2Discount = Math.min((stats.paid_level2 || 0) * 10, 100);
                 let totalDiscount = Math.min(level1Discount + level2Discount, 100);
                 
                 document.getElementById('level1Discount').textContent = level1Discount + '%';
                 document.getElementById('level2Discount').textContent = level2Discount + '%';
                 document.getElementById('totalDiscount').textContent = totalDiscount + '%';
                 
-                // Cargar top referidores
-                const topResponse = await fetch('/api/referrals/top');
-                const topReferrers = await topResponse.json();
-                
-                document.getElementById('topReferrersLoading').style.display = 'none';
-                
-                const topTableBody = document.getElementById('topReferrersTableBody');
-                topTableBody.innerHTML = '';
-                
-                if (topReferrers && topReferrers.length > 0) {
-                    document.getElementById('topReferrersNoData').style.display = 'none';
+                // Cargar top referidores (manejo independiente para que un error aquí no bloquee todo)
+                try {
+                    const topResponse = await fetch('/api/referrals/top');
+                    document.getElementById('topReferrersLoading').style.display = 'none';
                     
-                    topReferrers.forEach((referrer, index) => {
-                        // Calcular descuento individual con límite 100%
-                        let individualDiscount = Math.min((referrer.paid_referrals || 0) * 20, 100);
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>
-                                <strong>${referrer.first_name || 'Usuario'}</strong><br>
-                                <small>@${referrer.username || 'sin_usuario'}</small><br>
-                                <small style="color: #888;">ID: ${referrer.telegram_id}</small>
-                            </td>
-                            <td style="text-align: center;">${referrer.total_referrals || 0}</td>
-                            <td style="text-align: center;">${referrer.paid_referrals || 0}</td>
-                            <td style="text-align: center;">
-                                <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399;">
-                                    ${individualDiscount}%
-                                </span>
-                            </td>
-                            <td style="text-align: center;">
-                                <button class="action-btn view-details" onclick="searchUserById('${referrer.telegram_id}')">
-                                    <i class="fas fa-eye"></i> Ver
-                                </button>
-                            </td>
-                        `;
-                        topTableBody.appendChild(row);
-                    });
-                } else {
+                    if (!topResponse.ok) throw new Error('Error HTTP ' + topResponse.status);
+                    
+                    const topReferrers = await topResponse.json();
+                    const topTableBody = document.getElementById('topReferrersTableBody');
+                    topTableBody.innerHTML = '';
+                    
+                    if (topReferrers && topReferrers.length > 0) {
+                        document.getElementById('topReferrersNoData').style.display = 'none';
+                        
+                        topReferrers.forEach((referrer, index) => {
+                            // Calcular descuento individual con límite 100%
+                            let individualDiscount = Math.min((referrer.paid_referrals || 0) * 20, 100);
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${index + 1}</td>
+                                <td>
+                                    <strong>${referrer.first_name || 'Usuario'}</strong><br>
+                                    <small>@${referrer.username || 'sin_usuario'}</small><br>
+                                    <small style="color: #888;">ID: ${referrer.telegram_id || referrer.referrer_id}</small>
+                                </td>
+                                <td style="text-align: center;">${referrer.total_referrals || 0}</td>
+                                <td style="text-align: center;">${referrer.paid_referrals || 0}</td>
+                                <td style="text-align: center;">
+                                    <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399;">
+                                        ${individualDiscount}%
+                                    </span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <button class="action-btn view-details" onclick="searchUserById('${referrer.telegram_id || referrer.referrer_id}')">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </button>
+                                </td>
+                            `;
+                            topTableBody.appendChild(row);
+                        });
+                    } else {
+                        document.getElementById('topReferrersNoData').style.display = 'block';
+                    }
+                } catch (topErr) {
+                    console.error('❌ Error cargando top referidores:', topErr);
+                    document.getElementById('topReferrersLoading').style.display = 'none';
                     document.getElementById('topReferrersNoData').style.display = 'block';
+                    document.getElementById('topReferrersNoData').innerHTML = 
+                        '<i class="fas fa-exclamation-triangle" style="font-size:2rem; color:#f87171; margin-bottom:10px;"></i><p style="color:#f87171;">Error cargando top referidores. Reintenta.</p>';
                 }
                 
-                // Cargar lista completa de referidos
-                const listResponse = await fetch('/api/referrals/list');
-                const referralsList = await listResponse.json();
-                
-                document.getElementById('referralsListLoading').style.display = 'none';
-                
-                // Guardar datos globales
-                allReferrals = referralsList || [];
-                filteredReferrals = [...allReferrals];
-                
-                // Mostrar primera página
-                displayReferralsPage(1);
+                // Cargar lista completa de referidos (manejo independiente)
+                try {
+                    const listResponse = await fetch('/api/referrals/list');
+                    document.getElementById('referralsListLoading').style.display = 'none';
+                    
+                    if (!listResponse.ok) throw new Error('Error HTTP ' + listResponse.status);
+                    
+                    const referralsList = await listResponse.json();
+                    allReferrals = referralsList || [];
+                    filteredReferrals = [...allReferrals];
+                    displayReferralsPage(1);
+                } catch (listErr) {
+                    console.error('❌ Error cargando lista de referidos:', listErr);
+                    document.getElementById('referralsListLoading').style.display = 'none';
+                    document.getElementById('referralsListNoData').style.display = 'block';
+                    showNotification('⚠️ Error cargando lista de referidos', 'error');
+                }
                 
             } catch (error) {
-                console.error('❌ Error cargando sistema de referidos:', error);
+                console.error('❌ Error crítico cargando sistema de referidos:', error);
                 document.getElementById('referralsListLoading').style.display = 'none';
                 document.getElementById('topReferrersLoading').style.display = 'none';
                 showNotification('❌ Error cargando sistema de referidos', 'error');
@@ -3826,7 +3912,7 @@
                 const userName = user.first_name || user.username || 'Usuario';
                 const userUsername = user.username ? `@${user.username}` : 'Sin usuario';
                 const userId = user.telegram_id || user.id || 'N/A';
-                const userPlan = getPlanName(user.plan) || getPlanName(user.current_plan) || 'Sin plan';
+                const userPlan = getPlanName(user.plan || user.current_plan) || 'Sin plan';
                 const referrerInfo = user.referrer_id ? 
                     (user.referrer_username ? `@${user.referrer_username}` : `ID: ${user.referrer_id}`) : 
                     'Directo';
@@ -4951,39 +5037,37 @@ Generado por VPN Cuba Admin Panel
             try {
                 showNotification(`⏳ Enviando prueba a ${userName}...`, 'info');
                 
-                // Primero, verificar si hay archivo de prueba
-                const planFileResponse = await fetch('/api/plan-files/trial');
-                const planFileData = await planFileResponse.json();
-                
-                if (!planFileData || !planFileData.public_url) {
-                    showNotification('❌ No hay archivo de prueba disponible. Sube uno primero.', 'error');
-                    return;
+                // Verificar si hay archivo de prueba (no bloqueante si falla)
+                try {
+                    const planFileResponse = await fetch('/api/plan-files/trial');
+                    if (planFileResponse.ok) {
+                        const planFileData = await planFileResponse.json();
+                        if (!planFileData || (!planFileData.public_url && !planFileData.local_backup?.exists)) {
+                            showNotification('❌ No hay archivo de prueba disponible. Sube uno primero en "Archivos de Planes".', 'error');
+                            return;
+                        }
+                    }
+                } catch (checkErr) {
+                    console.warn('⚠️ No se pudo verificar archivo de prueba (continuando):', checkErr.message);
                 }
                 
                 // Enviar archivo al usuario
                 const response = await fetch('/api/send-trial-config', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         telegramId: telegramId,
                         adminId: currentUserId
                     })
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        showNotification(`✅ Configuración de prueba enviada a ${userName}`, 'success');
-                        // Recargar lista de pruebas pendientes
-                        loadPendingTrials();
-                    } else {
-                        showNotification(`⚠️ ${result.message || 'Error enviando prueba'}`, 'warning');
-                    }
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    showNotification(`✅ Configuración de prueba enviada a ${userName}`, 'success');
+                    loadPendingTrials();
                 } else {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Error enviando configuración de prueba');
+                    const errMsg = result.error || result.message || 'Error enviando prueba';
+                    showNotification(`❌ ${errMsg}`, 'error');
                 }
             } catch (error) {
                 console.error('❌ Error enviando configuración de prueba:', error);
@@ -5105,14 +5189,18 @@ Generado por VPN Cuba Admin Panel
                     if (result.success) {
                         showNotification('✅ Configuración enviada manualmente', 'success');
                     } else {
-                        showNotification(`⚠️ ${result.message || 'Error enviando configuración'}`, 'warning');
+                        showNotification(`⚠️ ${result.message || result.error || 'Error enviando configuración'}`, 'warning');
                     }
                     closeConfigModal();
                     loadApprovedPayments();
                     fileInput.value = '';
                 } else {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Error enviando configuración');
+                    let errorMsg = 'Error enviando configuración';
+                    try {
+                        const errData = await response.json();
+                        errorMsg = errData.error || errData.message || errorMsg;
+                    } catch(e) {}
+                    throw new Error(errorMsg);
                 }
             } catch (error) {
                 console.error('❌ Error enviando configuración:', error);
@@ -5248,10 +5336,15 @@ Generado por VPN Cuba Admin Panel
                         statusBadge = '<span class="badge inactive">Inactivo</span>';
                     }
                     
-                    // Formatear fecha de expiración
+                    // Formatear fecha de expiración (timezone-safe)
                     let expiryDate = 'No expira';
                     if (coupon.expiry) {
-                        const expiry = new Date(coupon.expiry);
+                        // Normalizar: si viene como "YYYY-MM-DD" sin hora, parsear como día completo
+                        let expiryStr = coupon.expiry;
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(expiryStr)) {
+                            expiryStr = expiryStr + 'T23:59:59';
+                        }
+                        const expiry = new Date(expiryStr);
                         const today = new Date();
                         expiryDate = expiry.toLocaleDateString('es-ES');
                         if (expiry < today && coupon.status !== 'expired') {
@@ -5681,3 +5774,4 @@ Generado por VPN Cuba Admin Panel
     </script>
 </body>
     </html>
+ 

@@ -521,7 +521,7 @@ async function sendTrialConfigToUser(telegramId, adminId) {
 
 async function sendTrialToValidUsers(adminId) {
   try {
-    console.log('🎯 Enviando pruebas solo a usuarios disponibles...');
+    console.log('🎯 Enviando pruebas a usuarios pendientes...');
     const pendingTrials = await db.getPendingTrials();
     if (!pendingTrials || pendingTrials.length === 0) {
       console.log('📭 No hay pruebas pendientes');
@@ -532,20 +532,22 @@ async function sendTrialToValidUsers(adminId) {
       const user = pendingTrials[i];
       try {
         if (!user.telegram_id) { failedCount++; continue; }
-        const canSend = await canSendMessageToUser(user.telegram_id);
-        if (!canSend.canSend) {
-          unavailableCount++; failedCount++;
-          if (canSend.reason.includes('chat not found') || canSend.reason.includes('blocked')) {
-            await db.updateUser(user.telegram_id, { is_active: false, last_error: canSend.reason, updated_at: new Date().toISOString() });
-          }
-          continue;
-        }
+        // Enviar directamente — el retry interno de sendTrialConfigToUser maneja errores
         await sendTrialConfigToUser(user.telegram_id, adminId);
         sentCount++;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 80));
       } catch (error) {
         failedCount++;
-        console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, error.message);
+        const errMsg = error.description || error.message || '';
+        const isPermanent = errMsg.includes('chat not found') || errMsg.includes('blocked') ||
+                            errMsg.includes('user is deactivated') || errMsg.includes('kicked');
+        if (isPermanent) {
+          unavailableCount++;
+          try {
+            await db.updateUser(user.telegram_id, { is_active: false, last_error: errMsg, updated_at: new Date().toISOString() });
+          } catch (e) { /* no crítico */ }
+        }
+        console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, errMsg);
       }
     }
     console.log(`✅ Envío de pruebas completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
@@ -992,27 +994,40 @@ app.get('/api/stats', async (req, res) => {
       message: 'Todos los pagos USDT requieren captura y aprobación manual'
     };
 
-    // Obtener conteo real de usuarios en lotes para no quedarse en 1000
+    // Obtener conteo real de usuarios con fallback si no hay paginación
     try {
       let allUsersCount = [];
+      let usePagination = true;
       let from = 0;
       const batchSize = 1000;
       let keepFetching = true;
+
       while (keepFetching) {
-        const batch = await db.getAllUsers(from, batchSize);
+        let batch;
+        try {
+          batch = await db.getAllUsers(from, batchSize);
+        } catch (pErr) {
+          usePagination = false;
+          batch = await db.getAllUsers();
+        }
+
         if (!batch || batch.length === 0) {
           keepFetching = false;
         } else {
-          allUsersCount = allUsersCount.concat(batch);
-          if (batch.length < batchSize) keepFetching = false;
+          if (from === 0) {
+            allUsersCount = batch;
+          } else {
+            allUsersCount = allUsersCount.concat(batch);
+          }
+          if (!usePagination || batch.length < batchSize) keepFetching = false;
           else from += batchSize;
         }
       }
+
       const activeUsers = allUsersCount.filter(u => u.is_active !== false).length;
       const inactiveUsers = allUsersCount.filter(u => u.is_active === false).length;
       stats.users.active = activeUsers;
       stats.users.inactive = inactiveUsers;
-      // Corregir total si Supabase lo da truncado
       if (allUsersCount.length > (stats.users.total || 0)) {
         stats.users.total = allUsersCount.length;
       }
@@ -1063,39 +1078,57 @@ app.get('/api/vip-users', async (req, res) => {
 
 app.get('/api/all-users', async (req, res) => {
   try {
-    // Soporte de paginación para superar el límite de 1000 de Supabase
-    // Si se pasa ?all=true se intentan obtener todos los usuarios en lotes
     const fetchAll = req.query.all === 'true';
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 2000; // límite generoso por defecto
 
     if (fetchAll) {
-      // Obtener en lotes de 1000 hasta no haber más
+      // Intentar paginación en lotes de 1000 para superar el límite de Supabase.
+      // Si db.getAllUsers no acepta parámetros, el primer batch traerá todo y paramos.
       let allUsers = [];
       let from = 0;
       const batchSize = 1000;
       let keepFetching = true;
+      let usePagination = true;
+
       while (keepFetching) {
-        const batch = await db.getAllUsers(from, batchSize);
+        let batch;
+        try {
+          // Intentar con parámetros de paginación
+          batch = await db.getAllUsers(from, batchSize);
+        } catch (paginationErr) {
+          // Si falla con parámetros (firma no compatible), usar sin parámetros
+          console.warn('⚠️ getAllUsers con paginación falló, usando llamada simple:', paginationErr.message);
+          usePagination = false;
+          batch = await db.getAllUsers();
+        }
+
         if (!batch || batch.length === 0) {
           keepFetching = false;
         } else {
-          allUsers = allUsers.concat(batch);
-          if (batch.length < batchSize) {
+          // Evitar duplicados si la paginación no funciona y devuelve siempre lo mismo
+          if (from === 0) {
+            allUsers = batch;
+          } else {
+            allUsers = allUsers.concat(batch);
+          }
+          // Si la función no soporta paginación real o trajo menos de batchSize, parar
+          if (!usePagination || batch.length < batchSize) {
             keepFetching = false;
           } else {
             from += batchSize;
           }
         }
       }
+
+      console.log(`✅ Total usuarios obtenidos: ${allUsers.length}`);
       return res.json(allUsers);
     }
 
-    const users = await db.getAllUsers(0, limit);
+    // Sin ?all=true — llamada simple para compatibilidad
+    const users = await db.getAllUsers();
     res.json(users);
   } catch (error) {
     console.error('❌ Error obteniendo usuarios:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios' });
+    res.status(500).json({ error: 'Error obteniendo usuarios: ' + error.message });
   }
 });
 
@@ -1727,7 +1760,7 @@ app.post('/api/broadcast/send', async (req, res) => {
       return res.status(400).json({ error: 'Target de broadcast inválido' });
     }
     
-    console.log(`📢 Creando broadcast para ${target} usuarios...`);
+    console.log(`📢 Creando broadcast para target: ${target}...`);
     
     const broadcast = await db.createBroadcast(message, target, adminId);
     
@@ -1737,7 +1770,14 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`✅ Broadcast creado con ID: ${broadcast.id}`);
     
-    const users = await db.getUsersForBroadcast(target);
+    // Obtener usuarios con fallback robusto
+    let users = [];
+    try {
+      users = await db.getUsersForBroadcast(target) || [];
+    } catch (err) {
+      console.error('❌ Error obteniendo usuarios para broadcast:', err.message);
+      throw new Error('No se pudieron obtener los usuarios: ' + err.message);
+    }
     
     console.log(`👥 ${users.length} usuarios encontrados para el broadcast`);
     
@@ -1745,9 +1785,10 @@ app.post('/api/broadcast/send', async (req, res) => {
       total_users: users.length
     });
     
-    setTimeout(() => {
+    // Lanzar en background sin bloquear la respuesta
+    setImmediate(() => {
       sendBroadcastToUsers(broadcast.id, message, users, adminId);
-    }, 100);
+    });
     
     res.json({ 
       success: true, 
@@ -1775,6 +1816,14 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
       return;
     }
     
+    if (!users || users.length === 0) {
+      console.log('⚠️ No hay usuarios para este broadcast');
+      await db.updateBroadcastStatus(broadcastId, 'completed', {
+        sent_count: 0, failed_count: 0, unavailable_count: 0, total_users: 0
+      });
+      return;
+    }
+
     console.log(`🚀 Iniciando envío de broadcast ${broadcastId} a ${users.length} usuarios`);
     
     await db.updateBroadcastStatus(broadcastId, 'sending', {
@@ -1792,86 +1841,67 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
       
       try {
         if (!user.telegram_id) {
-          console.log(`⚠️ Usuario sin telegram_id, saltando`);
           failedCount++;
           continue;
         }
         
-        console.log(`📨 Enviando a ${user.telegram_id} (${i+1}/${users.length})`);
-        
-        const canSend = await canSendMessageToUser(user.telegram_id);
-        
-        if (!canSend.canSend) {
-          console.log(`❌ Usuario ${user.telegram_id} no disponible: ${canSend.reason}`);
-          unavailableCount++;
-          failedCount++;
-          
-          if (canSend.reason.includes('chat not found') || 
-              canSend.reason.includes('blocked') || 
-              canSend.reason.includes('kicked') ||
-              canSend.reason.includes('user is deactivated')) {
-            
-            try {
-              await db.updateUser(user.telegram_id, {
-                is_active: false,
-                last_error: canSend.reason,
-                updated_at: new Date().toISOString()
-              });
-            } catch (updateError) {
-              console.log(`⚠️ Error actualizando usuario ${user.telegram_id}:`, updateError.message);
-            }
-          }
-          
-          continue;
-        }
-        
+        // ENVÍO DIRECTO sin pre-chequeo de canSendMessageToUser.
+        // El pre-chequeo hacía un request extra por usuario (sendChatAction)
+        // causando rate limiting y lentitud. Ahora detectamos el error al enviar.
         await bot.telegram.sendMessage(
           user.telegram_id,
-          `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Por favor, no respondas a este mensaje. Para consultas, contacta a soporte: @L0quen2_`,
+          `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Para consultas, contacta a soporte: @L0quen2_`,
           { parse_mode: 'Markdown' }
         );
         sentCount++;
-        
-        if ((i + 1) % 10 === 0 || i === users.length - 1) {
-          console.log(`📊 Progreso: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
+
+      } catch (error) {
+        failedCount++;
+        const errMsg = error.description || error.message || '';
+
+        // Detectar si el usuario bloqueó el bot o no existe
+        const isPermanentError =
+          errMsg.includes('blocked') ||
+          errMsg.includes('chat not found') ||
+          errMsg.includes('kicked') ||
+          errMsg.includes('user is deactivated') ||
+          error.response?.error_code === 403;
+
+        if (isPermanentError) {
+          unavailableCount++;
+          console.log(`❌ Usuario ${user.telegram_id} no disponible (${errMsg}), marcando inactivo`);
+          try {
+            await db.updateUser(user.telegram_id, {
+              is_active: false,
+              last_error: errMsg,
+              updated_at: new Date().toISOString()
+            });
+          } catch (updateErr) {
+            console.log(`⚠️ No se pudo marcar inactivo ${user.telegram_id}:`, updateErr.message);
+          }
+        } else {
+          console.error(`❌ Error enviando a ${user.telegram_id}:`, errMsg);
+          failedUsers.push({ telegram_id: user.telegram_id, error: errMsg });
+        }
+      }
+
+      // Actualizar progreso cada 25 usuarios o al terminar
+      if ((i + 1) % 25 === 0 || i === users.length - 1) {
+        console.log(`📊 Broadcast ${broadcastId} progreso: ${sentCount} enviados, ${failedCount} fallidos (${i+1}/${users.length})`);
+        try {
           await db.updateBroadcastStatus(broadcastId, 'sending', {
             sent_count: sentCount,
             failed_count: failedCount,
             unavailable_count: unavailableCount,
             total_users: users.length
           });
+        } catch (progressErr) {
+          console.warn('⚠️ Error actualizando progreso de broadcast:', progressErr.message);
         }
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-      } catch (error) {
-        failedCount++;
-        failedUsers.push({
-          telegram_id: user.telegram_id,
-          error: error.message
-        });
-        
-        if (error.description && (
-            error.description.includes('blocked') || 
-            error.description.includes('chat not found') ||
-            error.description.includes('kicked') ||
-            error.description.includes('user is deactivated'))) {
-          console.log(`❌ Usuario ${user.telegram_id} no disponible: ${error.description}`);
-          
-          try {
-            await db.updateUser(user.telegram_id, {
-              is_active: false,
-              last_error: error.description,
-              updated_at: new Date().toISOString()
-            });
-          } catch (updateError) {
-            console.log(`⚠️ Error actualizando usuario ${user.telegram_id}:`, updateError.message);
-          }
-          continue;
-        }
-        
-        console.error(`❌ Error enviando a ${user.telegram_id}:`, error.message);
       }
+
+      // Delay de 50ms entre mensajes para respetar el rate limit de Telegram (30 msg/seg max)
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
     
     console.log(`✅ Broadcast ${broadcastId} completado: ${sentCount} enviados, ${failedCount} fallidos, ${unavailableCount} no disponibles`);
@@ -1884,13 +1914,12 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
     
   } catch (error) {
     console.error(`❌ Error crítico en broadcast ${broadcastId}:`, error);
-    
     try {
       await db.updateBroadcastStatus(broadcastId, 'failed', {
         sent_count: 0,
-        failed_count: users.length || 0,
+        failed_count: users?.length || 0,
         unavailable_count: 0,
-        total_users: users.length || 0
+        total_users: users?.length || 0
       });
     } catch (updateError) {
       console.error('❌ Error actualizando estado de broadcast a fallido:', updateError);

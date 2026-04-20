@@ -23,7 +23,7 @@ const supabaseAdmin = createClient(
 // IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604', '6974850309'];
+    ['6373481979', '5376388604', '6974850309', '5985313284'];
 
 // ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {

@@ -1,1051 +1,1461 @@
-<!DOCTYPE html><html lang="es">
+ <!DOCTYPE html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-  <title>VPN Cuba - Planes</title>  <script src="https://telegram.org/js/telegram-web-app.js"></script>  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">  <style>
-    :root{
-      --bg:#000000;
-      --text:#f2f6ff;
-      --muted:#a8b3cf;
-      --blue:#5f7dff;
-      --gold:#ffd966;
-      --red:#ff4d4d;
-      --green:#39ff14;
-      --shadow:0 28px 90px -36px rgba(0,0,0,.96);
-      --shadow2:0 18px 48px -28px rgba(95,125,255,.24);
-      --radius:28px;
-      --font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
+<title>VPN Cuba — Planes</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Azeret+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{min-height:100%}
-    body{
-      font-family:var(--font);
-      color:var(--text);
-      background:#000;
-      overflow-x:hidden;
-      line-height:1.5;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      text-rendering:optimizeLegibility;
-    }
+<style>
+/* ═══════════════════════════════════════════════
+   SIGNAL — VPN Cuba Plans
+   Theme: Live transmission / frequency interface
+═══════════════════════════════════════════════ */
 
-    .wrap{
-      width:min(1020px,100%);
-      margin:0 auto;
-      padding:26px 16px 28px;
-      position:relative;
-      z-index:2;
-      background:transparent;
-    }
+:root {
+  --black:   #000000;
+  --deep:    #030305;
+  --panel:   #080810;
+  --ink:     #0d0d18;
+  --wire:    rgba(255,255,255,.055);
+  --wire-hi: rgba(255,255,255,.12);
+  --txt:     #eeeef5;
+  --txt-2:   #7a7a96;
+  --txt-3:   #3a3a52;
 
-    .hero{
-      text-align:center;
-      padding:18px 10px 16px;
-    }
+  --f-head: 'Bebas Neue', sans-serif;
+  --f-body: 'Cabinet Grotesk', sans-serif;
+  --f-mono: 'Azeret Mono', monospace;
 
-    .eyebrow{
-      display:inline-flex;
-      align-items:center;
-      gap:.55rem;
-      padding:.56rem .92rem;
-      border-radius:999px;
-      font-size:.76rem;
-      font-weight:900;
-      letter-spacing:.09em;
-      text-transform:uppercase;
-      color:#fff;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 0 18px rgba(95,125,255,.10), inset 0 0 18px rgba(255,255,255,.03);
-      backdrop-filter:blur(14px);
-      margin-bottom:16px;
-    }
+  /* Plan signals */
+  --sig-trial:   #f5c542;
+  --sig-basic:   #00d4ff;
+  --sig-adv:     #e8e8ff;
+  --sig-prem:    #ff3d3d;
+  --sig-ann:     #00ff88;
 
-    .brand{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:.8rem;
-      font-size:clamp(1.72rem, 3.2vw, 2.55rem);
-      font-weight:950;
-      letter-spacing:-.05em;
-      background:linear-gradient(135deg, #ffffff 0%, #dfe7ff 35%, var(--blue) 100%);
-      -webkit-background-clip:text;
-      background-clip:text;
-      -webkit-text-fill-color:transparent;
-      filter:drop-shadow(0 0 16px rgba(95,125,255,.24));
-    }
+  --glow-trial:  rgba(245,197,66,.18);
+  --glow-basic:  rgba(0,212,255,.18);
+  --glow-adv:    rgba(232,232,255,.12);
+  --glow-prem:   rgba(255,61,61,.18);
+  --glow-ann:    rgba(0,255,136,.18);
+}
 
-    .brand i{
-      -webkit-text-fill-color:initial;
-      color:var(--blue);
-      font-size:1em;
-      filter:drop-shadow(0 0 12px rgba(95,125,255,.26));
-    }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-    .subhead{
-      max-width:760px;
-      margin:12px auto 0;
-      color:var(--muted);
-      font-size:1rem;
-    }
+/* ── SCANLINE BODY ─────────────────────────── */
+body {
+  background: var(--black);
+  color: var(--txt);
+  font-family: var(--f-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
 
-    .hero-grid{
-      margin:12px auto 0;
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:8px;
-      width:min(740px,100%);
-    }
+/* Very subtle scanlines — texture not distraction */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.08) 2px,
+    rgba(0,0,0,.08) 4px
+  );
+  opacity: .35;
+}
 
-    .mini{
-      background:rgba(255,255,255,.035);
-      border:1px solid rgba(255,255,255,.07);
-      border-radius:18px;
-      padding:9px 8px;
-      text-align:center;
-      backdrop-filter:blur(10px);
-      box-shadow:0 8px 22px -20px rgba(0,0,0,.82);
-    }
+/* ── SCROLLBAR ─────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: var(--txt-3); border-radius: 0; }
 
-    .mini strong{
-      display:block;
-      font-size:.93rem;
-      font-weight:900;
-      margin-bottom:1px;
-    }
+/* ── TICKER BAR ────────────────────────────── */
+.ticker-bar {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  background: var(--deep);
+  border-bottom: 1px solid var(--wire-hi);
+  overflow: hidden;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
 
-    .mini span{
-      color:var(--muted);
-      font-size:.77rem;
-    }
+.ticker-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  animation: ticker-scroll 28s linear infinite;
+}
 
-    .plans{
-      margin:26px auto 0;
-      display:grid;
-      gap:18px;
-      width:min(100%, 330px);
-      background:transparent;
-    }
+.ticker-inner span {
+  font-family: var(--f-mono);
+  font-size: .65rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+  padding: 0 2rem;
+}
 
-    .shell{
-      position:relative;
-      padding-top:14px;
-      background:#000;
-      border-radius:32px;
-      --accent:#5f7dff;
-      --accent-soft:rgba(95,125,255,.12);
-      --accent-glow:rgba(95,125,255,.22);
-      --accent-text:#5f7dff;
-      --frame-border: conic-gradient(from 180deg, #3f6cff, #79d8ff, #ffffff, #3f6cff);
-      --frame-glow: rgba(95,125,255,.28);
-      --button-bg: linear-gradient(135deg, #0d5bd6, #00a9ff 55%, #69dbff);
-      --button-text: #03111c;
-      --button-glow: rgba(0,169,255,.18);
-      --theme-overlay: none;
-      --overlay-anim: none;
-    }
+.ticker-inner span.hi {
+  color: var(--sig-basic);
+  font-weight: 500;
+}
 
-    .shell.trial{
-      --accent:#8a5a31;
-      --accent-soft:rgba(123,79,34,.14);
-      --accent-glow:rgba(123,79,34,.26);
-      --accent-text:#e1bb8f;
-      --frame-border: conic-gradient(from 180deg, #2b170f, #55341e, #8d5d35, #d0a06c, #f0dfc0, #8d5d35, #2b170f);
-      --frame-glow: rgba(139,94,52,.34);
-      --button-bg: linear-gradient(135deg, #4a2f1a, #7b4f22 55%, #c79a63);
-      --button-text: #fff8f1;
-      --button-glow: rgba(176,123,69,.18);
-      --theme-overlay:
-        radial-gradient(circle at 23% 18%, rgba(225,185,132,.18) 0 10%, transparent 24%),
-        radial-gradient(circle at 74% 82%, rgba(102,64,35,.20) 0 12%, transparent 34%),
-        linear-gradient(180deg, transparent 58%, rgba(92,58,29,.18) 100%);
-      --overlay-anim: earthFloat 7s ease-in-out infinite;
-    }
+.ticker-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: linear-gradient(90deg, var(--deep) 60%, transparent);
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  z-index: 2;
+}
 
-    .shell.basic{
-      --accent:#2ea8ff;
-      --accent-soft:rgba(47,140,255,.12);
-      --accent-glow:rgba(47,140,255,.24);
-      --accent-text:#82e2ff;
-      --frame-border: conic-gradient(from 180deg, #00306c, #0058b8, #00a6ff, #bcecff, #0058b8, #00306c);
-      --frame-glow: rgba(0,169,255,.30);
-      --button-bg: linear-gradient(135deg, #0d5bd6, #00a9ff 55%, #69dbff);
-      --button-text: #03111c;
-      --button-glow: rgba(0,169,255,.18);
-      --theme-overlay:
-        radial-gradient(circle at 20% 18%, rgba(255,255,255,.12) 0 8%, transparent 20%),
-        linear-gradient(180deg, rgba(0,194,255,.10), transparent 42%, rgba(0,98,255,.16) 100%);
-      --overlay-anim: waterFlow 5.5s ease-in-out infinite;
-    }
+.ticker-label span {
+  font-family: var(--f-mono);
+  font-size: .58rem;
+  letter-spacing: .15em;
+  color: var(--sig-ann);
+  font-weight: 500;
+}
 
-    .shell.advanced{
-      --accent:#48d3ff;
-      --accent-soft:rgba(0,200,255,.12);
-      --accent-glow:rgba(0,200,255,.28);
-      --accent-text:#dff8ff;
-      --frame-border: conic-gradient(from 180deg, #f8fbff, #7ee8ff, #1fa1ff, #005bff, #ffffff, #7ee8ff, #f8fbff);
-      --frame-glow: rgba(0,160,255,.38);
-      --button-bg: linear-gradient(135deg, #0054ff, #00b9ff 55%, #d7fbff);
-      --button-text: #04111c;
-      --button-glow: rgba(0,185,255,.24);
-      --theme-overlay:
-        radial-gradient(circle at 75% 16%, rgba(255,255,255,.20) 0 7%, transparent 20%),
-        linear-gradient(120deg, transparent 44%, rgba(255,255,255,.24) 50%, transparent 56%);
-      --overlay-anim: lightningFlash 2.2s linear infinite;
-    }
+.ticker-fade-r {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 60px;
+  background: linear-gradient(270deg, var(--deep) 40%, transparent);
+  z-index: 2;
+}
 
-    .shell.premium{
-      --accent:#ff5a24;
-      --accent-soft:rgba(255,77,31,.12);
-      --accent-glow:rgba(255,77,31,.30);
-      --accent-text:#ff9b74;
-      --frame-border: conic-gradient(from 180deg, #ff1a00, #ff6b00, #ffb14f, #ffe0b0, #ff6b00, #ff1a00);
-      --frame-glow: rgba(255,77,31,.36);
-      --button-bg: linear-gradient(135deg, #ff2e00, #ff6a00 55%, #ff9a3c);
-      --button-text: #fffdf8;
-      --button-glow: rgba(255,106,0,.22);
-      --theme-overlay:
-        radial-gradient(circle at 50% 88%, rgba(255,116,27,.30) 0 14%, transparent 36%),
-        radial-gradient(circle at 70% 18%, rgba(255,210,136,.14) 0 10%, transparent 26%),
-        linear-gradient(180deg, transparent 62%, rgba(255,76,0,.20) 100%);
-      --overlay-anim: firePulse 3s ease-in-out infinite;
-    }
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 
-    .shell.annual{
-      --accent:#33d66a;
-      --accent-soft:rgba(0,200,83,.12);
-      --accent-glow:rgba(0,200,83,.24);
-      --accent-text:#95ffab;
-      --frame-border: conic-gradient(from 180deg, #0b7a34, #00b64f, #7ef08f, #e3ffe8, #7ef08f, #0b7a34);
-      --frame-glow: rgba(0,200,83,.34);
-      --button-bg: linear-gradient(135deg, #0b8f3a, #00c853 55%, #8cff9d);
-      --button-text: #07130a;
-      --button-glow: rgba(0,200,83,.18);
-      --theme-overlay:
-        radial-gradient(circle at 28% 22%, rgba(126,240,143,.16) 0 10%, transparent 24%),
-        linear-gradient(180deg, rgba(0,150,60,.10), transparent 48%, rgba(0,190,80,.16) 100%);
-      --overlay-anim: leafBreathe 5.2s ease-in-out infinite;
-    }
+/* ── LAYOUT ────────────────────────────────── */
+.wrap {
+  width: min(1020px, 100%);
+  margin: 0 auto;
+  padding: 0 16px 40px;
+  position: relative;
+  z-index: 2;
+}
 
-    .shell.trial .title,
-    .shell.trial .subtitle,
-    .shell.trial .cup,
-    .shell.trial .mobile-price,
-    .shell.trial .usdt,
-    .shell.trial .chip.soft,
-    .shell.trial .savings,
-    .shell.trial .feature i{
-      color:var(--accent-text);
-    }
+/* ── HEADER ────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 32px 10px 28px;
+}
 
-    .shell.basic .title,
-    .shell.basic .subtitle,
-    .shell.basic .cup,
-    .shell.basic .mobile-price,
-    .shell.basic .usdt,
-    .shell.basic .chip.soft,
-    .shell.basic .savings,
-    .shell.basic .feature i{
-      color:var(--accent-text);
-    }
+/* Status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .38rem .82rem;
+  background: transparent;
+  border: 1px solid var(--wire-hi);
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+  margin-bottom: 22px;
+  position: relative;
+  /* Clipped corner — the signature detail */
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+}
 
-    .shell.advanced .title,
-    .shell.advanced .subtitle,
-    .shell.advanced .cup,
-    .shell.advanced .mobile-price,
-    .shell.advanced .usdt,
-    .shell.advanced .chip.soft,
-    .shell.advanced .savings,
-    .shell.advanced .feature i{
-      color:var(--accent-text);
-    }
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sig-ann);
+  box-shadow: 0 0 8px var(--sig-ann), 0 0 16px rgba(0,255,136,.4);
+  animation: blink-dot 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
 
-    .shell.premium .title,
-    .shell.premium .subtitle,
-    .shell.premium .cup,
-    .shell.premium .mobile-price,
-    .shell.premium .usdt,
-    .shell.premium .chip.soft,
-    .shell.premium .savings,
-    .shell.premium .feature i{
-      color:var(--accent-text);
-    }
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--sig-ann), 0 0 16px rgba(0,255,136,.4); }
+  50%       { opacity: .25; box-shadow: none; }
+}
 
-    .shell.annual .title,
-    .shell.annual .subtitle,
-    .shell.annual .cup,
-    .shell.annual .mobile-price,
-    .shell.annual .usdt,
-    .shell.annual .chip.soft,
-    .shell.annual .savings,
-    .shell.annual .feature i{
-      color:var(--accent-text);
-    }
+.hero-title {
+  font-family: var(--f-head);
+  font-size: clamp(3.2rem, 10vw, 6rem);
+  letter-spacing: .08em;
+  line-height: .9;
+  color: var(--txt);
+  margin-bottom: 4px;
+}
 
-    .shell.trial .title{font-family:Georgia, 'Times New Roman', serif; letter-spacing:-.03em;}
-    .shell.basic .title{letter-spacing:-.05em;}
-    .shell.advanced .title{letter-spacing:.02em; text-transform:uppercase;}
-    .shell.premium .title{letter-spacing:-.06em;}
-    .shell.annual .title{font-family:Georgia, 'Times New Roman', serif; letter-spacing:-.03em; font-style:italic;}
+.hero-title .sig {
+  display: inline-block;
+  color: var(--sig-basic);
+  text-shadow: 0 0 30px rgba(0,212,255,.5), 0 0 60px rgba(0,212,255,.2);
+  animation: title-pulse 3s ease-in-out infinite;
+}
 
-    .tag{
-      position:absolute;
-      top:-10px; /* badge más arriba */
-      left:50%;
-      transform:translateX(-50%);
-      z-index:4;
-      padding:.58rem 1rem;
-      border-radius:999px;
-      font-size:.73rem;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      background:rgba(0,0,0,.74);
-      color:#fff;
-      border:1px solid rgba(255,255,255,.14);
-      backdrop-filter:blur(14px);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.02),
-        0 0 20px var(--accent-glow),
-        inset 0 0 16px rgba(255,255,255,.02);
-      white-space:nowrap;
-      transition:transform .28s ease, box-shadow .28s ease;
-    }
+@keyframes title-pulse {
+  0%, 100% { text-shadow: 0 0 30px rgba(0,212,255,.5), 0 0 60px rgba(0,212,255,.2); }
+  50%       { text-shadow: 0 0 50px rgba(0,212,255,.8), 0 0 90px rgba(0,212,255,.35); }
+}
 
-    .plan-video-box{
-      position:relative;
-      width:100%;
-      aspect-ratio:9 / 17;
-      max-width:320px;
-      margin:0 auto;
-      background:#000;
-      overflow:hidden;
-      isolation:isolate;
-      border-radius:24px;
-      box-shadow:0 24px 70px -40px rgba(0,0,0,.95);
-      transform:translate3d(0,0,0);
-      transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
-      will-change:transform, box-shadow, filter;
-    }
+.hero-sub {
+  font-family: var(--f-mono);
+  font-size: .78rem;
+  color: var(--txt-2);
+  letter-spacing: .08em;
+  margin: 14px auto 0;
+  max-width: 480px;
+  line-height: 1.7;
+}
 
-    .plan-video-box::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      padding:2px;
-      background:var(--frame-border);
-      border-radius:inherit;
-      pointer-events:none;
-      z-index:3;
-      box-sizing:border-box;
-      -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite:xor;
-      mask-composite:exclude;
-      box-shadow:0 0 18px var(--frame-glow);
-      animation:borderFlow 7s linear infinite;
-    }
+.hero-sub strong { color: var(--txt); font-weight: 500; }
 
-    .plan-video-box::after{
-      content:"";
-      position:absolute;
-      inset:0;
-      z-index:1;
-      pointer-events:none;
-      background:
-        radial-gradient(circle at 50% 12%, rgba(255,255,255,.06), transparent 34%),
-        var(--theme-overlay);
-      opacity:.92;
-      mix-blend-mode:screen;
-      animation:var(--overlay-anim);
-      transition:opacity .25s ease;
-    }
+/* ── SIGNAL METERS ─────────────────────────── */
+.signal-meters {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin: 24px auto 0;
+  width: fit-content;
+}
 
-    .shell:hover .plan-video-box{transform:translateY(-5px) scale(1.01); filter:brightness(1.04);}
-    .shell:hover .tag{transform:translateX(-50%) translateY(-1px);}
+.signal-meter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
 
-    .shell.individual{--card-w:316px; --card-h:600px;}
-    .shell.trial.individual{--card-h:650px;}
-    .shell.basic.individual{--card-h:580px;}
-    .shell.advanced.individual{--card-w:280px; --card-h:590px;}
-    .shell.premium.individual{--card-h:675px;}
-    .shell.annual.individual{--card-h:610px;}
+.meter-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 24px;
+}
 
-    .shell.individual .plan-video-box{
-      width:min(var(--card-w), 100%);
-      height:var(--card-h);
-      aspect-ratio:auto;
-      max-width:none;
-      border-top-left-radius:24px;
-      border-top-right-radius:24px;
-      border-bottom-right-radius:24px;
-      border-bottom-left-radius:24px;
-    }
+.meter-bars .bar {
+  width: 5px;
+  background: var(--txt-3);
+  border-radius: 1px;
+  transition: background .3s;
+}
 
-    .plan-video{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      z-index:0;
-      display:block;
-      background:#000;
-      border-radius:inherit;
-      transform:translateZ(0) scale(1.01);
-      transition:transform .4s ease, filter .4s ease;
-      will-change:transform;
-    }
+.meter-bars .bar:nth-child(1) { height: 6px; }
+.meter-bars .bar:nth-child(2) { height: 11px; }
+.meter-bars .bar:nth-child(3) { height: 16px; }
+.meter-bars .bar:nth-child(4) { height: 21px; }
+.meter-bars .bar:nth-child(5) { height: 24px; }
 
-    .shell.premium .plan-video{object-position:72% center;}
-    .shell:hover .plan-video{transform:scale(1.03); filter:saturate(1.04) contrast(1.02);}
+/* Active states */
+.signal-meter.active-cyan .meter-bars .bar { background: var(--sig-basic); box-shadow: 0 0 6px var(--sig-basic); }
+.signal-meter.active-green .meter-bars .bar { background: var(--sig-ann); box-shadow: 0 0 6px var(--sig-ann); }
+.signal-meter.active-yellow .meter-bars .bar { background: var(--sig-trial); box-shadow: 0 0 6px var(--sig-trial); }
 
-    .plan-overlay{
-      position:absolute;
-      inset:0;
-      z-index:2;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      padding:14px 10px 12px;
-      gap:10px;
-      background:transparent;
-      transform:translateZ(0);
-    }
+.signal-meter.active-cyan .meter-bars .bar:nth-child(5) { background: var(--sig-basic); }
+.signal-meter.active-green .meter-bars .bar:nth-child(4),
+.signal-meter.active-green .meter-bars .bar:nth-child(5) { background: var(--sig-ann); }
+.signal-meter.active-yellow .meter-bars .bar:nth-child(3),
+.signal-meter.active-yellow .meter-bars .bar:nth-child(4),
+.signal-meter.active-yellow .meter-bars .bar:nth-child(5) { background: var(--sig-trial); }
 
-    .top-block{flex:0 0 auto; min-height:0; padding-top:6px;} /* baja el título un poco */
-    .middle-block{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:10px;}
-    .bottom-block{flex:0 0 auto; min-height:0;}
+/* All active for header */
+.signal-meter .meter-bars .bar { background: var(--sig-basic); box-shadow: 0 0 5px rgba(0,212,255,.6); }
+.signal-meter:nth-child(1) .meter-bars .bar:nth-child(n+3) { background: var(--txt-3); box-shadow: none; }
+.signal-meter:nth-child(2) .meter-bars .bar:nth-child(n+2) { background: var(--txt-3); box-shadow: none; }
+.signal-meter:nth-child(3) .meter-bars .bar { background: var(--sig-ann); box-shadow: 0 0 5px rgba(0,255,136,.6); }
 
-    .top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      position:relative;
-      z-index:1;
-    }
+.signal-meter .meter-label {
+  font-family: var(--f-mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--txt-3);
+}
 
-    .title-wrap{min-width:0; padding-top:4px;} /* empuja el título hacia abajo */
+/* ── DIVIDER LINE ──────────────────────────── */
+.h-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--wire-hi) 20%, var(--wire-hi) 80%, transparent);
+  margin: 28px 0;
+  position: relative;
+}
 
-    .title{
-      font-size:clamp(1.18rem, 1.9vw + .55rem, 1.52rem);
-      font-weight:950;
-      letter-spacing:-.04em;
-      line-height:1.06;
-      margin-bottom:5px;
-      text-shadow:0 2px 10px rgba(0,0,0,.85);
-      word-break:break-word;
-    }
+.h-line::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 5px;
+  background: linear-gradient(90deg, transparent, var(--sig-basic), transparent);
+  filter: blur(3px);
+}
 
-    .subtitle{color:#d5dbec; font-size:clamp(.8rem, 1vw + .52rem, .92rem); text-shadow:0 2px 10px rgba(0,0,0,.85);}
+/* ── PLANS ─────────────────────────────────── */
+.plans {
+  margin: 0 auto;
+  display: grid;
+  gap: 24px;
+  width: min(100%, 340px);
+}
 
-    .price{min-width:122px; text-align:right;}
+/* ── PLAN SHELL ────────────────────────────── */
+.shell {
+  position: relative;
+  padding-top: 16px;
 
-    .cup{
-      font-size:clamp(1.26rem, 2vw + .55rem, 1.56rem);
-      font-weight:1000;
-      letter-spacing:-.05em;
-      line-height:1;
-      text-shadow:0 2px 10px rgba(0,0,0,.95);
-    }
+  --sig: var(--sig-basic);
+  --glow: var(--glow-basic);
+  --freq: 'FREQ·01';
 
-    .mobile-price{
-      font-size:.83rem;
-      font-weight:700;
-      margin-top:5px;
-      background:rgba(0,0,0,.34);
-      display:inline-block;
-      padding:4px 8px;
-      border-radius:999px;
-      text-shadow:0 2px 10px rgba(0,0,0,.95);
-    }
+  opacity: 0;
+  transform: translateY(20px);
+  animation: shell-in .55s cubic-bezier(.22,.8,.36,1) forwards;
+}
 
-    .usdt{margin-top:5px; font-size:.8rem; font-weight:700; text-shadow:0 2px 10px rgba(0,0,0,.95);}
+.shell:nth-child(1) { animation-delay: .1s; }
+.shell:nth-child(2) { animation-delay: .2s; }
+.shell:nth-child(3) { animation-delay: .3s; }
+.shell:nth-child(4) { animation-delay: .4s; }
+.shell:nth-child(5) { animation-delay: .5s; }
 
-    .chips{display:flex; flex-wrap:wrap; gap:8px; margin:0;}
-    .chip{
-      padding:.48rem .72rem;
-      border-radius:999px;
-      font-size:.74rem;
-      font-weight:800;
-      background:rgba(0,0,0,.48);
-      border:1px solid rgba(255,255,255,.08);
-      color:#fff;
-      backdrop-filter:blur(8px);
-      text-shadow:0 2px 10px rgba(0,0,0,.85);
-    }
+@keyframes shell-in {
+  to { opacity: 1; transform: translateY(0); }
+}
 
-    .chip.soft{border-color:rgba(255,255,255,.10); background:var(--accent-soft);}
-    .savings{
-      margin:0;
-      border-radius:18px;
-      padding:9px 11px;
-      background:var(--accent-soft);
-      border:1px solid rgba(255,255,255,.08);
-      font-size:.88rem;
-      font-weight:850;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:.45rem;
-      text-shadow:0 2px 10px rgba(0,0,0,.72);
-      backdrop-filter:blur(8px);
-    }
+.shell.trial   { --sig: var(--sig-trial);  --glow: var(--glow-trial); }
+.shell.basic   { --sig: var(--sig-basic);  --glow: var(--glow-basic); }
+.shell.advanced{ --sig: var(--sig-adv);    --glow: var(--glow-adv); }
+.shell.premium { --sig: var(--sig-prem);   --glow: var(--glow-prem); }
+.shell.annual  { --sig: var(--sig-ann);    --glow: var(--glow-ann); }
 
-    .features{display:grid; gap:8px; margin:0;}
-    .feature{
-      display:flex;
-      align-items:center;
-      gap:11px;
-      padding:9px 11px;
-      border-radius:16px;
-      background:rgba(0,0,0,.35);
-      border:1px solid rgba(255,255,255,.05);
-      min-height:44px;
-      backdrop-filter:blur(8px);
-    }
+/* ── BADGE — clipped corner ─────────────────── */
+.tag {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: .36rem 1rem .36rem .9rem;
+  background: var(--black);
+  border: 1px solid var(--sig);
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--sig);
+  white-space: nowrap;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  box-shadow: 0 0 12px var(--glow);
+  transition: box-shadow .3s;
+}
 
-    .feature i{width:18px; text-align:center; font-size:.92rem; flex:0 0 auto; text-shadow:0 2px 10px rgba(0,0,0,.85);}
-    .feature span{color:#d5dbec; font-size:clamp(.8rem, .9vw + .55rem, .9rem); text-shadow:0 2px 10px rgba(0,0,0,.85);}
+.shell:hover .tag {
+  box-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow);
+}
 
-    .action{
-      width:100%;
-      border:none;
-      border-radius:999px;
-      padding:13px 15px;
-      font-size:.96rem;
-      font-weight:950;
-      color:var(--button-text);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:.55rem;
-      cursor:pointer;
-      position:relative;
-      overflow:hidden;
-      transition:transform .22s ease, box-shadow .25s ease, opacity .25s ease, filter .25s ease;
-      box-shadow:0 14px 28px -18px rgba(0,0,0,.8), 0 0 18px var(--button-glow);
-      background:var(--button-bg);
-      touch-action:manipulation;
-      -webkit-tap-highlight-color:transparent;
-      user-select:none;
-      transform:translateZ(0);
-    }
+/* ── VIDEO BOX ─────────────────────────────── */
+.plan-video-box {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  background: var(--deep);
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  /* Signal glow on border */
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.9),
+    0 28px 70px -16px rgba(0,0,0,.98),
+    inset 0 0 0 1px rgba(255,255,255,.03);
+  transform: translateZ(0);
+  transition: transform .4s cubic-bezier(.22,.8,.36,1), box-shadow .4s ease;
+}
 
-    .action::after{
-      content:"";
-      position:absolute;
-      inset:0;
-      left:-100%;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
-      transition:left .45s ease;
-    }
+.shell:hover .plan-video-box {
+  transform: translateY(-6px);
+  box-shadow:
+    0 0 0 1px var(--sig),
+    0 36px 80px -16px rgba(0,0,0,.99),
+    0 0 40px -8px var(--glow),
+    inset 0 0 0 1px rgba(255,255,255,.04);
+}
 
-    .action:hover::after{left:100%}
-    .action:hover{transform:translateY(-2px); box-shadow:0 18px 34px -18px rgba(0,0,0,.9), 0 0 22px var(--button-glow); filter:saturate(1.08);}
-    .action:active{transform:scale(.98);}
-    .action:disabled{opacity:.78; cursor:not-allowed; transform:none;}
+/* Per-plan heights preserved */
+.shell.trial    .plan-video-box { height: 650px; }
+.shell.basic    .plan-video-box { height: 580px; }
+.shell.advanced .plan-video-box { height: 590px; }
+.shell.premium  .plan-video-box { height: 675px; }
+.shell.annual   .plan-video-box { height: 610px; }
 
-    .shell.trial .action{font-family:Georgia, 'Times New Roman', serif; letter-spacing:.03em;}
-    .shell.basic .action{letter-spacing:.02em;}
-    .shell.advanced .action{text-transform:uppercase; letter-spacing:.04em;}
-    .shell.premium .action{text-transform:uppercase; letter-spacing:.03em;}
-    .shell.annual .action{font-family:Georgia, 'Times New Roman', serif; letter-spacing:.03em;}
+/* ── SCAN SWEEP on hover ─────────────────────── */
+.plan-video-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,.04) 48%,
+    transparent 100%
+  );
+  transform: translateX(-110%);
+  transition: transform 0s;
+  pointer-events: none;
+}
 
-    .whatsapp-float{
-      position:fixed;
-      bottom:22px;
-      right:22px;
-      width:60px;
-      height:60px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:#25D366;
-      color:#fff;
-      text-decoration:none;
-      z-index:1000;
-      box-shadow:0 12px 30px rgba(37,211,102,.34);
-      animation:wa 3.2s ease-in-out infinite;
-      touch-action:manipulation;
-      -webkit-tap-highlight-color:transparent;
-    }
+.shell:hover .plan-video-box::after {
+  transform: translateX(110%);
+  transition: transform .7s ease;
+}
 
-    .whatsapp-float i{font-size:30px}
-    .whatsapp-tooltip{position:absolute; right:0; bottom:72px; background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.10); color:#fff; padding:8px 12px; border-radius:999px; font-size:.8rem; white-space:nowrap; opacity:0; transform:translateY(10px); transition:.25s ease; pointer-events:none; backdrop-filter:blur(10px);}
-    .whatsapp-float:hover{transform:scale(1.06)}
-    .whatsapp-float:hover .whatsapp-tooltip{opacity:1;transform:translateY(0)}
+/* ── VIDEO ─────────────────────────────────── */
+.plan-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  display: block;
+  background: var(--deep);
+  transform: scale(1.01);
+  transition: transform .5s ease, filter .5s ease;
+}
 
-    @keyframes wa{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-    @keyframes earthFloat{0%,100%{transform:translateY(0); opacity:.86}50%{transform:translateY(-4px); opacity:.98}}
-    @keyframes waterFlow{0%,100%{transform:translateY(0); opacity:.76}50%{transform:translateY(-6px); opacity:.98}}
-    @keyframes lightningFlash{0%,74%,100%{opacity:.34; filter:brightness(1)}75%{opacity:.95; filter:brightness(1.35)}78%{opacity:.45; filter:brightness(1)}82%{opacity:.9; filter:brightness(1.25)}}
-    @keyframes firePulse{0%,100%{transform:translateY(0); opacity:.82}50%{transform:translateY(-7px); opacity:.98}}
-    @keyframes leafBreathe{0%,100%{opacity:.72; transform:scale(1)}50%{opacity:.98; transform:scale(1.02)}}
-    @keyframes borderFlow{0%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(18deg) brightness(1.18)}100%{filter:hue-rotate(0deg) brightness(1)}}
+.shell.premium .plan-video { object-position: 72% center; }
+.shell:hover .plan-video   { transform: scale(1.04); filter: brightness(1.05) saturate(1.06); }
 
-    .footer{margin-top:22px; padding:20px 10px 8px; text-align:center; color:var(--muted); font-size:.86rem; border-top:1px solid rgba(255,255,255,.06); background:#000;}
-    input,select,textarea{font-family:var(--font)}
-    input::placeholder, textarea::placeholder{color:#b7bfd4}
+/* ── OVERLAY ───────────────────────────────── */
+.plan-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 12px 12px;
+}
 
-    #notification{position:fixed; top:20px; right:20px; background:rgba(0,0,0,.96); border:1px solid rgba(255,255,255,.08); border-left:4px solid #5f7dff; padding:.88rem 1.1rem; border-radius:14px; box-shadow:var(--shadow2); color:#fff; z-index:3000; transform:translateX(150%); transition:transform .28s ease; max-width:min(92vw,380px); backdrop-filter:blur(14px);}
+/* Dark gradient scrim */
+.plan-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.72) 0%,
+    rgba(0,0,0,.14) 36%,
+    rgba(0,0,0,.18) 60%,
+    rgba(0,0,0,.80) 100%
+  );
+}
 
-    .modal{display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); backdrop-filter:blur(10px); z-index:2000; align-items:center; justify-content:center; padding:16px;}
-    .modal.active{display:flex}
-    .modal-content{width:min(520px,100%); background:linear-gradient(180deg, rgba(10,15,25,.98), rgba(5,8,15,.98)); border:1px solid rgba(255,255,255,.10); border-radius:28px; box-shadow:0 34px 90px -34px rgba(0,0,0,.95); padding:22px; position:relative;}
-    .close-modal{position:absolute; top:12px; right:12px; width:42px; height:42px; border:none; border-radius:50%; background:rgba(255,255,255,.06); color:#fff; font-size:1.7rem; cursor:pointer;}
+.top-block  { flex: 0 0 auto; padding-top: 6px; position: relative; z-index: 3; }
+.mid-block  { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 9px; min-height: 0; position: relative; z-index: 3; }
+.bot-block  { flex: 0 0 auto; position: relative; z-index: 3; }
 
-    @media (max-width: 720px){
-      .hero-grid{grid-template-columns:1fr}
-      .top{flex-direction:column; align-items:flex-start}
-      .price{text-align:left; min-width:auto}
-      .title{font-size:1.4rem}
-      .cup{font-size:1.42rem}
-      .wrap{padding-inline:12px}
-      .plan-overlay{padding:10px 9px 9px}
-      .plans{width:min(100%, 330px)}
-      .plan-video-box{max-width:320px;background:#000;}
-      .shell.individual{--card-w:100%;}
-      .shell.premium .plan-video{object-position:72% center;}
-    }
+/* ── FREQ LABEL ────────────────────────────── */
+.freq-label {
+  font-family: var(--f-mono);
+  font-size: .58rem;
+  letter-spacing: .2em;
+  color: var(--sig);
+  text-transform: uppercase;
+  opacity: .7;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-    @media (max-width: 480px){
-      .brand{font-size:1.5rem}
-      .subhead{font-size:.95rem}
-      .tag{font-size:.69rem}
-      .feature{padding:8px 10px}
-      .action{padding:12px 14px}
-      .whatsapp-float{width:52px;height:52px;right:16px;bottom:16px}
-      .whatsapp-float i{font-size:25px}
-      .plan-video-box{max-width:100%; background:#000;}
-      .plan-overlay{padding:9px 8px 8px}
-      .shell.premium .plan-video{object-position:72% center;}
-    }
-  </style></head>
+.freq-label::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 1px;
+  background: var(--sig);
+  opacity: .6;
+}
+
+/* ── TOP ROW ───────────────────────────────── */
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Title typography varies by plan */
+.plan-title {
+  font-family: var(--f-head);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  letter-spacing: .06em;
+  line-height: .92;
+  color: var(--txt);
+  text-shadow: 0 2px 14px rgba(0,0,0,.95);
+  margin-bottom: 3px;
+}
+
+/* Trial — warmer/rounder feel */
+.shell.trial .plan-title   { font-family: var(--f-body); font-weight: 900; font-size: 1.5rem; letter-spacing: -.02em; }
+/* Advanced — all-caps tight */
+.shell.advanced .plan-title { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: .12em; }
+/* Annual — display bold */
+.shell.annual .plan-title   { font-size: clamp(1.8rem, 3.5vw, 2.4rem); }
+
+.plan-sub {
+  font-family: var(--f-mono);
+  font-size: .66rem;
+  color: var(--txt-2);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0,0,0,.9);
+}
+
+/* ── PRICE ─────────────────────────────────── */
+.price-block { text-align: right; flex-shrink: 0; }
+
+.price-main {
+  font-family: var(--f-head);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  letter-spacing: .04em;
+  line-height: 1;
+  color: var(--sig);
+  text-shadow: 0 0 20px var(--glow), 0 2px 12px rgba(0,0,0,.9);
+}
+
+.price-mobile {
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  color: var(--txt-2);
+  margin-top: 6px;
+  border: 1px solid var(--wire);
+  background: rgba(0,0,0,.5);
+  padding: 3px 7px;
+  display: inline-block;
+  letter-spacing: .04em;
+}
+
+.price-usdt {
+  font-family: var(--f-mono);
+  font-size: .65rem;
+  margin-top: 4px;
+  color: var(--sig);
+  opacity: .65;
+}
+
+/* ── SIGNAL BARS WIDGET ────────────────────── */
+.sig-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+  margin-bottom: 3px;
+  justify-content: flex-end;
+}
+
+.sig-bars .sb {
+  width: 4px;
+  border-radius: 1px;
+  background: var(--sig);
+  opacity: .3;
+}
+
+.sig-bars .sb:nth-child(1) { height: 5px; }
+.sig-bars .sb:nth-child(2) { height: 9px; }
+.sig-bars .sb:nth-child(3) { height: 13px; }
+.sig-bars .sb:nth-child(4) { height: 18px; }
+
+/* Active bars per plan */
+.shell.trial    .sig-bars .sb:nth-child(-n+2) { opacity: 1; box-shadow: 0 0 5px var(--sig); animation: bar-breathe 2s ease-in-out infinite; }
+.shell.basic    .sig-bars .sb:nth-child(-n+3) { opacity: 1; box-shadow: 0 0 5px var(--sig); animation: bar-breathe 2.2s ease-in-out infinite; }
+.shell.advanced .sig-bars .sb:nth-child(-n+3) { opacity: 1; box-shadow: 0 0 5px var(--sig); animation: bar-breathe 1.9s ease-in-out infinite; }
+.shell.premium  .sig-bars .sb              { opacity: 1; box-shadow: 0 0 6px var(--sig); animation: bar-breathe 1.4s ease-in-out infinite; }
+.shell.annual   .sig-bars .sb              { opacity: 1; box-shadow: 0 0 6px var(--sig); animation: bar-breathe 2.5s ease-in-out infinite; }
+
+@keyframes bar-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .5; }
+}
+
+/* ── CHIPS ─────────────────────────────────── */
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.chip {
+  padding: .28rem .62rem;
+  border: 1px solid var(--wire);
+  background: rgba(0,0,0,.55);
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  color: var(--txt-2);
+  text-transform: uppercase;
+  /* Code-prefix look */
+}
+
+.chip::before { content: '// '; color: var(--txt-3); }
+
+.chip.hi {
+  color: var(--sig);
+  border-color: var(--sig);
+  background: rgba(0,0,0,.7);
+  box-shadow: 0 0 8px var(--glow);
+}
+
+.chip.hi::before { color: var(--sig); opacity: .5; }
+
+/* ── SAVINGS ───────────────────────────────── */
+.savings {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .48rem .75rem;
+  border-left: 2px solid var(--sig);
+  background: rgba(0,0,0,.5);
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  color: var(--sig);
+  letter-spacing: .04em;
+}
+
+.savings i { opacity: .6; font-size: .65rem; }
+
+/* ── FEATURES ──────────────────────────────── */
+.features { display: grid; gap: 6px; }
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: .55rem .75rem;
+  background: rgba(0,0,0,.48);
+  border-left: 1px solid var(--wire);
+  min-height: 36px;
+  transition: border-color .25s, background .25s;
+}
+
+.shell:hover .feature {
+  border-left-color: var(--sig);
+  background: rgba(0,0,0,.58);
+}
+
+.feature i {
+  width: 15px;
+  text-align: center;
+  font-size: .74rem;
+  color: var(--sig);
+  flex-shrink: 0;
+  opacity: .8;
+}
+
+.feature span {
+  font-family: var(--f-mono);
+  font-size: .69rem;
+  color: rgba(238,238,245,.72);
+  letter-spacing: .03em;
+  line-height: 1.4;
+}
+
+/* ── ACTION BUTTON ─────────────────────────── */
+.action {
+  width: 100%;
+  padding: .9rem 1rem;
+  border: 1px solid var(--sig);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--f-mono);
+  font-size: .74rem;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--sig);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: color .28s ease, box-shadow .28s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Fill sweep on hover */
+.action::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--sig);
+  transform: translateX(-100%);
+  transition: transform .35s cubic-bezier(.22,.8,.36,1);
+  z-index: 0;
+}
+
+.action:hover::before  { transform: translateX(0); }
+.action:hover          { color: var(--black); box-shadow: 0 0 24px var(--glow); }
+.action:active         { transform: scale(.98); }
+.action:disabled       { opacity: .55; cursor: not-allowed; }
+
+.action > * { position: relative; z-index: 1; }
+
+/* Annual button special */
+.shell.annual .action {
+  border-width: 1px;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+/* ── PLAN CORNER MARKS ─────────────────────── */
+/* Crosshair corners on each video box */
+.plan-video-box::before {
+  content: '';
+  position: absolute;
+  top: 8px; left: 8px;
+  width: 14px; height: 14px;
+  border-top: 1px solid var(--sig);
+  border-left: 1px solid var(--sig);
+  z-index: 6;
+  opacity: .5;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+
+.shell:hover .plan-video-box::before { opacity: 1; }
+
+/* bottom-right corner via pseudo on overlay */
+.plan-overlay::after {
+  content: '';
+  position: absolute;
+  bottom: 12px; right: 12px;
+  width: 14px; height: 14px;
+  border-bottom: 1px solid var(--sig);
+  border-right: 1px solid var(--sig);
+  z-index: 6;
+  opacity: .4;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+
+.shell:hover .plan-overlay::after { opacity: .9; }
+
+/* ── WHATSAPP ───────────────────────────────── */
+.wa-float {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  width: 50px; height: 50px;
+  border-radius: 0;
+  clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d2a14;
+  border: 1px solid rgba(37,211,102,.4);
+  color: #25D366;
+  text-decoration: none;
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(37,211,102,.18);
+  animation: wa-pulse 3s ease-in-out infinite;
+  touch-action: manipulation;
+}
+
+.wa-float i { font-size: 20px; position: relative; z-index: 1; }
+
+.wa-tip {
+  position: absolute;
+  right: 58px; bottom: 10px;
+  background: var(--ink);
+  border: 1px solid var(--wire-hi);
+  color: var(--txt-2);
+  padding: 5px 10px;
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: .22s ease;
+  pointer-events: none;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+
+.wa-float:hover .wa-tip { opacity: 1; transform: translateX(0); }
+
+@keyframes wa-pulse {
+  0%,100% { box-shadow: 0 0 20px rgba(37,211,102,.18); }
+  50%      { box-shadow: 0 0 30px rgba(37,211,102,.36); }
+}
+
+/* ── FOOTER ────────────────────────────────── */
+.footer {
+  margin-top: 32px;
+  padding: 20px 10px 8px;
+  text-align: center;
+  border-top: 1px solid var(--wire);
+}
+
+.footer p {
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  color: var(--txt-3);
+  letter-spacing: .08em;
+}
+
+.footer a { color: #25D366; text-decoration: none; }
+
+/* ── NOTIFICATION ──────────────────────────── */
+#notification {
+  position: fixed;
+  top: 20px; right: 20px;
+  background: var(--ink);
+  border: 1px solid var(--wire-hi);
+  border-left: 3px solid var(--sig-basic);
+  padding: .78rem 1rem;
+  font-family: var(--f-mono);
+  font-size: .75rem;
+  letter-spacing: .04em;
+  color: var(--txt);
+  z-index: 3000;
+  transform: translateX(160%);
+  transition: transform .28s cubic-bezier(.22,.8,.36,1);
+  max-width: min(92vw, 340px);
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+/* ── MODAL ─────────────────────────────────── */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.94);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal.active { display: flex; }
+
+.modal-content {
+  width: min(480px, 100%);
+  background: var(--ink);
+  border: 1px solid var(--wire-hi);
+  border-top: 2px solid var(--sig-basic);
+  padding: 28px 22px;
+  position: relative;
+  box-shadow: 0 0 60px rgba(0,0,0,.9), 0 0 30px rgba(0,212,255,.06);
+}
+
+.modal-content h2 {
+  font-family: var(--f-head);
+  font-size: 1.5rem;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--txt);
+}
+
+.modal-content h2 i { color: var(--sig-basic); font-size: 1rem; }
+
+.modal-content > p {
+  font-family: var(--f-mono);
+  font-size: .74rem;
+  color: var(--txt-2);
+  margin-bottom: 24px;
+  line-height: 1.7;
+  letter-spacing: .03em;
+}
+
+.close-modal {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 34px; height: 34px;
+  border: 1px solid var(--wire-hi);
+  background: transparent;
+  color: var(--txt-2);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  transition: color .2s, border-color .2s;
+}
+
+.close-modal:hover { color: var(--txt); border-color: var(--sig-basic); }
+
+.form-label {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: .64rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+  margin-bottom: 7px;
+}
+
+.form-label i { color: var(--sig-basic); margin-right: .3rem; }
+
+.form-field {
+  width: 100%;
+  padding: .8rem 1rem;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--wire-hi);
+  border-radius: 0;
+  color: var(--txt);
+  font-family: var(--f-mono);
+  font-size: .78rem;
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 14px;
+  letter-spacing: .04em;
+}
+
+.form-field:focus { border-color: var(--sig-basic); box-shadow: 0 0 12px rgba(0,212,255,.1); }
+.form-field option { background: var(--ink); }
+
+.form-submit {
+  width: 100%;
+  padding: .9rem 1rem;
+  border: 1px solid var(--sig-basic);
+  border-radius: 0;
+  background: transparent;
+  color: var(--sig-basic);
+  font-family: var(--f-mono);
+  font-size: .76rem;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: color .28s;
+}
+
+.form-submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--sig-basic);
+  transform: translateX(-100%);
+  transition: transform .32s cubic-bezier(.22,.8,.36,1);
+  z-index: 0;
+}
+
+.form-submit:hover::before { transform: translateX(0); }
+.form-submit:hover { color: var(--black); }
+.form-submit span { position: relative; z-index: 1; }
+.form-submit:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── RESPONSIVE ────────────────────────────── */
+@media (max-width: 480px) {
+  .hero-title { font-size: 3rem; }
+  .top { flex-direction: column; }
+  .price-block { text-align: left; }
+  .signal-meters { gap: 18px; }
+  .wa-float { width: 44px; height: 44px; right: 14px; bottom: 14px; }
+}
+</style>
+</head>
+
 <body>
-  <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9" target="_blank" class="whatsapp-float" aria-label="WhatsApp">
-    <i class="fab fa-whatsapp"></i>
-    <span class="whatsapp-tooltip">¿Dudas? Escríbenos</span>
-  </a>  <div id="trialModal" class="modal">
-    <div class="modal-content">
-      <button class="close-modal" onclick="closeTrialModal()">&times;</button>
-      <h2 style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;font-size:1.25rem;">
-        <i class="fas fa-gift" style="color:#3b82f6;"></i> Solicitar Prueba Gratuita
-      </h2>
-      <p style="color:var(--muted);margin-bottom:1.2rem;line-height:1.6;">
-        Indícanos el juego o servidor, y el tipo de conexión. Te enviamos la configuración personalizada.
-      </p><form id="trialForm">
-    <div style="margin-bottom:1rem;">
-      <label style="display:block;margin-bottom:.5rem;font-weight:700;">
-        <i class="fas fa-gamepad" style="color:#3b82f6;"></i> Juego/Servidor:
-      </label>
-      <input type="text" id="gameServer" required placeholder="Ej: Free Fire - EE.UU."
-             style="width:100%;padding:.9rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px;color:#fff;outline:none;">
-    </div>
 
-    <div style="margin-bottom:1rem;">
-      <label style="display:block;margin-bottom:.5rem;font-weight:700;">
-        <i class="fas fa-wifi"></i> Conexión:
-      </label>
-      <select id="connectionType" required
-              style="width:100%;padding:.9rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px;color:#fff;outline:none;">
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-label"><span>LIVE</span></div>
+  <div class="ticker-inner">
+    <span>VPN CUBA · Sistema activo</span>
+    <span class="hi">Conexión estable garantizada</span>
+    <span>Pago en CUP · Saldo Móvil · USDT</span>
+    <span class="hi">Soporte directo · Respuesta inmediata</span>
+    <span>Latencia mínima · Servidores optimizados</span>
+    <span class="hi">5 planes disponibles · Desde 0 CUP</span>
+    <span>WireGuard protocol · Máxima seguridad</span>
+    <span class="hi">Trial gratuito disponible ahora</span>
+    <!-- duplicate for seamless loop -->
+    <span>VPN CUBA · Sistema activo</span>
+    <span class="hi">Conexión estable garantizada</span>
+    <span>Pago en CUP · Saldo Móvil · USDT</span>
+    <span class="hi">Soporte directo · Respuesta inmediata</span>
+    <span>Latencia mínima · Servidores optimizados</span>
+    <span class="hi">5 planes disponibles · Desde 0 CUP</span>
+    <span>WireGuard protocol · Máxima seguridad</span>
+    <span class="hi">Trial gratuito disponible ahora</span>
+  </div>
+  <div class="ticker-fade-r"></div>
+</div>
+
+<a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9" target="_blank" class="wa-float" aria-label="WhatsApp">
+  <i class="fab fa-whatsapp"></i>
+  <span class="wa-tip">Soporte directo</span>
+</a>
+
+<!-- TRIAL MODAL -->
+<div id="trialModal" class="modal">
+  <div class="modal-content">
+    <button class="close-modal" onclick="closeTrialModal()">×</button>
+    <h2><i class="fas fa-signal"></i> SOLICITAR PRUEBA</h2>
+    <p>Indica tu juego / servidor y tipo de conexión. Te enviamos la configuración en minutos.</p>
+    <form id="trialForm">
+      <label class="form-label"><i class="fas fa-gamepad"></i>Juego / Servidor</label>
+      <input type="text" id="gameServer" class="form-field" required placeholder="Ej: Free Fire — EE.UU.">
+
+      <label class="form-label"><i class="fas fa-wifi"></i>Tipo de conexión</label>
+      <select id="connectionType" class="form-field" required>
         <option value="">Selecciona...</option>
         <option value="WiFi">WiFi</option>
         <option value="Cable Ethernet">Cable Ethernet</option>
         <option value="Datos Móviles">Datos Móviles</option>
       </select>
-    </div>
 
-    <div style="margin-bottom:1rem;">
-      <label style="display:block;margin-bottom:.5rem;font-weight:700;">
-        <i class="fas fa-info-circle"></i> Info adicional (opcional):
-      </label>
-      <textarea id="additionalInfo" rows="2"
-                style="width:100%;padding:.9rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px;color:#fff;outline:none;"></textarea>
-    </div>
+      <label class="form-label"><i class="fas fa-info-circle"></i>Info adicional <span style="color:var(--txt-3)">(opcional)</span></label>
+      <textarea id="additionalInfo" class="form-field" rows="2" style="resize:none;"></textarea>
 
-    <button type="submit"
-            style="width:100%;padding:1rem;border:none;border-radius:999px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:900;cursor:pointer;">
-      Enviar solicitud
-    </button>
-  </form>
+      <button type="submit" class="form-submit"><span><i class="fas fa-paper-plane"></i> Enviar solicitud</span></button>
+    </form>
+  </div>
 </div>
 
-  </div>  <div class="wrap">
-    <header class="hero">
-      <div class="eyebrow">
-        <i class="fas fa-sparkles"></i> VPN estable · atención directa
-      </div><div class="brand">
-    <i class="fas fa-shield-halved"></i> VPN CUBA
-  </div>
+<div id="notification"></div>
 
-  <p class="subhead">
-    Elige el plan que mejor se adapte a tu conexión, con acceso estable, baja latencia y soporte rápido.
-    <strong>Aceptamos pago en CUP, saldo móvil y USDT.</strong>
-  </p>
+<div class="wrap">
 
-  <div class="hero-grid">
-    <div class="mini">
-      <strong>Estabilidad</strong>
-      <span>Conexión constante</span>
+  <!-- HEADER -->
+  <header class="hero">
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      Sistema activo · señal óptima
     </div>
-    <div class="mini">
-      <strong>Velocidad</strong>
-      <span>Menor latencia</span>
-    </div>
-    <div class="mini">
-      <strong>Soporte</strong>
-      <span>Respuesta directa</span>
-    </div>
-  </div>
-</header>
 
-<section class="plans">
-  <div class="shell trial individual">
-    <div class="tag">⚡ 1 hora</div>
-    <div class="plan-video-box">
-      <video class="plan-video" autoplay muted loop playsinline preload="metadata">
-        <source src="videos/trial.mp4" type="video/mp4">
-      </video>
-      <div class="plan-overlay">
-        <div class="top-block">
-          <div class="top">
-            <div class="title-wrap">
-              <div class="title">Prueba Gratis</div>
-              <div class="subtitle">Acceso por 1 hora</div>
-            </div>
-            <div class="price">
-              <div class="cup">0 CUP</div>
-            </div>
-          </div>
+    <div class="hero-title">VPN&nbsp;<span class="sig">CUBA</span></div>
+
+    <p class="hero-sub">
+      Elige tu frecuencia. Conexión estable, baja latencia, soporte real.<br>
+      <strong>CUP · Saldo Móvil · USDT</strong>
+    </p>
+
+    <div class="signal-meters">
+      <div class="signal-meter">
+        <div class="meter-bars">
+          <div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <div class="middle-block">
-          <div class="chips">
-            <span class="chip soft">Sin costo</span>
-            <span class="chip">Configuración rápida</span>
-          </div>
-          <div class="features">
-            <div class="feature"><i class="fas fa-bolt"></i><span>Conexión completa durante 1 hora</span></div>
-            <div class="feature"><i class="fas fa-infinity"></i><span>Ancho de banda ilimitado</span></div>
-            <div class="feature"><i class="fas fa-shield-alt"></i><span>Misma seguridad que los planes pagos</span></div>
-            <div class="feature"><i class="fas fa-clock"></i><span>Configuración rápida y directa</span></div>
-          </div>
+        <div class="meter-label">Estable</div>
+      </div>
+      <div class="signal-meter">
+        <div class="meter-bars">
+          <div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <div class="bottom-block">
-          <button class="action" type="button" onclick="openTrialModal()">
-            <i class="fas fa-gift"></i> Probar gratis
-          </button>
+        <div class="meter-label">Velocidad</div>
+      </div>
+      <div class="signal-meter">
+        <div class="meter-bars">
+          <div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <div class="meter-label">Soporte</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="h-line"></div>
+
+  <!-- PLANS -->
+  <section class="plans">
+
+    <!-- ── TRIAL ── -->
+    <div class="shell trial individual">
+      <div class="tag">⚡ FREQ·LIBRE · 1H</div>
+      <div class="plan-video-box">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
+          <source src="videos/trial.mp4" type="video/mp4">
+        </video>
+        <div class="plan-scrim"></div>
+        <div class="plan-overlay">
+          <div class="top-block">
+            <div class="freq-label">freq · libre · sin costo</div>
+            <div class="top">
+              <div>
+                <div class="plan-title">Prueba</div>
+                <div class="plan-sub">acceso · 1 hora</div>
+              </div>
+              <div class="price-block">
+                <div class="sig-bars">
+                  <div class="sb"></div><div class="sb"></div>
+                  <div class="sb"></div><div class="sb"></div>
+                </div>
+                <div class="price-main">0 CUP</div>
+              </div>
+            </div>
+          </div>
+          <div class="mid-block">
+            <div class="chips">
+              <span class="chip hi">sin costo</span>
+              <span class="chip">config rápida</span>
+            </div>
+            <div class="features">
+              <div class="feature"><i class="fas fa-bolt"></i><span>Conexión completa durante 1 hora</span></div>
+              <div class="feature"><i class="fas fa-infinity"></i><span>Ancho de banda ilimitado</span></div>
+              <div class="feature"><i class="fas fa-shield-alt"></i><span>Misma seguridad que planes pagos</span></div>
+              <div class="feature"><i class="fas fa-clock"></i><span>Configuración rápida y directa</span></div>
+            </div>
+          </div>
+          <div class="bot-block">
+            <button class="action" onclick="openTrialModal()">
+              <i class="fas fa-signal"></i> Solicitar señal
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="shell basic individual">
-    <div class="tag">🌐 Navegación</div>
-    <div class="plan-video-box">
-      <video class="plan-video" autoplay muted loop playsinline preload="metadata">
-        <source src="videos/basic.mp4" type="video/mp4">
-      </video>
-      <div class="plan-overlay">
-        <div class="top-block">
-          <div class="top">
-            <div class="title-wrap">
-              <div class="title">Navegación y streaming</div>
-              <div class="subtitle">1 mes</div>
+    <!-- ── BASIC ── -->
+    <div class="shell basic individual">
+      <div class="tag">🌐 FREQ·01 · NAVEGACIÓN</div>
+      <div class="plan-video-box">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
+          <source src="videos/basic.mp4" type="video/mp4">
+        </video>
+        <div class="plan-scrim"></div>
+        <div class="plan-overlay">
+          <div class="top-block">
+            <div class="freq-label">freq·01 · 1 mes</div>
+            <div class="top">
+              <div>
+                <div class="plan-title">Básico</div>
+                <div class="plan-sub">navegación · streaming</div>
+              </div>
+              <div class="price-block">
+                <div class="sig-bars">
+                  <div class="sb"></div><div class="sb"></div>
+                  <div class="sb"></div><div class="sb"></div>
+                </div>
+                <div class="price-main">900 CUP</div>
+                <div class="price-mobile">📱 300 CUP móvil</div>
+                <div class="price-usdt">≈ 1.4 USDT</div>
+              </div>
             </div>
-            <div class="price">
-              <div class="cup">900 CUP</div>
-              <div class="mobile-price">📱 Saldo móvil: 300 CUP</div>
-              <div class="usdt">≈ <strong>1.4 USDT</strong></div>
+          </div>
+          <div class="mid-block">
+            <div class="chips">
+              <span class="chip hi">entrada</span>
+              <span class="chip">estable</span>
+              <span class="chip">saldo móvil</span>
+            </div>
+            <div class="features">
+              <div class="feature"><i class="fas fa-bolt"></i><span>Baja latencia para streaming</span></div>
+              <div class="feature"><i class="fas fa-infinity"></i><span>Ancho de banda ilimitado</span></div>
+              <div class="feature"><i class="fas fa-headset"></i><span>Soporte prioritario</span></div>
+              <div class="feature"><i class="fas fa-server"></i><span>4 servidores disponibles</span></div>
             </div>
           </div>
-        </div>
-        <div class="middle-block">
-          <div class="chips">
-            <span class="chip soft">Entrada</span>
-            <span class="chip">Estable</span>
-            <span class="chip">Acepta saldo móvil</span>
+          <div class="bot-block">
+            <button class="action" onclick="selectPlan('basico', 900, 1.4, this)">
+              <i class="fas fa-arrow-right"></i> Activar señal
+            </button>
           </div>
-          <div class="features">
-            <div class="feature"><i class="fas fa-bolt"></i><span>Baja latencia para streaming</span></div>
-            <div class="feature"><i class="fas fa-infinity"></i><span>Ancho de banda ilimitado</span></div>
-            <div class="feature"><i class="fas fa-headset"></i><span>Soporte prioritario</span></div>
-            <div class="feature"><i class="fas fa-server"></i><span>4 servidores disponibles</span></div>
-          </div>
-        </div>
-        <div class="bottom-block">
-          <button class="action" onclick="selectPlan('basico', 900, 1.4, this)">
-            <i class="fas fa-cart-shopping"></i> Seleccionar
-          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="shell advanced individual">
-    <div class="tag">🌟 Recomendado</div>
-    <div class="plan-video-box">
-      <video class="plan-video" autoplay muted loop playsinline preload="metadata">
-        <source src="videos/advanced.mp4" type="video/mp4">
-      </video>
-      <div class="plan-overlay">
-        <div class="top-block">
-          <div class="top">
-            <div class="title-wrap">
-              <div class="title">Navegación y streaming</div>
-              <div class="subtitle">2 meses</div>
+    <!-- ── ADVANCED ── -->
+    <div class="shell advanced individual">
+      <div class="tag">🌟 FREQ·02 · RECOMENDADO</div>
+      <div class="plan-video-box">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
+          <source src="videos/advanced.mp4" type="video/mp4">
+        </video>
+        <div class="plan-scrim"></div>
+        <div class="plan-overlay">
+          <div class="top-block">
+            <div class="freq-label">freq·02 · 2 meses</div>
+            <div class="top">
+              <div>
+                <div class="plan-title">Avanzado</div>
+                <div class="plan-sub">equilibrio · precisión</div>
+              </div>
+              <div class="price-block">
+                <div class="sig-bars">
+                  <div class="sb"></div><div class="sb"></div>
+                  <div class="sb"></div><div class="sb"></div>
+                </div>
+                <div class="price-main">1,800 CUP</div>
+                <div class="price-mobile">📱 600 CUP móvil</div>
+                <div class="price-usdt">≈ 1.8 USDT</div>
+              </div>
             </div>
-            <div class="price">
-              <div class="cup">1,800 CUP</div>
-              <div class="mobile-price">📱 Saldo móvil: 600 CUP</div>
-              <div class="usdt">≈ <strong>1.8 USDT</strong></div>
+          </div>
+          <div class="mid-block">
+            <div class="chips">
+              <span class="chip hi">mejor equilibrio</span>
+              <span class="chip">ahorro real</span>
+              <span class="chip">saldo móvil</span>
+            </div>
+            <div class="savings"><i class="fas fa-tag"></i> Ahorras 670 CUP vs. dos meses básico</div>
+            <div class="features">
+              <div class="feature"><i class="fas fa-check-circle"></i><span>Todo lo del plan básico</span></div>
+              <div class="feature"><i class="fas fa-clock"></i><span>2 meses de servicio</span></div>
+              <div class="feature"><i class="fas fa-life-ring"></i><span>Soporte 24/7</span></div>
+              <div class="feature"><i class="fas fa-shield-alt"></i><span>Protección avanzada</span></div>
             </div>
           </div>
-        </div>
-        <div class="middle-block">
-          <div class="chips">
-            <span class="chip soft">Mejor equilibrio</span>
-            <span class="chip">Ahorro real</span>
-            <span class="chip">Acepta saldo móvil</span>
+          <div class="bot-block">
+            <button class="action" onclick="selectPlan('avanzado', 1800, 1.8, this)">
+              <i class="fas fa-arrow-right"></i> Activar señal
+            </button>
           </div>
-          <div class="savings"><i class="fas fa-tag"></i> Ahorras 670 CUP (vs. comprar dos meses básico)</div>
-          <div class="features">
-            <div class="feature"><i class="fas fa-check-circle"></i><span>Todo lo del plan básico</span></div>
-            <div class="feature"><i class="fas fa-clock"></i><span>2 meses de servicio</span></div>
-            <div class="feature"><i class="fas fa-life-ring"></i><span>Soporte 24/7</span></div>
-            <div class="feature"><i class="fas fa-shield-alt"></i><span>Protección avanzada</span></div>
-          </div>
-        </div>
-        <div class="bottom-block">
-          <button class="action" onclick="selectPlan('avanzado', 1800, 1.8, this)">
-            <i class="fas fa-crown"></i> Seleccionar
-          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="shell premium individual">
-    <div class="tag">🎮 Gaming</div>
-    <div class="plan-video-box">
-      <video class="plan-video" autoplay muted loop playsinline preload="metadata">
-        <source src="videos/gaming.mp4" type="video/mp4">
-      </video>
-      <div class="plan-overlay">
-        <div class="top-block">
-          <div class="top">
-            <div class="title-wrap">
-              <div class="title">Gaming</div>
-              <div class="subtitle">1 mes</div>
+    <!-- ── PREMIUM / GAMING ── -->
+    <div class="shell premium individual">
+      <div class="tag">🎮 FREQ·MAX · GAMING</div>
+      <div class="plan-video-box">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
+          <source src="videos/gaming.mp4" type="video/mp4">
+        </video>
+        <div class="plan-scrim"></div>
+        <div class="plan-overlay">
+          <div class="top-block">
+            <div class="freq-label">freq·max · servidor privado</div>
+            <div class="top">
+              <div>
+                <div class="plan-title">Gaming</div>
+                <div class="plan-sub">latencia mínima · 1 mes</div>
+              </div>
+              <div class="price-block">
+                <div class="sig-bars">
+                  <div class="sb"></div><div class="sb"></div>
+                  <div class="sb"></div><div class="sb"></div>
+                </div>
+                <div class="price-main">1,500 CUP</div>
+                <div class="price-mobile">📱 500 CUP móvil</div>
+                <div class="price-usdt">≈ 2.3 USDT</div>
+              </div>
             </div>
-            <div class="price">
-              <div class="cup">1,500 CUP</div>
-              <div class="mobile-price">📱 Saldo móvil: 500 CUP</div>
-              <div class="usdt">≈ <strong>2.3 USDT</strong></div>
+          </div>
+          <div class="mid-block">
+            <div class="chips">
+              <span class="chip hi">baja latencia</span>
+              <span class="chip">servidor privado</span>
+              <span class="chip">saldo móvil</span>
+            </div>
+            <div class="savings"><i class="fas fa-tachometer-alt"></i> Máxima velocidad + prioridad de tráfico</div>
+            <div class="features">
+              <div class="feature"><i class="fas fa-check-double"></i><span>Todo lo del plan avanzado</span></div>
+              <div class="feature"><i class="fas fa-tachometer-alt"></i><span>Menor latencia para juegos</span></div>
+              <div class="feature"><i class="fas fa-bolt"></i><span>Mayor velocidad de respuesta</span></div>
+              <div class="feature"><i class="fas fa-server"></i><span>Servidor privado optimizado</span></div>
             </div>
           </div>
-        </div>
-        <div class="middle-block">
-          <div class="chips">
-            <span class="chip soft">Baja latencia</span>
-            <span class="chip">Servidor privado</span>
-            <span class="chip">Acepta saldo móvil</span>
+          <div class="bot-block">
+            <button class="action" onclick="selectPlan('premium', 1500, 2.3, this)">
+              <i class="fas fa-crosshairs"></i> Activar señal
+            </button>
           </div>
-          <div class="savings"><i class="fas fa-tachometer-alt"></i> Máxima velocidad + prioridad</div>
-          <div class="features">
-            <div class="feature"><i class="fas fa-check-double"></i><span>Todo lo del plan avanzado</span></div>
-            <div class="feature"><i class="fas fa-tachometer-alt"></i><span>Menor latencia para juegos</span></div>
-            <div class="feature"><i class="fas fa-bolt"></i><span>Más velocidad de respuesta</span></div>
-            <div class="feature"><i class="fas fa-server"></i><span>Servidor privado optimizado</span></div>
-          </div>
-        </div>
-        <div class="bottom-block">
-          <button class="action" onclick="selectPlan('premium', 1500, 2.3, this)">
-            <i class="fas fa-gem"></i> Elegir Gaming
-          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="shell annual individual">
-    <div class="tag">📅 Anual</div>
-    <div class="plan-video-box">
-      <video class="plan-video" autoplay muted loop playsinline preload="metadata">
-        <source src="videos/annual.mp4" type="video/mp4">
-      </video>
-      <div class="plan-overlay">
-        <div class="top-block">
-          <div class="top">
-            <div class="title-wrap">
-              <div class="title">Plan Anual</div>
-              <div class="subtitle">12 meses</div>
+    <!-- ── ANNUAL ── -->
+    <div class="shell annual individual">
+      <div class="tag">📅 FREQ·FULL · ANUAL</div>
+      <div class="plan-video-box">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
+          <source src="videos/annual.mp4" type="video/mp4">
+        </video>
+        <div class="plan-scrim"></div>
+        <div class="plan-overlay">
+          <div class="top-block">
+            <div class="freq-label">freq·full · acceso total</div>
+            <div class="top">
+              <div>
+                <div class="plan-title">Anual</div>
+                <div class="plan-sub">exclusivo · 12 meses</div>
+              </div>
+              <div class="price-block">
+                <div class="sig-bars">
+                  <div class="sb"></div><div class="sb"></div>
+                  <div class="sb"></div><div class="sb"></div>
+                </div>
+                <div class="price-main">15,000 CUP</div>
+                <div class="price-mobile">📱 5,000 CUP móvil</div>
+                <div class="price-usdt">≈ 30 USDT</div>
+              </div>
             </div>
-            <div class="price">
-              <div class="cup">15,000 CUP</div>
-              <div class="mobile-price">📱 Saldo móvil: 5,000 CUP</div>
-              <div class="usdt">≈ <strong>30 USDT</strong></div>
+          </div>
+          <div class="mid-block">
+            <div class="chips">
+              <span class="chip hi">máximo valor</span>
+              <span class="chip">exclusivo</span>
+              <span class="chip">saldo móvil</span>
+            </div>
+            <div class="savings"><i class="fas fa-star"></i> Ahorro superior al 40% vs. mensual</div>
+            <div class="features">
+              <div class="feature"><i class="fas fa-crown"></i><span>Servidor privado exclusivo</span></div>
+              <div class="feature"><i class="fas fa-headset"></i><span>Atención prioritaria 24/7</span></div>
+              <div class="feature"><i class="fas fa-shield-alt"></i><span>Máxima seguridad</span></div>
+              <div class="feature"><i class="fas fa-calendar-alt"></i><span>12 meses completos</span></div>
             </div>
           </div>
-        </div>
-        <div class="middle-block">
-          <div class="chips">
-            <span class="chip soft">Más valor</span>
-            <span class="chip">Exclusivo</span>
-            <span class="chip">Acepta saldo móvil</span>
+          <div class="bot-block">
+            <button class="action" onclick="selectPlan('anual', 15000, 30, this)">
+              <i class="fas fa-lock-open"></i> Activar acceso total
+            </button>
           </div>
-          <div class="savings"><i class="fas fa-star"></i> El mejor valor - ahorro enorme</div>
-          <div class="features">
-            <div class="feature"><i class="fas fa-crown"></i><span>Servidor privado exclusivo</span></div>
-            <div class="feature"><i class="fas fa-headset"></i><span>Atención prioritaria 24/7</span></div>
-            <div class="feature"><i class="fas fa-shield-alt"></i><span>Máxima seguridad</span></div>
-            <div class="feature"><i class="fas fa-calendar-alt"></i><span>12 meses completos</span></div>
-          </div>
-        </div>
-        <div class="bottom-block">
-          <button class="action" onclick="selectPlan('anual', 15000, 30, this)">
-            <i class="fas fa-calendar-check"></i> Adquirir Anual
-          </button>
         </div>
       </div>
     </div>
-  </div>
-</section>
 
-<footer class="footer">
-  <p>© 2025 VPN Cuba. Tecnología de punta para una conexión sin límites.</p>
-  <p style="margin-top:.55rem;">
-    ¿Preguntas?
-    <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9" target="_blank" style="color:#25D366;text-decoration:none;font-weight:700;">Contáctanos por WhatsApp</a>
-  </p>
-</footer>
+  </section>
 
-  </div>  <div id="notification"></div>  <script>
-    const tg = window.Telegram?.WebApp ?? {
-      expand() {},
-      MainButton: { hide() {} },
-      initDataUnsafe: {}
-    };
+  <footer class="footer">
+    <p>© 2025 VPN Cuba — protocolo WireGuard · tecnología de punta</p>
+    <p style="margin-top:.5rem;">
+      ¿Preguntas? <a href="https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9" target="_blank">WhatsApp directo →</a>
+    </p>
+  </footer>
+</div>
 
-    tg.expand?.();
-    tg.MainButton?.hide?.();
+<script>
+const tg = window.Telegram?.WebApp ?? { expand(){}, MainButton:{ hide(){} }, initDataUnsafe:{} };
+tg.expand?.();
+tg.MainButton?.hide?.();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const USDT_ADDRESS = '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519';
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('userId');
+const USDT_ADDRESS = '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519';
 
-    function showNotification(msg, type = 'info') {
-      const notif = document.getElementById('notification');
-      notif.textContent = msg;
-      notif.style.borderLeftColor =
-        type === 'success' ? '#10b981' :
-        type === 'error' ? '#ef4444' : '#5f7dff';
-      notif.style.transform = 'translateX(0)';
-      clearTimeout(window.__notifTimer);
-      window.__notifTimer = setTimeout(() => {
-        notif.style.transform = 'translateX(150%)';
-      }, 3800);
-    }
+/* ── SIGNAL BARS ANIMATION ─── */
+// Animate header meter bars independently
+const meters = document.querySelectorAll('.signal-meter');
+meters.forEach((m, mi) => {
+  const bars = m.querySelectorAll('.bar');
+  bars.forEach((bar, bi) => {
+    const maxH = [6,11,16,21,24][bi];
+    const minH = Math.max(2, maxH * 0.3);
+    const colors = ['var(--sig-basic)','var(--sig-ann)','var(--sig-trial)'];
+    bar.style.background = colors[mi % colors.length];
+    bar.style.boxShadow = `0 0 5px ${colors[mi % colors.length]}`;
+    setInterval(() => {
+      const h = minH + Math.random() * (maxH - minH);
+      bar.style.height = h + 'px';
+      bar.style.opacity = 0.4 + Math.random() * 0.6;
+    }, 300 + bi * 80 + mi * 120);
+  });
+});
 
-    function selectPlan(planType, price, usdtAmount, button) {
-      if (!userId) {
-        alert('Error: no se pudo identificar el usuario.');
-        return;
-      }
+/* ── NOTIFICATION ─── */
+function showNotification(msg, type = 'info') {
+  const n = document.getElementById('notification');
+  n.textContent = msg;
+  n.style.borderLeftColor = type === 'success' ? 'var(--sig-ann)' : type === 'error' ? 'var(--sig-prem)' : 'var(--sig-basic)';
+  n.style.transform = 'translateX(0)';
+  clearTimeout(window.__nTimer);
+  window.__nTimer = setTimeout(() => { n.style.transform = 'translateX(160%)'; }, 3800);
+}
 
-      const originalText = button.innerHTML;
-      button.disabled = true;
-      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+/* ── SELECT PLAN ─── */
+function selectPlan(planType, price, usdtAmount, button) {
+  if (!userId) { alert('Error: no se pudo identificar el usuario.'); return; }
+  const orig = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+  localStorage.setItem('selectedPlan', JSON.stringify({
+    type: planType, price, usdtAmount,
+    usdtAddress: USDT_ADDRESS, userId,
+    timestamp: new Date().toISOString()
+  }));
+  showNotification('Redirigiendo al pago...', 'info');
+  setTimeout(() => {
+    window.location.href = `/payment.html?userId=${encodeURIComponent(userId)}&plan=${encodeURIComponent(planType)}&price=${encodeURIComponent(price)}&usdtAmount=${encodeURIComponent(usdtAmount)}&usdtAddress=${encodeURIComponent(USDT_ADDRESS)}`;
+  }, 700);
+  setTimeout(() => { button.innerHTML = orig; button.disabled = false; }, 1200);
+}
 
-      localStorage.setItem('selectedPlan', JSON.stringify({
-        type: planType,
-        price,
-        usdtAmount,
-        usdtAddress: USDT_ADDRESS,
-        userId,
-        timestamp: new Date().toISOString()
-      }));
+/* ── TRIAL MODAL ─── */
+function openTrialModal()  { document.getElementById('trialModal').classList.add('active'); }
+function closeTrialModal() { document.getElementById('trialModal').classList.remove('active'); }
 
-      showNotification('Redirigiendo al pago...', 'info');
-
-      setTimeout(() => {
-        window.location.href =
-          `/payment.html?userId=${encodeURIComponent(userId)}&plan=${encodeURIComponent(planType)}&price=${encodeURIComponent(price)}&usdtAmount=${encodeURIComponent(usdtAmount)}&usdtAddress=${encodeURIComponent(USDT_ADDRESS)}`;
-      }, 700);
-
-      setTimeout(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-      }, 1200);
-    }
-
-    function openTrialModal() {
-      document.getElementById('trialModal').classList.add('active');
-    }
-
-    function closeTrialModal() {
-      document.getElementById('trialModal').classList.remove('active');
-    }
-
-    document.getElementById('trialForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const gameServer = document.getElementById('gameServer').value.trim();
-      const connectionType = document.getElementById('connectionType').value;
-      const additionalInfo = document.getElementById('additionalInfo').value.trim();
-
-      if (!gameServer || !connectionType) return;
-
-      const submitBtn = e.target.querySelector('button[type="submit"]');
-      const originalText = submitBtn.innerHTML;
-      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-      submitBtn.disabled = true;
-
-      try {
-        const baseUrl = window.location.origin;
-        const response = await fetch(`${baseUrl}/api/request-trial`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegramId: userId,
-            username: tg.initDataUnsafe?.user?.username || '',
-            firstName: tg.initDataUnsafe?.user?.first_name || 'Usuario',
-            trialType: '1h',
-            gameServer,
-            connectionType,
-            additionalInfo
-          })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          showNotification('✅ Solicitud enviada. Recibirás la configuración en minutos.', 'success');
-          closeTrialModal();
-        } else {
-          throw new Error(data.error || 'Error inesperado');
-        }
-      } catch (error) {
-        showNotification('❌ Error: ' + error.message, 'error');
-      } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-      }
+document.getElementById('trialForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const gameServer     = document.getElementById('gameServer').value.trim();
+  const connectionType = document.getElementById('connectionType').value;
+  const additionalInfo = document.getElementById('additionalInfo').value.trim();
+  if (!gameServer || !connectionType) return;
+  const btn  = e.target.querySelector('button[type="submit"]');
+  const span = btn.querySelector('span');
+  const orig = span.innerHTML;
+  span.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${window.location.origin}/api/request-trial`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegramId: userId,
+        username:   tg.initDataUnsafe?.user?.username   || '',
+        firstName:  tg.initDataUnsafe?.user?.first_name || 'Usuario',
+        trialType:  '1h',
+        gameServer, connectionType, additionalInfo
+      })
     });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showNotification('✅ Solicitud enviada. Recibirás la config en minutos.', 'success');
+      closeTrialModal();
+    } else { throw new Error(data.error || 'Error inesperado'); }
+  } catch (err) {
+    showNotification('❌ ' + err.message, 'error');
+  } finally {
+    span.innerHTML = orig;
+    btn.disabled = false;
+  }
+});
 
-    function checkTermsAccepted(uid) {
-      if (!uid) return false;
-      return localStorage.getItem(`termsAccepted_${uid}`) === 'true';
-    }
+/* ── TERMS CHECK ─── */
+function checkTermsAccepted(uid) {
+  if (!uid) return false;
+  return localStorage.getItem(`termsAccepted_${uid}`) === 'true';
+}
 
-    if (userId && !checkTermsAccepted(userId)) {
-      window.location.href = `/index.html?userId=${encodeURIComponent(userId)}`;
-    }
-  </script></body>
+if (userId && !checkTermsAccepted(userId)) {
+  window.location.href = `/index.html?userId=${encodeURIComponent(userId)}`;
+}
+</script>
+</body>
 </html>

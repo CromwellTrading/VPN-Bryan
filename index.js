@@ -3356,15 +3356,39 @@ process.on('unhandledRejection', async (reason, promise) => { console.error('❌
 process.on('SIGINT', () => { console.log('\n👋 Cerrando...'); bot.telegram.deleteWebhook().catch(() => {}); process.exit(0); });
 
 function startKeepAlive() {
-    const keepAliveInterval = 4 * 60 * 1000;
-    const healthCheckUrl = `http://localhost:${PORT}/api/health`;
+    // ==================== KEEP-ALIVE INTENSO PARA RENDER ====================
+    // Render duerme instancias gratis después de 15 min de inactividad.
+    // Estrategia triple: ping interno cada 4 min + ping externo cada 10 min + auto-request cada 8 min.
+
+    const PORT_LOCAL = PORT;
+    const EXTERNAL_URL = process.env.WEBAPP_URL || `http://localhost:${PORT_LOCAL}`;
+    const healthCheckUrl = `http://localhost:${PORT_LOCAL}/api/health`;
+
+    // Capa 1: Ping interno al servidor local cada 4 minutos
     setInterval(async () => {
         try {
             const response = await fetch(healthCheckUrl);
-            if (response.ok) console.log(`✅ Keep-alive ping exitoso a las ${new Date().toLocaleTimeString()}`);
-        } catch (error) { console.error('❌ Error en keep-alive ping:', error.message); }
-    }, keepAliveInterval);
-    console.log(`🔄 Keep-alive iniciado. Ping cada 5 minutos a ${healthCheckUrl}`);
+            if (response.ok) console.log(`💓 Keep-alive interno OK [${new Date().toLocaleTimeString()}]`);
+        } catch (error) { console.error('⚠️ Keep-alive interno falló:', error.message); }
+    }, 4 * 60 * 1000);
+
+    // Capa 2: Ping a URL externa cada 10 minutos (útil en Render donde el proceso conoce su propia URL)
+    setInterval(async () => {
+        try {
+            const response = await fetch(`${EXTERNAL_URL}/api/health`);
+            if (response.ok) console.log(`🌐 Keep-alive externo OK [${new Date().toLocaleTimeString()}]`);
+        } catch (error) { console.error('⚠️ Keep-alive externo falló:', error.message); }
+    }, 10 * 60 * 1000);
+
+    // Capa 3: Request variado cada 8 minutos para simular actividad real
+    setInterval(async () => {
+        try {
+            await fetch(`${healthCheckUrl}?t=${Date.now()}`);
+            console.log(`🔄 Keep-alive variado OK [${new Date().toLocaleTimeString()}]`);
+        } catch (error) { /* silencioso */ }
+    }, 8 * 60 * 1000);
+
+    console.log(`🔄 Keep-alive INTENSO iniciado (capas: 4min + 8min + 10min) → ${EXTERNAL_URL}`);
 }
 
 module.exports = { app, isAdmin, ADMIN_IDS, initializeStorageBuckets, initializeUsdtSystem, sendTrialToValidUsers };

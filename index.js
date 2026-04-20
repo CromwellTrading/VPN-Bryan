@@ -23,7 +23,7 @@ const supabaseAdmin = createClient(
 // IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604', '6974850309', '5985313284'];
+    ['6373481979', '5376388604', '6974850309'];
 
 // ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {
@@ -76,6 +76,7 @@ const BUTTON_ICONS = {
     'PANEL ADMIN': '5839116473951328489',
     'WINDOWS': '5933679370202778681',
     'ANDROID': '5931415565955503486',
+    'IOS': '5931415565955503486',
     'CEO': '6021659919835469581',
     'ADMIN': '5839116473951328489',
     'MOD': '6021401276904905698',
@@ -120,6 +121,7 @@ function getDownloadWireguardHtml() {
     return `<tg-emoji emoji-id="6019168392127190964">💻</tg-emoji> <b>DESCARGAR WIREGUARD</b> <tg-emoji emoji-id="6019099814384378473">📱</tg-emoji>\n\n` +
            `<b>Para Windows</b>\nAplicación Oficial de WireGuard para Windows:\nEnlace: https://www.wireguard.com/install/\n\n` +
            `<b>Para Android</b>\nAplicación Oficial de WireGuard en Google Play Store:\nEnlace: https://play.google.com/store/apps/details?id=com.wireguard.android\n\n` +
+           `<b>Para iOS (iPhone / iPad)</b>\nAplicación Oficial de WireGuard en App Store:\nEnlace: https://apps.apple.com/app/id1441195209\n\n` +
            `Selecciona tu sistema operativo:`;
 }
 
@@ -457,30 +459,62 @@ async function sendTrialConfigToUser(telegramId, adminId) {
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
 
-    await bot.telegram.sendDocument(
-      telegramId,
-      { source: filePath, filename: fileName },
-      {
-        caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
-                 `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
-                 `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
-                 `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
-                 `<b>Instrucciones de instalación:</b>\n` +
-                 `1. Descarga este archivo\n` +
-                 `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                 `3. Activa la conexión\n` +
-                 `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
-                 `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
-                 `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
-        parse_mode: 'HTML'
-      }
-    );
+    // Intentar envío con hasta 3 reintentos ante errores transitorios de Telegram
+    const MAX_RETRIES = 3;
+    let lastError = null;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await bot.telegram.sendDocument(
+          telegramId,
+          { source: filePath, filename: fileName },
+          {
+            caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
+                     `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
+                     `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
+                     `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
+                     `<b>Instrucciones de instalación:</b>\n` +
+                     `1. Descarga este archivo\n` +
+                     `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                     `3. Activa la conexión\n` +
+                     `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
+                     `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+                     `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
+            parse_mode: 'HTML'
+          }
+        );
+        // Envío exitoso
+        await db.markTrialAsSent(telegramId, adminId);
+        console.log(`✅ Prueba enviada a ${telegramId} usando archivo local: ${fileName} (intento ${attempt})`);
+        return true;
+      } catch (sendError) {
+        lastError = sendError;
+        const errorCode = sendError.response?.error_code;
+        const errorMsg = sendError.description || sendError.message || '';
+        console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido para ${telegramId}: ${errorMsg}`);
 
-    await db.markTrialAsSent(telegramId, adminId);
-    console.log(`✅ Prueba enviada a ${telegramId} usando archivo local: ${fileName}`);
-    return true;
+        // No reintentar si el usuario bloqueó el bot o no existe
+        if (
+          errorMsg.includes('chat not found') ||
+          errorMsg.includes('bot was blocked') ||
+          errorMsg.includes('user is deactivated') ||
+          errorMsg.includes('kicked') ||
+          errorCode === 403 || errorCode === 400
+        ) {
+          console.log(`❌ Error permanente para ${telegramId}, no se reintentará: ${errorMsg}`);
+          break;
+        }
+
+        // Esperar antes del siguiente intento (backoff exponencial)
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+        }
+      }
+    }
+
+    console.error(`❌ Error enviando prueba a ${telegramId} tras ${MAX_RETRIES} intentos:`, lastError?.message);
+    throw lastError || new Error('Error desconocido al enviar prueba');
   } catch (error) {
-    console.error(`❌ Error enviando prueba a ${telegramId}:`, error.message);
+    console.error(`❌ Error en sendTrialConfigToUser para ${telegramId}:`, error.message);
     throw error;
   }
 }
@@ -878,9 +912,21 @@ app.post('/api/payments/:id/approve', async (req, res) => {
     if (user.referrer_id) {
       try {
         await db.markReferralAsPaid(payment.telegram_id);
-        console.log(`✅ Referido ${payment.telegram_id} marcado como pagado`);
+        console.log(`✅ Referido nivel 1 marcado como pagado: ${payment.telegram_id} -> referidor: ${user.referrer_id}`);
+
+        // Intentar también actualizar nivel 2: el referidor del referidor
+        try {
+          const referrerUser = await db.getUser(user.referrer_id);
+          if (referrerUser && referrerUser.referrer_id) {
+            await db.markReferralAsPaid(user.referrer_id, 2);
+            console.log(`✅ Referido nivel 2 marcado como pagado: ${user.referrer_id} -> referidor nivel2: ${referrerUser.referrer_id}`);
+          }
+        } catch (level2Err) {
+          console.log('⚠️ Error actualizando referido nivel 2 (no crítico):', level2Err.message);
+        }
       } catch (refError) {
-        console.log('⚠️ Error marcando referido como pagado:', refError.message);
+        console.error('❌ Error marcando referido como pagado:', refError.message);
+        // No fallar el proceso completo por esto
       }
     }
 
@@ -945,11 +991,49 @@ app.get('/api/stats', async (req, res) => {
       mode: 'manual',
       message: 'Todos los pagos USDT requieren captura y aprobación manual'
     };
-    const allUsers = await db.getAllUsers();
-    const activeUsers = allUsers.filter(u => u.is_active !== false).length;
-    const inactiveUsers = allUsers.filter(u => u.is_active === false).length;
-    stats.users.active = activeUsers;
-    stats.users.inactive = inactiveUsers;
+
+    // Obtener conteo real de usuarios en lotes para no quedarse en 1000
+    try {
+      let allUsersCount = [];
+      let from = 0;
+      const batchSize = 1000;
+      let keepFetching = true;
+      while (keepFetching) {
+        const batch = await db.getAllUsers(from, batchSize);
+        if (!batch || batch.length === 0) {
+          keepFetching = false;
+        } else {
+          allUsersCount = allUsersCount.concat(batch);
+          if (batch.length < batchSize) keepFetching = false;
+          else from += batchSize;
+        }
+      }
+      const activeUsers = allUsersCount.filter(u => u.is_active !== false).length;
+      const inactiveUsers = allUsersCount.filter(u => u.is_active === false).length;
+      stats.users.active = activeUsers;
+      stats.users.inactive = inactiveUsers;
+      // Corregir total si Supabase lo da truncado
+      if (allUsersCount.length > (stats.users.total || 0)) {
+        stats.users.total = allUsersCount.length;
+      }
+    } catch (usersErr) {
+      console.warn('⚠️ Error contando usuarios activos:', usersErr.message);
+    }
+
+    // Añadir estadísticas de referidos al panel principal
+    try {
+      const refStats = await db.getAllReferralsStats();
+      stats.referrals = {
+        total: refStats.total_referrals || 0,
+        paid: refStats.paid_referrals || 0,
+        level1: refStats.level1_referrals || 0,
+        level2: refStats.level2_referrals || 0
+      };
+    } catch (refErr) {
+      console.warn('⚠️ No se pudieron cargar stats de referidos:', refErr.message);
+      stats.referrals = { total: 0, paid: 0, level1: 0, level2: 0 };
+    }
+
     const coupons = await db.getCouponsStats();
     stats.coupons = coupons || { total: 0, active: 0, expired: 0, used: 0 };
     res.json(stats);
@@ -961,7 +1045,8 @@ app.get('/api/stats', async (req, res) => {
       payments: { pending: 0, approved: 0 },
       revenue: { total: 0 },
       broadcasts: { completed: 0 },
-      coupons: { total: 0, active: 0, expired: 0, used: 0 }
+      coupons: { total: 0, active: 0, expired: 0, used: 0 },
+      referrals: { total: 0, paid: 0, level1: 0, level2: 0 }
     });
   }
 });
@@ -978,7 +1063,35 @@ app.get('/api/vip-users', async (req, res) => {
 
 app.get('/api/all-users', async (req, res) => {
   try {
-    const users = await db.getAllUsers();
+    // Soporte de paginación para superar el límite de 1000 de Supabase
+    // Si se pasa ?all=true se intentan obtener todos los usuarios en lotes
+    const fetchAll = req.query.all === 'true';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 2000; // límite generoso por defecto
+
+    if (fetchAll) {
+      // Obtener en lotes de 1000 hasta no haber más
+      let allUsers = [];
+      let from = 0;
+      const batchSize = 1000;
+      let keepFetching = true;
+      while (keepFetching) {
+        const batch = await db.getAllUsers(from, batchSize);
+        if (!batch || batch.length === 0) {
+          keepFetching = false;
+        } else {
+          allUsers = allUsers.concat(batch);
+          if (batch.length < batchSize) {
+            keepFetching = false;
+          } else {
+            from += batchSize;
+          }
+        }
+      }
+      return res.json(allUsers);
+    }
+
+    const users = await db.getAllUsers(0, limit);
     res.json(users);
   } catch (error) {
     console.error('❌ Error obteniendo usuarios:', error);
@@ -1088,24 +1201,54 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     try {
       console.log(`📤 Intentando enviar archivo a ${chatId}...`);
       
-      await bot.telegram.sendDocument(
-        chatId,
-        { source: req.file.path, filename: req.file.originalname },
-        {
-          caption: `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu configuración VPN Cuba está lista!</b>\n\n` +
-                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${req.file.originalname}\n` +
-                   `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Plan:</b> ${getPlanName(payment.plan)}\n` +
-                   `${payment.coupon_used ? `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón aplicado:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n` : ''}` +
-                   `\n<b>Instrucciones de instalación:</b>\n` +
-                   `1. Descarga este archivo\n` +
-                   `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
-                   `3. Importa el archivo .conf en tu cliente WireGuard\n` +
-                   `4. Activa la conexión\n` +
-                   `5. ¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>\n\n` +
-                   `<b>Soporte:</b> Contacta con soporte si tienes problemas.`,
-          parse_mode: 'HTML'
+      // Intentar con hasta 3 reintentos ante errores transitorios de Telegram
+      const MAX_RETRIES = 3;
+      let lastTelegramError = null;
+      let sent = false;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          await bot.telegram.sendDocument(
+            chatId,
+            { source: req.file.path, filename: req.file.originalname },
+            {
+              caption: `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu configuración VPN Cuba está lista!</b>\n\n` +
+                       `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${req.file.originalname}\n` +
+                       `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Plan:</b> ${getPlanName(payment.plan)}\n` +
+                       `${payment.coupon_used ? `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón aplicado:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n` : ''}` +
+                       `\n<b>Instrucciones de instalación:</b>\n` +
+                       `1. Descarga este archivo\n` +
+                       `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
+                       `3. Importa el archivo .conf en tu cliente WireGuard\n` +
+                       `4. Activa la conexión\n` +
+                       `5. ¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>\n\n` +
+                       `<b>Soporte:</b> Contacta con soporte si tienes problemas.`,
+              parse_mode: 'HTML'
+            }
+          );
+          sent = true;
+          break;
+        } catch (retryErr) {
+          lastTelegramError = retryErr;
+          const errMsg = retryErr.description || retryErr.message || '';
+          console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido al enviar config a ${chatId}: ${errMsg}`);
+          // No reintentar si es un error permanente del usuario
+          if (
+            errMsg.includes('chat not found') || errMsg.includes('chat not exist') ||
+            errMsg.includes('bot was blocked') || errMsg.includes('user is deactivated') ||
+            errMsg.includes('kicked') ||
+            retryErr.response?.error_code === 403 || retryErr.response?.error_code === 400
+          ) {
+            break;
+          }
+          if (attempt < MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+          }
         }
-      );
+      }
+
+      if (!sent) {
+        throw lastTelegramError || new Error('No se pudo enviar el archivo tras varios intentos');
+      }
       
       await db.updatePayment(paymentId, {
         config_sent: true,
@@ -2268,19 +2411,46 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     
-    const referralStats = await db.getReferralStats(req.params.telegramId);
-    const payments = await db.getUserPayments(req.params.telegramId);
-    const referrals = await db.getReferralsByReferrer(req.params.telegramId);
+    let referralStats = null;
+    let payments = [];
+    let referrals = [];
+
+    try { referralStats = await db.getReferralStats(req.params.telegramId); } catch(e) { console.warn('⚠️ No se pudo obtener referral stats:', e.message); }
+    try { payments = await db.getUserPayments(req.params.telegramId) || []; } catch(e) { console.warn('⚠️ No se pudo obtener pagos:', e.message); }
+    try { referrals = await db.getReferralsByReferrer(req.params.telegramId) || []; } catch(e) { console.warn('⚠️ No se pudo obtener referidos:', e.message); }
     
+    const level1Referrals = referrals.filter(r => r.level === 1);
+    const level2Referrals = referrals.filter(r => r.level === 2);
+    const level1Paid = level1Referrals.filter(r => r.has_paid).length;
+    const level2Paid = level2Referrals.filter(r => r.has_paid).length;
+
     res.json({
-      user: user,
+      // Campos del usuario aplanados para fácil acceso en el frontend
+      ...user,
+      telegram_id: user.telegram_id,
+      first_name: user.first_name || 'Usuario',
+      username: user.username || '',
+      vip: user.vip || false,
+      current_plan: user.plan || user.current_plan || null,
+      plan: user.plan || user.current_plan || null,
+      plan_price: user.plan_price || null,
+      vip_since: user.vip_since || null,
+      referrer_id: user.referrer_id || null,
+      referrer_username: user.referrer_username || null,
+      is_active: user.is_active !== false,
+      trial_requested: user.trial_requested || false,
+      trial_received: user.trial_received || false,
+      created_at: user.created_at || null,
+      // Estadísticas de referidos
       referral_stats: referralStats,
-      payments: payments || [],
-      referrals: referrals || [],
-      level1_referrals: referrals?.filter(r => r.level === 1).length || 0,
-      level2_referrals: referrals?.filter(r => r.level === 2).length || 0,
-      level1_paid: referrals?.filter(r => r.level === 1 && r.has_paid).length || 0,
-      level2_paid: referrals?.filter(r => r.level === 2 && r.has_paid).length || 0
+      payments: payments,
+      referrals: referrals,
+      level1_referrals: level1Referrals.length,
+      level2_referrals: level2Referrals.length,
+      level1_paid: level1Paid,
+      level2_paid: level2Paid,
+      total_referrals: referrals.length,
+      paid_referrals: level1Paid + level2Paid
     });
   } catch (error) {
     console.error('❌ Error obteniendo detalles de usuario:', error);
@@ -2388,18 +2558,18 @@ app.post('/api/coupons', async (req, res) => {
     
     let expiryDate = null;
     if (expiry) {
-      const dateFormats = [
-        expiry,
-        expiry.replace('T', ' '),
-        new Date(expiry).toISOString().split('T')[0],
-        new Date(expiry).toISOString()
-      ];
-      
-      for (const dateStr of dateFormats) {
-        expiryDate = new Date(dateStr);
-        if (!isNaN(expiryDate.getTime())) {
-          break;
-        }
+      // Normalizar el formato de fecha para evitar problemas de timezone.
+      // Si viene como "YYYY-MM-DD" (sin hora), agregar T23:59:59 local
+      // para que el cupón sea válido todo el día indicado.
+      let expiryStr = expiry;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(expiry)) {
+        expiryStr = expiry + 'T23:59:59';
+      }
+      expiryDate = new Date(expiryStr);
+
+      if (isNaN(expiryDate.getTime())) {
+        // Fallback: intentar otros formatos
+        expiryDate = new Date(expiry.replace('T', ' '));
       }
       
       if (isNaN(expiryDate.getTime())) {
@@ -2640,7 +2810,12 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
     }
     
     if (coupon.expiry) {
-      const expiryDate = new Date(coupon.expiry);
+      // Normalizar: si la fecha viene solo como "YYYY-MM-DD", considerarla válida hasta fin de ese día
+      let expiryStr = coupon.expiry;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(expiryStr)) {
+        expiryStr = expiryStr + 'T23:59:59';
+      }
+      const expiryDate = new Date(expiryStr);
       const now = new Date();
       
       console.log(`📅 Expiración: ${expiryDate}, Ahora: ${now}`);
@@ -2794,7 +2969,7 @@ bot.action('show_support', async (ctx) => {
               createButton("MOD", { url: 'https://t.me/rov3r777' })
             ],
             [
-              createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })
+              createButton("WHATSAPP", { url: 'https://wa.me/5363806513' })
             ],
             [
               createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })
@@ -2852,6 +3027,7 @@ bot.action('download_wireguard', async (ctx) => {
       reply_markup: {
         inline_keyboard: [
           [createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }), createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],
+          [createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })],
           [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
         ]
       }
@@ -3025,7 +3201,7 @@ bot.on('text', async (ctx) => {
         await ctx.answerCbQuery();
         await checkStatusHandler(ctx, userId);
     } else if (text === '💻 DESCARGAR WIREGUARD') {
-        await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🆘 SOPORTE') {
         await ctx.reply(
             getSupportHtml(),
@@ -3041,7 +3217,7 @@ bot.on('text', async (ctx) => {
                             createButton("MOD", { url: 'https://t.me/rov3r777' })
                         ],
                         [
-                            createButton("WHATSAPP", { url: 'https://wa.me/message/3LUGXYGD55UBO1' })
+                            createButton("WHATSAPP", { url: 'https://wa.me/5363806513' })
                         ],
                         [
                             createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })

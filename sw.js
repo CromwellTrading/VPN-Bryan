@@ -10,11 +10,11 @@ const STATIC_ASSETS = [
 ];
 
 const VIDEO_ASSETS = [
-  'public/videos/trial.mp4',
-  'public/videos/basic.mp4',
-  'public/videos/advanced.mp4',
-  'public/videos/gaming.mp4',
-  'public/videos/annual.mp4'
+  'videos/trial.mp4',
+  'videos/basic.mp4',
+  'videos/advanced.mp4',
+  'videos/gaming.mp4',
+  'videos/annual.mp4'
 ];
 
 self.addEventListener('install', (event) => {

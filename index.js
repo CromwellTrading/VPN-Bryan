@@ -23,7 +23,7 @@ const supabaseAdmin = createClient(
 // IDs de administradores
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
     process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
-    ['6373481979', '5376388604', '6974850309', '5985313284'];
+    ['6373481979', '5376388604', '6974850309'];
 
 // ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {
@@ -198,7 +198,10 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin) {
             createButton("POLÍTICAS", { callback_data: "politicas" })
         ],
         [
-            createButton("WHATSAPP", { url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t" }),
+            createButton("WHATSAPP G1", { url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9" }),
+            createButton("WHATSAPP G2", { url: "https://chat.whatsapp.com/Lf3oMMKSHhY4pX5d2bE4TJ" })
+        ],
+        [
             createButton("FAQ", { callback_data: "faq" })
         ]
     ];
@@ -558,6 +561,39 @@ async function sendTrialToValidUsers(adminId) {
   }
 }
 
+// ==================== HELPER: OBTENER USUARIOS BROADCAST CON PAGINACIÓN ====================
+// getUsersForBroadcast en supabase.js no pagina — este wrapper obtiene TODOS en lotes de 1000
+async function getAllUsersForBroadcast(target) {
+  try {
+    // Para targets que no son 'all', usar la función original (suelen tener <1000)
+    if (target !== 'all' && target !== 'active') {
+      const users = await db.getUsersForBroadcast(target);
+      console.log(`📢 Broadcast target "${target}": ${users.length} usuarios`);
+      return users;
+    }
+
+    // Para 'all' y 'active' usar getAllUsers paginado que ya sabemos funciona
+    console.log(`📢 Broadcast target "${target}": obteniendo TODOS con paginación...`);
+    const allUsers = await db.getAllUsers(); // getAllUsers ya pagina internamente según supabase.js
+    
+    let filtered = allUsers;
+    if (target === 'active') {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      filtered = allUsers.filter(u => 
+        u.last_activity && new Date(u.last_activity) >= thirtyDaysAgo
+      );
+    }
+
+    console.log(`📢 Broadcast target "${target}": ${filtered.length} usuarios (de ${allUsers.length} totales)`);
+    return filtered;
+  } catch (err) {
+    console.error('❌ Error en getAllUsersForBroadcast:', err.message);
+    // Fallback a la función original
+    return await db.getUsersForBroadcast(target) || [];
+  }
+}
+
 // ==================== RUTAS API ====================
 
 app.get('/api/check-admin/:telegramId', (req, res) => {
@@ -650,6 +686,7 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
     let couponDiscount = 0;
     let finalPrice = parseFloat(price);
     let appliedCoupon = null;
+    let referralDiscountApplied = 0;
     
     if (couponCode && couponCode.trim() !== '') {
       try {
@@ -685,6 +722,20 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
         }
       } catch (couponError) {
         console.log('⚠️ Error verificando cupón:', couponError.message);
+      }
+    }
+
+    // Si no se aplicó cupón, verificar si tiene descuento por referidos
+    if (!couponUsed) {
+      try {
+        const refStats = await db.getReferralStats(telegramId);
+        if (refStats && refStats.discount_percentage > 0) {
+          referralDiscountApplied = Math.min(refStats.discount_percentage, 100);
+          finalPrice = finalPrice * (1 - referralDiscountApplied / 100);
+          console.log(`👥 Descuento de referidos aplicado: ${referralDiscountApplied}% — Precio: ${price} → ${finalPrice.toFixed(2)}`);
+        }
+      } catch (refErr) {
+        console.log('⚠️ No se pudo verificar descuento de referidos:', refErr.message);
       }
     }
 
@@ -727,6 +778,9 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
         
       if (couponUsed) {
         adminMessage += `🎫 *Cupón:* ${couponCode} (${couponDiscount}% descuento)\n` +
+          `💰 *Monto final:* ${finalPrice.toFixed(2)} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
+      } else if (referralDiscountApplied > 0) {
+        adminMessage += `👥 *Descuento referidos:* ${referralDiscountApplied}%\n` +
           `💰 *Monto final:* ${finalPrice.toFixed(2)} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
       }
       
@@ -805,13 +859,22 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
 app.get('/api/payments/pending', async (req, res) => {
   try {
     const payments = await db.getPendingPayments();
-    
-    const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
-      const user = await db.getUser(payment.telegram_id);
-      return {
-        ...payment,
-        user: user || null
-      };
+
+    if (!payments || payments.length === 0) {
+      return res.json([]);
+    }
+
+    // Batch user lookups — evita queries secuenciales N+1
+    const uniqueIds = [...new Set(payments.map(p => p.telegram_id).filter(Boolean))];
+    const userResults = await Promise.allSettled(uniqueIds.map(id => db.getUser(id)));
+    const userMap = {};
+    uniqueIds.forEach((id, i) => {
+      if (userResults[i].status === 'fulfilled') userMap[id] = userResults[i].value;
+    });
+
+    const paymentsWithUsers = payments.map(payment => ({
+      ...payment,
+      user: userMap[payment.telegram_id] || null
     }));
     
     res.json(paymentsWithUsers);
@@ -825,12 +888,24 @@ app.get('/api/payments/approved', async (req, res) => {
   try {
     const payments = await db.getApprovedPayments();
     
-    const paymentsWithUsers = await Promise.all(payments.map(async (payment) => {
-      const user = await db.getUser(payment.telegram_id);
-      return {
-        ...payment,
-        user: user || null
-      };
+    if (!payments || payments.length === 0) {
+      return res.json([]);
+    }
+
+    // Obtener usuarios únicos en paralelo (evita N+1 queries secuenciales que causan timeout)
+    const uniqueIds = [...new Set(payments.map(p => p.telegram_id).filter(Boolean))];
+    const userResults = await Promise.allSettled(uniqueIds.map(id => db.getUser(id)));
+    
+    const userMap = {};
+    uniqueIds.forEach((id, i) => {
+      if (userResults[i].status === 'fulfilled') {
+        userMap[id] = userResults[i].value;
+      }
+    });
+
+    const paymentsWithUsers = payments.map(payment => ({
+      ...payment,
+      user: userMap[payment.telegram_id] || null
     }));
     
     res.json(paymentsWithUsers);
@@ -1367,15 +1442,23 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     }
     
     const admin = isAdmin(req.params.telegramId);
+
+    // Siempre obtener estadísticas de referidos — necesarias para el descuento al comprar
     let referralStats = null;
-    if (user.referrer_id) {
+    try {
       referralStats = await db.getReferralStats(req.params.telegramId);
+    } catch (e) {
+      console.warn('⚠️ No se pudieron obtener stats de referidos:', e.message);
     }
+
+    // Calcular descuento disponible (limitado a 100%)
+    const discountPct = referralStats ? Math.min(referralStats.discount_percentage || 0, 100) : 0;
     
     res.json({
       ...user,
       isAdmin: admin,
-      referral_stats: referralStats
+      referral_stats: referralStats,
+      referral_discount: discountPct  // campo explícito para que el frontend lo use fácilmente
     });
   } catch (error) {
     console.error('❌ Error obteniendo información del usuario:', error);
@@ -1450,6 +1533,17 @@ app.post('/api/user/:userId/remove-vip', async (req, res) => {
   } catch (error) {
     console.error('❌ Error removiendo VIP:', error);
     res.status(500).json({ error: 'Error removiendo VIP' });
+  }
+});
+
+// GET endpoint for frontend pre-check before showing trial modal
+app.get('/api/check-trial-eligibility/:telegramId', async (req, res) => {
+  try {
+    const eligibility = await db.checkTrialEligibility(req.params.telegramId);
+    res.json(eligibility);
+  } catch (error) {
+    console.error('❌ Error verificando elegibilidad:', error);
+    res.json({ eligible: true, reason: 'Error verificando' }); // fail open
   }
 });
 
@@ -1599,6 +1693,39 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
   } catch (error) {
     console.error('❌ Error marcando prueba como enviada:', error);
     res.status(500).json({ error: 'Error marcando prueba como enviada' });
+  }
+});
+
+// ==================== CANCELAR/ELIMINAR SOLICITUD DE PRUEBA ====================
+app.post('/api/trials/:telegramId/cancel', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    const telegramId = req.params.telegramId;
+
+    if (!isAdmin(adminId)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    const user = await db.getUser(telegramId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Resetear campos de solicitud de prueba
+    const updated = await db.updateUser(telegramId, {
+      trial_requested: false,
+      trial_requested_at: null,
+      trial_game_server: null,
+      trial_connection_type: null,
+      trial_plan_type: null
+    });
+
+    console.log(`🗑️ Solicitud de prueba cancelada por admin ${adminId} para usuario ${telegramId}`);
+
+    res.json({ success: true, message: 'Solicitud de prueba eliminada', user: updated });
+  } catch (error) {
+    console.error('❌ Error cancelando solicitud de prueba:', error);
+    res.status(500).json({ error: 'Error cancelando solicitud: ' + error.message });
   }
 });
 
@@ -1770,10 +1897,10 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`✅ Broadcast creado con ID: ${broadcast.id}`);
     
-    // Obtener usuarios con fallback robusto
+    // Obtener usuarios con paginación completa (supera límite 1000)
     let users = [];
     try {
-      users = await db.getUsersForBroadcast(target) || [];
+      users = await getAllUsersForBroadcast(target);
     } catch (err) {
       console.error('❌ Error obteniendo usuarios para broadcast:', err.message);
       throw new Error('No se pudieron obtener los usuarios: ' + err.message);
@@ -1974,7 +2101,7 @@ app.post('/api/broadcast/retry/:id', async (req, res) => {
       return res.status(404).json({ error: 'Broadcast no encontrado' });
     }
     
-    const users = await db.getUsersForBroadcast(broadcast.target_users);
+    const users = await getAllUsersForBroadcast(broadcast.target_users);
     
     setTimeout(() => {
       sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId);
@@ -3020,8 +3147,34 @@ bot.action('check_status', async (ctx) => {
       await ctx.answerCbQuery();
       return;
     }
+
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+
     if (user?.vip) {
-      const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
+      const diasRestantes = calcularDiasRestantes(user);
+
+      // Si ya expiró (0 días), quitar VIP automáticamente
+      if (diasRestantes <= 0) {
+        await db.removeVIP(userId);
+        await ctx.answerCbQuery();
+        await ctx.reply(
+          `⚠️ <b>Tu plan VIP ha expirado</b>\n\n` +
+          `Tu acceso VIP fue removido automáticamente porque tu plan llegó a su fin.\n\n` +
+          `Renueva ahora para continuar disfrutando del servicio.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [createButton("VER PLANES", { web_app: { url: webappUrl } })],
+                [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
+              ]
+            }
+          }
+        );
+        return;
+      }
+
+      // Mostrar perfil VIP normal
       await ctx.reply(getVipStatusHtml(user), {
         parse_mode: 'HTML',
         reply_markup: {
@@ -3031,8 +3184,24 @@ bot.action('check_status', async (ctx) => {
           ]
         }
       });
+
+      // Enviar recordatorio de expiración como mensaje SEPARADO si quedan ≤ 5 días
+      if (diasRestantes <= 5) {
+        await ctx.reply(
+          `⏰ <b>RECORDATORIO: Tu plan expira pronto</b>\n\n` +
+          `Te quedan <b>${diasRestantes} día${diasRestantes === 1 ? '' : 's'}</b> de acceso VIP.\n\n` +
+          `Renueva antes de que expire para no perder el acceso.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [createButton("RENOVAR AHORA", { web_app: { url: webappUrl } })]
+              ]
+            }
+          }
+        );
+      }
     } else {
-      const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
       await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, {
         parse_mode: 'Markdown',
         reply_markup: {

@@ -12,11 +12,19 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-// Cliente para operaciones normales (usando anon key)
+// Cliente para operaciones normales (usando anon key) - solo para lecturas públicas si se requiere
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Cliente para operaciones de administración (usando service role key) - solo para storage
+// Cliente para operaciones de administración (usando service role key) - evita RLS
 const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : supabase;
+
+if (!supabaseServiceKey) {
+  console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no configurada. Usando anon key para admin. Algunas operaciones pueden fallar por RLS.');
+}
+
+// Helper para usar supabaseAdmin en todas las operaciones de tablas (lectura/escritura)
+// De esta forma nos aseguramos de que el backend tenga acceso total.
+const dbClient = supabaseAdmin;
 
 const db = {
   // ========== STORAGE (IMÁGENES Y ARCHIVOS) ==========
@@ -115,7 +123,6 @@ const db = {
       if (!oldFileName) return;
       
       // Solo eliminar si existe el archivo antiguo
-      // No aplica para archivos de prueba ya que estos se manejan separadamente
       const { error } = await supabaseAdmin.storage
         .from('plan-files')
         .remove([oldFileName]);
@@ -135,10 +142,9 @@ const db = {
     try {
       console.log(`🔍 Buscando usuario ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('*')
         .eq('telegram_id', userId)
@@ -166,14 +172,11 @@ const db = {
     try {
       console.log(`💾 Guardando usuario ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      // Verificar si el usuario ya existe
       const existingUser = await this.getUser(userId);
       
       if (existingUser) {
-        // Actualizar usuario existente
         console.log(`✏️ Actualizando usuario existente ${userId}`);
         
         const updateData = {
@@ -182,31 +185,26 @@ const db = {
           last_activity: new Date().toISOString()
         };
         
-        // Asegurar que telegram_id esté presente
         updateData.telegram_id = userId;
         
-        // Si se envía trial_requested, actualizar también trial_requested_at
         if (userData.trial_requested && !existingUser.trial_requested) {
           updateData.trial_requested_at = new Date().toISOString();
         }
         
-        // Si se envía trial_received, actualizar también trial_sent_at
         if (userData.trial_received && !existingUser.trial_received) {
           updateData.trial_sent_at = new Date().toISOString();
         }
         
-        // Si se envía referrer_id, guardarlo
         if (userData.referrer_id && !existingUser.referrer_id) {
           updateData.referrer_id = userData.referrer_id;
           updateData.referrer_username = userData.referrer_username;
         }
         
-        // Si no se especifica is_active, mantener el valor actual
         if (userData.is_active === undefined) {
           updateData.is_active = existingUser.is_active;
         }
         
-        const { data, error } = await supabase
+        const { data, error } = await dbClient
           .from('users')
           .update(updateData)
           .eq('telegram_id', userId)
@@ -221,7 +219,6 @@ const db = {
         console.log(`✅ Usuario actualizado: ${data.first_name || data.username || userId}`);
         return data;
       } else {
-        // Crear nuevo usuario
         console.log(`🆕 Creando nuevo usuario ${userId}`);
         
         const insertData = {
@@ -232,12 +229,11 @@ const db = {
           last_activity: new Date().toISOString()
         };
         
-        // Establecer is_active como true por defecto para nuevos usuarios
         if (insertData.is_active === undefined) {
           insertData.is_active = true;
         }
         
-        const { data, error } = await supabase
+        const { data, error } = await dbClient
           .from('users')
           .insert([insertData])
           .select()
@@ -261,14 +257,13 @@ const db = {
     try {
       console.log(`✏️ Actualizando usuario ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .update({
           ...updateData,
-          telegram_id: userId, // Asegurar que telegram_id esté presente
+          telegram_id: userId,
           updated_at: new Date().toISOString()
         })
         .eq('telegram_id', userId)
@@ -320,13 +315,12 @@ const db = {
     try {
       console.log(`👑 Haciendo usuario ${telegramId} VIP...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .update({
-          telegram_id: userId, // Asegurar que telegram_id esté presente
+          telegram_id: userId,
           vip: true,
           plan: vipData.plan || 'vip',
           plan_price: vipData.plan_price || 0,
@@ -355,13 +349,12 @@ const db = {
     try {
       console.log(`👑 Removiendo VIP de usuario ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .update({
-          telegram_id: userId, // Asegurar que telegram_id esté presente
+          telegram_id: userId,
           vip: false,
           plan: null,
           plan_price: null,
@@ -385,17 +378,16 @@ const db = {
     }
   },
 
-  // ✅ CORREGIDO: ahora obtiene TODOS los usuarios con paginación
   async getAllUsers() {
     try {
       console.log('👥 Obteniendo todos los usuarios (paginación automática)...');
       
       let allUsers = [];
       let from = 0;
-      const pageSize = 1000; // Límite máximo de Supabase por página
+      const pageSize = 1000;
 
       while (true) {
-        const { data, error } = await supabase
+        const { data, error } = await dbClient
           .from('users')
           .select('*')
           .order('created_at', { ascending: false })
@@ -409,8 +401,6 @@ const db = {
         if (data && data.length > 0) {
           allUsers = allUsers.concat(data);
           from += pageSize;
-          
-          // Si la página está incompleta, significa que ya no hay más registros
           if (data.length < pageSize) break;
         } else {
           break;
@@ -429,7 +419,7 @@ const db = {
     try {
       console.log('👑 Obteniendo usuarios VIP...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('*')
         .eq('vip', true)
@@ -455,7 +445,7 @@ const db = {
       const date = new Date();
       date.setDate(date.getDate() - days);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('*')
         .gte('last_activity', date.toISOString())
@@ -479,12 +469,11 @@ const db = {
     try {
       console.log(`🤝 Creando referido: ${referrerId} -> ${referredId}`);
       
-      // Convertir a strings para asegurar consistencia
       const referrerIdStr = String(referrerId).trim();
       const referredIdStr = String(referredId).trim();
       
       // Verificar si ya existe este referido
-      const { data: existing, error: checkError } = await supabase
+      const { data: existing, error: checkError } = await dbClient
         .from('referrals')
         .select('id')
         .eq('referrer_id', referrerIdStr)
@@ -497,7 +486,7 @@ const db = {
       }
       
       // Crear nuevo referido (Nivel 1)
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('referrals')
         .insert([{
           referrer_id: referrerIdStr,
@@ -519,7 +508,7 @@ const db = {
       console.log(`✅ Referido creado con ID: ${data.id}`);
       
       // Buscar referidor del referrer para crear nivel 2
-      const { data: referrerReferrals } = await supabase
+      const { data: referrerReferrals } = await dbClient
         .from('referrals')
         .select('referrer_id')
         .eq('referred_id', referrerIdStr)
@@ -527,8 +516,7 @@ const db = {
         .single();
       
       if (referrerReferrals && referrerReferrals.referrer_id) {
-        // Crear referido nivel 2
-        await supabase
+        await dbClient
           .from('referrals')
           .insert([{
             referrer_id: referrerReferrals.referrer_id,
@@ -554,11 +542,9 @@ const db = {
     try {
       console.log(`📊 Obteniendo estadísticas de referidos para ${telegramId}`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      // Obtener referidos directos (nivel 1)
-      const { data: level1, error: error1 } = await supabase
+      const { data: level1, error: error1 } = await dbClient
         .from('referrals')
         .select('*')
         .eq('referrer_id', userId)
@@ -576,8 +562,7 @@ const db = {
         };
       }
       
-      // Obtener referidos indirectos (nivel 2)
-      const { data: level2, error: error2 } = await supabase
+      const { data: level2, error: error2 } = await dbClient
         .from('referrals')
         .select('*')
         .eq('referrer_id', userId)
@@ -595,13 +580,11 @@ const db = {
         };
       }
       
-      // Contar referidos que han pagado
       const level1Paid = level1?.filter(r => r.has_paid).length || 0;
       const level2Paid = level2?.filter(r => r.has_paid).length || 0;
       const totalReferrals = (level1?.length || 0) + (level2?.length || 0);
       const totalPaid = level1Paid + level2Paid;
       
-      // Calcular descuento (20% por nivel 1, 10% por nivel 2)
       const discount = (level1Paid * 20) + (level2Paid * 10);
       const discountPercentage = discount > 100 ? 100 : discount;
       
@@ -637,7 +620,7 @@ const db = {
     try {
       console.log('📊 Obteniendo estadísticas generales de referidos');
       
-      const { data: referrals, error } = await supabase
+      const { data: referrals, error } = await dbClient
         .from('referrals')
         .select('*');
       
@@ -656,7 +639,6 @@ const db = {
         };
       }
       
-      // Agrupar por referidor
       const referrersMap = new Map();
       
       referrals?.forEach(referral => {
@@ -678,17 +660,14 @@ const db = {
         if (referral.level === 2) stats.level2++;
       });
       
-      // Convertir a array y ordenar
       const topReferrers = Array.from(referrersMap.values())
         .sort((a, b) => b.total - a.total)
         .slice(0, 10);
       
-      // Referidos recientes
       const recentReferrals = referrals
         ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 10) || [];
       
-      // Calcular estadísticas agregadas
       const total_referrals = referrals?.length || 0;
       const total_paid = referrals?.filter(r => r.has_paid).length || 0;
       const level1_referrals = referrals?.filter(r => r.level === 1).length || 0;
@@ -701,7 +680,6 @@ const db = {
         total_paid: total_paid,
         top_referrers: topReferrers,
         recent_referrals: recentReferrals,
-        // Estadísticas adicionales para compatibilidad
         paid_referrals: total_paid,
         level1_referrals: level1_referrals,
         level2_referrals: level2_referrals,
@@ -725,14 +703,13 @@ const db = {
     }
   },
 
-  async markReferralAsPaid(referredId) {
+  async markReferralAsPaid(referredId, level = 1) {
     try {
-      console.log(`💰 Marcando referido ${referredId} como pagado`);
+      console.log(`💰 Marcando referido ${referredId} como pagado (nivel ${level})`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(referredId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('referrals')
         .update({ has_paid: true })
         .eq('referred_id', userId)
@@ -755,10 +732,9 @@ const db = {
     try {
       console.log(`🔍 Obteniendo referidos de ${referrerId}`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(referrerId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('referrals')
         .select('*')
         .eq('referrer_id', userId)
@@ -789,22 +765,20 @@ const db = {
         original_price: paymentData.original_price
       });
       
-      // Validar que telegram_id esté presente y sea válido
       if (!paymentData.telegram_id || paymentData.telegram_id === 'undefined' || paymentData.telegram_id === 'null') {
         console.error('❌ Error: El campo telegram_id es inválido:', paymentData.telegram_id);
         throw new Error('El campo telegram_id es requerido y debe ser válido para crear un pago');
       }
       
-      // Convertir a string para asegurar consistencia
       const telegramId = String(paymentData.telegram_id).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .insert([{
-          telegram_id: telegramId, // Asegurar que sea string consistente
+          telegram_id: telegramId,
           plan: paymentData.plan,
           price: paymentData.price,
-          original_price: paymentData.original_price || paymentData.price, // Guardar precio original
+          original_price: paymentData.original_price || paymentData.price,
           method: paymentData.method || 'transfer',
           screenshot_url: paymentData.screenshot_url || '',
           notes: paymentData.notes || '',
@@ -835,7 +809,7 @@ const db = {
     try {
       console.log(`🔍 Buscando pago ${paymentId}...`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .select('*')
         .eq('id', paymentId)
@@ -853,11 +827,9 @@ const db = {
       
       console.log(`✅ Pago ${paymentId} encontrado, telegram_id: ${data.telegram_id || 'NO TIENE'}, cupón: ${data.coupon_code || 'No'}`);
       
-      // Validar que el pago tenga telegram_id
       if (!data.telegram_id) {
         console.warn(`⚠️ ADVERTENCIA: El pago ${paymentId} no tiene telegram_id`);
       } else {
-        // Asegurar que telegram_id sea string
         data.telegram_id = String(data.telegram_id).trim();
       }
       
@@ -872,7 +844,7 @@ const db = {
     try {
       console.log('🔍 Buscando pagos pendientes...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .select('*')
         .eq('status', 'pending')
@@ -885,13 +857,11 @@ const db = {
       
       console.log(`✅ ${data?.length || 0} pagos pendientes encontrados`);
       
-      // Verificar que todos los pagos tengan telegram_id y convertirlos a string
       const pagosSinTelegramId = data?.filter(p => !p.telegram_id) || [];
       if (pagosSinTelegramId.length > 0) {
         console.warn(`⚠️ ADVERTENCIA: ${pagosSinTelegramId.length} pagos pendientes no tienen telegram_id`);
       }
       
-      // Asegurar que todos los telegram_id sean strings
       const processedData = data?.map(payment => ({
         ...payment,
         telegram_id: payment.telegram_id ? String(payment.telegram_id).trim() : null
@@ -908,7 +878,7 @@ const db = {
     try {
       console.log('🔍 Buscando pagos aprobados...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .select('*')
         .eq('status', 'approved')
@@ -921,13 +891,11 @@ const db = {
       
       console.log(`✅ ${data?.length || 0} pagos aprobados encontrados`);
       
-      // Verificar que todos los pagos tengan telegram_id y convertirlos a string
       const pagosSinTelegramId = data?.filter(p => !p.telegram_id) || [];
       if (pagosSinTelegramId.length > 0) {
         console.warn(`⚠️ ADVERTENCIA: ${pagosSinTelegramId.length} pagos aprobados no tienen telegram_id`);
       }
       
-      // Asegurar que todos los telegram_id sean strings
       const processedData = data?.map(payment => ({
         ...payment,
         telegram_id: payment.telegram_id ? String(payment.telegram_id).trim() : null
@@ -944,7 +912,7 @@ const db = {
     try {
       console.log(`✅ Aprobando pago ${paymentId}...`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .update({
           status: 'approved',
@@ -960,7 +928,6 @@ const db = {
         throw error;
       }
       
-      // Asegurar que telegram_id sea string
       if (data.telegram_id) {
         data.telegram_id = String(data.telegram_id).trim();
       }
@@ -977,7 +944,7 @@ const db = {
     try {
       console.log(`❌ Rechazando pago ${paymentId} con motivo: ${reason}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .update({
           status: 'rejected',
@@ -1006,7 +973,7 @@ const db = {
     try {
       console.log(`✏️ Actualizando pago ${paymentId}...`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .update({
           ...updateData,
@@ -1033,10 +1000,9 @@ const db = {
     try {
       console.log(`📊 Obteniendo pagos del usuario ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .select('*')
         .eq('telegram_id', userId)
@@ -1064,7 +1030,7 @@ const db = {
         usdt_amount: usdtData.usdt_amount
       });
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('usdt_payments')
         .insert([{
           ...usdtData,
@@ -1092,7 +1058,7 @@ const db = {
     try {
       console.log(`🔍 Buscando pago USDT con dirección: ${address}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('usdt_payments')
         .select('*')
         .eq('usdt_address', address)
@@ -1137,7 +1103,7 @@ const db = {
         updateData.completed_at = new Date().toISOString();
       }
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('usdt_payments')
         .update(updateData)
         .eq('usdt_address', address)
@@ -1162,15 +1128,13 @@ const db = {
     try {
       console.log(`💾 Guardando información de archivo de plan...`);
       
-      // Verificar si ya existe un archivo para este plan
-      const { data: existing } = await supabase
+      const { data: existing } = await dbClient
         .from('plan_files')
         .select('*')
         .eq('plan', planFileData.plan)
         .single();
       
       if (existing) {
-        // Si es un archivo de prueba, eliminar el archivo anterior del storage
         if (planFileData.plan === 'trial' && existing.storage_filename) {
           const { error: deleteError } = await supabaseAdmin.storage
             .from('trial-files')
@@ -1183,8 +1147,7 @@ const db = {
           }
         }
         
-        // Actualizar archivo existente
-        const { data, error } = await supabase
+        const { data, error } = await dbClient
           .from('plan_files')
           .update({
             ...planFileData,
@@ -1202,8 +1165,7 @@ const db = {
         console.log(`✅ Archivo de plan actualizado: ${planFileData.plan}`);
         return data;
       } else {
-        // Crear nuevo registro
-        const { data, error } = await supabase
+        const { data, error } = await dbClient
           .from('plan_files')
           .insert([{
             ...planFileData,
@@ -1231,7 +1193,7 @@ const db = {
     try {
       console.log(`🔍 Buscando archivo de plan: ${plan}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('plan_files')
         .select('*')
         .eq('plan', plan)
@@ -1259,7 +1221,7 @@ const db = {
     try {
       console.log('🔍 Obteniendo todos los archivos de planes...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('plan_files')
         .select('*')
         .order('plan', { ascending: true });
@@ -1283,10 +1245,8 @@ const db = {
       
       const { data: fileData } = await this.getPlanFile(plan);
       if (fileData && fileData.storage_filename) {
-        // Determinar bucket según el plan
         const bucket = plan === 'trial' ? 'trial-files' : 'plan-files';
         
-        // Eliminar del storage usando el cliente admin
         const { error: deleteError } = await supabaseAdmin.storage
           .from(bucket)
           .remove([fileData.storage_filename]);
@@ -1298,7 +1258,7 @@ const db = {
         }
       }
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('plan_files')
         .delete()
         .eq('plan', plan)
@@ -1323,8 +1283,7 @@ const db = {
     try {
       console.log('📊 Obteniendo estadísticas...');
       
-      // Obtener estadísticas de usuarios
-      const { data: usersData, error: usersError } = await supabase
+      const { data: usersData, error: usersError } = await dbClient
         .from('users')
         .select('vip, created_at, trial_requested, trial_received, referrer_id, referrer_username, is_active');
       
@@ -1341,8 +1300,7 @@ const db = {
       const activeUsers = usersData?.filter(u => u.is_active !== false)?.length || 0;
       const inactiveUsers = usersData?.filter(u => u.is_active === false)?.length || 0;
       
-      // Obtener estadísticas de pagos
-      const { data: paymentsData, error: paymentsError } = await supabase
+      const { data: paymentsData, error: paymentsError } = await dbClient
         .from('payments')
         .select('status, price, method, telegram_id, coupon_used, coupon_code, coupon_discount');
       
@@ -1358,12 +1316,10 @@ const db = {
       const usdtPayments = paymentsData?.filter(p => p.method === 'usdt')?.length || 0;
       const couponPayments = paymentsData?.filter(p => p.coupon_used)?.length || 0;
       
-      // Calcular ingresos totales (con descuentos aplicados)
       const totalRevenue = paymentsData
         ?.filter(p => p.status === 'approved' && p.price)
         ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
       
-      // Calcular descuentos totales aplicados
       const totalDiscounts = paymentsData
         ?.filter(p => p.status === 'approved' && p.coupon_discount && p.price)
         ?.reduce((sum, p) => {
@@ -1372,11 +1328,9 @@ const db = {
           return sum + discountAmount;
         }, 0) || 0;
       
-      // Obtener estadísticas de referidos
       const referralsStats = await this.getAllReferralsStats();
       
-      // Obtener estadísticas de USDT (solo para registro)
-      const { data: usdtData } = await supabase
+      const { data: usdtData } = await dbClient
         .from('usdt_payments')
         .select('status');
       
@@ -1384,15 +1338,13 @@ const db = {
       const pendingUsdt = usdtData?.filter(p => p.status === 'pending')?.length || 0;
       const completedUsdt = usdtData?.filter(p => p.status === 'completed')?.length || 0;
       
-      // Obtener estadísticas de broadcasts
-      const { data: broadcastsData } = await supabase
+      const { data: broadcastsData } = await dbClient
         .from('broadcasts')
         .select('status');
       
       const totalBroadcasts = broadcastsData?.length || 0;
       const completedBroadcasts = broadcastsData?.filter(b => b.status === 'completed')?.length || 0;
       
-      // Obtener estadísticas de cupones
       const couponsStats = await this.getCouponsStats();
       
       return {
@@ -1495,7 +1447,7 @@ const db = {
     try {
       console.log('🎯 Obteniendo estadísticas de pruebas...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('trial_requested, trial_received, trial_requested_at, trial_sent_at, trial_plan_type')
         .eq('trial_requested', true);
@@ -1509,13 +1461,11 @@ const db = {
       const completedTrials = data?.filter(u => u.trial_received)?.length || 0;
       const pendingTrials = totalRequests - completedTrials;
       
-      // Calcular solicitudes de hoy
       const today = new Date().toISOString().split('T')[0];
       const todayRequests = data?.filter(u => 
         u.trial_requested_at && u.trial_requested_at.startsWith(today)
       )?.length || 0;
       
-      // Calcular por tipo de prueba
       const trialByType = {
         '1h': data?.filter(u => u.trial_plan_type === '1h')?.length || 0,
         '24h': data?.filter(u => u.trial_plan_type === '24h')?.length || 0
@@ -1544,7 +1494,7 @@ const db = {
     try {
       console.log('⏳ Obteniendo pruebas pendientes...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('*')
         .eq('trial_requested', true)
@@ -1568,10 +1518,9 @@ const db = {
     try {
       console.log(`✅ Marcando prueba como enviada para ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .update({
           trial_received: true,
@@ -1600,9 +1549,7 @@ const db = {
     try {
       console.log(`🔍 Verificando elegibilidad para prueba de ${telegramId}...`);
       
-      // Convertir a string para asegurar consistencia
       const userId = String(telegramId).trim();
-      
       const user = await this.getUser(userId);
       
       if (!user) {
@@ -1612,7 +1559,6 @@ const db = {
         };
       }
       
-      // Verificar si ya solicitó prueba
       if (!user.trial_requested) {
         return {
           eligible: true,
@@ -1620,7 +1566,6 @@ const db = {
         };
       }
       
-      // Verificar si ya recibió prueba
       if (user.trial_requested && !user.trial_received) {
         return {
           eligible: false,
@@ -1628,7 +1573,6 @@ const db = {
         };
       }
       
-      // Verificar si recibió prueba hace menos de 30 días
       if (user.trial_received && user.trial_sent_at) {
         const lastTrialDate = new Date(user.trial_sent_at);
         const now = new Date();
@@ -1661,7 +1605,7 @@ const db = {
     try {
       console.log(`📢 Creando broadcast...`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('broadcasts')
         .insert([{
           message: message,
@@ -1691,7 +1635,7 @@ const db = {
     try {
       console.log('📢 Obteniendo broadcasts...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('broadcasts')
         .select('*')
         .order('created_at', { ascending: false })
@@ -1719,7 +1663,7 @@ const db = {
         return null;
       }
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('broadcasts')
         .select('*')
         .eq('id', parseInt(broadcastId))
@@ -1765,7 +1709,7 @@ const db = {
         updateData.unavailable_count = stats.unavailable_count || 0;
       }
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('broadcasts')
         .update(updateData)
         .eq('id', broadcastId)
@@ -1789,7 +1733,7 @@ const db = {
     try {
       console.log(`👥 Obteniendo usuarios para broadcast: ${targetUsers}...`);
       
-      let query = supabase
+      let query = dbClient
         .from('users')
         .select('telegram_id, username, first_name, vip, trial_requested, trial_received, last_activity, is_active');
       
@@ -1826,7 +1770,7 @@ const db = {
     try {
       console.log(`🔄 Reintentando broadcast fallido: ${broadcastId}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('broadcasts')
         .update({
           status: 'pending',
@@ -1849,13 +1793,13 @@ const db = {
     }
   },
 
-  // ========== CUPONES - FUNCIONES NUEVAS ==========
+  // ========== CUPONES ==========
   async createCoupon(couponData) {
     try {
       console.log(`🎫 CREANDO CUPÓN EN DB: ${couponData.code}`);
       console.log(`📊 Datos del cupón:`, JSON.stringify(couponData, null, 2));
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .insert([{
           code: couponData.code,
@@ -1874,9 +1818,6 @@ const db = {
       
       if (error) {
         console.error('❌ ERROR EN QUERY SUPABASE:', error);
-        console.error('❌ Código de error:', error.code);
-        console.error('❌ Mensaje de error:', error.message);
-        console.error('❌ Detalles:', error.details);
         throw error;
       }
       
@@ -1892,7 +1833,7 @@ const db = {
     try {
       console.log('🎫 Obteniendo todos los cupones...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .select('*')
         .order('created_at', { ascending: false });
@@ -1914,7 +1855,7 @@ const db = {
     try {
       console.log(`🔍 Buscando cupón: ${code}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .select('*')
         .eq('code', code.toUpperCase())
@@ -1942,7 +1883,7 @@ const db = {
     try {
       console.log('📊 Obteniendo estadísticas de cupones...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .select('*');
       
@@ -1957,11 +1898,9 @@ const db = {
       const inactive = data?.filter(c => c.status === 'inactive').length || 0;
       const used = data?.reduce((sum, c) => sum + (c.used || 0), 0);
       
-      // Calcular descuento promedio
       const averageDiscount = data?.length > 0 ? 
         data.reduce((sum, c) => sum + (c.discount || 0), 0) / data.length : 0;
       
-      // Obtener cupones con stock bajo (menos de 5)
       const lowStock = data?.filter(c => c.stock < 5 && c.stock > 0).length || 0;
       const outOfStock = data?.filter(c => c.stock === 0).length || 0;
       
@@ -1996,7 +1935,7 @@ const db = {
     try {
       console.log(`✏️ Actualizando cupón: ${code}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .update({
           ...updateData,
@@ -2023,7 +1962,7 @@ const db = {
     try {
       console.log(`✏️ Actualizando estado del cupón ${code} a ${status}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .update({
           status: status,
@@ -2051,7 +1990,7 @@ const db = {
     try {
       console.log(`🗑️ Eliminando cupón: ${code}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupons')
         .delete()
         .eq('code', code.toUpperCase())
@@ -2075,11 +2014,10 @@ const db = {
     try {
       console.log(`🔍 Verificando si usuario ${telegramId} usó el cupón ${code}`);
       
-      // Convertir a string para consistencia
       const userId = String(telegramId).trim();
       const couponCode = code.toUpperCase();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupon_usage')
         .select('id')
         .eq('telegram_id', userId)
@@ -2108,29 +2046,24 @@ const db = {
     try {
       console.log(`🎫 Aplicando cupón ${code} al pago ${paymentId} del usuario ${telegramId}`);
       
-      // Convertir a string para consistencia
       const userId = String(telegramId).trim();
       const couponCode = code.toUpperCase();
       
-      // Verificar que el cupón existe y está activo
       const coupon = await this.getCoupon(couponCode);
       if (!coupon || coupon.status !== 'active') {
         throw new Error('Cupón no válido o inactivo');
       }
       
-      // Verificar stock
       if (coupon.stock <= 0) {
         throw new Error('Cupón agotado');
       }
       
-      // Verificar si el usuario ya usó este cupón
       const hasUsed = await this.hasUserUsedCoupon(userId, couponCode);
       if (hasUsed) {
         throw new Error('Usuario ya usó este cupón');
       }
       
-      // Registrar uso del cupón
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupon_usage')
         .insert([{
           coupon_code: couponCode,
@@ -2147,7 +2080,6 @@ const db = {
         throw error;
       }
       
-      // Reducir stock del cupón
       await this.updateCoupon(couponCode, {
         stock: coupon.stock - 1,
         used: (coupon.used || 0) + 1,
@@ -2169,7 +2101,7 @@ const db = {
       
       const couponCode = code.toUpperCase();
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('coupon_usage')
         .select(`
           *,
@@ -2209,7 +2141,7 @@ const db = {
     try {
       console.log(`🔍 Buscando usuarios con término: ${searchTerm}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('*')
         .or(`telegram_id.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%`)
@@ -2233,7 +2165,7 @@ const db = {
     try {
       console.log(`🔍 Buscando pagos con término: ${searchTerm}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('payments')
         .select('*')
         .or(`id.eq.${searchTerm},telegram_id.ilike.%${searchTerm}%`)
@@ -2257,7 +2189,7 @@ const db = {
     try {
       console.log(`📅 Obteniendo actividad reciente (${limit} items)...`);
       
-      const { data: payments, error: paymentsError } = await supabase
+      const { data: payments, error: paymentsError } = await dbClient
         .from('payments')
         .select('*')
         .order('created_at', { ascending: false })
@@ -2268,7 +2200,7 @@ const db = {
         return [];
       }
       
-      const { data: users, error: usersError } = await supabase
+      const { data: users, error: usersError } = await dbClient
         .from('users')
         .select('*')
         .order('created_at', { ascending: false })
@@ -2320,7 +2252,7 @@ const db = {
     try {
       console.log('📊 Obteniendo estadísticas de juegos...');
       
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('users')
         .select('trial_game_server, trial_connection_type, trial_requested_at')
         .eq('trial_requested', true);
@@ -2370,37 +2302,31 @@ const db = {
     try {
       console.log('🔍 Probando conexión a la base de datos...');
       
-      // Probar conexión a usuarios
-      const { data: users, error: usersError } = await supabase
+      const { data: users, error: usersError } = await dbClient
         .from('users')
         .select('count')
         .limit(1);
       
-      // Probar conexión a pagos
-      const { data: payments, error: paymentsError } = await supabase
+      const { data: payments, error: paymentsError } = await dbClient
         .from('payments')
         .select('count')
         .limit(1);
       
-      // Probar conexión a pagos USDT
-      const { data: usdtPayments, error: usdtError } = await supabase
+      const { data: usdtPayments, error: usdtError } = await dbClient
         .from('usdt_payments')
         .select('count')
         .limit(1);
       
-      // Probar conexión a broadcasts
-      const { data: broadcasts, error: broadcastsError } = await supabase
+      const { data: broadcasts, error: broadcastsError } = await dbClient
         .from('broadcasts')
         .select('count')
         .limit(1);
       
-      // Probar conexión a cupones
-      const { data: coupons, error: couponsError } = await supabase
+      const { data: coupons, error: couponsError } = await dbClient
         .from('coupons')
         .select('count')
         .limit(1);
       
-      // Verificar acceso a storage
       const storageStatus = await this.checkStorageAccess();
       
       return {

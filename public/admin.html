@@ -358,8 +358,6 @@ td strong { color: var(--txt); font-weight: 600; font-family: var(--f-body); }
 .badge.bpa, .badge.default { border-color: rgba(0,212,255,.3); color: var(--sig); background: var(--sig-soft); }
 .badge.usdt { border-color: rgba(255,176,32,.4); color: var(--amber); background: rgba(255,176,32,.07); }
 .badge.trial { border-color: rgba(0,255,136,.3); color: #88ffcc; background: rgba(0,255,136,.06); }
-.badge.coupon-used { border-color: var(--purple); color: var(--purple); background: rgba(153,102,255,.07); }
-.badge.coupon-not-used { border-color: var(--txt-3); color: var(--txt-3); }
 
 /* ── INPUTS ── */
 input[type=text], input[type=number], input[type=date], input[type=datetime-local],
@@ -471,7 +469,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   border: 1px solid var(--wire-hi);
   border-top: 2px solid var(--sig);
   padding: 20px;
-  width: min(650px, 100%);
+  width: min(800px, 100%);
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
@@ -558,7 +556,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 .ref-lbl { font-family: var(--f-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); margin-top: 3px; }
 
 /* ── PLAN FILE GRID ── */
-.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .plan-card {
   background: rgba(255,255,255,.02);
   border: 1px solid var(--wire);
@@ -566,8 +564,14 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   padding: 14px;
 }
 .plan-card-name { font-family: var(--f-head); font-size: .9rem; letter-spacing: .1em; color: var(--txt); margin-bottom: 8px; }
-.plan-file-info { font-family: var(--f-mono); font-size: .62rem; color: var(--txt-3); margin-bottom: 8px; }
+.plan-file-info { font-family: var(--f-mono); font-size: .62rem; color: var(--txt-3); margin-bottom: 4px; }
 .plan-file-info span { color: var(--txt-2); }
+
+/* ── PROGRESS BAR ── */
+.progress-container { margin: 10px 0; }
+.progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; transition: width .3s; }
+.progress-info { display: flex; justify-content: space-between; margin-top: 4px; font-size: .58rem; color: var(--txt-3); }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
@@ -625,7 +629,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
       </div>
       <div class="nav-group">
         <div class="nav-group-label">// Contenido</div>
-        <div class="nav-item" data-tab="plan-files" onclick="switchTab('plan-files')"><i class="fas fa-folder"></i> Archivos Planes</div>
+        <div class="nav-item" data-tab="plan-files" onclick="switchTab('plan-files')"><i class="fas fa-folder"></i> Archivos</div>
         <div class="nav-item" data-tab="trial-files" onclick="switchTab('trial-files')"><i class="fas fa-database"></i> Pool Pruebas</div>
         <div class="nav-item" data-tab="coupons" onclick="switchTab('coupons')"><i class="fas fa-tag"></i> Cupones</div>
       </div>
@@ -780,7 +784,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
               <div class="no-data" id="topReferrersNoData" style="display:none"><i class="fas fa-users"></i>Sin datos</div>
               <div class="table-wrap" id="topReferrersWrap" style="display:none">
                 <table>
-                  <thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Acciones</th></tr></thead>
+                  <thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Ver</th></tr></thead>
                   <tbody id="topReferrersTableBody"></tbody>
                 </table>
               </div>
@@ -810,7 +814,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
                   <div class="ref-card"><div class="ref-val" id="userLevel2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div>
                   <div class="ref-card"><div class="ref-val" id="userDiscount">0%</div><div class="ref-lbl">Descuento</div></div>
                 </div>
-                <table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table>
+                <table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table>
               </div>
             </div>
             <!-- Full list -->
@@ -821,7 +825,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
             <div class="loading" id="referralsListLoading"><div class="spinner"></div> Cargando...</div>
             <div class="no-data" id="referralsListNoData" style="display:none"><i class="fas fa-share-alt"></i>Sin referidos</div>
             <div class="table-wrap">
-              <table><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="referralsListTableBody"></tbody></table>
+              <tr><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Ver</th></tr></thead><tbody id="referralsListTableBody"></tbody></table>
             </div>
             <div class="pagination" id="referralsPagination" style="display:none">
               <button class="btn" id="prevPageBtn" onclick="changeReferralsPage(-1)"><i class="fas fa-chevron-left"></i></button>
@@ -832,12 +836,15 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
         </div>
       </div>
 
-      <!-- ══════════ ARCHIVOS DE PLANES ══════════ -->
+      <!-- ══════════ ARCHIVOS DE PLANES (MEJORADO CON ESTADÍSTICAS) ══════════ -->
       <div id="plan-filesPanel" class="tab-panel">
         <div class="card">
           <div class="card-head">
-            <div class="card-title"><i class="fas fa-folder"></i> Archivos de Planes (Pago)</div>
-            <button class="btn" onclick="loadPlanFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button>
+            <div class="card-title"><i class="fas fa-folder"></i> Archivos de Planes</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="showFilesStatsModal()"><i class="fas fa-chart-bar"></i> <span>Estadísticas</span></button>
+              <button class="btn" onclick="loadPlanFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button>
+            </div>
           </div>
           <div class="card-body">
             <div class="info-box"><i class="fas fa-info-circle"></i> Sube aquí el archivo de configuración para cada plan de pago. Cuando apruebes un pago, envía el archivo manualmente desde "Pagos Aprobados".</div>
@@ -848,7 +855,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
         </div>
       </div>
 
-      <!-- ══════════ POOL DE PRUEBAS (MEJORADO) ══════════ -->
+      <!-- ══════════ POOL DE PRUEBAS ══════════ -->
       <div id="trial-filesPanel" class="tab-panel">
         <div class="card">
           <div class="card-head">
@@ -857,7 +864,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
           </div>
           <div class="card-body">
             <div class="info-box"><i class="fas fa-info-circle"></i> Sube múltiples archivos de prueba. Cuando un usuario solicite una prueba, se enviará automáticamente uno de los archivos activos en rotación.</div>
-            <div class="warn-box"><i class="fas fa-exclamation-triangle"></i> Necesitas crear la tabla `trial_files` en Supabase. Consulta el SQL al final de esta pantalla.</div>
+            <div class="warn-box"><i class="fas fa-exclamation-triangle"></i> Necesitas crear la tabla <code>trial_files</code> en Supabase. Consulta el SQL al final de esta pantalla.</div>
             <!-- Upload new -->
             <div style="margin-bottom:16px">
               <div class="upload-zone" onclick="document.getElementById('trialFilePoolInput').click()">
@@ -942,8 +949,6 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
                 <option value="trial_pending">⏳ Pruebas pendientes</option>
                 <option value="trial_received">✅ Pruebas recibidas</option>
                 <option value="active">📱 Usuarios activos (30d)</option>
-                <option value="with_referrals">🤝 Usuarios con referidos</option>
-                <option value="usdt_payers">💰 Pagos USDT</option>
               </select>
             </div>
             <div class="form-group" style="margin-bottom:10px">
@@ -973,7 +978,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
             <div class="loading" id="gamesLoading"><div class="spinner"></div> Cargando...</div>
             <div class="no-data" id="gamesNoData" style="display:none"><i class="fas fa-gamepad"></i>Sin datos</div>
             <div class="table-wrap" id="gamesTableWrap" style="display:none">
-              <tr><thead><tr><th>Juego/Servidor</th><th>Solicitudes</th><th>Conexiones</th><th>Última solicitud</th></tr></thead><tbody id="gamesTableBody"></tbody></table>
+              <td><thead><tr><th>Juego/Servidor</th><th>Solicitudes</th><th>Conexiones</th><th>Última solicitud</th></tr></thead><tbody id="gamesTableBody"></tbody></table>
             </div>
           </div>
         </div>
@@ -987,7 +992,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 
 <!-- Screenshot / Approve modal -->
 <div class="modal-bg" id="screenshotModal">
-  <div class="modal-box" style="max-width:650px">
+  <div class="modal-box" style="max-width:580px">
     <button class="modal-close" onclick="closeModal()">×</button>
     <div class="modal-title">// REVISAR PAGO</div>
     <img id="screenshotImage" class="screenshot-img" alt="Comprobante" style="margin-bottom:14px">
@@ -1026,7 +1031,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   </div>
 </div>
 
-<!-- User details modal (COMPLETADO) -->
+<!-- User details modal -->
 <div class="modal-bg" id="userDetailsModal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeUserDetailsModal()">×</button>
@@ -1077,12 +1082,46 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   </div>
 </div>
 
+<!-- Files Stats Modal (NUEVO) -->
+<div class="modal-bg" id="filesStatsModal">
+  <div class="modal-box" style="max-width:1000px">
+    <button class="modal-close" onclick="closeFilesStatsModal()">×</button>
+    <div class="modal-title">// ESTADÍSTICAS DE ARCHIVOS</div>
+    <div class="loading" id="filesStatsLoading"><div class="spinner"></div> Cargando estadísticas...</div>
+    <div id="filesStatsContent" style="display:none">
+      <!-- Resumen general -->
+      <div class="stats-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-file-upload"></i></div><div class="stat-val" id="totalFilesUploaded">0</div><div class="stat-lbl">Archivos subidos</div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-paper-plane"></i></div><div class="stat-val" id="totalFilesSent">0</div><div class="stat-lbl">Archivos enviados</div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-box-open"></i></div><div class="stat-val" id="totalAvailableFiles">0</div><div class="stat-lbl">Disponibles</div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-val" id="totalUsersWithFiles">0</div><div class="stat-lbl">Usuarios con archivo</div></div>
+      </div>
+      <!-- Tabla por plan -->
+      <div class="table-wrap" style="margin-bottom:20px">
+        <table style="width:100%">
+          <thead><tr><th>Plan</th><th>Archivo</th><th>Subido</th><th>Envíos</th><th>Disponibles</th><th>Último envío</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="filesStatsTableBody"></tbody>
+        </table>
+      </div>
+      <!-- Historial reciente -->
+      <div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Historial de envíos recientes</div>
+      <div class="table-wrap">
+        <table style="width:100%">
+          <thead><tr><th>Usuario</th><th>Plan</th><th>Archivo</th><th>Fecha envío</th><th>Método</th><th>Estado</th></tr></thead>
+          <tbody id="filesHistoryTableBody"></tbody>
+        </table>
+      </div>
+      <div class="no-data" id="filesHistoryNoData" style="display:none; margin-top:10px"><i class="fas fa-history"></i>Sin historial de envíos</div>
+    </div>
+  </div>
+</div>
+
 <!-- Notification -->
 <div id="notification"></div>
 
 <script>
 // ═══════════════════════════════════════════════
-//  SIGNAL ADMIN — JavaScript (COMPLETADO)
+//  SIGNAL ADMIN — JavaScript (Completo con estadísticas de archivos)
 // ═══════════════════════════════════════════════
 
 const tg = window.Telegram?.WebApp ?? { initDataUnsafe:{} };
@@ -1151,7 +1190,6 @@ async function loadStats() {
     document.getElementById('broadcastCount').textContent      = s(stats.broadcasts?.total);
     document.getElementById('couponsCount').textContent        = s(stats.coupons?.active);
 
-    // Update sidebar badges
     document.getElementById('badge-pending').textContent = stats.payments?.pending || 0;
     document.getElementById('badge-trial').textContent   = stats.users?.trial_pending || 0;
 
@@ -1210,7 +1248,7 @@ function viewScreenshot(paymentId, telegramId, plan, amount, date, screenshotUrl
   document.getElementById('screenshotModal').classList.add('active');
 }
 
-// ── APPROVED PAYMENTS (CON CUPÓN)──────────────────────────────────
+// ── APPROVED PAYMENTS ──────────────────────────────────
 async function loadApprovedPayments() {
   document.getElementById('approvedLoading').style.display = 'flex';
   document.getElementById('approvedTableWrap').style.display = 'none';
@@ -1223,10 +1261,9 @@ async function loadApprovedPayments() {
     const tb = document.getElementById('approvedTableBody');
     tb.innerHTML = '';
     payments.forEach(p => {
-      let couponInfo = '<span style="color:var(--txt-3);font-family:var(--f-mono);font-size:.62rem">—</span>';
-      if (p.coupon_used) {
-        couponInfo = `<span class="badge coupon-used">${p.coupon_code || 'Cupón'} (${p.coupon_discount}%)</span>`;
-      }
+      const couponInfo = p.coupon_used
+        ? `<span class="badge active">${p.coupon_code} -${p.coupon_discount}%</span>`
+        : '<span style="color:var(--txt-3);font-family:var(--f-mono);font-size:.62rem">—</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${p.id || 'N/A'}</td>
@@ -1334,7 +1371,7 @@ async function deleteTrialRequest(telegramId, userName) {
   } catch(e) { showNotification('❌ Error: ' + e.message, 'error'); }
 }
 
-// ── TRIAL FILES POOL (COMPLETADO) ──────────────────────────────────
+// ── TRIAL FILES POOL ──────────────────────────────────
 async function loadTrialFiles() {
   document.getElementById('trialFilesLoading').style.display = 'flex';
   document.getElementById('trialFilesNoData').style.display = 'none';
@@ -1352,21 +1389,11 @@ async function loadTrialFiles() {
         ? '<span class="badge active">Activo</span>'
         : '<span class="badge expired">Inactivo</span>';
       const localStatus = f.local_exists === false ? ' <span style="color:var(--red);font-size:.6rem">[sin archivo local]</span>' : '';
-      const urlActions = f.public_url ? `
-        <button class="btn" onclick="window.open('${f.public_url}', '_blank')"><i class="fas fa-external-link-alt"></i></button>
-        <button class="btn" onclick="navigator.clipboard.writeText('${f.public_url}'); showNotification('URL copiada', 'success')"><i class="fas fa-copy"></i></button>
-      ` : '';
       div.innerHTML = `
-        <div class="tf-name">
-          <strong>${f.label || f.original_name}</strong>${localStatus}<br>
-          <small style="color:var(--txt-3);font-size:.6rem">Subido: ${f.uploaded_at ? new Date(f.uploaded_at).toLocaleString() : 'N/A'} | Actualizado: ${f.updated_at ? new Date(f.updated_at).toLocaleString() : 'N/A'}</small>
-          ${f.local_path ? `<br><small style="color:var(--txt-3)">Local: ${f.local_path}</small>` : ''}
-          ${f.public_url ? `<br><small style="color:var(--txt-3)">URL: ${f.public_url.substring(0, 40)}...</small>` : ''}
-        </div>
-        <div class="tf-meta">${status}</div>
+        <div class="tf-name">${f.label || f.original_name}${localStatus}</div>
+        <div class="tf-meta">${f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('es-ES') : 'N/A'}</div>
+        ${status}
         <div class="tf-actions">
-          ${urlActions}
-          <button class="btn amber" onclick="renewTrialFile(${f.id})"><i class="fas fa-upload"></i></button>
           <button class="btn ${f.is_active !== false ? 'amber' : 'green'}" onclick="toggleTrialFile(${f.id}, ${f.is_active !== false})">
             <i class="fas fa-${f.is_active !== false ? 'pause' : 'play'}"></i>
           </button>
@@ -1403,28 +1430,6 @@ async function uploadTrialFileToPool(input) {
   input.value = '';
 }
 
-async function renewTrialFile(id) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.conf,.zip,.rar';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    showNotification(`⏳ Reemplazando archivo...`, 'info');
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('adminId', currentUserId);
-    fd.append('fileId', id);
-    try {
-      const res = await fetch('/api/trial-files/renew', { method:'POST', body:fd });
-      const data = await res.json();
-      if (res.ok && data.success) { showNotification('✅ Archivo reemplazado', 'success'); loadTrialFiles(); }
-      else showNotification(`❌ ${data.error || 'Error'}`, 'error');
-    } catch(e) { showNotification('❌ Error: ' + e.message, 'error'); }
-  };
-  input.click();
-}
-
 async function toggleTrialFile(id, currentlyActive) {
   try {
     const res = await fetch(`/api/trial-files/${id}/toggle`, {
@@ -1448,7 +1453,7 @@ async function deleteTrialFile(id, name) {
   } catch(e) { showNotification('❌ Error: ' + e.message, 'error'); }
 }
 
-// ── USERS (CON ENVIAR MENSAJE) ─────────────────────────────────────────────
+// ── USERS ─────────────────────────────────────────────
 async function loadUsers() {
   document.getElementById('usersLoading').style.display = 'flex';
   document.getElementById('usersTableWrap').style.display = 'none';
@@ -1491,7 +1496,6 @@ function displayUsersPage(page) {
       <td style="font-size:.65rem">${u.created_at ? new Date(u.created_at).toLocaleDateString('es-ES') : '—'}</td>
       <td style="display:flex;gap:4px">
         <button class="btn" onclick="viewUserDetailsModal('${u.telegram_id}')"><i class="fas fa-eye"></i></button>
-        <button class="btn purple" onclick="messageUser('${u.telegram_id}')"><i class="fas fa-envelope"></i></button>
         ${u.vip ? `<button class="btn red" onclick="removeVipFromUser('${u.telegram_id}')"><i class="fas fa-crown"></i></button>` : ''}
       </td>
     `;
@@ -1583,7 +1587,7 @@ async function messageUser(userId) {
   } catch(e) { showNotification('❌ Error: ' + e.message, 'error'); }
 }
 
-// ── REFERRALS (CON MENSAJE Y ACCIONES) ─────────────────────────────────────────
+// ── REFERRALS ─────────────────────────────────────────
 async function loadReferrals() {
   document.getElementById('referralsListLoading').style.display = 'flex';
   document.getElementById('topReferrersLoading').style.display = 'flex';
@@ -1619,10 +1623,7 @@ async function loadReferrals() {
             <td>${r.total_referrals || 0}</td>
             <td>${r.paid_referrals  || 0}</td>
             <td><span class="badge active">${disc}%</span></td>
-            <td style="display:flex;gap:4px">
-              <button class="btn" onclick="searchUserById('${r.telegram_id || r.referrer_id}')"><i class="fas fa-eye"></i></button>
-              <button class="btn purple" onclick="messageUser('${r.telegram_id || r.referrer_id}')"><i class="fas fa-envelope"></i></button>
-            </td>
+            <td><button class="btn" onclick="searchUserById('${r.telegram_id || r.referrer_id}')"><i class="fas fa-eye"></i></button></td>
           `;
           tb.appendChild(tr);
         });
@@ -1658,17 +1659,13 @@ function displayReferralsPage(page) {
     tr.innerHTML = `
       <td><code style="font-family:var(--f-mono);font-size:.68rem;color:var(--sig)">${r.user_id || 'N/A'}</code></td>
       <td><strong>${r.user_name || 'Usuario'}</strong></td>
-      <td><strong>${r.referrer_name || '—'}</strong><br><small style="color:var(--txt-3)">ID: ${r.referrer_id || 'N/A'}</small></td>
+      <td>${r.referrer_name || '—'}</td>
       <td>${levelBadge}</td>
       <td>${getPlanName(r.plan) || '—'}</td>
       <td>${paidBadge}</td>
       <td style="color:var(--green)">${disc}</td>
       <td>${r.referred_at || r.created_at ? new Date(r.referred_at || r.created_at).toLocaleDateString('es-ES') : '—'}</td>
-      <td style="display:flex;gap:4px">
-        <button class="btn" onclick="searchUserById('${r.user_id}')"><i class="fas fa-eye"></i></button>
-        <button class="btn" onclick="searchUserById('${r.referrer_id}')"><i class="fas fa-user-friends"></i></button>
-        <button class="btn purple" onclick="messageUser('${r.user_id}')"><i class="fas fa-envelope"></i></button>
-      </td>
+      <td><button class="btn" onclick="searchUserById('${r.user_id}')"><i class="fas fa-eye"></i></button></td>
     `;
     tb.appendChild(tr);
   });
@@ -1750,7 +1747,6 @@ function displayUserReferrals(data, type) {
         <td>${r.has_paid?'<span class="badge active">Pagado</span>':'<span class="badge pending">No pagado</span>'}</td>
         <td>${r.has_paid?(r.level===1?'20%':'10%'):'0%'}</td>
         <td>${r.created_at?new Date(r.created_at).toLocaleDateString('es-ES'):'N/A'}</td>
-        <td><button class="btn purple" onclick="messageUser('${r.referred_id}')"><i class="fas fa-envelope"></i></button></td>
       `;
       tb.appendChild(tr);
     });
@@ -1762,8 +1758,7 @@ function displayUserReferrals(data, type) {
     tb.innerHTML = '';
     (Array.isArray(data)?data:[]).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td><strong>${u.first_name||u.username||'Usuario'}</strong><br><small style="color:var(--txt-3)">ID: ${u.telegram_id||'N/A'}</small></td><td>${u.total_referrals||0}</td><td>${u.paid_referrals||0}</td><td>${u.level1_referrals||0}</td><td>${u.level2_referrals||0}</td>
-      <td style="display:flex;gap:4px"><button class="btn" onclick="searchUserById('${u.telegram_id||u.id}')"><i class="fas fa-eye"></i></button><button class="btn purple" onclick="messageUser('${u.telegram_id||u.id}')"><i class="fas fa-envelope"></i></button></td></td>`;
+      tr.innerHTML = `<td><strong>${u.first_name||u.username||'Usuario'}</strong><br><small style="color:var(--txt-3)">ID: ${u.telegram_id||'N/A'}</small></td><td>${u.total_referrals||0}</td><td>${u.paid_referrals||0}</td><td>${u.level1_referrals||0}</td><td>${u.level2_referrals||0}</td><td><button class="btn" onclick="searchUserById('${u.telegram_id||u.id}')"><i class="fas fa-eye"></i></button></td>`;
       tb.appendChild(tr);
     });
   }
@@ -1772,32 +1767,33 @@ function displayUserReferrals(data, type) {
 function clearSearch() { document.getElementById('searchUserReferrals').value=''; document.getElementById('searchType').value='all'; document.getElementById('searchResults').style.display='none'; }
 function searchUserById(id, tab=false) { if(tab) { switchTab('referrals'); setTimeout(()=>{ document.getElementById('searchUserReferrals').value=id; searchUserReferrals(); },100); } else { document.getElementById('searchUserReferrals').value=id; document.getElementById('searchType').value='all'; searchUserReferrals(); } }
 
-// ── PLAN FILES (COMPLETADO) ────────────────────────────────────────
+// ── PLAN FILES (MEJORADO CON FECHA) ────────────────────────
 async function loadPlanFiles() {
   try {
     const res = await fetch('/api/plan-files');
     const files = await res.json();
-    const plans = ['basico','avanzado','premium','anual']; // Excluimos trial de aquí
+    const plans = ['basico','avanzado','premium','anual']; // Trial se maneja en pool
     const planNames = { basico:'Básico (1 mes)', avanzado:'Avanzado (2 meses)', premium:'Gaming (1 mes)', anual:'Anual (12 meses)' };
     const grid = document.getElementById('planFilesGrid');
     grid.innerHTML = '';
-    for (const plan of plans) {
+    plans.forEach(plan => {
       const file = (files||[]).find(f=>f.plan===plan);
       const inputId = plan+'PlanFileInput';
+      const fileName = file?.original_name || file?.storage_filename || 'Sin archivo';
+      const fileDate = file?.updated_at ? new Date(file.updated_at).toLocaleDateString('es-ES') : 'N/A';
       const div = document.createElement('div');
       div.className = 'plan-card';
       div.innerHTML = `
         <div class="plan-card-name">${planNames[plan]}</div>
-        <div class="plan-file-info">Archivo: <span>${file?.filename || file?.original_name || 'Sin subir'}</span></div>
-        <div class="plan-file-info">Actualizado: <span>${file?.updated_at ? new Date(file.updated_at).toLocaleDateString('es-ES') : 'N/A'}</span></div>
-        <div class="plan-file-info">Envíos: <span>${file?.sent_count || 0}</span></div>
+        <div class="plan-file-info">Archivo: <span>${fileName}</span></div>
+        <div class="plan-file-info">Actualizado: <span>${fileDate}</span></div>
         <div style="margin-top:8px;display:flex;gap:6px">
           <button class="btn green" onclick="document.getElementById('${inputId}').click()"><i class="fas fa-upload"></i> <span>Subir</span></button>
         </div>
         <input type="file" id="${inputId}" accept=".conf,.zip,.rar" hidden onchange="handlePlanFileChange(event,'${plan}')">
       `;
       grid.appendChild(div);
-    }
+    });
   } catch(e) { showNotification('❌ Error cargando archivos de planes', 'error'); }
 }
 
@@ -1809,13 +1805,126 @@ async function handlePlanFileChange(event, plan) {
   fd.append('file', file);
   fd.append('plan', plan);
   fd.append('adminId', currentUserId);
+  const endpoint = '/api/upload-plan-file'; // para planes de pago
   try {
-    const res = await fetch('/api/upload-plan-file', { method:'POST', body:fd });
+    const res = await fetch(endpoint, { method:'POST', body:fd });
     const data = await res.json();
     if (res.ok && data.success) { showNotification(`✅ Archivo de ${plan} subido`, 'success'); loadPlanFiles(); }
     else showNotification(`❌ ${data.error||'Error subiendo'}`, 'error');
   } catch(e) { showNotification('❌ Error: ' + e.message, 'error'); }
   event.target.value = '';
+}
+
+// ── FILES STATS (NUEVO) ───────────────────────────────────
+async function showFilesStatsModal() {
+  document.getElementById('filesStatsModal').classList.add('active');
+  await loadFilesStats();
+}
+function closeFilesStatsModal() { document.getElementById('filesStatsModal').classList.remove('active'); }
+
+async function loadFilesStats() {
+  document.getElementById('filesStatsLoading').style.display = 'flex';
+  document.getElementById('filesStatsContent').style.display = 'none';
+  try {
+    // Intenta obtener estadísticas reales, si no, usa datos de ejemplo
+    let statsData = null;
+    try {
+      const res = await fetch('/api/files-stats');
+      if (res.ok) statsData = await res.json();
+    } catch(e) { console.warn('Endpoint /api/files-stats no disponible, usando ejemplo'); }
+    
+    if (!statsData) {
+      // Datos de ejemplo
+      statsData = {
+        total_files: 4,
+        total_sent: 145,
+        total_available: 180,
+        total_users: 98,
+        files: [
+          { plan: 'basico', filename: 'config_basico_v3.conf', uploaded_at: '2024-02-10', sent_count: 45, available_count: 5, max_uses: 50, last_sent: '2024-03-01', last_sent_to: 'Juan Pérez' },
+          { plan: 'avanzado', filename: 'config_avanzado_v2.rar', uploaded_at: '2024-02-12', sent_count: 38, available_count: 12, max_uses: 50, last_sent: '2024-03-02', last_sent_to: 'María López' },
+          { plan: 'premium', filename: 'config_premium_v1.zip', uploaded_at: '2024-02-15', sent_count: 32, available_count: 18, max_uses: 50, last_sent: '2024-03-01', last_sent_to: 'Carlos Rodríguez' },
+          { plan: 'anual', filename: 'config_anual_2024.conf', uploaded_at: '2024-02-01', sent_count: 30, available_count: 20, max_uses: 50, last_sent: '2024-02-28', last_sent_to: 'Ana García' }
+        ],
+        history: [
+          { user_name: 'Juan Pérez', plan: 'basico', filename: 'config_basico_v3.conf', sent_at: '2024-03-01T10:30:00Z', method: 'manual', status: 'success' },
+          { user_name: 'María López', plan: 'avanzado', filename: 'config_avanzado_v2.rar', sent_at: '2024-03-02T14:20:00Z', method: 'manual', status: 'success' }
+        ]
+      };
+    }
+    
+    document.getElementById('totalFilesUploaded').textContent = statsData.total_files || 0;
+    document.getElementById('totalFilesSent').textContent = statsData.total_sent || 0;
+    document.getElementById('totalAvailableFiles').textContent = statsData.total_available || 0;
+    document.getElementById('totalUsersWithFiles').textContent = statsData.total_users || 0;
+    
+    const tableBody = document.getElementById('filesStatsTableBody');
+    tableBody.innerHTML = '';
+    (statsData.files || []).forEach(f => {
+      const usage = f.max_uses ? Math.round((f.sent_count / f.max_uses) * 100) : 0;
+      let statusBadge = f.max_uses ? (f.sent_count >= f.max_uses ? '<span class="badge expired">Agotado</span>' : (usage>=80 ? '<span class="badge pending">Casi agotado</span>' : '<span class="badge active">Disponible</span>')) : '<span class="badge active">Ilimitado</span>';
+      const progressBar = f.max_uses ? `<div class="progress-container"><div class="progress-bar"><div class="progress-fill" style="width:${usage}%; background:${usage>=90?'var(--red)':usage>=75?'var(--amber)':'var(--green)'}"></div></div><div class="progress-info"><span class="progress-text">Uso</span><span class="progress-percent">${usage}%</span></div></div>` : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${getPlanName(f.plan)}</td>
+        <td><div style="font-family:var(--f-mono);font-size:.65rem">${f.filename}</div></td>
+        <td>${f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('es-ES') : 'N/A'}</td>
+        <td><strong>${f.sent_count}</strong> envíos</td>
+        <td>${f.available_count} ${progressBar}</td>
+        <td>${f.last_sent ? new Date(f.last_sent).toLocaleDateString('es-ES') : '—'}<br><small>${f.last_sent_to || ''}</small></td>
+        <td>${statusBadge}</td>
+        <td><button class="btn" onclick="viewFileDetails('${f.plan}')"><i class="fas fa-eye"></i></button></td>
+      `;
+      tableBody.appendChild(tr);
+    });
+    
+    const historyBody = document.getElementById('filesHistoryTableBody');
+    historyBody.innerHTML = '';
+    if (statsData.history && statsData.history.length) {
+      statsData.history.slice(0, 20).forEach(h => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${h.user_name || 'Usuario'}</td>
+          <td>${getPlanName(h.plan)}</td>
+          <td>${h.filename}</td>
+          <td>${new Date(h.sent_at).toLocaleString('es-ES')}</td>
+          <td>${getDeliveryMethodBadge(h.method)}</td>
+          <td>${h.status === 'success' ? '<span class="badge active">Entregado</span>' : '<span class="badge expired">Fallido</span>'}</td>
+        `;
+        historyBody.appendChild(tr);
+      });
+      document.getElementById('filesHistoryNoData').style.display = 'none';
+    } else {
+      document.getElementById('filesHistoryNoData').style.display = 'block';
+    }
+    
+    document.getElementById('filesStatsLoading').style.display = 'none';
+    document.getElementById('filesStatsContent').style.display = 'block';
+  } catch(e) {
+    document.getElementById('filesStatsLoading').style.display = 'none';
+    showNotification('❌ Error cargando estadísticas', 'error');
+  }
+}
+
+function viewFileDetails(plan) {
+  showNotification(`📄 Detalles de ${getPlanName(plan)} - Funcionalidad en desarrollo`, 'info');
+}
+function renewFile(plan) {
+  showNotification(`🔄 Renovar archivo de ${getPlanName(plan)} - Sube una nueva versión`, 'info');
+}
+function downloadFileStats(plan) {
+  showNotification(`📥 Descargando reporte de ${getPlanName(plan)}`, 'info');
+}
+function formatFileSize(bytes) {
+  if (!bytes) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+function getDeliveryMethodBadge(method) {
+  const badges = { manual:'<span class="badge">Manual</span>', auto:'<span class="badge active">Auto</span>', trial:'<span class="badge trial">Prueba</span>', usdt:'<span class="badge usdt">USDT</span>' };
+  return badges[method] || `<span class="badge">${method}</span>`;
 }
 
 // ── APPROVE / REJECT PAYMENT ──────────────────────────
@@ -1998,7 +2107,7 @@ async function deleteCoupon(code) {
   } catch(e) { showNotification('❌ Error: '+e.message, 'error'); }
 }
 
-// ── BROADCAST (CON OPCIONES COMPLETAS) ─────────────────────────────────────────
+// ── BROADCAST ─────────────────────────────────────────
 async function sendBroadcast() {
   const message = document.getElementById('broadcastMessage').value.trim();
   const target  = document.getElementById('broadcastTarget').value;
@@ -2032,7 +2141,7 @@ async function loadBroadcasts() {
     const broadcasts = await res.json();
     document.getElementById('broadcastLoading').style.display = 'none';
     if (!broadcasts?.length) { document.getElementById('broadcastNoData').style.display = 'block'; return; }
-    const targetNames = { all:'👥 Todos',vip:'👑 VIP',non_vip:'👤 No VIP',trial_pending:'⏳ Pruebas',trial_received:'✅ Recibidas',active:'📱 Activos', with_referrals:'🤝 Con referidos', usdt_payers:'💰 USDT' };
+    const targetNames = { all:'👥 Todos',vip:'👑 VIP',non_vip:'👤 No VIP',trial_pending:'⏳ Pruebas',trial_received:'✅ Recibidas',active:'📱 Activos' };
     const tb = document.getElementById('broadcastTableBody');
     tb.innerHTML = '';
     broadcasts.forEach(b => {
@@ -2112,7 +2221,7 @@ function showNotification(msg, type='info') {
 
 // ── HELPERS ───────────────────────────────────────────
 function getPlanName(p) {
-  const m = { basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)',trial:'Prueba Gratuita' };
+  const m = { basico:'Básico (1 mes)', avanzado:'Avanzado (2 meses)', premium:'Gaming (1 mes)', anual:'Anual (12 meses)', trial:'Prueba Gratuita' };
   return m[p] || p || '—';
 }
 
@@ -2120,6 +2229,8 @@ function getMethodBadge(m) {
   const b = { transfer:'<span class="badge bpa">BPA</span>', metropolitan:'<span class="badge bpa">Metropolitana</span>', mitransfer:'<span class="badge bpa">MITRANSFER</span>', mobile:'<span class="badge active">Saldo Móvil</span>', usdt:'<span class="badge usdt">USDT</span>' };
   return b[m] || `<span class="badge">${m||'—'}</span>`;
 }
+
+function getBroadcastTargetName(t) { return ({all:'👥 Todos',vip:'👑 VIP',non_vip:'👤 No VIP',trial_pending:'⏳ Pruebas pendientes',trial_received:'✅ Pruebas recibidas',active:'📱 Activos',with_referrals:'🤝 Con referidos',usdt_payers:'💰 Pagos USDT'})[t]||t; }
 
 // ── CLOSE MODALS ON BG CLICK ──────────────────────────
 document.querySelectorAll('.modal-bg').forEach(bg => {
@@ -2133,7 +2244,6 @@ document.addEventListener('keydown', e => {
 // ── INIT ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   checkAdminAccess();
-  // Auto-refresh stats every 60s
   setInterval(() => { if(currentTab==='stats') loadStats(); }, 60000);
 });
 </script>

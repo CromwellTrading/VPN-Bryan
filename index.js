@@ -12,6 +12,68 @@ const app = express();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const db = require('./supabase');
 
+// Métodos stub para trial_files — funcionan sin la tabla en BD todavía.
+// Cuando el usuario cree la tabla en Supabase, estos se pueden mover a supabase.js.
+if (!db.getTrialFiles) {
+  db.getTrialFiles = async () => {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
+      const { data, error } = await sb.from('trial_files').select('*').order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch(e) { console.warn('⚠️ trial_files tabla no existe aún:', e.message); return []; }
+  };
+}
+
+if (!db.getTrialFile) {
+  db.getTrialFile = async (id) => {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
+      const { data, error } = await sb.from('trial_files').select('*').eq('id', id).single();
+      if (error) throw error;
+      return data;
+    } catch(e) { return null; }
+  };
+}
+
+if (!db.saveTrialFile) {
+  db.saveTrialFile = async (fileData) => {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
+      const { data, error } = await sb.from('trial_files').insert([fileData]).select().single();
+      if (error) throw error;
+      return data;
+    } catch(e) { console.warn('⚠️ saveTrialFile falló (tabla puede no existir):', e.message); return fileData; }
+  };
+}
+
+if (!db.updateTrialFile) {
+  db.updateTrialFile = async (id, updateData) => {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
+      const { data, error } = await sb.from('trial_files').update({ ...updateData, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    } catch(e) { return null; }
+  };
+}
+
+if (!db.deleteTrialFile) {
+  db.deleteTrialFile = async (id) => {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
+      const { error } = await sb.from('trial_files').delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    } catch(e) { return false; }
+  };
+}
+
 const PORT = process.env.PORT || 3000;
 
 // Cliente Supabase Admin para crear buckets (usando service_role)
@@ -437,32 +499,59 @@ async function initializeStorageBuckets() {
 }
 
 // ==================== FUNCIÓN ENVIAR PRUEBA (USANDO ARCHIVO LOCAL FIJO) ====================
+// Índice rotativo para distribuir archivos de prueba entre los disponibles
+let trialFileRoundRobinIndex = 0;
+
 async function sendTrialConfigToUser(telegramId, adminId) {
   try {
     const user = await db.getUser(telegramId);
     if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
 
-    // Buscar el archivo local con extensiones posibles
-    const extensions = ['.conf', '.zip', '.rar'];
+    const gameServer = user.trial_game_server || 'No especificado';
+    const connectionType = user.trial_connection_type || 'No especificado';
+
+    // 1. Intentar obtener archivos de prueba de la BD (multi-file)
     let filePath = null;
-    for (const ext of extensions) {
-      const testPath = TRIAL_CURRENT_FILE + ext;
-      if (fs.existsSync(testPath)) {
-        filePath = testPath;
-        break;
+    let fileName = null;
+    let usedDbFile = false;
+
+    try {
+      const trialFiles = await db.getTrialFiles(); // devuelve array de {id, filename, local_path, public_url, ...}
+      const activeFiles = (trialFiles || []).filter(f => f.is_active !== false && f.local_path && fs.existsSync(f.local_path));
+
+      if (activeFiles.length > 0) {
+        // Round-robin para distribuir carga entre archivos
+        trialFileRoundRobinIndex = trialFileRoundRobinIndex % activeFiles.length;
+        const chosen = activeFiles[trialFileRoundRobinIndex];
+        trialFileRoundRobinIndex++;
+        filePath = chosen.local_path;
+        fileName = chosen.original_name || path.basename(chosen.local_path);
+        usedDbFile = true;
+        console.log(`📁 Usando archivo de prueba BD #${chosen.id}: ${fileName}`);
+      }
+    } catch (dbErr) {
+      console.warn('⚠️ No se pudieron obtener archivos de prueba de BD, usando archivo local:', dbErr.message);
+    }
+
+    // 2. Fallback: archivo local fijo (TRIAL_CURRENT_FILE)
+    if (!filePath) {
+      const extensions = ['.conf', '.zip', '.rar'];
+      for (const ext of extensions) {
+        const testPath = TRIAL_CURRENT_FILE + ext;
+        if (fs.existsSync(testPath)) {
+          filePath = testPath;
+          fileName = path.basename(testPath);
+          break;
+        }
       }
     }
 
     if (!filePath) {
-      console.log(`❌ No hay archivo de prueba local disponible para ${telegramId}`);
-      return false;
+      console.log(`❌ No hay archivo de prueba disponible para ${telegramId}`);
+      throw new Error('No hay archivo de prueba disponible. Sube uno en el panel de admin.');
     }
 
-    const fileName = path.basename(filePath);
-    const gameServer = user.trial_game_server || 'No especificado';
-    const connectionType = user.trial_connection_type || 'No especificado';
-
-    // Intentar envío con hasta 3 reintentos ante errores transitorios de Telegram
+    // Envío con reintentos
     const MAX_RETRIES = 3;
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -485,36 +574,24 @@ async function sendTrialConfigToUser(telegramId, adminId) {
             parse_mode: 'HTML'
           }
         );
-        // Envío exitoso
         await db.markTrialAsSent(telegramId, adminId);
-        console.log(`✅ Prueba enviada a ${telegramId} usando archivo local: ${fileName} (intento ${attempt})`);
+        console.log(`✅ Prueba enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
         return true;
       } catch (sendError) {
         lastError = sendError;
         const errorCode = sendError.response?.error_code;
         const errorMsg = sendError.description || sendError.message || '';
         console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido para ${telegramId}: ${errorMsg}`);
-
-        // No reintentar si el usuario bloqueó el bot o no existe
         if (
-          errorMsg.includes('chat not found') ||
-          errorMsg.includes('bot was blocked') ||
-          errorMsg.includes('user is deactivated') ||
-          errorMsg.includes('kicked') ||
+          errorMsg.includes('chat not found') || errorMsg.includes('bot was blocked') ||
+          errorMsg.includes('user is deactivated') || errorMsg.includes('kicked') ||
           errorCode === 403 || errorCode === 400
-        ) {
-          console.log(`❌ Error permanente para ${telegramId}, no se reintentará: ${errorMsg}`);
-          break;
-        }
-
-        // Esperar antes del siguiente intento (backoff exponencial)
-        if (attempt < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-        }
+        ) { break; }
+        if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, attempt * 1500));
       }
     }
 
-    console.error(`❌ Error enviando prueba a ${telegramId} tras ${MAX_RETRIES} intentos:`, lastError?.message);
+    console.error(`❌ Error enviando prueba a ${telegramId}:`, lastError?.message);
     throw lastError || new Error('Error desconocido al enviar prueba');
   } catch (error) {
     console.error(`❌ Error en sendTrialConfigToUser para ${telegramId}:`, error.message);
@@ -1052,80 +1129,49 @@ app.post('/api/payments/:id/reject', async (req, res) => {
 
 app.get('/api/stats', async (req, res) => {
   try {
+    // db.getStats() ya hace sus propias queries eficientes en supabase.js
     const stats = await db.getStats();
-    const broadcasts = await db.getBroadcasts();
-    const completedBroadcasts = broadcasts.filter(b => b.status === 'completed').length;
-    stats.broadcasts = {
-      total: broadcasts.length,
-      completed: completedBroadcasts,
-      pending: broadcasts.filter(b => b.status === 'pending').length,
-      sending: broadcasts.filter(b => b.status === 'sending').length,
-      failed: broadcasts.filter(b => b.status === 'failed').length
-    };
+
+    // Broadcasts: ya viene en stats desde getStats, pero refrescamos total
+    try {
+      const broadcasts = await db.getBroadcasts();
+      stats.broadcasts = {
+        total: broadcasts.length,
+        completed: broadcasts.filter(b => b.status === 'completed').length,
+        pending:   broadcasts.filter(b => b.status === 'pending').length,
+        sending:   broadcasts.filter(b => b.status === 'sending').length,
+        failed:    broadcasts.filter(b => b.status === 'failed').length
+      };
+    } catch(e) {
+      stats.broadcasts = stats.broadcasts || { total: 0, completed: 0 };
+    }
+
     stats.usdt = {
       wallet_address: USDT_CONFIG.WALLET_ADDRESS,
       verification_enabled: false,
-      mode: 'manual',
-      message: 'Todos los pagos USDT requieren captura y aprobación manual'
+      mode: 'manual'
     };
 
-    // Obtener conteo real de usuarios con fallback si no hay paginación
-    try {
-      let allUsersCount = [];
-      let usePagination = true;
-      let from = 0;
-      const batchSize = 1000;
-      let keepFetching = true;
-
-      while (keepFetching) {
-        let batch;
-        try {
-          batch = await db.getAllUsers(from, batchSize);
-        } catch (pErr) {
-          usePagination = false;
-          batch = await db.getAllUsers();
-        }
-
-        if (!batch || batch.length === 0) {
-          keepFetching = false;
-        } else {
-          if (from === 0) {
-            allUsersCount = batch;
-          } else {
-            allUsersCount = allUsersCount.concat(batch);
-          }
-          if (!usePagination || batch.length < batchSize) keepFetching = false;
-          else from += batchSize;
-        }
+    // Referidos: db.getStats() ya los incluye vía getAllReferralsStats()
+    if (!stats.referrals) {
+      try {
+        const refStats = await db.getAllReferralsStats();
+        stats.referrals = {
+          total: refStats.total_referrals || 0,
+          paid:  refStats.paid_referrals  || 0,
+          level1: refStats.level1_referrals || 0,
+          level2: refStats.level2_referrals || 0
+        };
+      } catch(e) {
+        stats.referrals = { total: 0, paid: 0, level1: 0, level2: 0 };
       }
-
-      const activeUsers = allUsersCount.filter(u => u.is_active !== false).length;
-      const inactiveUsers = allUsersCount.filter(u => u.is_active === false).length;
-      stats.users.active = activeUsers;
-      stats.users.inactive = inactiveUsers;
-      if (allUsersCount.length > (stats.users.total || 0)) {
-        stats.users.total = allUsersCount.length;
-      }
-    } catch (usersErr) {
-      console.warn('⚠️ Error contando usuarios activos:', usersErr.message);
     }
 
-    // Añadir estadísticas de referidos al panel principal
-    try {
-      const refStats = await db.getAllReferralsStats();
-      stats.referrals = {
-        total: refStats.total_referrals || 0,
-        paid: refStats.paid_referrals || 0,
-        level1: refStats.level1_referrals || 0,
-        level2: refStats.level2_referrals || 0
-      };
-    } catch (refErr) {
-      console.warn('⚠️ No se pudieron cargar stats de referidos:', refErr.message);
-      stats.referrals = { total: 0, paid: 0, level1: 0, level2: 0 };
+    // Cupones
+    if (!stats.coupons) {
+      try { stats.coupons = await db.getCouponsStats(); } catch(e) { stats.coupons = { total:0, active:0, expired:0, used:0 }; }
     }
 
-    const coupons = await db.getCouponsStats();
-    stats.coupons = coupons || { total: 0, active: 0, expired: 0, used: 0 };
     res.json(stats);
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas:', error);
@@ -1134,7 +1180,7 @@ app.get('/api/stats', async (req, res) => {
       users: { total: 0, vip: 0, trial_requests: 0, trial_pending: 0, active: 0, inactive: 0 },
       payments: { pending: 0, approved: 0 },
       revenue: { total: 0 },
-      broadcasts: { completed: 0 },
+      broadcasts: { total: 0, completed: 0 },
       coupons: { total: 0, active: 0, expired: 0, used: 0 },
       referrals: { total: 0, paid: 0, level1: 0, level2: 0 }
     });
@@ -1153,53 +1199,9 @@ app.get('/api/vip-users', async (req, res) => {
 
 app.get('/api/all-users', async (req, res) => {
   try {
-    const fetchAll = req.query.all === 'true';
-
-    if (fetchAll) {
-      // Intentar paginación en lotes de 1000 para superar el límite de Supabase.
-      // Si db.getAllUsers no acepta parámetros, el primer batch traerá todo y paramos.
-      let allUsers = [];
-      let from = 0;
-      const batchSize = 1000;
-      let keepFetching = true;
-      let usePagination = true;
-
-      while (keepFetching) {
-        let batch;
-        try {
-          // Intentar con parámetros de paginación
-          batch = await db.getAllUsers(from, batchSize);
-        } catch (paginationErr) {
-          // Si falla con parámetros (firma no compatible), usar sin parámetros
-          console.warn('⚠️ getAllUsers con paginación falló, usando llamada simple:', paginationErr.message);
-          usePagination = false;
-          batch = await db.getAllUsers();
-        }
-
-        if (!batch || batch.length === 0) {
-          keepFetching = false;
-        } else {
-          // Evitar duplicados si la paginación no funciona y devuelve siempre lo mismo
-          if (from === 0) {
-            allUsers = batch;
-          } else {
-            allUsers = allUsers.concat(batch);
-          }
-          // Si la función no soporta paginación real o trajo menos de batchSize, parar
-          if (!usePagination || batch.length < batchSize) {
-            keepFetching = false;
-          } else {
-            from += batchSize;
-          }
-        }
-      }
-
-      console.log(`✅ Total usuarios obtenidos: ${allUsers.length}`);
-      return res.json(allUsers);
-    }
-
-    // Sin ?all=true — llamada simple para compatibilidad
+    // db.getAllUsers() ya tiene paginación interna en supabase.js (lotes de 1000)
     const users = await db.getAllUsers();
+    console.log(`✅ /api/all-users: ${users.length} usuarios`);
     res.json(users);
   } catch (error) {
     console.error('❌ Error obteniendo usuarios:', error);
@@ -2386,74 +2388,157 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   }
 });
 
-app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
+// ==================== MULTI-TRIAL FILES (múltiples archivos de prueba) ====================
+
+// Subir nuevo archivo de prueba (AGREGA al pool, no reemplaza)
+app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   try {
-    const { plan, adminId } = req.body;
-    
+    const { adminId, label } = req.body;
+
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    
+
     if (!req.file) {
-      return res.status(400).json({ error: 'Archivo de configuración requerido' });
+      return res.status(400).json({ error: 'Archivo requerido' });
     }
-    
-    if (plan !== 'trial') {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      return res.status(400).json({ error: 'Solo se permite subir archivos de prueba aquí' });
-    }
-    
+
     const fileName = req.file.originalname.toLowerCase();
     if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: 'Solo .conf, .zip o .rar' });
     }
-    
-    // Guardar con nombre fijo (manteniendo extensión)
+
+    // Guardar localmente con nombre único para no sobreescribir
+    const ext = path.extname(req.file.originalname);
+    const uniqueName = `trial_${Date.now()}${ext}`;
+    const localPath = path.join(TRIAL_FILES_DIR, uniqueName);
+    fs.copyFileSync(req.file.path, localPath);
+    fs.unlink(req.file.path, () => {});
+
+    // Subir a Supabase como respaldo
+    let publicUrl = null;
+    try {
+      const buf = fs.readFileSync(localPath);
+      const up = await db.uploadPlanFile(buf, 'trial', uniqueName);
+      publicUrl = up.publicUrl;
+    } catch (e) {
+      console.warn('⚠️ Supabase backup falló (archivo local OK):', e.message);
+    }
+
+    // Guardar en BD tabla trial_files
+    const saved = await db.saveTrialFile({
+      original_name: req.file.originalname,
+      local_path: localPath,
+      public_url: publicUrl,
+      label: label || req.file.originalname,
+      uploaded_by: adminId,
+      is_active: true,
+      uploaded_at: new Date().toISOString()
+    });
+
+    console.log(`✅ Archivo de prueba añadido: ${req.file.originalname} → ${localPath}`);
+
+    res.json({ success: true, message: 'Archivo de prueba añadido al pool', file: saved });
+  } catch (error) {
+    console.error('❌ Error subiendo archivo de prueba:', error);
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    res.status(500).json({ error: 'Error subiendo archivo: ' + error.message });
+  }
+});
+
+// Listar todos los archivos de prueba
+app.get('/api/trial-files', async (req, res) => {
+  try {
+    const files = await db.getTrialFiles();
+    // Enriquecer con info de si el archivo local existe
+    const enriched = (files || []).map(f => ({
+      ...f,
+      local_exists: f.local_path ? fs.existsSync(f.local_path) : false
+    }));
+    res.json(enriched);
+  } catch (error) {
+    console.error('❌ Error obteniendo archivos de prueba:', error);
+    res.status(500).json({ error: 'Error obteniendo archivos de prueba' });
+  }
+});
+
+// Activar/desactivar archivo de prueba
+app.put('/api/trial-files/:id/toggle', async (req, res) => {
+  try {
+    const { adminId, is_active } = req.body;
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+
+    const updated = await db.updateTrialFile(req.params.id, { is_active: !!is_active });
+    res.json({ success: true, file: updated });
+  } catch (error) {
+    console.error('❌ Error actualizando archivo de prueba:', error);
+    res.status(500).json({ error: 'Error: ' + error.message });
+  }
+});
+
+// Eliminar archivo de prueba
+app.delete('/api/trial-files/:id', async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+
+    const file = await db.getTrialFile(req.params.id);
+    if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+    // Eliminar local
+    if (file.local_path && fs.existsSync(file.local_path)) {
+      fs.unlinkSync(file.local_path);
+    }
+
+    await db.deleteTrialFile(req.params.id);
+    res.json({ success: true, message: 'Archivo eliminado' });
+  } catch (error) {
+    console.error('❌ Error eliminando archivo de prueba:', error);
+    res.status(500).json({ error: 'Error: ' + error.message });
+  }
+});
+
+// MANTENER ruta legacy para compatibilidad con código anterior
+app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
+  try {
+    const { adminId } = req.body;
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
+
+    const fileName = req.file.originalname.toLowerCase();
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: 'Solo .conf, .zip o .rar' });
+    }
+
+    // Guardar como archivo fijo (legacy) Y añadir al pool
     const ext = path.extname(req.file.originalname);
     const targetPath = TRIAL_CURRENT_FILE + ext;
     fs.copyFileSync(req.file.path, targetPath);
-    
-    // Eliminar temporal
-    fs.unlink(req.file.path, (err) => {
-      if (err) console.error('❌ Error al eliminar archivo temporal:', err);
-    });
-    
-    // También subir a Supabase como respaldo (opcional)
-    const fileBuffer = fs.readFileSync(targetPath);
-    const uploadResult = await db.uploadPlanFile(fileBuffer, 'trial', req.file.originalname);
-    
-    const planFileData = {
-      plan: 'trial',
-      storage_filename: uploadResult.filename,
-      original_name: uploadResult.originalName,
-      public_url: uploadResult.publicUrl,
-      uploaded_by: adminId,
-      uploaded_at: new Date().toISOString()
-    };
-    
-    await db.savePlanFile(planFileData);
-    
-    res.json({ 
-      success: true, 
-      message: `Archivo de prueba subido correctamente (local: ${path.basename(targetPath)})`,
-      file: planFileData
-    });
-    
+
+    const uniqueName = `trial_${Date.now()}${ext}`;
+    const poolPath = path.join(TRIAL_FILES_DIR, uniqueName);
+    fs.copyFileSync(req.file.path, poolPath);
+    fs.unlink(req.file.path, () => {});
+
+    let publicUrl = null;
+    try {
+      const buf = fs.readFileSync(targetPath);
+      const up = await db.uploadPlanFile(buf, 'trial', req.file.originalname);
+      publicUrl = up.publicUrl;
+      await db.savePlanFile({ plan: 'trial', storage_filename: up.filename, original_name: up.originalName, public_url: up.publicUrl, uploaded_by: adminId, uploaded_at: new Date().toISOString() });
+    } catch(e) { console.warn('⚠️ Supabase backup falló:', e.message); }
+
+    try {
+      await db.saveTrialFile({ original_name: req.file.originalname, local_path: poolPath, public_url: publicUrl, label: req.file.originalname, uploaded_by: adminId, is_active: true, uploaded_at: new Date().toISOString() });
+    } catch(e) { console.warn('⚠️ No se pudo añadir al pool (tabla puede no existir aún):', e.message); }
+
+    res.json({ success: true, message: 'Archivo de prueba subido', file: { local_path: targetPath } });
   } catch (error) {
-    console.error('❌ Error subiendo archivo de prueba:', error);
-    
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-    }
-    
-    res.status(500).json({ error: 'Error subiendo archivo de prueba: ' + error.message });
+    console.error('❌ Error:', error);
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    res.status(500).json({ error: 'Error: ' + error.message });
   }
 });
 

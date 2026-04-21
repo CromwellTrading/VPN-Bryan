@@ -4,19 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
 <title>VPN Cuba — Planes</title>
-
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Azeret+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-
-<!-- Preload de los videos para darles prioridad real -->
-<link rel="preload" as="video" href="videos/trial.mp4" type="video/mp4">
-<link rel="preload" as="video" href="videos/basic.mp4" type="video/mp4">
-<link rel="preload" as="video" href="videos/advanced.mp4" type="video/mp4">
-<link rel="preload" as="video" href="videos/gaming.mp4" type="video/mp4">
-<link rel="preload" as="video" href="videos/annual.mp4" type="video/mp4">
 
 <style>
 /* ═══════════════════════════════════════════════
@@ -188,6 +180,7 @@ body::before {
   color: var(--txt-2);
   margin-bottom: 22px;
   position: relative;
+  /* Clipped corner — the signature detail */
   clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
 }
 
@@ -276,6 +269,7 @@ body::before {
 .meter-bars .bar:nth-child(4) { height: 21px; }
 .meter-bars .bar:nth-child(5) { height: 24px; }
 
+/* Active states */
 .signal-meter.active-cyan .meter-bars .bar { background: var(--sig-basic); box-shadow: 0 0 6px var(--sig-basic); }
 .signal-meter.active-green .meter-bars .bar { background: var(--sig-ann); box-shadow: 0 0 6px var(--sig-ann); }
 .signal-meter.active-yellow .meter-bars .bar { background: var(--sig-trial); box-shadow: 0 0 6px var(--sig-trial); }
@@ -287,6 +281,7 @@ body::before {
 .signal-meter.active-yellow .meter-bars .bar:nth-child(4),
 .signal-meter.active-yellow .meter-bars .bar:nth-child(5) { background: var(--sig-trial); }
 
+/* All active for header */
 .signal-meter .meter-bars .bar { background: var(--sig-basic); box-shadow: 0 0 5px rgba(0,212,255,.6); }
 .signal-meter:nth-child(1) .meter-bars .bar:nth-child(n+3) { background: var(--txt-3); box-shadow: none; }
 .signal-meter:nth-child(2) .meter-bars .bar:nth-child(n+2) { background: var(--txt-3); box-shadow: none; }
@@ -394,6 +389,7 @@ body::before {
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.07);
+  /* Signal glow on border */
   box-shadow:
     0 0 0 1px rgba(0,0,0,.9),
     0 28px 70px -16px rgba(0,0,0,.98),
@@ -451,12 +447,7 @@ body::before {
   display: block;
   background: var(--deep);
   transform: scale(1.01);
-  transition: transform .5s ease, filter .5s ease, opacity .25s ease;
-  opacity: 0;
-}
-
-.plan-video.ready {
-  opacity: 1;
+  transition: transform .5s ease, filter .5s ease;
 }
 
 .shell.premium .plan-video { object-position: 72% center; }
@@ -534,8 +525,11 @@ body::before {
   margin-bottom: 3px;
 }
 
+/* Trial — warmer/rounder feel */
 .shell.trial .plan-title   { font-family: var(--f-body); font-weight: 900; font-size: 1.5rem; letter-spacing: -.02em; }
+/* Advanced — all-caps tight */
 .shell.advanced .plan-title { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: .12em; }
+/* Annual — display bold */
 .shell.annual .plan-title   { font-size: clamp(1.8rem, 3.5vw, 2.4rem); }
 
 .plan-sub {
@@ -601,6 +595,7 @@ body::before {
 .sig-bars .sb:nth-child(3) { height: 13px; }
 .sig-bars .sb:nth-child(4) { height: 18px; }
 
+/* Active bars per plan */
 .shell.trial    .sig-bars .sb:nth-child(-n+2) { opacity: 1; box-shadow: 0 0 5px var(--sig); animation: bar-breathe 2s ease-in-out infinite; }
 .shell.basic    .sig-bars .sb:nth-child(-n+3) { opacity: 1; box-shadow: 0 0 5px var(--sig); animation: bar-breathe 2.2s ease-in-out infinite; }
 .shell.advanced .sig-bars .sb:nth-child(-n+3) { opacity: 1; box-shadow: 0 0 5px var(--sig); animation: bar-breathe 1.9s ease-in-out infinite; }
@@ -624,6 +619,7 @@ body::before {
   letter-spacing: .08em;
   color: var(--txt-2);
   text-transform: uppercase;
+  /* Code-prefix look */
 }
 
 .chip::before { content: '// '; color: var(--txt-3); }
@@ -715,6 +711,7 @@ body::before {
   user-select: none;
 }
 
+/* Fill sweep on hover */
 .action::before {
   content: '';
   position: absolute;
@@ -732,6 +729,7 @@ body::before {
 
 .action > * { position: relative; z-index: 1; }
 
+/* Annual button special */
 .shell.annual .action {
   border-width: 1px;
   font-weight: 700;
@@ -739,6 +737,7 @@ body::before {
 }
 
 /* ── PLAN CORNER MARKS ─────────────────────── */
+/* Crosshair corners on each video box */
 .plan-video-box::before {
   content: '';
   position: absolute;
@@ -754,6 +753,7 @@ body::before {
 
 .shell:hover .plan-video-box::before { opacity: 1; }
 
+/* bottom-right corner via pseudo on overlay */
 .plan-overlay::after {
   content: '';
   position: absolute;
@@ -1004,6 +1004,7 @@ body::before {
     <span class="hi">5 planes disponibles · Desde 0 CUP</span>
     <span>WireGuard protocol · Máxima seguridad</span>
     <span class="hi">Trial gratuito disponible ahora</span>
+    <!-- duplicate for seamless loop -->
     <span>VPN CUBA · Sistema activo</span>
     <span class="hi">Conexión estable garantizada</span>
     <span>Pago en CUP · Saldo Móvil · USDT</span>
@@ -1051,6 +1052,7 @@ body::before {
 
 <div class="wrap">
 
+  <!-- HEADER -->
   <header class="hero">
     <div class="status-pill">
       <span class="status-dot"></span>
@@ -1091,12 +1093,14 @@ body::before {
 
   <div class="h-line"></div>
 
+  <!-- PLANS -->
   <section class="plans">
 
+    <!-- ── TRIAL ── -->
     <div class="shell trial individual">
       <div class="tag">⚡ FREQ·LIBRE · 1H</div>
       <div class="plan-video-box">
-        <video class="plan-video" autoplay muted loop playsinline preload="auto" fetchpriority="high">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
           <source src="videos/trial.mp4" type="video/mp4">
         </video>
         <div class="plan-scrim"></div>
@@ -1138,10 +1142,11 @@ body::before {
       </div>
     </div>
 
+    <!-- ── BASIC ── -->
     <div class="shell basic individual">
       <div class="tag">🌐 FREQ·01 · NAVEGACIÓN</div>
       <div class="plan-video-box">
-        <video class="plan-video" autoplay muted loop playsinline preload="auto" fetchpriority="high">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
           <source src="videos/basic.mp4" type="video/mp4">
         </video>
         <div class="plan-scrim"></div>
@@ -1186,10 +1191,11 @@ body::before {
       </div>
     </div>
 
+    <!-- ── ADVANCED ── -->
     <div class="shell advanced individual">
       <div class="tag">🌟 FREQ·02 · RECOMENDADO</div>
       <div class="plan-video-box">
-        <video class="plan-video" autoplay muted loop playsinline preload="auto" fetchpriority="high">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
           <source src="videos/advanced.mp4" type="video/mp4">
         </video>
         <div class="plan-scrim"></div>
@@ -1235,10 +1241,11 @@ body::before {
       </div>
     </div>
 
+    <!-- ── PREMIUM / GAMING ── -->
     <div class="shell premium individual">
       <div class="tag">🎮 FREQ·MAX · GAMING</div>
       <div class="plan-video-box">
-        <video class="plan-video" autoplay muted loop playsinline preload="auto" fetchpriority="high">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
           <source src="videos/gaming.mp4" type="video/mp4">
         </video>
         <div class="plan-scrim"></div>
@@ -1284,10 +1291,11 @@ body::before {
       </div>
     </div>
 
+    <!-- ── ANNUAL ── -->
     <div class="shell annual individual">
       <div class="tag">📅 FREQ·FULL · ANUAL</div>
       <div class="plan-video-box">
-        <video class="plan-video" autoplay muted loop playsinline preload="auto" fetchpriority="high">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
           <source src="videos/annual.mp4" type="video/mp4">
         </video>
         <div class="plan-scrim"></div>
@@ -1352,51 +1360,8 @@ const urlParams = new URLSearchParams(window.location.search);
 const userId = urlParams.get('userId');
 const USDT_ADDRESS = '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519';
 
-/* ── VIDEO PRIORITY / FORCE LOAD ─── */
-document.addEventListener('DOMContentLoaded', () => {
-  const videos = [...document.querySelectorAll('.plan-video')];
-
-  videos.forEach((video, index) => {
-    video.preload = 'auto';
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.setAttribute('playsinline', '');
-    video.setAttribute('webkit-playsinline', '');
-    video.setAttribute('autoplay', '');
-    video.setAttribute('loop', '');
-    video.setAttribute('muted', '');
-
-    if (index === 0) {
-      video.setAttribute('fetchpriority', 'high');
-    } else {
-      video.setAttribute('fetchpriority', 'low');
-    }
-
-    const markReady = () => video.classList.add('ready');
-
-    video.addEventListener('loadeddata', markReady, { once: true });
-    video.addEventListener('canplay', markReady, { once: true });
-    video.addEventListener('playing', markReady, { once: true });
-
-    video.addEventListener('error', () => {
-      console.warn('Error cargando video:', video.currentSrc || video.querySelector('source')?.src || 'desconocido');
-    });
-
-    // Forzar descarga y reproducción de forma escalonada para no saturar la red
-    setTimeout(() => {
-      try {
-        video.load();
-        const p = video.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      } catch (e) {
-        console.warn('No se pudo iniciar video:', e);
-      }
-    }, index * 180);
-  });
-});
-
 /* ── SIGNAL BARS ANIMATION ─── */
+// Animate header meter bars independently
 const meters = document.querySelectorAll('.signal-meter');
 meters.forEach((m, mi) => {
   const bars = m.querySelectorAll('.bar');
@@ -1443,7 +1408,32 @@ function selectPlan(planType, price, usdtAmount, button) {
 }
 
 /* ── TRIAL MODAL ─── */
-function openTrialModal()  { document.getElementById('trialModal').classList.add('active'); }
+// Check eligibility before opening modal
+async function openTrialModal() {
+  if (!userId) {
+    alert('Error: no se pudo identificar el usuario.');
+    return;
+  }
+
+  // Check server-side eligibility (cooldown 30 days)
+  try {
+    const res = await fetch(`/api/check-trial-eligibility/${userId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.eligible) {
+        // Show blocked state instead of modal
+        showNotification(`❌ ${data.reason}`, 'error');
+        return;
+      }
+    }
+  } catch (e) {
+    // If the check fails, allow opening (server will reject if ineligible)
+    console.warn('No se pudo verificar elegibilidad, continuando:', e.message);
+  }
+
+  document.getElementById('trialModal').classList.add('active');
+}
+
 function closeTrialModal() { document.getElementById('trialModal').classList.remove('active'); }
 
 document.getElementById('trialForm').addEventListener('submit', async (e) => {
@@ -1473,9 +1463,7 @@ document.getElementById('trialForm').addEventListener('submit', async (e) => {
     if (res.ok && data.success) {
       showNotification('✅ Solicitud enviada. Recibirás la config en minutos.', 'success');
       closeTrialModal();
-    } else {
-      throw new Error(data.error || 'Error inesperado');
-    }
+    } else { throw new Error(data.error || 'Error inesperado'); }
   } catch (err) {
     showNotification('❌ ' + err.message, 'error');
   } finally {
@@ -1495,4 +1483,4 @@ if (userId && !checkTermsAccepted(userId)) {
 }
 </script>
 </body>
-         </html>
+</html>

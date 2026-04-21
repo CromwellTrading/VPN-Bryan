@@ -3185,6 +3185,8 @@
                 
                 trials.forEach(trial => {
                     const row = document.createElement('tr');
+                    const safeName = (trial.first_name || trial.username || 'Usuario').replace(/'/g, "\\'");
+                    const safeId = trial.telegram_id || '';
                     row.innerHTML = `
                         <td>${trial.telegram_id || 'N/A'}</td>
                         <td>
@@ -3195,8 +3197,11 @@
                         <td>${trial.trial_info?.connection_type || 'No especificado'}</td>
                         <td>${trial.trial_requested_at ? new Date(trial.trial_requested_at).toLocaleDateString('es-ES') : 'N/A'}</td>
                         <td>
-                            <button class="action-btn send-trial" onclick="sendTrialConfig('${trial.telegram_id}', '${trial.first_name || trial.username || 'Usuario'}')">
+                            <button class="action-btn send-trial" onclick="sendTrialConfig('${safeId}', '${safeName}')">
                                 <i class="fas fa-gift"></i> Enviar
+                            </button>
+                            <button class="action-btn remove-vip" style="margin-top:4px;" onclick="deleteTrialRequest('${safeId}', '${safeName}')">
+                                <i class="fas fa-trash"></i> Eliminar
                             </button>
                         </td>
                     `;
@@ -5032,26 +5037,20 @@ Generado por VPN Cuba Admin Panel
 
         // Enviar configuración de prueba
         async function sendTrialConfig(telegramId, userName) {
-            if (!confirm(`¿Enviar configuración de prueba a ${userName}?\n\nSe enviará el archivo de prueba actual.`)) return;
-            
+            if (!telegramId || telegramId === 'undefined' || telegramId === 'null') {
+                showNotification('❌ ID de usuario inválido', 'error');
+                return;
+            }
+
+            if (!confirm(`¿Enviar configuración de prueba a ${userName}?\n\nSe enviará el archivo de prueba actual.\nEl archivo debe estar subido en "Archivos de Planes".`)) return;
+
+            // Deshabilitar todos los botones de envío para este usuario mientras se procesa
+            const btn = event?.target?.closest('button');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; }
+
             try {
                 showNotification(`⏳ Enviando prueba a ${userName}...`, 'info');
-                
-                // Verificar si hay archivo de prueba (no bloqueante si falla)
-                try {
-                    const planFileResponse = await fetch('/api/plan-files/trial');
-                    if (planFileResponse.ok) {
-                        const planFileData = await planFileResponse.json();
-                        if (!planFileData || (!planFileData.public_url && !planFileData.local_backup?.exists)) {
-                            showNotification('❌ No hay archivo de prueba disponible. Sube uno primero en "Archivos de Planes".', 'error');
-                            return;
-                        }
-                    }
-                } catch (checkErr) {
-                    console.warn('⚠️ No se pudo verificar archivo de prueba (continuando):', checkErr.message);
-                }
-                
-                // Enviar archivo al usuario
+
                 const response = await fetch('/api/send-trial-config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -5060,18 +5059,53 @@ Generado por VPN Cuba Admin Panel
                         adminId: currentUserId
                     })
                 });
-                
+
                 const result = await response.json();
+
                 if (response.ok && result.success) {
-                    showNotification(`✅ Configuración de prueba enviada a ${userName}`, 'success');
+                    showNotification(`✅ Prueba enviada correctamente a ${userName}`, 'success');
                     loadPendingTrials();
                 } else {
-                    const errMsg = result.error || result.message || 'Error enviando prueba';
-                    showNotification(`❌ ${errMsg}`, 'error');
+                    const errMsg = result.error || result.message || 'Error desconocido';
+                    // Mensaje amigable si es error de archivo no encontrado
+                    if (errMsg.includes('archivo') || errMsg.includes('file') || errMsg.toLowerCase().includes('not found')) {
+                        showNotification(`❌ No hay archivo de prueba subido. Ve a "Archivos de Planes" y sube el archivo de prueba primero.`, 'error');
+                    } else {
+                        showNotification(`❌ ${errMsg}`, 'error');
+                    }
                 }
             } catch (error) {
-                console.error('❌ Error enviando configuración de prueba:', error);
-                showNotification('❌ Error enviando configuración de prueba: ' + error.message, 'error');
+                console.error('❌ Error enviando prueba:', error);
+                showNotification('❌ Error de conexión: ' + error.message, 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-gift"></i> Enviar'; }
+            }
+        }
+
+        // Eliminar solicitud de prueba (para usuarios que bloquearon el bot, etc.)
+        async function deleteTrialRequest(telegramId, userName) {
+            if (!confirm(`¿Eliminar la solicitud de prueba de ${userName}?\n\nEsto marcará la solicitud como cancelada sin enviar el archivo.\nÚsalo cuando el usuario bloqueó el bot o la solicitud es inválida.`)) return;
+
+            try {
+                showNotification(`⏳ Eliminando solicitud de ${userName}...`, 'info');
+
+                const response = await fetch(`/api/trials/${telegramId}/cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminId: currentUserId })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showNotification(`✅ Solicitud de ${userName} eliminada`, 'success');
+                    loadPendingTrials();
+                } else {
+                    showNotification(`❌ ${result.error || 'Error eliminando solicitud'}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error eliminando solicitud:', error);
+                showNotification('❌ Error: ' + error.message, 'error');
             }
         }
 

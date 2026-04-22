@@ -12,9 +12,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-// Cliente para operaciones normales
 const supabase = createClient(supabaseUrl, supabaseKey);
-// Cliente para operaciones de administración (evita RLS)
 const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : supabase;
 if (!supabaseServiceKey) {
   console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no configurada. Usando anon key para admin. Algunas operaciones pueden fallar por RLS.');
@@ -709,7 +707,6 @@ const db = {
   // ========== ESTADÍSTICAS ==========
   async getStats() {
     try {
-      // Usar COUNT(*) para evitar límite de 1000
       const [
         { count: totalUsers },
         { count: vipUsers },

@@ -527,7 +527,7 @@ select option { background: var(--ink); }
       </div>
 
       <!-- PAGOS PENDIENTES -->
-      <div id="pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-clock"></i> Pagos Pendientes</div><button class="btn" onclick="loadPendingPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="pendingLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="pendingNoData" style="display:none"><i class="fas fa-check-circle"></i>No hay pagos pendientes</div><div class="table-wrap" id="pendingTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="pendingTableBody"></tbody></table></div></div></div></div>
+      <div id="pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-clock"></i> Pagos Pendientes</div><button class="btn" onclick="loadPendingPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="pendingLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="pendingNoData" style="display:none"><i class="fas fa-check-circle"></i>No hay pagos pendientes</div><div class="table-wrap" id="pendingTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="pendingTableBody"></tbody></table></div></div></div></div>
 
       <!-- PAGOS APROBADOS -->
       <div id="approvedPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-check"></i> Pagos Aprobados</div><button class="btn green" onclick="loadApprovedPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="approvedLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="approvedNoData" style="display:none"><i class="fas fa-inbox"></i>Sin pagos aprobados</div><div class="table-wrap" id="approvedTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Cupón</th><th>Fecha</th><th>Config.</th><th>Acción</th></tr></thead><tbody id="approvedTableBody"></tbody></table></div></div></div></div>
@@ -547,8 +547,41 @@ select option { background: var(--ink); }
       <!-- POOL DE PRUEBAS -->
       <div id="trial-filesPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-database"></i> Pool de Archivos de Prueba</div><button class="btn" onclick="loadTrialFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Sube múltiples archivos de prueba. Se enviarán en rotación a los usuarios que soliciten prueba. Si el pool está vacío, se usará el archivo de prueba individual de "Archivos Planes".</div><div style="margin-bottom:16px"><div class="upload-zone" onclick="document.getElementById('trialFilePoolInput').click()"><i class="fas fa-plus-circle"></i><div class="uz-title">Añadir archivo(s) de prueba al pool</div><div class="uz-sub">.conf · .zip · .rar — Máx. 10MB cada uno — Selecciona varios a la vez</div></div><input type="file" id="trialFilePoolInput" accept=".conf,.zip,.rar" hidden multiple onchange="uploadTrialFilesToPool(this)"></div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Archivos en el pool</div><div class="loading" id="trialFilesLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialFilesNoData" style="display:none"><i class="fas fa-folder-open"></i>Sin archivos. Sube uno arriba.</div><div class="trial-pool" id="trialFilesPool"></div></div></div></div>
 
-      <!-- CUPONES -->
-      <div id="couponsPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-plus"></i> Crear Cupón</div></div><div class="card-body"><div class="form-grid"><div class="form-group"><div class="form-label">Código</div><input type="text" id="couponCode" placeholder="VERANO25" maxlength="20" style="text-transform:uppercase"></div><div class="form-group"><div class="form-label">Descuento (%)</div><input type="number" id="couponDiscount" placeholder="20" min="1" max="100"></div><div class="form-group"><div class="form-label">Stock</div><input type="number" id="couponStock" placeholder="50" min="1"></div><div class="form-group"><div class="form-label">Expiración (opcional)</div><input type="datetime-local" id="couponExpiry"></div><div class="form-group" style="grid-column:1/-1"><div class="form-label">Descripción</div><input type="text" id="couponDescription" placeholder="Descripción opcional"></div></div><div style="margin-top:12px"><button class="btn green" id="createCouponBtn" onclick="createCoupon()"><i class="fas fa-plus-circle"></i> <span>Crear cupón</span></button></div></div></div><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-tag"></i> Cupones</div><button class="btn" onclick="loadCoupons()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="couponsLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="couponsNoData" style="display:none"><i class="fas fa-tag"></i>Sin cupones</div><div class="table-wrap" id="couponsTableWrap" style="display:none"><table><thead><tr><th>Código</th><th>Descuento</th><th>Stock</th><th>Usado</th><th>Expira</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="couponsTableBody"></tbody></table></div></div></div></div>
+      <!-- CUPONES CON FILTRO -->
+      <div id="couponsPanel" class="tab-panel">
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="fas fa-plus"></i> Crear Cupón</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><div class="form-label">Código</div><input type="text" id="couponCode" placeholder="VERANO25" maxlength="20" style="text-transform:uppercase"></div>
+              <div class="form-group"><div class="form-label">Descuento (%)</div><input type="number" id="couponDiscount" placeholder="20" min="1" max="100"></div>
+              <div class="form-group"><div class="form-label">Stock</div><input type="number" id="couponStock" placeholder="50" min="1"></div>
+              <div class="form-group"><div class="form-label">Expiración (opcional)</div><input type="datetime-local" id="couponExpiry"></div>
+              <div class="form-group" style="grid-column:1/-1"><div class="form-label">Descripción</div><input type="text" id="couponDescription" placeholder="Descripción opcional"></div>
+            </div>
+            <div style="margin-top:12px"><button class="btn green" id="createCouponBtn" onclick="createCoupon()"><i class="fas fa-plus-circle"></i> <span>Crear cupón</span></button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="fas fa-tag"></i> Cupones</div></div>
+          <div class="card-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <label style="font-family: var(--f-mono); font-size: .6rem; color: var(--txt-3);">Mostrar:</label>
+                <select id="couponFilter" onchange="loadCoupons()" style="width: auto; margin-left: 8px;">
+                  <option value="active">✅ Solo activos (con stock)</option>
+                  <option value="all">📋 Todos (incluye usados/inactivos)</option>
+                  <option value="inactive">⏸️ Solo inactivos/agotados</option>
+                </select>
+              </div>
+              <button class="btn" onclick="loadCoupons()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button>
+            </div>
+            <div class="loading" id="couponsLoading"><div class="spinner"></div> Cargando...</div>
+            <div class="no-data" id="couponsNoData" style="display:none"><i class="fas fa-tag"></i>Sin cupones</div>
+            <div class="table-wrap" id="couponsTableWrap" style="display:none"><table><thead><tr><th>Código</th><th>Descuento</th><th>Stock</th><th>Usado</th><th>Expira</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="couponsTableBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
 
       <!-- BROADCAST -->
       <div id="broadcastPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-bullhorn"></i> Enviar Broadcast</div></div><div class="card-body"><div class="form-group" style="margin-bottom:10px"><div class="form-label">Destinatarios</div><select id="broadcastTarget"><option value="all">👥 Todos los usuarios</option><option value="vip">👑 Solo VIP</option><option value="non_vip">👤 No VIP</option><option value="trial_pending">⏳ Pruebas pendientes</option><option value="trial_received">✅ Pruebas recibidas</option><option value="active">📱 Activos (30d)</option><option value="with_referrals">🤝 Con referidos</option><option value="usdt_payers">💰 Pagos USDT</option></select></div><div class="form-group" style="margin-bottom:10px"><div class="form-label">Mensaje</div><textarea id="broadcastMessage" rows="5" placeholder="// escribe el mensaje aquí..."></textarea></div><button class="btn green" id="broadcastButton" onclick="sendBroadcast()"><i class="fas fa-paper-plane"></i> <span>Enviar broadcast</span></button></div></div><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-history"></i> Historial</div></div><div class="card-body"><div class="loading" id="broadcastLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="broadcastNoData" style="display:none"><i class="fas fa-bullhorn"></i>Sin broadcasts</div><div class="table-wrap" id="broadcastTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Mensaje</th><th>Target</th><th>Progreso</th><th>Estado</th><th>Fecha</th></tr></thead><tbody id="broadcastTableBody"></tbody></table></div></div></div></div>
@@ -616,7 +649,7 @@ async function loadPendingPayments() { document.getElementById('pendingLoading')
 function viewScreenshot(paymentId,telegramId,plan,amount,date,screenshotUrl,method){ currentPaymentId=paymentId; document.getElementById('screenshotImage').src=screenshotUrl; document.getElementById('modalUserId').textContent=telegramId; document.getElementById('modalPlan').textContent=getPlanName(plan); document.getElementById('modalAmount').textContent=amount; document.getElementById('modalCurrency').textContent=method==='usdt'?'USDT':'CUP'; document.getElementById('modalDate').textContent=new Date(date).toLocaleDateString('es-ES'); document.getElementById('modalMethod').innerHTML=getMethodBadge(method); document.getElementById('screenshotModal').classList.add('active'); }
 async function approvePayment(paymentId){ if(!confirm('¿Aprobar pago? Envío manual después.')) return; showNotification('⏳ Aprobando...','info'); try{ const res=await fetch(`/api/payments/${paymentId}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); if(res.ok){ showNotification('✅ Aprobado','success'); closeModal(); loadPendingPayments(); loadApprovedPayments(); loadStats();} else showNotification('Error','error'); }catch(e){ showNotification('Error','error'); } }
 async function rejectPayment(paymentId){ const reason=prompt('Motivo del rechazo:'); if(!reason) return; try{ await fetch(`/api/payments/${paymentId}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason,adminId:currentUserId})}); showNotification('✅ Rechazado','success'); closeModal(); loadPendingPayments(); loadStats(); }catch(e){ showNotification('Error','error'); } }
-async function loadApprovedPayments() { document.getElementById('approvedLoading').style.display='flex'; try{ const res=await fetch('/api/payments/approved'); const payments=await res.json(); document.getElementById('approvedLoading').style.display='none'; if(!payments?.length){ document.getElementById('approvedNoData').style.display='block'; return; } const tb=document.getElementById('approvedTableBody'); tb.innerHTML=''; payments.forEach(p=>{ const couponInfo=p.coupon_used?`<span class="badge active">${p.coupon_code} -${p.coupon_discount}%</span>`:'—'; tb.innerHTML+=`<td><td>${p.id}</td><td><strong>${p.user?.first_name||'Usuario'}</strong><br><small>@${p.user?.username||''}</small></td><td>${getPlanName(p.plan)}</td><td>${getMethodBadge(p.method)}</td><td>${p.price} ${p.method==='usdt'?'USDT':'CUP'}</td><td>${couponInfo}</td><td>${p.approved_at?new Date(p.approved_at).toLocaleDateString('es-ES'):''}</td><td>${p.config_sent?'<span class="badge active">Enviada</span>':'<span class="badge pending">Pendiente</span>'}</td><td>${!p.config_sent?`<button class="btn green" onclick="openConfigModal('${p.id}','${p.telegram_id}','${p.plan}')"><i class="fas fa-paper-plane"></i> <span>Enviar</span></button>`:'—'}</td>`; }); document.getElementById('approvedTableWrap').style.display='block'; }catch(e){ document.getElementById('approvedLoading').style.display='none'; showNotification('Error','error'); } }
+async function loadApprovedPayments() { document.getElementById('approvedLoading').style.display='flex'; try{ const res=await fetch('/api/payments/approved'); const payments=await res.json(); document.getElementById('approvedLoading').style.display='none'; if(!payments?.length){ document.getElementById('approvedNoData').style.display='block'; return; } const tb=document.getElementById('approvedTableBody'); tb.innerHTML=''; payments.forEach(p=>{ const couponInfo=p.coupon_used?`<span class="badge active">${p.coupon_code} -${p.coupon_discount}%</span>`:'—'; tb.innerHTML+=`<tr><td>${p.id}</td><td><strong>${p.user?.first_name||'Usuario'}</strong><br><small>@${p.user?.username||''}</small></td><td>${getPlanName(p.plan)}</td><td>${getMethodBadge(p.method)}</td><td>${p.price} ${p.method==='usdt'?'USDT':'CUP'}</td><td>${couponInfo}</td><td>${p.approved_at?new Date(p.approved_at).toLocaleDateString('es-ES'):''}</td><td>${p.config_sent?'<span class="badge active">Enviada</span>':'<span class="badge pending">Pendiente</span>'}</td><td>${!p.config_sent?`<button class="btn green" onclick="openConfigModal('${p.id}','${p.telegram_id}','${p.plan}')"><i class="fas fa-paper-plane"></i> <span>Enviar</span></button>`:'—'}</td>`; }); document.getElementById('approvedTableWrap').style.display='block'; }catch(e){ document.getElementById('approvedLoading').style.display='none'; showNotification('Error','error'); } }
 function openConfigModal(paymentId,telegramId,plan){ currentPaymentId=paymentId; document.getElementById('configPaymentId').textContent=paymentId; document.getElementById('configUserId').textContent=telegramId; document.getElementById('configPlan').textContent=getPlanName(plan); document.getElementById('configFile').value=''; document.getElementById('configFileName').innerHTML=''; document.getElementById('configModal').classList.add('active'); document.getElementById('configFile').onchange=e=>{ const f=e.target.files[0]; document.getElementById('configFileName').innerHTML=f?f.name:''; }; }
 async function sendConfigFile(){ const file=document.getElementById('configFile').files[0]; if(!file){ showNotification('❌ Selecciona archivo','error'); return; } showNotification('⏳ Enviando...','info'); const fd=new FormData(); fd.append('configFile',file); fd.append('paymentId',currentPaymentId); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/send-config',{method:'POST',body:fd}); const data=await res.json(); if(res.ok&&data.success){ showNotification('✅ Enviado','success'); closeConfigModal(); loadApprovedPayments(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } }
 
@@ -646,69 +679,42 @@ function displayUserReferrals(data,type){ document.getElementById('userDetailsLo
 function clearSearch(){ document.getElementById('searchUserReferrals').value=''; document.getElementById('searchType').value='all'; document.getElementById('searchResults').style.display='none'; }
 function searchUserById(id,tab=false){ if(tab){ switchTab('referrals'); setTimeout(()=>{ document.getElementById('searchUserReferrals').value=id; searchUserReferrals(); },100); } else { document.getElementById('searchUserReferrals').value=id; document.getElementById('searchType').value='all'; searchUserReferrals(); } }
 
-// ── ARCHIVOS DE PLANES (con plan trial individual) ────
-async function loadPlanFiles(){ try{ const res=await fetch('/api/plan-files'); const files=await res.json(); const plans=['basico','avanzado','premium','anual']; const planNames={basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)'}; const grid=document.getElementById('planFilesGrid'); grid.innerHTML=''; for(const plan of plans){ const file=(files||[]).find(f=>f.plan===plan); grid.innerHTML+=`<div class="plan-card"><div class="plan-card-name">${planNames[plan]}</div><div class="plan-file-info">Archivo: <span>${file?.original_name||file?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${file?.updated_at?new Date(file.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('planFileInput_${plan}').click()"><i class="fas fa-upload"></i> <span>Subir</span></button></div><input type="file" id="planFileInput_${plan}" accept=".conf,.zip,.rar" hidden onchange="handlePlanFileChange(event,'${plan}')"></div>`; } // Tarjeta de prueba individual
-const trialFile=(files||[]).find(f=>f.plan==='trial');
-const trialCard=document.getElementById('trialPlanCard');
-trialCard.innerHTML=`<div class="plan-card-name">Prueba (individual)</div><div class="plan-file-info">Archivo: <span>${trialFile?.original_name||trialFile?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${trialFile?.updated_at?new Date(trialFile.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div class="plan-file-info">Usuarios que recibieron: <span>${trialFile?.users_count||0}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('trialPlanFileInput').click()"><i class="fas fa-upload"></i> <span>Subir archivo de prueba</span></button></div><input type="file" id="trialPlanFileInput" accept=".conf,.zip,.rar" hidden onchange="handleTrialPlanFileChange(event)">`; }catch(e){ showNotification('Error archivos','error'); } }
+// ── ARCHIVOS DE PLANES ───────────────────────────────
+async function loadPlanFiles(){ try{ const res=await fetch('/api/plan-files'); const files=await res.json(); const plans=['basico','avanzado','premium','anual']; const planNames={basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)'}; const grid=document.getElementById('planFilesGrid'); grid.innerHTML=''; for(const plan of plans){ const file=(files||[]).find(f=>f.plan===plan); grid.innerHTML+=`<div class="plan-card"><div class="plan-card-name">${planNames[plan]}</div><div class="plan-file-info">Archivo: <span>${file?.original_name||file?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${file?.updated_at?new Date(file.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('planFileInput_${plan}').click()"><i class="fas fa-upload"></i> <span>Subir</span></button></div><input type="file" id="planFileInput_${plan}" accept=".conf,.zip,.rar" hidden onchange="handlePlanFileChange(event,'${plan}')"></div>`; } const trialFile=(files||[]).find(f=>f.plan==='trial'); const trialCard=document.getElementById('trialPlanCard'); trialCard.innerHTML=`<div class="plan-card-name">Prueba (individual)</div><div class="plan-file-info">Archivo: <span>${trialFile?.original_name||trialFile?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${trialFile?.updated_at?new Date(trialFile.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div class="plan-file-info">Usuarios que recibieron: <span>${trialFile?.users_count||0}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('trialPlanFileInput').click()"><i class="fas fa-upload"></i> <span>Subir archivo de prueba</span></button></div><input type="file" id="trialPlanFileInput" accept=".conf,.zip,.rar" hidden onchange="handleTrialPlanFileChange(event)">`; }catch(e){ showNotification('Error archivos','error'); } }
 async function handlePlanFileChange(event,plan){ const file=event.target.files[0]; if(!file) return; showNotification(`⏳ Subiendo ${file.name}...`,'info'); const fd=new FormData(); fd.append('file',file); fd.append('plan',plan); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/upload-plan-file',{method:'POST',body:fd}); if(res.ok){ showNotification('✅ Archivo subido','success'); loadPlanFiles(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } event.target.value=''; }
 async function handleTrialPlanFileChange(event){ const file=event.target.files[0]; if(!file) return; showNotification(`⏳ Subiendo archivo de prueba...`,'info'); const fd=new FormData(); fd.append('file',file); fd.append('plan','trial'); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/upload-trial-file',{method:'POST',body:fd}); if(res.ok){ showNotification('✅ Archivo de prueba subido','success'); loadPlanFiles(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } event.target.value=''; }
 
-// ── POOL DE PRUEBAS (MÚLTIPLE SUBIDA) ──────────────────────────────────
+// ── POOL DE PRUEBAS ──────────────────────────────────
 let isUploadingMultiple = false;
 async function uploadTrialFilesToPool(input) {
     const files = Array.from(input.files);
     if (!files.length) return;
-    if (isUploadingMultiple) {
-        showNotification('⏳ Ya hay una subida en curso, espera...', 'warning');
-        input.value = '';
-        return;
-    }
+    if (isUploadingMultiple) { showNotification('⏳ Ya hay una subida en curso, espera...', 'warning'); input.value = ''; return; }
     isUploadingMultiple = true;
     let successCount = 0, failCount = 0;
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.name.split('.').pop().toLowerCase();
-        if (!['conf', 'zip', 'rar'].includes(ext)) {
-            showNotification(`❌ ${file.name} no es .conf, .zip o .rar`, 'error');
-            failCount++;
-            continue;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            showNotification(`❌ ${file.name} excede 10MB`, 'error');
-            failCount++;
-            continue;
-        }
+        if (!['conf', 'zip', 'rar'].includes(ext)) { showNotification(`❌ ${file.name} no es .conf, .zip o .rar`, 'error'); failCount++; continue; }
+        if (file.size > 10 * 1024 * 1024) { showNotification(`❌ ${file.name} excede 10MB`, 'error'); failCount++; continue; }
         showNotification(`📤 Subiendo ${file.name} (${i+1}/${files.length})...`, 'info');
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('adminId', currentUserId);
-        fd.append('label', file.name);
+        const fd = new FormData(); fd.append('file', file); fd.append('adminId', currentUserId); fd.append('label', file.name);
         try {
             const res = await fetch('/api/trial-files/upload', { method: 'POST', body: fd });
-            if (res.ok) {
-                successCount++;
-                showNotification(`✅ ${file.name} subido correctamente`, 'success');
-            } else {
-                const err = await res.text();
-                throw new Error(err);
-            }
-        } catch (e) {
-            failCount++;
-            showNotification(`❌ Error en ${file.name}: ${e.message}`, 'error');
-        }
+            if (res.ok) { successCount++; showNotification(`✅ ${file.name} subido correctamente`, 'success'); }
+            else { const err = await res.text(); throw new Error(err); }
+        } catch (e) { failCount++; showNotification(`❌ Error en ${file.name}: ${e.message}`, 'error'); }
     }
     isUploadingMultiple = false;
     input.value = '';
     showNotification(`✅ Subida completada: ${successCount} éxito, ${failCount} fallos`, successCount ? 'success' : 'error');
     if (successCount > 0) loadTrialFiles();
 }
-
 async function loadTrialFiles(){ document.getElementById('trialFilesLoading').style.display='flex'; try{ const res=await fetch('/api/trial-files'); const files=await res.json(); document.getElementById('trialFilesLoading').style.display='none'; if(!files?.length){ document.getElementById('trialFilesNoData').style.display='block'; return; } document.getElementById('trialFilesNoData').style.display='none'; const pool=document.getElementById('trialFilesPool'); pool.innerHTML=''; files.forEach(f=>{ const div=document.createElement('div'); div.className='trial-file-row'+(f.is_active===false?' inactive':''); const status=f.is_active!==false?'<span class="badge active">Activo</span>':'<span class="badge expired">Inactivo</span>'; div.innerHTML=`<div class="tf-name">${f.label||f.original_name}</div><div class="tf-meta">${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</div>${status}<div class="tf-actions"><button class="btn ${f.is_active!==false?'amber':'green'}" onclick="toggleTrialFile(${f.id},${f.is_active!==false})"><i class="fas fa-${f.is_active!==false?'pause':'play'}"></i></button><button class="btn red" onclick="deleteTrialFile(${f.id},'${(f.label||f.original_name).replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button></div>`; pool.appendChild(div); }); }catch(e){ document.getElementById('trialFilesLoading').style.display='none'; showNotification('Error cargando pool','error'); } }
 async function toggleTrialFile(id,currentlyActive){ try{ await fetch(`/api/trial-files/${id}/toggle`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId,is_active:!currentlyActive})}); showNotification(currentlyActive?'⏸ Desactivado':'▶ Activado','success'); loadTrialFiles(); }catch(e){ showNotification('Error','error'); } }
 async function deleteTrialFile(id,name){ if(!confirm(`¿Eliminar "${name}"?`)) return; try{ await fetch(`/api/trial-files/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ Eliminado','success'); loadTrialFiles(); }catch(e){ showNotification('Error','error'); } }
 
-// ── CUPONES (CORREGIDO) ──────────────────────────────────────────
+// ── CUPONES CON FILTRO ───────────────────────────────
 async function createCoupon(){ 
   const code=document.getElementById('couponCode').value.trim().toUpperCase(); 
   const discount=parseFloat(document.getElementById('couponDiscount').value); 
@@ -738,37 +744,61 @@ async function createCoupon(){
   btn.disabled=false; 
 }
 
-async function loadCoupons(){ 
-  document.getElementById('couponsLoading').style.display='flex'; 
-  document.getElementById('couponsTableWrap').style.display='none';
-  document.getElementById('couponsNoData').style.display='none';
-  try{ 
-    const res=await fetch('/api/coupons'); 
-    const coupons=await res.json(); 
-    document.getElementById('couponsLoading').style.display='none'; 
-    if(!coupons?.length){ 
-      document.getElementById('couponsNoData').style.display='block'; 
-      return; 
-    } 
-    allCoupons=coupons; 
-    const tb=document.getElementById('couponsTableBody'); 
-    tb.innerHTML=''; 
-    coupons.forEach(c=>{ 
-      let statusBadge=c.status==='active'?'<span class="badge active">Activo</span>':c.status==='expired'?'<span class="badge expired">Expirado</span>':'<span class="badge pending">Inactivo</span>'; 
-      let expiry='No expira'; 
-      if(c.expiry){ 
-        const ed=new Date(c.expiry); 
-        expiry=ed.toLocaleDateString('es-ES'); 
-        if(ed<new Date()&&c.status!=='expired') statusBadge='<span class="badge expired">Expirado</span>'; 
-      } 
-      tb.innerHTML+=`<tr><td><strong style="color:var(--sig)">${c.code}</strong>${c.description?`<br><small>${c.description}</small>`:''}</td><td><span class="badge active">${c.discount}%</span></td><td>${c.stock}</td><td>${c.used||0}</td><td>${expiry}</td><td>${statusBadge}</td><td>${c.created_at?new Date(c.created_at).toLocaleDateString('es-ES'):'N/A'}</td><td><button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button> ${c.status==='active'?`<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>`:`<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`} <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button></td>`; 
-    }); 
-    document.getElementById('couponsTableWrap').style.display='block'; 
-  }catch(e){ 
-    document.getElementById('couponsLoading').style.display='none'; 
-    showNotification('Error cargando cupones','error'); 
-    console.error(e); 
-  } 
+async function loadCoupons() {
+  document.getElementById('couponsLoading').style.display = 'flex';
+  document.getElementById('couponsTableWrap').style.display = 'none';
+  document.getElementById('couponsNoData').style.display = 'none';
+  try {
+    const res = await fetch('/api/coupons');
+    const coupons = await res.json();
+    document.getElementById('couponsLoading').style.display = 'none';
+    if (!coupons?.length) {
+      document.getElementById('couponsNoData').style.display = 'block';
+      return;
+    }
+    allCoupons = coupons;
+    const filter = document.getElementById('couponFilter').value;
+    let filteredCoupons = [...coupons];
+    if (filter === 'active') {
+      filteredCoupons = coupons.filter(c => c.status === 'active' && c.stock > 0);
+    } else if (filter === 'inactive') {
+      filteredCoupons = coupons.filter(c => c.status !== 'active' || c.stock === 0);
+    }
+    const tb = document.getElementById('couponsTableBody');
+    tb.innerHTML = '';
+    if (filteredCoupons.length === 0) {
+      document.getElementById('couponsNoData').style.display = 'block';
+      return;
+    }
+    filteredCoupons.forEach(c => {
+      let statusBadge = c.status === 'active' ? '<span class="badge active">Activo</span>' : (c.status === 'expired' ? '<span class="badge expired">Expirado</span>' : '<span class="badge pending">Inactivo</span>');
+      let expiry = 'No expira';
+      if (c.expiry) {
+        const ed = new Date(c.expiry);
+        expiry = ed.toLocaleDateString('es-ES');
+        if (ed < new Date() && c.status !== 'expired') statusBadge = '<span class="badge expired">Expirado</span>';
+      }
+      tb.innerHTML += `<tr>
+        <td><strong style="color:var(--sig)">${c.code}</strong>${c.description ? `<br><small>${c.description}</small>` : ''}</td>
+        <td><span class="badge active">${c.discount}%</span></td>
+        <td>${c.stock}</td>
+        <td>${c.used || 0}</td>
+        <td>${expiry}</td>
+        <td>${statusBadge}</td>
+        <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
+        <td>
+          <button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button>
+          ${c.status === 'active' ? `<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>` : `<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`}
+          <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    });
+    document.getElementById('couponsTableWrap').style.display = 'block';
+  } catch (e) {
+    document.getElementById('couponsLoading').style.display = 'none';
+    showNotification('Error cargando cupones', 'error');
+    console.error(e);
+  }
 }
 
 function openEditCouponModal(code){ const c=allCoupons.find(x=>x.code===code); if(!c) return; currentCouponCode=code; document.getElementById('editCouponCode').value=c.code; document.getElementById('editCouponStock').value=c.stock; document.getElementById('editCouponStatus').value=c.status; document.getElementById('editCouponModal').classList.add('active'); }
@@ -776,7 +806,7 @@ function adjustStock(n){ const el=document.getElementById('editCouponStock'); el
 function closeEditCouponModal(){ document.getElementById('editCouponModal').classList.remove('active'); currentCouponCode=null; }
 async function updateCoupon(){ const stock=parseInt(document.getElementById('editCouponStock').value); const status=document.getElementById('editCouponStatus').value; if(isNaN(stock)||stock<0){ showNotification('❌ Stock inválido','error'); return; } const btn=document.getElementById('updateCouponBtn'); btn.disabled=true; try{ const res=await fetch(`/api/coupons/${currentCouponCode}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({stock,status,adminId:currentUserId})}); if(res.ok){ showNotification('✅ Cupón actualizado','success'); closeEditCouponModal(); loadCoupons(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } btn.disabled=false; }
 async function toggleCouponStatus(code,status){ try{ await fetch(`/api/coupons/${code}/status`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,adminId:currentUserId})}); showNotification(`✅ ${status==='active'?'Activado':'Desactivado'}`,'success'); loadCoupons(); }catch(e){ showNotification('Error','error'); } }
-async function deleteCoupon(code){ if(!confirm(`¿Eliminar ${code}?`)) return; try{ await fetch(`/api/coupons/${code}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ Eliminado','success'); loadCoupons(); loadStats(); }catch(e){ showNotification('Error','error'); } }
+async function deleteCoupon(code){ if(!confirm(`⚠️ ¿Eliminar permanentemente el cupón ${code}?\n\nSi ya ha sido usado, no se podrá eliminar.`)) return; try{ const res=await fetch(`/api/coupons/${code}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); const data=await res.json(); if(res.ok){ showNotification(`✅ Cupón ${code} eliminado`,'success'); loadCoupons(); loadStats(); } else { showNotification(`❌ ${data.error||'Error al eliminar'}`,'error'); } }catch(e){ console.error(e); showNotification('❌ Error de red al eliminar','error'); } }
 
 // ── BROADCAST ────────────────────────────────────────
 async function sendBroadcast(){ const message=document.getElementById('broadcastMessage').value.trim(); const target=document.getElementById('broadcastTarget').value; if(!message){ showNotification('❌ Escribe mensaje','error'); return; } if(!confirm(`¿Enviar a "${target}"?`)) return; const btn=document.getElementById('broadcastButton'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Enviando...'; try{ const res=await fetch('/api/broadcast/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,target,adminId:currentUserId})}); const data=await res.json(); if(res.ok&&data.success){ showNotification(`✅ Enviado a ${data.totalUsers||0} usuarios`,'success'); document.getElementById('broadcastMessage').value=''; loadBroadcasts(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> <span>Enviar broadcast</span>'; }
@@ -788,7 +818,7 @@ async function loadGamesStats(){ document.getElementById('gamesLoading').style.d
 // ── ESTADÍSTICAS DE ARCHIVOS ─────────────────────────
 function showFilesStatsModal(){ document.getElementById('filesStatsModal').classList.add('active'); loadFilesStats(); }
 function closeFilesStatsModal(){ document.getElementById('filesStatsModal').classList.remove('active'); }
-async function loadFilesStats(){ document.getElementById('filesStatsLoading').style.display='flex'; document.getElementById('filesStatsContent').style.display='none'; try{ const planFiles=await(await fetch('/api/plan-files')).json(); const trialFiles=await(await fetch('/api/trial-files')).json(); const allFiles = [...(planFiles||[]), ...(trialFiles||[]).map(f=>({...f,plan:'trial'}))]; let totalUploaded = allFiles.length; let totalSent = 0; let totalAvailable = 0; const filesStats = []; for(const f of allFiles){ const sentCount = f.sent_count || 0; const maxUses = f.max_uses || null; const available = maxUses ? (maxUses - sentCount) : 'Ilimitado'; totalSent += sentCount; if(maxUses) totalAvailable += Math.max(0, maxUses - sentCount); else totalAvailable = 'Ilimitado'; filesStats.push({ plan: f.plan, filename: f.original_name || f.storage_filename || '—', uploaded_at: f.updated_at, sent_count: sentCount, available_count: available, max_uses: maxUses, last_sent: f.last_sent, last_sent_to: f.last_sent_to, status: sentCount>=maxUses && maxUses ? 'agotado' : 'disponible' }); } document.getElementById('totalFilesUploaded').textContent = totalUploaded; document.getElementById('totalFilesSent').textContent = totalSent; document.getElementById('totalAvailableFiles').textContent = (totalAvailable === 'Ilimitado') ? '∞' : totalAvailable; document.getElementById('totalUsersWithFiles').textContent = 0; const tbody = document.getElementById('filesStatsTableBody'); tbody.innerHTML = ''; filesStats.forEach(f=>{ const usage = f.max_uses ? Math.round((f.sent_count/f.max_uses)*100) : 0; const statusBadge = f.status==='agotado'?'<span class="badge expired">Agotado</span>':'<span class="badge active">Disponible</span>'; tbody.innerHTML += `<tr><td>${getPlanName(f.plan)}</td><td><div class="filename-display">${f.filename}</div></td><td>${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</td><td>${f.sent_count}</td><td>${f.available_count}</td><td>${f.last_sent?new Date(f.last_sent).toLocaleDateString('es-ES'):'Nunca'}</td><td>${statusBadge}</td><td><button class="btn" onclick="viewFileDetails('${f.plan}')"><i class="fas fa-eye"></i></button></td>`; }); document.getElementById('filesStatsLoading').style.display='none'; document.getElementById('filesStatsContent').style.display='block'; }catch(e){ document.getElementById('filesStatsLoading').style.display='none'; showNotification('Error cargando estadísticas','error'); } }
+async function loadFilesStats(){ document.getElementById('filesStatsLoading').style.display='flex'; document.getElementById('filesStatsContent').style.display='none'; try{ const planFiles=await(await fetch('/api/plan-files')).json(); const trialFiles=await(await fetch('/api/trial-files')).json(); const allFiles = [...(planFiles||[]), ...(trialFiles||[]).map(f=>({...f,plan:'trial'}))]; let totalUploaded = allFiles.length; let totalSent = 0; let totalAvailable = 0; const filesStats = []; for(const f of allFiles){ const sentCount = f.sent_count || 0; const maxUses = f.max_uses || null; const available = maxUses ? (maxUses - sentCount) : 'Ilimitado'; totalSent += sentCount; if(maxUses) totalAvailable += Math.max(0, maxUses - sentCount); else totalAvailable = 'Ilimitado'; filesStats.push({ plan: f.plan, filename: f.original_name || f.storage_filename || '—', uploaded_at: f.updated_at, sent_count: sentCount, available_count: available, max_uses: maxUses, last_sent: f.last_sent, last_sent_to: f.last_sent_to, status: sentCount>=maxUses && maxUses ? 'agotado' : 'disponible' }); } document.getElementById('totalFilesUploaded').textContent = totalUploaded; document.getElementById('totalFilesSent').textContent = totalSent; document.getElementById('totalAvailableFiles').textContent = (totalAvailable === 'Ilimitado') ? '∞' : totalAvailable; document.getElementById('totalUsersWithFiles').textContent = 0; const tbody = document.getElementById('filesStatsTableBody'); tbody.innerHTML = ''; filesStats.forEach(f=>{ const statusBadge = f.status==='agotado'?'<span class="badge expired">Agotado</span>':'<span class="badge active">Disponible</span>'; tbody.innerHTML += `<tr><td>${getPlanName(f.plan)}</td><td><div class="filename-display">${f.filename}</div></td><td>${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</td><td>${f.sent_count}</td><td>${f.available_count}</td><td>${f.last_sent?new Date(f.last_sent).toLocaleDateString('es-ES'):'Nunca'}</td><td>${statusBadge}</td><td><button class="btn" onclick="viewFileDetails('${f.plan}')"><i class="fas fa-eye"></i></button></td>`; }); document.getElementById('filesStatsLoading').style.display='none'; document.getElementById('filesStatsContent').style.display='block'; }catch(e){ document.getElementById('filesStatsLoading').style.display='none'; showNotification('Error cargando estadísticas','error'); } }
 function viewFileDetails(plan){ showNotification(`Detalles de ${getPlanName(plan)} próximamente.`,'info'); }
 
 // ── HELPERS Y NAVEGACIÓN ─────────────────────────────
@@ -807,4 +837,4 @@ document.querySelectorAll('.modal-bg').forEach(bg=>{ bg.addEventListener('click'
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-bg.active').forEach(m=>m.classList.remove('active')); });
 </script>
 </body>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  </html>
+</html>

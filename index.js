@@ -647,8 +647,8 @@ async function getAllUsersForBroadcast(target) {
     }
 
     console.log(`📢 Broadcast target "${target}": obteniendo TODOS con paginación...`);
-    const allUsers = await db.getAllUsers();
-    
+    const allUsers = await db.getAllUsers(1000000, 0); // para broadcast puede necesitar muchos
+    // pero es mejor usar getUsersForBroadcast que ya filtra. Mantenemos original.
     let filtered = allUsers;
     if (target === 'active') {
       const thirtyDaysAgo = new Date();
@@ -1183,11 +1183,25 @@ app.get('/api/vip-users', async (req, res) => {
   }
 });
 
+// Endpoint paginado para usuarios
 app.get('/api/all-users', async (req, res) => {
   try {
-    const users = await db.getAllUsers();
-    console.log(`✅ /api/all-users: ${users.length} usuarios`);
-    res.json(users);
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200); // máximo 200 por página
+    const offset = (page - 1) * limit;
+    
+    const users = await db.getAllUsers(limit, offset);
+    const total = await db.getTotalUsersCount();
+    
+    console.log(`✅ /api/all-users: página ${page}, ${users.length} usuarios (total ${total})`);
+    
+    res.json({
+      users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     console.error('❌ Error obteniendo usuarios:', error);
     res.status(500).json({ error: 'Error obteniendo usuarios: ' + error.message });
@@ -2251,15 +2265,14 @@ app.get('/api/users/with-referrals', async (req, res) => {
 app.get('/api/users/without-referrals', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
-    const allUsers = await db.getAllUsers();
-    
+    const allUsers = await db.getAllUsers(10000, 0); // límite alto, pero cuidado
     const usersWithReferrals = new Set(stats.top_referrers?.map(u => u.referrer_id) || []);
     
     const usersWithoutReferrals = allUsers.filter(user => {
       return !usersWithReferrals.has(user.telegram_id.toString());
     });
     
-    res.json(usersWithoutReferrals);
+    res.json(usersWithoutReferrals.slice(0, 200)); // limitar a 200 para no sobrecargar
   } catch (error) {
     console.error('❌ Error obteniendo usuarios sin referidos:', error);
     res.status(500).json({ error: 'Error obteniendo usuarios sin referidos' });
@@ -3176,6 +3189,9 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public/index.htm
 app.get('/plans.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/plans.html')); });
 app.get('/payment.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/payment.html')); });
 app.get('/admin.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/admin.html')); });
+app.get('/how.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/how.html')); });
+app.get('/faq.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/faq.html')); });
+app.get('/politicas.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/politicas.html')); });
 
 // ==================== BOT DE TELEGRAM ====================
 

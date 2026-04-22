@@ -1,858 +1,1424 @@
-<!DOCTYPE html> 
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>VPN Cuba — Signal Admin</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Azeret+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-/* ========== SIGNAL ADMIN — DARK SYSTEM (igual que antes) ========== */
-:root {
-  --black:   #000000;
-  --deep:    #030305;
-  --panel:   #07070f;
-  --surface: #0d0d1a;
-  --ink:     #111120;
-  --wire:    rgba(255,255,255,.06);
-  --wire-hi: rgba(255,255,255,.11);
-  --txt:     #e8e8f0;
-  --txt-2:   #6a6a88;
-  --txt-3:   #333348;
-  --sig:     #00d4ff;
-  --glow:    rgba(0,212,255,.15);
-  --sig-soft:rgba(0,212,255,.07);
-  --sig-line:rgba(0,212,255,.20);
-  --green:   #00ff88;
-  --red:     #ff4455;
-  --amber:   #ffb020;
-  --purple:  #9966ff;
-  --f-head:  'Bebas Neue', sans-serif;
-  --f-body:  'Cabinet Grotesk', sans-serif;
-  --f-mono:  'Azeret Mono', monospace;
+const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs').promises;
+const path = require('path');
+require('dotenv').config();
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Error: Faltan variables de entorno SUPABASE_URL o SUPABASE_KEY/SUPABASE_ANON_KEY');
+  process.exit(1);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--black);
-  color: var(--txt);
-  font-family: var(--f-body);
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  overflow-x: hidden;
+const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : supabase;
+if (!supabaseServiceKey) {
+  console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no configurada. Usando anon key para admin. Algunas operaciones pueden fallar por RLS.');
 }
+const dbClient = supabaseAdmin;
 
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 4px);
-  opacity: .25;
-}
-
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--black); }
-::-webkit-scrollbar-thumb { background: var(--txt-3); border-radius: 0; }
-
-/* TICKER */
-.ticker-bar {
-  position: relative; z-index: 100;
-  width: 100%; height: 28px;
-  background: var(--deep);
-  border-bottom: 1px solid var(--wire-hi);
-  overflow: hidden;
-  display: flex; align-items: center;
-}
-.ticker-inner {
-  display: flex; white-space: nowrap;
-  animation: ticker 30s linear infinite;
-  font-family: var(--f-mono);
-  font-size: .58rem; letter-spacing: .14em; text-transform: uppercase; color: var(--txt-2);
-}
-.ticker-inner span { padding: 0 2.5rem; }
-.ticker-inner .hi { color: var(--sig); }
-.ticker-fade { position: absolute; right: 0; top: 0; bottom: 0; width: 60px; background: linear-gradient(270deg,var(--deep),transparent); z-index: 2; }
-@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-/* LAYOUT */
-.layout { display: flex; height: calc(100vh - 28px); position: relative; }
-
-/* SIDEBAR */
-.sidebar {
-  width: 240px; flex-shrink: 0;
-  background: var(--deep);
-  border-right: 1px solid var(--wire);
-  display: flex; flex-direction: column;
-  position: sticky; top: 0; height: calc(100vh - 28px);
-  overflow-y: auto; z-index: 50;
-  transition: transform 0.25s ease;
-}
-.sidebar-brand {
-  padding: 20px 16px 16px;
-  border-bottom: 1px solid var(--wire);
-}
-.brand-title {
-  font-family: var(--f-head);
-  font-size: 1.4rem; letter-spacing: .12em;
-  color: var(--txt);
-}
-.brand-freq {
-  font-family: var(--f-mono);
-  font-size: .56rem; letter-spacing: .18em;
-  color: var(--sig); text-transform: uppercase;
-  margin-top: 2px;
-  display: flex; align-items: center; gap: 5px;
-}
-.brand-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  animation: blink 2s ease-in-out infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
-
-.sidebar-nav { flex: 1; padding: 8px 0; }
-.nav-group { margin-bottom: 4px; }
-.nav-group-label {
-  font-family: var(--f-mono);
-  font-size: .55rem; letter-spacing: .16em; text-transform: uppercase;
-  color: var(--txt-3); padding: 8px 16px 4px;
-}
-.nav-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-family: var(--f-mono); font-size: .7rem; letter-spacing: .06em;
-  color: var(--txt-2); text-transform: uppercase;
-  border-left: 2px solid transparent;
-  transition: color .2s, border-color .2s, background .2s;
-  user-select: none;
-}
-.nav-item i { width: 14px; text-align: center; font-size: .75rem; flex-shrink: 0; }
-.nav-item:hover { color: var(--txt); background: rgba(255,255,255,.02); }
-.nav-item.active {
-  color: var(--sig);
-  border-left-color: var(--sig);
-  background: var(--sig-soft);
-}
-.nav-badge {
-  margin-left: auto;
-  background: var(--red); color: white;
-  font-size: .58rem; font-weight: 700;
-  padding: 1px 6px; border-radius: 2px;
-  min-width: 18px; text-align: center;
-}
-.sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--wire);
-  font-family: var(--f-mono); font-size: .58rem;
-  color: var(--txt-3); letter-spacing: .08em;
-}
-
-/* mobile sidebar toggle */
-.menu-toggle {
-  display: none;
-  background: transparent;
-  border: none;
-  color: var(--sig);
-  font-size: 1.2rem;
-  cursor: pointer;
-  margin-right: 12px;
-}
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  z-index: 45;
-}
-
-/* MAIN */
-.main {
-  flex: 1; overflow-y: auto;
-  background: var(--panel);
-  position: relative; z-index: 1;
-}
-
-/* TOP BAR */
-.topbar {
-  position: sticky; top: 0; z-index: 40;
-  background: rgba(3,3,5,.9);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--wire);
-  padding: 10px 20px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.topbar-title {
-  font-family: var(--f-head);
-  font-size: 1rem; letter-spacing: .14em;
-  color: var(--txt);
-}
-.topbar-actions { display: flex; gap: 8px; align-items: center; }
-
-/* CONTENT */
-.content { padding: 20px; max-width: 1300px; margin: 0 auto; }
-
-/* TAB PANELS */
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* STATS GRID */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px; margin-bottom: 20px;
-}
-.stat-card {
-  background: var(--deep);
-  border: 1px solid var(--wire);
-  border-top: 2px solid var(--sig);
-  padding: 14px 16px;
-  transition: border-color .25s, box-shadow .25s;
-}
-.stat-card:hover { border-color: var(--sig); box-shadow: 0 0 16px var(--glow); }
-.stat-card.green { border-top-color: var(--green); }
-.stat-card.green .stat-val { color: var(--green); }
-.stat-card.red   { border-top-color: var(--red);   .stat-val { color: var(--red); } }
-.stat-card.amber { border-top-color: var(--amber); .stat-val { color: var(--amber); } }
-.stat-card.purple{ border-top-color: var(--purple);.stat-val { color: var(--purple); } }
-.stat-icon { font-size: .75rem; color: var(--txt-3); margin-bottom: 6px; }
-.stat-val {
-  font-family: var(--f-head);
-  font-size: 1.8rem; letter-spacing: .04em;
-  color: var(--sig); line-height: 1;
-}
-.stat-lbl {
-  font-family: var(--f-mono);
-  font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--txt-3); margin-top: 4px;
-}
-
-/* CARDS */
-.card {
-  background: var(--deep);
-  border: 1px solid var(--wire);
-  margin-bottom: 16px;
-  position: relative;
-}
-.card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, var(--sig), transparent);
-  opacity: .25;
-}
-.card-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--wire);
-}
-.card-title {
-  font-family: var(--f-head);
-  font-size: .95rem; letter-spacing: .12em;
-  color: var(--txt); display: flex; align-items: center; gap: 8px;
-}
-.card-title i { color: var(--sig); font-size: .8rem; }
-.card-body { padding: 16px; }
-
-/* BUTTONS */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--wire-hi);
-  background: transparent;
-  color: var(--txt-2);
-  font-family: var(--f-mono); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase;
-  cursor: pointer;
-  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
-  transition: color .2s, border-color .2s, background .2s;
-  position: relative; overflow: hidden;
-}
-.btn::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: var(--sig);
-  transform: translateX(-100%);
-  transition: transform .3s cubic-bezier(.22,.8,.36,1);
-  z-index: 0;
-}
-.btn:hover::before { transform: translateX(0); }
-.btn:hover { color: var(--black); border-color: var(--sig); }
-.btn span, .btn i { position: relative; z-index: 1; }
-.btn.green { --sig: var(--green); border-color: rgba(0,255,136,.3); color: var(--green); }
-.btn.red   { --sig: var(--red);   border-color: rgba(255,68,85,.3);  color: var(--red); }
-.btn.amber { --sig: var(--amber); border-color: rgba(255,176,32,.3); color: var(--amber); }
-.btn.purple{ --sig: var(--purple);border-color: rgba(153,102,255,.3);color: var(--purple); }
-.btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
-
-/* TABLES */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-family: var(--f-mono); font-size: .7rem; }
-thead tr { border-bottom: 1px solid var(--sig-line); }
-thead th { text-align: left; padding: 8px 12px; font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--txt-3); font-weight: 400; }
-tbody tr { border-bottom: 1px solid var(--wire); transition: background .15s; }
-tbody tr:hover { background: rgba(0,212,255,.03); }
-td { padding: 9px 12px; color: var(--txt-2); vertical-align: middle; }
-td strong { color: var(--txt); font-weight: 600; font-family: var(--f-body); }
-
-/* BADGES */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  font-family: var(--f-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
-  border: 1px solid;
-  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
-}
-.badge.active, .badge.approved, .badge.paid { border-color: rgba(0,255,136,.4); color: var(--green); background: rgba(0,255,136,.07); }
-.badge.pending, .badge.unpaid { border-color: rgba(255,176,32,.4); color: var(--amber); background: rgba(255,176,32,.07); }
-.badge.expired, .badge.inactive, .badge.failed { border-color: rgba(255,68,85,.4); color: var(--red); background: rgba(255,68,85,.07); }
-.badge.vip { border-color: rgba(153,102,255,.4); color: var(--purple); background: rgba(153,102,255,.07); }
-.badge.non-vip { border-color: var(--wire-hi); color: var(--txt-3); }
-.badge.bpa, .badge.default { border-color: rgba(0,212,255,.3); color: var(--sig); background: var(--sig-soft); }
-.badge.usdt { border-color: rgba(255,176,32,.4); color: var(--amber); background: rgba(255,176,32,.07); }
-.badge.trial { border-color: rgba(0,255,136,.3); color: #88ffcc; background: rgba(0,255,136,.06); }
-.badge.manual { border-color: var(--purple); color: var(--purple); background: rgba(153,102,255,.07); }
-.badge.auto { border-color: var(--green); color: var(--green); background: rgba(0,255,136,.07); }
-
-/* FORMS */
-input, select, textarea {
-  background: rgba(255,255,255,.03);
-  border: 1px solid var(--wire-hi);
-  color: var(--txt);
-  font-family: var(--f-mono); font-size: .75rem;
-  padding: 8px 10px;
-  outline: none;
-  width: 100%;
-  border-radius: 0;
-}
-input:focus, select:focus, textarea:focus { border-color: var(--sig); box-shadow: 0 0 8px var(--glow); }
-select option { background: var(--ink); }
-
-/* LOADING & NO-DATA */
-.loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 30px; font-family: var(--f-mono); font-size: .7rem; color: var(--txt-3); }
-.spinner { width: 16px; height: 16px; border: 2px solid var(--wire); border-top-color: var(--sig); border-radius: 50%; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.no-data { text-align: center; padding: 32px; font-family: var(--f-mono); font-size: .7rem; color: var(--txt-3); }
-.no-data i { display: block; font-size: 2rem; margin-bottom: 8px; opacity: .3; }
-
-/* FORM GRID */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-label { font-family: var(--f-mono); font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--txt-3); }
-
-/* UPLOAD ZONE */
-.upload-zone {
-  border: 1px dashed var(--sig-line);
-  background: var(--sig-soft);
-  padding: 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-}
-.upload-zone:hover { border-color: var(--sig); background: rgba(0,212,255,.12); }
-.upload-zone i { font-size: 1.8rem; color: var(--sig); display: block; margin-bottom: 6px; }
-.upload-zone .uz-title { font-family: var(--f-body); font-weight: 700; font-size: .85rem; color: var(--txt); }
-.upload-zone .uz-sub { font-family: var(--f-mono); font-size: .6rem; color: var(--txt-3); margin-top: 3px; }
-
-/* TRIAL POOL */
-.trial-pool { display: grid; gap: 8px; }
-.trial-file-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px;
-  background: rgba(255,255,255,.02);
-  border: 1px solid var(--wire);
-  border-left: 2px solid var(--sig);
-}
-.trial-file-row.inactive { border-left-color: var(--txt-3); opacity: .5; }
-.tf-name { flex: 1; font-family: var(--f-mono); font-size: .72rem; color: var(--txt); }
-.tf-meta { font-family: var(--f-mono); font-size: .6rem; color: var(--txt-3); flex-shrink: 0; }
-.tf-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-/* PLAN FILES GRID */
-.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.plan-card {
-  background: rgba(255,255,255,.02);
-  border: 1px solid var(--wire);
-  border-top: 2px solid var(--sig);
-  padding: 14px;
-}
-.plan-card-name { font-family: var(--f-head); font-size: .9rem; letter-spacing: .1em; color: var(--txt); margin-bottom: 8px; }
-.plan-file-info { font-family: var(--f-mono); font-size: .62rem; color: var(--txt-3); margin-bottom: 8px; }
-.plan-file-info span { color: var(--txt-2); }
-
-/* MODAL */
-.modal-bg {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.88); backdrop-filter: blur(6px);
-  z-index: 5000;
-  align-items: center; justify-content: center; padding: 16px;
-}
-.modal-bg.active { display: flex; }
-.modal-box {
-  background: var(--surface);
-  border: 1px solid var(--wire-hi);
-  border-top: 2px solid var(--sig);
-  padding: 20px;
-  width: min(800px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal-title { font-family: var(--f-head); font-size: 1rem; letter-spacing: .14em; color: var(--txt); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--wire); }
-.modal-close {
-  position: absolute; top: 12px; right: 12px;
-  width: 28px; height: 28px;
-  border: 1px solid var(--wire-hi);
-  background: transparent; color: var(--txt-2);
-  font-size: 1rem; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  clip-path: polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);
-}
-.modal-close:hover { color: var(--txt); border-color: var(--sig); }
-
-/* DETAIL GRID */
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
-.detail-item {
-  background: rgba(255,255,255,.02);
-  border: 1px solid var(--wire);
-  border-left: 2px solid var(--sig);
-  padding: 9px 12px;
-}
-.detail-lbl { font-family: var(--f-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); margin-bottom: 3px; }
-.detail-val { font-family: var(--f-body); font-size: .85rem; font-weight: 600; color: var(--txt); }
-
-/* REFERRAL CARDS */
-.ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 10px; margin-bottom: 16px; }
-.ref-card { background: rgba(255,255,255,.02); border: 1px solid var(--wire); padding: 12px; text-align: center; }
-.ref-val { font-family: var(--f-head); font-size: 1.6rem; color: var(--sig); }
-.ref-lbl { font-family: var(--f-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
-
-/* INFO/WARN BOX */
-.info-box, .warn-box { display: flex; gap: 8px; padding: 10px 12px; font-family: var(--f-mono); font-size: .68rem; letter-spacing: .04em; margin-bottom: 12px; }
-.info-box { background: var(--sig-soft); border: 1px solid var(--sig-line); border-left: 2px solid var(--sig); color: var(--txt-2); }
-.info-box i { color: var(--sig); flex-shrink: 0; }
-.warn-box { background: rgba(255,176,32,.06); border: 1px solid rgba(255,176,32,.2); border-left: 2px solid var(--amber); color: #ffd580; }
-.warn-box i { color: var(--amber); }
-
-/* SCREENSHOT IMG */
-.screenshot-img { width: 100%; border: 1px solid var(--sig-line); max-height: 60vh; object-fit: contain; margin-bottom: 14px; }
-
-/* PAGINATION */
-.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
-
-/* PROGRESS BAR */
-.progress-container { margin: 8px 0; }
-.progress-bar { width: 100%; height: 6px; background: var(--wire); border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--sig); width: 0%; transition: width 0.2s; }
-.progress-info { display: flex; justify-content: space-between; margin-top: 4px; font-size: .55rem; color: var(--txt-3); }
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .menu-toggle { display: inline-flex; }
-  .sidebar { position: fixed; top: 28px; left: 0; bottom: 0; transform: translateX(-100%); z-index: 100; width: 260px; }
-  .sidebar.open { transform: translateX(0); }
-  .sidebar-overlay.active { display: block; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .form-grid { grid-template-columns: 1fr; }
-  .detail-grid { grid-template-columns: 1fr; }
-  .topbar-title { font-size: .8rem; }
-}
-
-/* NOTIFICATION */
-#notification {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: var(--surface);
-  border-left: 4px solid var(--sig);
-  padding: 12px 20px;
-  font-family: var(--f-mono);
-  font-size: .75rem;
-  color: var(--txt);
-  z-index: 10000;
-  transform: translateX(160%);
-  transition: transform 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  pointer-events: none;
-  max-width: 300px;
-}
-</style>
-</head>
-<body>
-
-<div class="ticker-bar">
-  <div class="ticker-inner"><span>VPN Cuba · Panel Admin</span><span class="hi">Sistema activo</span><span>Gestión de usuarios · pagos · pruebas · broadcasts</span><span class="hi">Solo acceso autorizado</span><span>VPN Cuba · Panel Admin</span><span class="hi">Sistema activo</span></div>
-  <div class="ticker-fade"></div>
-</div>
-
-<div class="layout">
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand"><div class="brand-title">VPN CUBA</div><div class="brand-freq"><span class="brand-dot"></span> ADMIN · PANEL</div></div>
-    <div class="sidebar-nav">
-      <div class="nav-group"><div class="nav-group-label">// Dashboard</div><div class="nav-item active" data-tab="stats" onclick="switchTab('stats')"><i class="fas fa-chart-line"></i> Estadísticas</div></div>
-      <div class="nav-group"><div class="nav-group-label">// Pagos</div><div class="nav-item" data-tab="pending" onclick="switchTab('pending')"><i class="fas fa-clock"></i> Pendientes <span class="nav-badge" id="badge-pending">0</span></div><div class="nav-item" data-tab="approved" onclick="switchTab('approved')"><i class="fas fa-check"></i> Aprobados</div></div>
-      <div class="nav-group"><div class="nav-group-label">// Pruebas</div><div class="nav-item" data-tab="trial-pending" onclick="switchTab('trial-pending')"><i class="fas fa-gift"></i> Solicitudes <span class="nav-badge" id="badge-trial">0</span></div></div>
-      <div class="nav-group"><div class="nav-group-label">// Usuarios</div><div class="nav-item" data-tab="users" onclick="switchTab('users')"><i class="fas fa-users"></i> Usuarios</div><div class="nav-item" data-tab="referrals" onclick="switchTab('referrals')"><i class="fas fa-share-alt"></i> Referidos</div></div>
-      <div class="nav-group"><div class="nav-group-label">// Contenido</div><div class="nav-item" data-tab="plan-files" onclick="switchTab('plan-files')"><i class="fas fa-folder"></i> Archivos Planes</div><div class="nav-item" data-tab="trial-files" onclick="switchTab('trial-files')"><i class="fas fa-database"></i> Pool Pruebas</div><div class="nav-item" data-tab="coupons" onclick="switchTab('coupons')"><i class="fas fa-tag"></i> Cupones</div></div>
-      <div class="nav-group"><div class="nav-group-label">// Mensajes</div><div class="nav-item" data-tab="broadcast" onclick="switchTab('broadcast')"><i class="fas fa-bullhorn"></i> Broadcast</div><div class="nav-item" data-tab="games" onclick="switchTab('games')"><i class="fas fa-gamepad"></i> Juegos</div></div>
-    </div>
-    <div class="sidebar-footer">Panel Admin v2.0 · VPN Cuba</div>
-  </nav>
-
-  <main class="main">
-    <div class="topbar">
-      <div style="display:flex; align-items:center;"><button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button><div class="topbar-title" id="topbarTitle">// ESTADÍSTICAS</div></div>
-      <div class="topbar-actions"><button class="btn" onclick="refreshCurrentTab()"><i class="fas fa-sync-alt"></i> <span>Actualizar</span></button><span style="font-family:var(--f-mono);font-size:.6rem;color:var(--txt-3)" id="adminIdDisplay"></span></div>
-    </div>
-
-    <div class="content">
-      <!-- STATS -->
-      <div id="statsPanel" class="tab-panel active">
-        <div class="stats-grid" id="statsGrid">
-          <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-val" id="totalUsers">—</div><div class="stat-lbl">Usuarios totales</div></div>
-          <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-crown"></i></div><div class="stat-val" id="vipUsers">—</div><div class="stat-lbl">Usuarios VIP</div></div>
-          <div class="stat-card green"><div class="stat-icon"><i class="fas fa-gift"></i></div><div class="stat-val" id="trialRequests">—</div><div class="stat-lbl">Solicitudes prueba</div></div>
-          <div class="stat-card amber"><div class="stat-icon"><i class="fas fa-hourglass-half"></i></div><div class="stat-val" id="trialPendingCount">—</div><div class="stat-lbl">Pruebas pendientes</div></div>
-          <div class="stat-card red"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-val" id="pendingPaymentsCount">—</div><div class="stat-lbl">Pagos pendientes</div></div>
-          <div class="stat-card green"><div class="stat-icon"><i class="fas fa-money-bill"></i></div><div class="stat-val" id="totalRevenue">—</div><div class="stat-lbl">Ingresos (CUP)</div></div>
-          <div class="stat-card"><div class="stat-icon"><i class="fas fa-share-alt"></i></div><div class="stat-val" id="totalReferrals">—</div><div class="stat-lbl">Referidos</div></div>
-          <div class="stat-card amber"><div class="stat-icon"><i class="fab fa-bitcoin"></i></div><div class="stat-val" id="usdtPayments">—</div><div class="stat-lbl">Pagos USDT</div></div>
-          <div class="stat-card"><div class="stat-icon"><i class="fas fa-bullhorn"></i></div><div class="stat-val" id="broadcastCount">—</div><div class="stat-lbl">Broadcasts</div></div>
-          <div class="stat-card green"><div class="stat-icon"><i class="fas fa-tag"></i></div><div class="stat-val" id="couponsCount">—</div><div class="stat-lbl">Cupones activos</div></div>
-        </div>
-        <div class="info-box"><i class="fas fa-info-circle"></i> Estadísticas en tiempo real desde la base de datos.</div>
-      </div>
-
-      <!-- PAGOS PENDIENTES -->
-      <div id="pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-clock"></i> Pagos Pendientes</div><button class="btn" onclick="loadPendingPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="pendingLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="pendingNoData" style="display:none"><i class="fas fa-check-circle"></i>No hay pagos pendientes</div><div class="table-wrap" id="pendingTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="pendingTableBody"></tbody></table></div></div></div></div>
-
-      <!-- PAGOS APROBADOS -->
-      <div id="approvedPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-check"></i> Pagos Aprobados</div><button class="btn green" onclick="loadApprovedPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="approvedLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="approvedNoData" style="display:none"><i class="fas fa-inbox"></i>Sin pagos aprobados</div><div class="table-wrap" id="approvedTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Cupón</th><th>Fecha</th><th>Config.</th><th>Acción</th></tr></thead><tbody id="approvedTableBody"></tbody></table></div></div></div></div>
-
-      <!-- PRUEBAS PENDIENTES -->
-      <div id="trial-pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-gift"></i> Solicitudes de Prueba</div><div style="display:flex;gap:8px"><button class="btn green" onclick="sendAllTrials()"><i class="fas fa-paper-plane"></i> <span>Enviar todas</span></button><button class="btn" onclick="loadPendingTrials()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Los archivos se toman del Pool de Pruebas (múltiples archivos rotativos). Si el pool está vacío, se usará el archivo de prueba individual de la sección "Archivos Planes".</div><div class="loading" id="trialLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialNoData" style="display:none"><i class="fas fa-gift"></i>Sin solicitudes pendientes</div><div class="table-wrap" id="trialTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Usuario</th><th>Juego</th><th>Conexión</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="trialTableBody"></tbody></table></div></div></div></div>
-
-      <!-- USUARIOS -->
-      <div id="usersPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-users"></i> Usuarios</div><button class="btn" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="search-row" style="display:flex;gap:8px;margin-bottom:14px"><input type="text" id="searchUserInput" placeholder="// buscar por nombre, @usuario o ID..." oninput="searchUsers()"></div><div class="loading" id="usersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="usersNoData" style="display:none"><i class="fas fa-users"></i>Sin usuarios</div><div class="table-wrap" id="usersTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Plan</th><th>VIP</th><th>Referidor</th><th>Registro</th><th>Acciones</th></tr></thead><tbody id="usersTableBody"></tbody></table></div><div class="pagination" id="usersPagination" style="display:none"><button class="btn" id="usersPrevBtn" onclick="changeUsersPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="usersCurrentPage">1</strong> de <strong id="usersTotalPages">1</strong></span><button class="btn" id="usersNextBtn" onclick="changeUsersPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
-
-      <!-- REFERIDOS -->
-      <div id="referralsPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-share-alt"></i> Referidos</div><button class="btn" onclick="loadReferrals()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="totalReferralsCount">0</div><div class="ref-lbl">Total referidos</div></div><div class="ref-card"><div class="ref-val" id="paidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="level1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="level2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div></div><div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Top Referidores</div><div class="loading" id="topReferrersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="topReferrersNoData" style="display:none"><i class="fas fa-users"></i>Sin datos</div><div class="table-wrap" id="topReferrersWrap" style="display:none"><table><thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Ver</th></tr></thead><tbody id="topReferrersTableBody"></tbody></table></div></div><div class="search-row" style="display:flex;gap:8px;margin:14px 0"><input type="text" id="searchUserReferrals" placeholder="// buscar usuario por ID..."><select id="searchType" style="width:180px"><option value="all">Usuario específico</option><option value="with_referrals">Con referidos</option><option value="without_referrals">Sin referidos</option></select><button class="btn" onclick="searchUserReferrals()"><i class="fas fa-search"></i></button><button class="btn" onclick="clearSearch()"><i class="fas fa-times"></i></button></div><div id="searchResults" style="display:none"><div class="loading" id="userDetailsLoading" style="display:none"><div class="spinner"></div></div><div class="no-data" id="userNoData" style="display:none"><i class="fas fa-search"></i>Sin resultados</div><div id="userDetailsContent" style="display:none"><div style="font-family:var(--f-head);font-size:.9rem;color:var(--txt);margin-bottom:6px" id="userName"></div><div style="font-family:var(--f-mono);font-size:.68rem;color:var(--txt-2);margin-bottom:12px" id="userDetails"></div><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="userTotalReferrals">0</div><div class="ref-lbl">Total</div></div><div class="ref-card"><div class="ref-val" id="userPaidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="userLevel1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="userLevel2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div><div class="ref-card"><div class="ref-val" id="userDiscount">0%</div><div class="ref-lbl">Descuento</div></div></div></table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table></div></div><div style="margin-top:16px;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Lista completa</div><div><input type="text" id="filterReferrals" placeholder="// filtrar..." oninput="filterReferralsList()" style="margin-bottom:10px"></div><div class="loading" id="referralsListLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="referralsListNoData" style="display:none"><i class="fas fa-share-alt"></i>Sin referidos</div><div class="table-wrap"><table><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Ver</th></tr></thead><tbody id="referralsListTableBody"></tbody></table></div><div class="pagination" id="referralsPagination" style="display:none"><button class="btn" id="prevPageBtn" onclick="changeReferralsPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="currentPage">1</strong> de <strong id="totalPages">1</strong></span><button class="btn" id="nextPageBtn" onclick="changeReferralsPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
-
-      <!-- ARCHIVOS DE PLANES (con tarjeta de prueba individual) -->
-      <div id="plan-filesPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-folder"></i> Archivos de Planes</div><div><button class="btn" onclick="showFilesStatsModal()"><i class="fas fa-chart-bar"></i> <span>Estadísticas</span></button><button class="btn" onclick="loadPlanFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Sube el archivo de configuración para cada plan de pago. Para pruebas, usa el "Pool de Pruebas" (pestaña aparte) o sube un archivo individual aquí.</div><div class="warn-box"><i class="fas fa-exclamation-triangle"></i> Para pagos USDT: el usuario envía captura, el admin aprueba y luego envía el archivo manualmente.</div><div class="plan-grid" id="planFilesGrid"></div><div style="margin-top:20px; border-top:1px solid var(--wire); padding-top:16px;"><div class="card-title"><i class="fas fa-gift"></i> Plan Prueba (individual)</div><div class="info-box"><i class="fas fa-info-circle"></i> Archivo de prueba único. Si tienes el Pool de Pruebas activo, se usará el pool primero. Este archivo es el respaldo.</div><div id="trialPlanCard" class="plan-card" style="margin-top:8px"></div></div></div></div></div>
-
-      <!-- POOL DE PRUEBAS -->
-      <div id="trial-filesPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-database"></i> Pool de Archivos de Prueba</div><button class="btn" onclick="loadTrialFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Sube múltiples archivos de prueba. Se enviarán en rotación a los usuarios que soliciten prueba. Si el pool está vacío, se usará el archivo de prueba individual de "Archivos Planes".</div><div style="margin-bottom:16px"><div class="upload-zone" onclick="document.getElementById('trialFilePoolInput').click()"><i class="fas fa-plus-circle"></i><div class="uz-title">Añadir archivo(s) de prueba al pool</div><div class="uz-sub">.conf · .zip · .rar — Máx. 10MB cada uno — Selecciona varios a la vez</div></div><input type="file" id="trialFilePoolInput" accept=".conf,.zip,.rar" hidden multiple onchange="uploadTrialFilesToPool(this)"></div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Archivos en el pool</div><div class="loading" id="trialFilesLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialFilesNoData" style="display:none"><i class="fas fa-folder-open"></i>Sin archivos. Sube uno arriba.</div><div class="trial-pool" id="trialFilesPool"></div></div></div></div>
-
-      <!-- CUPONES CON FILTRO Y LOGS -->
-      <div id="couponsPanel" class="tab-panel">
-        <div class="card">
-          <div class="card-head"><div class="card-title"><i class="fas fa-plus"></i> Crear Cupón</div></div>
-          <div class="card-body">
-            <div class="form-grid">
-              <div class="form-group"><div class="form-label">Código</div><input type="text" id="couponCode" placeholder="VERANO25" maxlength="20" style="text-transform:uppercase"></div>
-              <div class="form-group"><div class="form-label">Descuento (%)</div><input type="number" id="couponDiscount" placeholder="20" min="1" max="100"></div>
-              <div class="form-group"><div class="form-label">Stock</div><input type="number" id="couponStock" placeholder="50" min="1"></div>
-              <div class="form-group"><div class="form-label">Expiración (opcional)</div><input type="datetime-local" id="couponExpiry"></div>
-              <div class="form-group" style="grid-column:1/-1"><div class="form-label">Descripción</div><input type="text" id="couponDescription" placeholder="Descripción opcional"></div>
-            </div>
-            <div style="margin-top:12px"><button class="btn green" id="createCouponBtn" onclick="createCoupon()"><i class="fas fa-plus-circle"></i> <span>Crear cupón</span></button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-head"><div class="card-title"><i class="fas fa-tag"></i> Cupones</div></div>
-          <div class="card-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <div>
-                <label style="font-family: var(--f-mono); font-size: .6rem; color: var(--txt-3);">Mostrar:</label>
-                <select id="couponFilter" onchange="loadCoupons()" style="width: auto; margin-left: 8px;">
-                  <option value="active">✅ Solo activos (con stock)</option>
-                  <option value="all">📋 Todos (incluye usados/inactivos)</option>
-                  <option value="inactive">⏸️ Solo inactivos/agotados</option>
-                </select>
-              </div>
-              <button class="btn" onclick="loadCoupons()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button>
-            </div>
-            <div class="loading" id="couponsLoading"><div class="spinner"></div> Cargando cupones...</div>
-            <div class="no-data" id="couponsNoData" style="display:none"><i class="fas fa-tag"></i>Sin cupones</div>
-            <div class="table-wrap" id="couponsTableWrap" style="display:none"><table><thead><tr><th>Código</th><th>Descuento</th><th>Stock</th><th>Usado</th><th>Expira</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="couponsTableBody"></tbody></table></div>
-            <!-- Área para mostrar errores detallados -->
-            <div id="couponsError" style="display:none; margin-top:12px; padding:12px; background:rgba(255,68,85,0.1); border-left:3px solid var(--red); color:var(--red); font-family:var(--f-mono); font-size:.7rem;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- BROADCAST -->
-      <div id="broadcastPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-bullhorn"></i> Enviar Broadcast</div></div><div class="card-body"><div class="form-group" style="margin-bottom:10px"><div class="form-label">Destinatarios</div><select id="broadcastTarget"><option value="all">👥 Todos los usuarios</option><option value="vip">👑 Solo VIP</option><option value="non_vip">👤 No VIP</option><option value="trial_pending">⏳ Pruebas pendientes</option><option value="trial_received">✅ Pruebas recibidas</option><option value="active">📱 Activos (30d)</option><option value="with_referrals">🤝 Con referidos</option><option value="usdt_payers">💰 Pagos USDT</option></select></div><div class="form-group" style="margin-bottom:10px"><div class="form-label">Mensaje</div><textarea id="broadcastMessage" rows="5" placeholder="// escribe el mensaje aquí..."></textarea></div><button class="btn green" id="broadcastButton" onclick="sendBroadcast()"><i class="fas fa-paper-plane"></i> <span>Enviar broadcast</span></button></div></div><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-history"></i> Historial</div></div><div class="card-body"><div class="loading" id="broadcastLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="broadcastNoData" style="display:none"><i class="fas fa-bullhorn"></i>Sin broadcasts</div><div class="table-wrap" id="broadcastTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Mensaje</th><th>Target</th><th>Progreso</th><th>Estado</th><th>Fecha</th></tr></thead><tbody id="broadcastTableBody"></tbody></table></div></div></div></div>
-
-      <!-- JUEGOS -->
-      <div id="gamesPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-gamepad"></i> Estadísticas de Juegos</div></div><div class="card-body"><div class="loading" id="gamesLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="gamesNoData" style="display:none"><i class="fas fa-gamepad"></i>Sin datos</div><div class="table-wrap" id="gamesTableWrap" style="display:none"><table><thead><tr><th>Juego/Servidor</th><th>Solicitudes</th><th>Conexiones</th><th>Última solicitud</th></tr></thead><tbody id="gamesTableBody"></tbody></table></div></div></div></div>
-    </div>
-  </main>
-</div>
-
-<!-- MODALES -->
-<div class="modal-bg" id="screenshotModal"><div class="modal-box"><button class="modal-close" onclick="closeModal()">×</button><div class="modal-title">// REVISAR PAGO</div><img id="screenshotImage" class="screenshot-img" alt="Comprobante"><div class="detail-grid"><div class="detail-item"><div class="detail-lbl">ID Usuario</div><div class="detail-val" id="modalUserId"></div></div><div class="detail-item"><div class="detail-lbl">Plan</div><div class="detail-val" id="modalPlan"></div></div><div class="detail-item"><div class="detail-lbl">Monto</div><div class="detail-val"><span id="modalAmount"></span> <span id="modalCurrency"></span></div></div><div class="detail-item"><div class="detail-lbl">Método</div><div class="detail-val" id="modalMethod"></div></div><div class="detail-item"><div class="detail-lbl">Fecha</div><div class="detail-val" id="modalDate"></div></div></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn green" onclick="approvePayment(currentPaymentId)"><i class="fas fa-check"></i> <span>Aprobar</span></button><button class="btn red" onclick="rejectPayment(currentPaymentId)"><i class="fas fa-times"></i> <span>Rechazar</span></button></div></div></div>
-
-<div class="modal-bg" id="configModal"><div class="modal-box"><button class="modal-close" onclick="closeConfigModal()">×</button><div class="modal-title">// ENVIAR CONFIGURACIÓN</div><div class="detail-grid"><div class="detail-item"><div class="detail-lbl">Pago ID</div><div class="detail-val" id="configPaymentId"></div></div><div class="detail-item"><div class="detail-lbl">Usuario ID</div><div class="detail-val" id="configUserId"></div></div><div class="detail-item" style="grid-column:1/-1"><div class="detail-lbl">Plan</div><div class="detail-val" id="configPlan"></div></div></div><div class="upload-zone" onclick="document.getElementById('configFile').click()"><i class="fas fa-file-upload"></i><div class="uz-title">Seleccionar archivo</div><div class="uz-sub">.conf · .zip · .rar</div></div><input type="file" id="configFile" accept=".conf,.zip,.rar" hidden><div id="configFileName" style="font-family:var(--f-mono);font-size:.65rem;color:var(--txt-2);margin:8px 0"></div><button class="btn green" onclick="sendConfigFile()"><i class="fas fa-paper-plane"></i> <span>Enviar archivo</span></button></div></div>
-
-<div class="modal-bg" id="userDetailsModal"><div class="modal-box"><button class="modal-close" onclick="closeUserDetailsModal()">×</button><div class="modal-title">// DETALLES DE USUARIO</div><div class="loading" id="userDetailsModalLoading"><div class="spinner"></div></div><div id="userDetailsModalContent" style="display:none"><div class="detail-grid"><div class="detail-item"><div class="detail-lbl">ID</div><div class="detail-val" id="modalUserIdDetail"></div></div><div class="detail-item"><div class="detail-lbl">Nombre</div><div class="detail-val" id="modalUserName"></div></div><div class="detail-item"><div class="detail-lbl">Usuario</div><div class="detail-val" id="modalUserUsername"></div></div><div class="detail-item"><div class="detail-lbl">Plan</div><div class="detail-val" id="modalUserPlan"></div></div><div class="detail-item"><div class="detail-lbl">VIP</div><div class="detail-val" id="modalUserVip"></div></div><div class="detail-item"><div class="detail-lbl">VIP Desde</div><div class="detail-val" id="modalUserVipSince"></div></div><div class="detail-item"><div class="detail-lbl">Precio Plan</div><div class="detail-val" id="modalUserPlanPrice"></div></div><div class="detail-item"><div class="detail-lbl">Estado</div><div class="detail-val" id="modalUserActive"></div></div><div class="detail-item"><div class="detail-lbl">Referidor</div><div class="detail-val" id="modalUserReferrer"></div></div><div class="detail-item"><div class="detail-lbl">Ref. Directos</div><div class="detail-val" id="modalUserReferrals"></div></div><div class="detail-item"><div class="detail-lbl">Total Referidos</div><div class="detail-val" id="modalUserTotalReferrals"></div></div><div class="detail-item"><div class="detail-lbl">Ref. Pagados</div><div class="detail-val" id="modalUserPaidReferrals"></div></div><div class="detail-item"><div class="detail-lbl">Prueba</div><div class="detail-val" id="modalUserTrial"></div></div><div class="detail-item"><div class="detail-lbl">Registro</div><div class="detail-val" id="modalUserJoinDate"></div></div></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn red" id="removeVipBtn" onclick="removeVipFromUser(currentUserDetailsId)" style="display:none"><i class="fas fa-crown"></i> <span>Quitar VIP</span></button><button class="btn" onclick="searchUserById(currentUserDetailsId, true)"><i class="fas fa-share-alt"></i> <span>Ver Referidos</span></button><button class="btn purple" onclick="messageUser(currentUserDetailsId)"><i class="fas fa-envelope"></i> <span>Mensaje</span></button></div></div></div></div>
-
-<div class="modal-bg" id="editCouponModal"><div class="modal-box"><button class="modal-close" onclick="closeEditCouponModal()">×</button><div class="modal-title">// EDITAR CUPÓN</div><div class="form-group"><div class="form-label">Código</div><input type="text" id="editCouponCode" disabled></div><div class="form-group"><div class="form-label">Stock</div><div style="display:flex;gap:6px;align-items:center"><button class="btn red" onclick="adjustStock(-1)"><i class="fas fa-minus"></i></button><input type="number" id="editCouponStock" style="text-align:center"><button class="btn green" onclick="adjustStock(1)"><i class="fas fa-plus"></i></button><button class="btn green" onclick="adjustStock(5)"><i class="fas fa-plus"></i> +5</button></div></div><div class="form-group"><div class="form-label">Estado</div><select id="editCouponStatus"><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="expired">Expirado</option></select></div><button class="btn green" id="updateCouponBtn" onclick="updateCoupon()"><i class="fas fa-save"></i> <span>Guardar cambios</span></button></div></div>
-
-<!-- MODAL ESTADÍSTICAS DE ARCHIVOS -->
-<div class="modal-bg" id="filesStatsModal"><div class="modal-box"><button class="modal-close" onclick="closeFilesStatsModal()">×</button><div class="modal-title">// ESTADÍSTICAS DE ARCHIVOS</div><div class="loading" id="filesStatsLoading"><div class="spinner"></div> Cargando...</div><div id="filesStatsContent" style="display:none"><div class="stats-grid"><div class="stat-card"><div class="stat-val" id="totalFilesUploaded">0</div><div class="stat-lbl">Archivos subidos</div></div><div class="stat-card"><div class="stat-val" id="totalFilesSent">0</div><div class="stat-lbl">Envios totales</div></div><div class="stat-card"><div class="stat-val" id="totalAvailableFiles">0</div><div class="stat-lbl">Disponibles</div></div><div class="stat-card"><div class="stat-val" id="totalUsersWithFiles">0</div><div class="stat-lbl">Usuarios con archivo</div></div></div><div class="table-wrap"><table id="filesStatsTable"><thead><tr><th>Plan</th><th>Archivo</th><th>Subido</th><th>Envíos</th><th>Disponibles</th><th>Último envío</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="filesStatsTableBody"></tbody></table></div><div style="margin-top:20px"><h4 style="font-family:var(--f-mono);font-size:.7rem;margin-bottom:8px">// Historial reciente</h4><div class="table-wrap"><table id="filesHistoryTable"><thead><tr><th>Usuario</th><th>Plan</th><th>Archivo</th><th>Fecha</th><th>Método</th><th>Estado</th></tr></thead><tbody id="filesHistoryTableBody"></tbody></table></div></div></div></div></div>
-
-<div id="notification"></div>
-
-<script>
-// ==================== SIGNAL ADMIN — COMPLETE con logs mejorados ====================
-const tg = window.Telegram?.WebApp ?? { initDataUnsafe: {} };
-let currentUserId = null, isAdminUser = false, currentTab = 'stats', currentPaymentId = null, currentUserDetailsId = null, currentCouponCode = null;
-let allUsers = [], filteredUsers = [], currentUsersPage = 1, usersPerPage = 50;
-let allReferrals = [], filteredReferrals = [], currentReferralsPage = 1, referralsPerPage = 30;
-let allCoupons = [];
-
-function toggleSidebar(force) { const sb = document.getElementById('sidebar'); const ov = document.getElementById('sidebarOverlay'); if (force === false) { sb.classList.remove('open'); ov.classList.remove('active'); } else { sb.classList.toggle('open'); ov.classList.toggle('active'); } }
-
-// ── ADMIN CHECK ──────────────────────────────────────
-async function checkAdminAccess() {
-  const urlParams = new URLSearchParams(window.location.search);
-  let userId = urlParams.get('userId') || tg.initDataUnsafe?.user?.id?.toString();
-  if (!userId) { showNotification('❌ No se pudo identificar', 'error'); setTimeout(()=>window.location.href='/plans.html',2000); return; }
-  try {
-    const res = await fetch(`/api/check-admin/${userId}`);
-    const data = await res.json();
-    if (!data.isAdmin) { showNotification('❌ No eres administrador', 'error'); setTimeout(()=>window.location.href='/plans.html?userId='+userId,2000); return; }
-    isAdminUser = true; currentUserId = userId;
-    document.getElementById('adminIdDisplay').textContent = '// ID: '+userId;
-    loadStats(); loadPlanFiles();
-  } catch(e) { showNotification('❌ Error verificando admin', 'error'); }
-}
-
-// ── STATS ────────────────────────────────────────────
-async function loadStats() {
-  try {
-    const res = await fetch('/api/stats'); if(!res.ok) throw new Error(); const stats = await res.json();
-    document.getElementById('totalUsers').textContent = stats.users?.total ?? '—'; document.getElementById('vipUsers').textContent = stats.users?.vip ?? '—';
-    document.getElementById('trialRequests').textContent = stats.users?.trial_requests ?? '—'; document.getElementById('trialPendingCount').textContent = stats.users?.trial_pending ?? '—';
-    document.getElementById('pendingPaymentsCount').textContent = stats.payments?.pending ?? '—'; document.getElementById('totalRevenue').textContent = stats.revenue?.total ?? '—';
-    document.getElementById('totalReferrals').textContent = stats.referrals?.total_referrals ?? '—'; document.getElementById('usdtPayments').textContent = stats.payments?.usdt ?? '—';
-    document.getElementById('broadcastCount').textContent = stats.broadcasts?.total ?? '—'; document.getElementById('couponsCount').textContent = stats.coupons?.active ?? '—';
-    document.getElementById('badge-pending').textContent = stats.payments?.pending || 0; document.getElementById('badge-trial').textContent = stats.users?.trial_pending || 0;
-  } catch(e) { console.error(e); }
-}
-
-// ── PAGOS ────────────────────────────────────────────
-async function loadPendingPayments() { document.getElementById('pendingLoading').style.display='flex'; try{ const res=await fetch('/api/payments/pending'); const payments=await res.json(); document.getElementById('pendingLoading').style.display='none'; if(!payments?.length){ document.getElementById('pendingNoData').style.display='block'; return; } const tb=document.getElementById('pendingTableBody'); tb.innerHTML=''; payments.forEach(p=>{ tb.innerHTML+=`<tr><td>${p.id}</td><td><strong>${p.user?.first_name||'Usuario'}</strong><br><small>@${p.user?.username||''}</small></td><td>${getPlanName(p.plan)}</td><td>${getMethodBadge(p.method)}</td><td style="color:var(--sig)">${p.price} ${p.method==='usdt'?'USDT':'CUP'}</td><td>${p.created_at?new Date(p.created_at).toLocaleDateString('es-ES'):''}</td><td><button class="btn" onclick="viewScreenshot('${p.id}','${p.telegram_id}','${p.plan}','${p.price}','${p.created_at}','${p.screenshot_url}','${p.method}')"><i class="fas fa-eye"></i> <span>Ver</span></button></td>`; }); document.getElementById('pendingTableWrap').style.display='block'; }catch(e){ document.getElementById('pendingLoading').style.display='none'; showNotification('Error','error'); } }
-function viewScreenshot(paymentId,telegramId,plan,amount,date,screenshotUrl,method){ currentPaymentId=paymentId; document.getElementById('screenshotImage').src=screenshotUrl; document.getElementById('modalUserId').textContent=telegramId; document.getElementById('modalPlan').textContent=getPlanName(plan); document.getElementById('modalAmount').textContent=amount; document.getElementById('modalCurrency').textContent=method==='usdt'?'USDT':'CUP'; document.getElementById('modalDate').textContent=new Date(date).toLocaleDateString('es-ES'); document.getElementById('modalMethod').innerHTML=getMethodBadge(method); document.getElementById('screenshotModal').classList.add('active'); }
-async function approvePayment(paymentId){ if(!confirm('¿Aprobar pago? Envío manual después.')) return; showNotification('⏳ Aprobando...','info'); try{ const res=await fetch(`/api/payments/${paymentId}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); if(res.ok){ showNotification('✅ Aprobado','success'); closeModal(); loadPendingPayments(); loadApprovedPayments(); loadStats();} else showNotification('Error','error'); }catch(e){ showNotification('Error','error'); } }
-async function rejectPayment(paymentId){ const reason=prompt('Motivo del rechazo:'); if(!reason) return; try{ await fetch(`/api/payments/${paymentId}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason,adminId:currentUserId})}); showNotification('✅ Rechazado','success'); closeModal(); loadPendingPayments(); loadStats(); }catch(e){ showNotification('Error','error'); } }
-async function loadApprovedPayments() { document.getElementById('approvedLoading').style.display='flex'; try{ const res=await fetch('/api/payments/approved'); const payments=await res.json(); document.getElementById('approvedLoading').style.display='none'; if(!payments?.length){ document.getElementById('approvedNoData').style.display='block'; return; } const tb=document.getElementById('approvedTableBody'); tb.innerHTML=''; payments.forEach(p=>{ const couponInfo=p.coupon_used?`<span class="badge active">${p.coupon_code} -${p.coupon_discount}%</span>`:'—'; tb.innerHTML+=`<tr><td>${p.id}</td><td><strong>${p.user?.first_name||'Usuario'}</strong><br><small>@${p.user?.username||''}</small></td><td>${getPlanName(p.plan)}</td><td>${getMethodBadge(p.method)}</td><td>${p.price} ${p.method==='usdt'?'USDT':'CUP'}</td><td>${couponInfo}</td><td>${p.approved_at?new Date(p.approved_at).toLocaleDateString('es-ES'):''}</td><td>${p.config_sent?'<span class="badge active">Enviada</span>':'<span class="badge pending">Pendiente</span>'}</td><td>${!p.config_sent?`<button class="btn green" onclick="openConfigModal('${p.id}','${p.telegram_id}','${p.plan}')"><i class="fas fa-paper-plane"></i> <span>Enviar</span></button>`:'—'}</td>`; }); document.getElementById('approvedTableWrap').style.display='block'; }catch(e){ document.getElementById('approvedLoading').style.display='none'; showNotification('Error','error'); } }
-function openConfigModal(paymentId,telegramId,plan){ currentPaymentId=paymentId; document.getElementById('configPaymentId').textContent=paymentId; document.getElementById('configUserId').textContent=telegramId; document.getElementById('configPlan').textContent=getPlanName(plan); document.getElementById('configFile').value=''; document.getElementById('configFileName').innerHTML=''; document.getElementById('configModal').classList.add('active'); document.getElementById('configFile').onchange=e=>{ const f=e.target.files[0]; document.getElementById('configFileName').innerHTML=f?f.name:''; }; }
-async function sendConfigFile(){ const file=document.getElementById('configFile').files[0]; if(!file){ showNotification('❌ Selecciona archivo','error'); return; } showNotification('⏳ Enviando...','info'); const fd=new FormData(); fd.append('configFile',file); fd.append('paymentId',currentPaymentId); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/send-config',{method:'POST',body:fd}); const data=await res.json(); if(res.ok&&data.success){ showNotification('✅ Enviado','success'); closeConfigModal(); loadApprovedPayments(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } }
-
-// ── PRUEBAS ──────────────────────────────────────────
-async function loadPendingTrials() { document.getElementById('trialLoading').style.display='flex'; try{ const res=await fetch('/api/trials/pending'); const trials=await res.json(); document.getElementById('trialLoading').style.display='none'; if(!trials?.length){ document.getElementById('trialNoData').style.display='block'; document.getElementById('badge-trial').textContent='0'; return; } document.getElementById('badge-trial').textContent=trials.length; const tb=document.getElementById('trialTableBody'); tb.innerHTML=''; trials.forEach(t=>{ tb.innerHTML+=`<tr><td><code>${t.telegram_id}</code></td><td><strong>${t.first_name||t.username||'Usuario'}</strong><br><small>@${t.username||''}</small></td><td>${t.trial_info?.game_server||t.trial_game_server||'No especificado'}</td><td>${t.trial_info?.connection_type||t.trial_connection_type||'No especificado'}</td><td>${t.trial_requested_at?new Date(t.trial_requested_at).toLocaleDateString('es-ES'):''}</td><td><button class="btn green" onclick="sendTrialConfig('${t.telegram_id}','${(t.first_name||t.username||'Usuario').replace(/'/g,"\\'")}')"><i class="fas fa-gift"></i> Enviar</button> <button class="btn red" onclick="deleteTrialRequest('${t.telegram_id}','${(t.first_name||t.username||'Usuario').replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i> Eliminar</button></td>`; }); document.getElementById('trialTableWrap').style.display='block'; }catch(e){ document.getElementById('trialLoading').style.display='none'; showNotification('Error','error'); } }
-async function sendAllTrials(){ if(!confirm('¿Enviar prueba a TODOS los pendientes?')) return; showNotification('⏳ Procesando...','info'); try{ const res=await fetch('/api/send-trials-to-valid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); const data=await res.json(); if(data.success) showNotification(`✅ Enviadas: ${data.sent}, Fallidas: ${data.failed}`,'success'); else showNotification('❌ Error','error'); loadPendingTrials(); }catch(e){ showNotification('Error','error'); } }
-async function sendTrialConfig(telegramId,userName){ if(!telegramId) return; if(!confirm(`¿Enviar prueba a ${userName}?`)) return; showNotification('⏳ Enviando...','info'); try{ const res=await fetch('/api/send-trial-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegramId,adminId:currentUserId})}); const data=await res.json(); if(res.ok&&data.success) showNotification(`✅ Enviado a ${userName}`,'success'); else showNotification(`❌ ${data.error||'Error'}`,'error'); loadPendingTrials(); }catch(e){ showNotification('Error','error'); } }
-async function deleteTrialRequest(telegramId,userName){ if(!confirm(`¿Eliminar solicitud de ${userName}?`)) return; try{ await fetch(`/api/trials/${telegramId}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ Eliminada','success'); loadPendingTrials(); }catch(e){ showNotification('Error','error'); } }
-
-// ── USUARIOS ─────────────────────────────────────────
-async function loadUsers(){ document.getElementById('usersLoading').style.display='flex'; try{ const res=await fetch('/api/all-users'); const users=await res.json(); document.getElementById('usersLoading').style.display='none'; if(!users?.length){ document.getElementById('usersNoData').style.display='block'; return; } allUsers=users.map(u=>({...u,vip:u.vip||false})); filteredUsers=[...allUsers]; displayUsersPage(1); }catch(e){ document.getElementById('usersLoading').style.display='none'; showNotification('Error','error'); } }
-function displayUsersPage(page){ currentUsersPage=page; const start=(page-1)*usersPerPage; const pageUsers=filteredUsers.slice(start,start+usersPerPage); const tb=document.getElementById('usersTableBody'); tb.innerHTML=''; if(!pageUsers.length){ document.getElementById('usersNoData').style.display='block'; document.getElementById('usersPagination').style.display='none'; return; } document.getElementById('usersNoData').style.display='none'; pageUsers.forEach(u=>{ const vipBadge=u.vip?'<span class="badge vip">VIP</span>':'<span class="badge non-vip">No VIP</span>'; const referrer=u.referrer_id?(u.referrer_username?'@'+u.referrer_username:'ID:'+u.referrer_id):'—'; tb.innerHTML+=`<tr><td><code>${u.telegram_id}</code></td><td><strong>${u.first_name||'Usuario'}</strong></td><td>${u.username?'@'+u.username:'—'}</td><td>${getPlanName(u.plan||u.current_plan)||'—'}</td><td>${vipBadge}</td><td style="font-size:.65rem">${referrer}</td><td>${u.created_at?new Date(u.created_at).toLocaleDateString('es-ES'):'—'}</td><td><button class="btn" onclick="viewUserDetailsModal('${u.telegram_id}')"><i class="fas fa-eye"></i></button> ${u.vip?`<button class="btn red" onclick="removeVipFromUser('${u.telegram_id}')"><i class="fas fa-crown"></i></button>`:''}</td>`; }); document.getElementById('usersTableWrap').style.display='block'; const totalPages=Math.ceil(filteredUsers.length/usersPerPage); document.getElementById('usersCurrentPage').textContent=page; document.getElementById('usersTotalPages').textContent=totalPages; document.getElementById('usersPrevBtn').disabled=page<=1; document.getElementById('usersNextBtn').disabled=page>=totalPages; document.getElementById('usersPagination').style.display=totalPages>1?'flex':'none'; }
-function changeUsersPage(dir){ const n=currentUsersPage+dir; const t=Math.ceil(filteredUsers.length/usersPerPage); if(n>=1&&n<=t) displayUsersPage(n); }
-function searchUsers(){ const term=document.getElementById('searchUserInput').value.toLowerCase(); filteredUsers=term?allUsers.filter(u=>(u.first_name?.toLowerCase().includes(term)||u.username?.toLowerCase().includes(term)||u.telegram_id?.toString().includes(term))):[...allUsers]; displayUsersPage(1); }
-async function viewUserDetailsModal(userId){ currentUserDetailsId=userId; document.getElementById('userDetailsModal').classList.add('active'); document.getElementById('userDetailsModalLoading').style.display='flex'; document.getElementById('userDetailsModalContent').style.display='none'; try{ const res=await fetch(`/api/user/${userId}/details`); const data=await res.json(); document.getElementById('userDetailsModalLoading').style.display='none'; document.getElementById('userDetailsModalContent').style.display='block'; document.getElementById('modalUserIdDetail').textContent=data.telegram_id||'N/A'; document.getElementById('modalUserName').textContent=data.first_name||'Usuario'; document.getElementById('modalUserUsername').textContent='@'+(data.username||'sin_usuario'); document.getElementById('modalUserPlan').textContent=getPlanName(data.plan||data.current_plan)||'—'; document.getElementById('modalUserVip').innerHTML=data.vip?'<span class="badge vip">VIP ✅</span>':'<span class="badge non-vip">No VIP</span>'; document.getElementById('modalUserVipSince').textContent=data.vip_since?new Date(data.vip_since).toLocaleDateString('es-ES'):'—'; document.getElementById('modalUserPlanPrice').textContent=data.plan_price?data.plan_price+' CUP':'—'; document.getElementById('modalUserActive').innerHTML=data.is_active!==false?'<span class="badge active">Activo</span>':'<span class="badge expired">Inactivo</span>'; document.getElementById('modalUserReferrer').textContent=data.referrer_id?'@'+(data.referrer_username||data.referrer_id):'Directo'; document.getElementById('modalUserReferrals').textContent=data.level1_referrals||0; document.getElementById('modalUserTotalReferrals').textContent=data.total_referrals||0; document.getElementById('modalUserPaidReferrals').textContent=data.paid_referrals||0; document.getElementById('modalUserJoinDate').textContent=data.created_at?new Date(data.created_at).toLocaleDateString('es-ES'):'—'; const trialEl=document.getElementById('modalUserTrial'); if(data.trial_received) trialEl.innerHTML='<span class="badge active">Recibida</span>'; else if(data.trial_requested) trialEl.innerHTML='<span class="badge pending">Solicitada</span>'; else trialEl.innerHTML='<span class="badge non-vip">No solicitada</span>'; document.getElementById('removeVipBtn').style.display=data.vip?'inline-flex':'none'; }catch(e){ document.getElementById('userDetailsModalLoading').style.display='none'; showNotification('Error cargando','error'); } }
-function closeUserDetailsModal(){ document.getElementById('userDetailsModal').classList.remove('active'); }
-async function removeVipFromUser(userId){ if(!confirm('¿Quitar VIP?')) return; try{ await fetch(`/api/user/${userId}/remove-vip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ VIP quitado','success'); closeUserDetailsModal(); loadUsers(); loadStats(); }catch(e){ showNotification('Error','error'); } }
-async function messageUser(userId){ const msg=prompt('Mensaje:'); if(!msg) return; try{ await fetch(`/api/user/${userId}/message`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId,message:msg})}); showNotification('✅ Enviado','success'); }catch(e){ showNotification('Error','error'); } }
-
-// ── REFERIDOS ────────────────────────────────────────
-async function loadReferrals(){ try{ const stats=await (await fetch('/api/referrals/stats')).json(); document.getElementById('totalReferralsCount').textContent=stats.total_referrals||0; document.getElementById('paidReferrals').textContent=stats.paid_referrals||0; document.getElementById('level1Referrals').textContent=stats.level1_referrals||0; document.getElementById('level2Referrals').textContent=stats.level2_referrals||0; }catch(e){} try{ const top=await(await fetch('/api/referrals/top')).json(); document.getElementById('topReferrersLoading').style.display='none'; const tb=document.getElementById('topReferrersTableBody'); tb.innerHTML=''; if(top?.length){ document.getElementById('topReferrersWrap').style.display='block'; top.forEach((r,i)=>{ const disc=Math.min((r.paid_referrals||0)*20,100); tb.innerHTML+=`<tr><td style="color:var(--sig)">${i+1}</td><td><strong>${r.first_name||'Usuario'}</strong><br><small>@${r.username||''}</small></td><td>${r.total_referrals||0}</td><td>${r.paid_referrals||0}</td><td><span class="badge active">${disc}%</span></td><td><button class="btn" onclick="searchUserById('${r.telegram_id||r.referrer_id}')"><i class="fas fa-eye"></i></button></td>`; }); } else document.getElementById('topReferrersNoData').style.display='block'; }catch(e){ document.getElementById('topReferrersLoading').style.display='none'; document.getElementById('topReferrersNoData').style.display='block'; } try{ const list=await(await fetch('/api/referrals/list')).json(); allReferrals=list||[]; filteredReferrals=[...allReferrals]; displayReferralsPage(1); document.getElementById('referralsListLoading').style.display='none'; }catch(e){ document.getElementById('referralsListLoading').style.display='none'; } }
-function displayReferralsPage(page){ currentReferralsPage=page; const start=(page-1)*referralsPerPage; const pageR=filteredReferrals.slice(start,start+referralsPerPage); const tb=document.getElementById('referralsListTableBody'); tb.innerHTML=''; if(!pageR.length){ document.getElementById('referralsListNoData').style.display='block'; document.getElementById('referralsPagination').style.display='none'; return; } document.getElementById('referralsListNoData').style.display='none'; pageR.forEach(r=>{ const levelBadge=r.level===1?'<span class="badge active">Nivel 1</span>':'<span class="badge vip">Nivel 2</span>'; const paidBadge=r.has_paid?'<span class="badge active">Pagado</span>':'<span class="badge pending">No pagado</span>'; const disc=r.has_paid?(r.level===1?'20%':'10%'):'0%'; tb.innerHTML+=`<tr><td><code>${r.user_id}</code></td><td><strong>${r.user_name||'Usuario'}</strong></td><td>${r.referrer_name||'—'}</td><td>${levelBadge}</td><td>${getPlanName(r.plan)||'—'}</td><td>${paidBadge}</td><td style="color:var(--green)">${disc}</td><td>${r.referred_at?new Date(r.referred_at).toLocaleDateString('es-ES'):'—'}</td><td><button class="btn" onclick="searchUserById('${r.user_id}')"><i class="fas fa-eye"></i></button></td>`; }); const totalPages=Math.ceil(filteredReferrals.length/referralsPerPage); document.getElementById('currentPage').textContent=page; document.getElementById('totalPages').textContent=totalPages; document.getElementById('prevPageBtn').disabled=page<=1; document.getElementById('nextPageBtn').disabled=page>=totalPages; document.getElementById('referralsPagination').style.display=totalPages>1?'flex':'none'; }
-function changeReferralsPage(dir){ const n=currentReferralsPage+dir; const t=Math.ceil(filteredReferrals.length/referralsPerPage); if(n>=1&&n<=t) displayReferralsPage(n); }
-function filterReferralsList(){ const f=document.getElementById('filterReferrals').value.toLowerCase(); filteredReferrals=f?allReferrals.filter(r=>r.user_name?.toLowerCase().includes(f)||r.user_id?.toString().includes(f)||r.referrer_name?.toLowerCase().includes(f)):[...allReferrals]; displayReferralsPage(1); }
-async function searchUserReferrals(){ const term=document.getElementById('searchUserReferrals').value.trim(); const type=document.getElementById('searchType').value; document.getElementById('searchResults').style.display='block'; document.getElementById('userDetailsLoading').style.display='flex'; document.getElementById('userDetailsContent').style.display='none'; document.getElementById('userNoData').style.display='none'; try{ if(type==='all'&&term){ const user=await(await fetch(`/api/user-info/${term}`)).json(); const refRes=await fetch(`/api/referrals/user/${term}`); const refData=refRes.ok?await refRes.json():{referrals:[]}; displayUserReferrals({user,referrals:refData.referrals||[],referral_stats:refData},'all'); } else if(type==='with_referrals'){ const data=await(await fetch('/api/users/with-referrals')).json(); displayUserReferrals(data,'with_referrals'); } else if(type==='without_referrals'){ const data=await(await fetch('/api/users/without-referrals')).json(); displayUserReferrals(data,'without_referrals'); } else throw new Error(); }catch(e){ document.getElementById('userDetailsLoading').style.display='none'; document.getElementById('userNoData').style.display='block'; } }
-function displayUserReferrals(data,type){ document.getElementById('userDetailsLoading').style.display='none'; if(type==='all'){ const u=data.user,stats=data.referral_stats||{}; document.getElementById('userDetailsContent').style.display='block'; document.getElementById('userName').textContent=u.first_name||u.username||'Usuario'; document.getElementById('userDetails').innerHTML=`ID: ${u.telegram_id} · @${u.username||'sin_usuario'} · VIP: ${u.vip?'✅':'❌'}`; document.getElementById('userTotalReferrals').textContent=stats.total_referrals||0; document.getElementById('userPaidReferrals').textContent=stats.paid_referrals||0; document.getElementById('userLevel1Referrals').textContent=stats.level1?.total||0; document.getElementById('userLevel2Referrals').textContent=stats.level2?.total||0; let disc=((stats.level1?.paid||0)*20)+((stats.level2?.paid||0)*10); document.getElementById('userDiscount').textContent=Math.min(disc,100)+'%'; const tb=document.getElementById('userReferralsTableBody'); tb.innerHTML=''; (data.referrals||[]).forEach(r=>{ tb.innerHTML+=`<tr><td><strong>${r.referred_name||r.user_name||'Usuario'}</strong><br><small>ID: ${r.referred_id}</small></td><td>${r.level===1?'Nivel 1':'Nivel 2'}</td><td>${getPlanName(r.plan)||'—'}</td><td>${r.has_paid?'Pagado':'No pagado'}</td><td>${r.has_paid?(r.level===1?'20%':'10%'):'0%'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('es-ES'):'N/A'}</td>`; }); } else { document.getElementById('userDetailsContent').style.display='block'; document.getElementById('userName').textContent=type==='with_referrals'?'Usuarios con Referidos':'Usuarios sin Referidos'; document.getElementById('userDetails').textContent=`Total: ${Array.isArray(data)?data.length:0}`; const tb=document.getElementById('userReferralsTableBody'); tb.innerHTML=''; (Array.isArray(data)?data:[]).forEach(u=>{ tb.innerHTML+=`<tr><td><strong>${u.first_name||u.username||'Usuario'}</strong><br><small>ID: ${u.telegram_id||u.id}</small></td><td>${u.total_referrals||0}</td><td>${u.paid_referrals||0}</td><td>${u.level1_referrals||0}</td><td>${u.level2_referrals||0}</td><td><button class="btn" onclick="searchUserById('${u.telegram_id||u.id}')"><i class="fas fa-eye"></i></button></td>`; }); } }
-function clearSearch(){ document.getElementById('searchUserReferrals').value=''; document.getElementById('searchType').value='all'; document.getElementById('searchResults').style.display='none'; }
-function searchUserById(id,tab=false){ if(tab){ switchTab('referrals'); setTimeout(()=>{ document.getElementById('searchUserReferrals').value=id; searchUserReferrals(); },100); } else { document.getElementById('searchUserReferrals').value=id; document.getElementById('searchType').value='all'; searchUserReferrals(); } }
-
-// ── ARCHIVOS DE PLANES ───────────────────────────────
-async function loadPlanFiles(){ try{ const res=await fetch('/api/plan-files'); const files=await res.json(); const plans=['basico','avanzado','premium','anual']; const planNames={basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)'}; const grid=document.getElementById('planFilesGrid'); grid.innerHTML=''; for(const plan of plans){ const file=(files||[]).find(f=>f.plan===plan); grid.innerHTML+=`<div class="plan-card"><div class="plan-card-name">${planNames[plan]}</div><div class="plan-file-info">Archivo: <span>${file?.original_name||file?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${file?.updated_at?new Date(file.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('planFileInput_${plan}').click()"><i class="fas fa-upload"></i> <span>Subir</span></button></div><input type="file" id="planFileInput_${plan}" accept=".conf,.zip,.rar" hidden onchange="handlePlanFileChange(event,'${plan}')"></div>`; } const trialFile=(files||[]).find(f=>f.plan==='trial'); const trialCard=document.getElementById('trialPlanCard'); trialCard.innerHTML=`<div class="plan-card-name">Prueba (individual)</div><div class="plan-file-info">Archivo: <span>${trialFile?.original_name||trialFile?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${trialFile?.updated_at?new Date(trialFile.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div class="plan-file-info">Usuarios que recibieron: <span>${trialFile?.users_count||0}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('trialPlanFileInput').click()"><i class="fas fa-upload"></i> <span>Subir archivo de prueba</span></button></div><input type="file" id="trialPlanFileInput" accept=".conf,.zip,.rar" hidden onchange="handleTrialPlanFileChange(event)">`; }catch(e){ showNotification('Error archivos','error'); } }
-async function handlePlanFileChange(event,plan){ const file=event.target.files[0]; if(!file) return; showNotification(`⏳ Subiendo ${file.name}...`,'info'); const fd=new FormData(); fd.append('file',file); fd.append('plan',plan); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/upload-plan-file',{method:'POST',body:fd}); if(res.ok){ showNotification('✅ Archivo subido','success'); loadPlanFiles(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } event.target.value=''; }
-async function handleTrialPlanFileChange(event){ const file=event.target.files[0]; if(!file) return; showNotification(`⏳ Subiendo archivo de prueba...`,'info'); const fd=new FormData(); fd.append('file',file); fd.append('plan','trial'); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/upload-trial-file',{method:'POST',body:fd}); if(res.ok){ showNotification('✅ Archivo de prueba subido','success'); loadPlanFiles(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } event.target.value=''; }
-
-// ── POOL DE PRUEBAS ──────────────────────────────────
-let isUploadingMultiple = false;
-async function uploadTrialFilesToPool(input) {
-    const files = Array.from(input.files);
-    if (!files.length) return;
-    if (isUploadingMultiple) { showNotification('⏳ Ya hay una subida en curso, espera...', 'warning'); input.value = ''; return; }
-    isUploadingMultiple = true;
-    let successCount = 0, failCount = 0;
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (!['conf', 'zip', 'rar'].includes(ext)) { showNotification(`❌ ${file.name} no es .conf, .zip o .rar`, 'error'); failCount++; continue; }
-        if (file.size > 10 * 1024 * 1024) { showNotification(`❌ ${file.name} excede 10MB`, 'error'); failCount++; continue; }
-        showNotification(`📤 Subiendo ${file.name} (${i+1}/${files.length})...`, 'info');
-        const fd = new FormData(); fd.append('file', file); fd.append('adminId', currentUserId); fd.append('label', file.name);
-        try {
-            const res = await fetch('/api/trial-files/upload', { method: 'POST', body: fd });
-            if (res.ok) { successCount++; showNotification(`✅ ${file.name} subido correctamente`, 'success'); }
-            else { const err = await res.text(); throw new Error(err); }
-        } catch (e) { failCount++; showNotification(`❌ Error en ${file.name}: ${e.message}`, 'error'); }
+const db = {
+  // ========== STORAGE ==========
+  async uploadImage(filePath, telegramId) {
+    try {
+      const fileBuffer = await fs.readFile(filePath);
+      const fileName = `screenshot_${telegramId}_${Date.now()}.jpg`;
+      const { data, error } = await supabaseAdmin.storage
+        .from('payments-screenshots')
+        .upload(fileName, fileBuffer, { contentType: 'image/jpeg', cacheControl: '3600', upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabaseAdmin.storage.from('payments-screenshots').getPublicUrl(fileName);
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Error en uploadImage:', error);
+      throw error;
     }
-    isUploadingMultiple = false;
-    input.value = '';
-    showNotification(`✅ Subida completada: ${successCount} éxito, ${failCount} fallos`, successCount ? 'success' : 'error');
-    if (successCount > 0) loadTrialFiles();
-}
-async function loadTrialFiles(){ document.getElementById('trialFilesLoading').style.display='flex'; try{ const res=await fetch('/api/trial-files'); const files=await res.json(); document.getElementById('trialFilesLoading').style.display='none'; if(!files?.length){ document.getElementById('trialFilesNoData').style.display='block'; return; } document.getElementById('trialFilesNoData').style.display='none'; const pool=document.getElementById('trialFilesPool'); pool.innerHTML=''; files.forEach(f=>{ const div=document.createElement('div'); div.className='trial-file-row'+(f.is_active===false?' inactive':''); const status=f.is_active!==false?'<span class="badge active">Activo</span>':'<span class="badge expired">Inactivo</span>'; div.innerHTML=`<div class="tf-name">${f.label||f.original_name}</div><div class="tf-meta">${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</div>${status}<div class="tf-actions"><button class="btn ${f.is_active!==false?'amber':'green'}" onclick="toggleTrialFile(${f.id},${f.is_active!==false})"><i class="fas fa-${f.is_active!==false?'pause':'play'}"></i></button><button class="btn red" onclick="deleteTrialFile(${f.id},'${(f.label||f.original_name).replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button></div>`; pool.appendChild(div); }); }catch(e){ document.getElementById('trialFilesLoading').style.display='none'; showNotification('Error cargando pool','error'); } }
-async function toggleTrialFile(id,currentlyActive){ try{ await fetch(`/api/trial-files/${id}/toggle`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId,is_active:!currentlyActive})}); showNotification(currentlyActive?'⏸ Desactivado':'▶ Activado','success'); loadTrialFiles(); }catch(e){ showNotification('Error','error'); } }
-async function deleteTrialFile(id,name){ if(!confirm(`¿Eliminar "${name}"?`)) return; try{ await fetch(`/api/trial-files/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ Eliminado','success'); loadTrialFiles(); }catch(e){ showNotification('Error','error'); } }
+  },
 
-// ==================== CUPONES CON LOGS DETALLADOS ====================
-async function createCoupon(){ 
-  const code=document.getElementById('couponCode').value.trim().toUpperCase(); 
-  const discount=parseFloat(document.getElementById('couponDiscount').value); 
-  const stock=parseInt(document.getElementById('couponStock').value); 
-  const expiry=document.getElementById('couponExpiry').value; 
-  const description=document.getElementById('couponDescription').value.trim(); 
-  if(!code||!/^[A-Z0-9]+$/.test(code)){ showNotification('❌ Código inválido','error'); return; } 
-  if(!discount||discount<1||discount>100){ showNotification('❌ Descuento 1-100','error'); return; } 
-  if(!stock||stock<1){ showNotification('❌ Stock >0','error'); return; } 
-  const btn=document.getElementById('createCouponBtn'); btn.disabled=true; 
-  try{ 
-    const res=await fetch('/api/coupons',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,discount,stock,expiry:expiry||null,description,adminId:currentUserId})}); 
-    if(res.ok){ 
-      showNotification('✅ Cupón creado','success'); 
-      document.getElementById('couponCode').value=''; 
-      document.getElementById('couponDiscount').value=''; 
-      document.getElementById('couponStock').value=''; 
-      document.getElementById('couponExpiry').value=''; 
-      document.getElementById('couponDescription').value=''; 
-      loadCoupons(); 
-      loadStats(); 
-    } else { 
-      const err=await res.json(); 
-      showNotification(`❌ ${err.error||'Error al crear'}`,'error'); 
-    } 
-  }catch(e){ showNotification('Error','error'); } 
-  btn.disabled=false; 
-}
+  async uploadPlanFile(fileBuffer, plan, originalFileName) {
+    try {
+      const bucket = plan === 'trial' ? 'trial-files' : 'plan-files';
+      const extension = path.extname(originalFileName).toLowerCase();
+      let contentType = 'application/octet-stream';
+      if (extension === '.conf') contentType = 'text/plain';
+      if (extension === '.zip') contentType = 'application/zip';
+      if (extension === '.rar') contentType = 'application/x-rar-compressed';
+      const storageFileName = originalFileName;
+      const { data, error } = await supabaseAdmin.storage
+        .from(bucket)
+        .upload(storageFileName, fileBuffer, { contentType, cacheControl: '3600', upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabaseAdmin.storage.from(bucket).getPublicUrl(storageFileName);
+      return { filename: storageFileName, publicUrl, originalName: originalFileName };
+    } catch (error) {
+      console.error('❌ Error en uploadPlanFile:', error);
+      throw error;
+    }
+  },
 
-async function loadCoupons() {
-  console.log('🔄 [ADMIN] Cargando cupones...');
-  const loadingDiv = document.getElementById('couponsLoading');
-  const tableWrap = document.getElementById('couponsTableWrap');
-  const noDataDiv = document.getElementById('couponsNoData');
-  const errorDiv = document.getElementById('couponsError');
-  errorDiv.style.display = 'none';
-  loadingDiv.style.display = 'flex';
-  tableWrap.style.display = 'none';
-  noDataDiv.style.display = 'none';
-  try {
-    console.log('📡 [ADMIN] Fetching /api/coupons');
-    const res = await fetch('/api/coupons');
-    console.log(`📡 [ADMIN] Respuesta status: ${res.status} ${res.statusText}`);
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errorText}`);
+  async deleteOldPlanFile(oldFileName) {
+    try {
+      if (!oldFileName) return;
+      await supabaseAdmin.storage.from('plan-files').remove([oldFileName]);
+    } catch (error) {
+      console.error('❌ Error en deleteOldPlanFile:', error);
     }
-    const coupons = await res.json();
-    console.log(`📦 [ADMIN] Cupones recibidos:`, coupons);
-    loadingDiv.style.display = 'none';
-    if (!coupons || coupons.length === 0) {
-      noDataDiv.style.display = 'block';
-      console.log('⚠️ [ADMIN] No hay cupones');
-      return;
+  },
+
+  // ========== USUARIOS ==========
+  async getUser(telegramId) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data, error } = await dbClient
+        .from('users')
+        .select('*')
+        .eq('telegram_id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getUser:', error);
+      return null;
     }
-    allCoupons = coupons;
-    const filter = document.getElementById('couponFilter').value;
-    let filteredCoupons = [...coupons];
-    if (filter === 'active') {
-      filteredCoupons = coupons.filter(c => c.status === 'active' && c.stock > 0);
-    } else if (filter === 'inactive') {
-      filteredCoupons = coupons.filter(c => c.status !== 'active' || c.stock === 0);
-    }
-    const tb = document.getElementById('couponsTableBody');
-    tb.innerHTML = '';
-    if (filteredCoupons.length === 0) {
-      noDataDiv.style.display = 'block';
-      return;
-    }
-    filteredCoupons.forEach(c => {
-      let statusBadge = c.status === 'active' ? '<span class="badge active">Activo</span>' : (c.status === 'expired' ? '<span class="badge expired">Expirado</span>' : '<span class="badge pending">Inactivo</span>');
-      let expiry = 'No expira';
-      if (c.expiry) {
-        const ed = new Date(c.expiry);
-        expiry = ed.toLocaleDateString('es-ES');
-        if (ed < new Date() && c.status !== 'expired') statusBadge = '<span class="badge expired">Expirado</span>';
+  },
+
+  async saveUser(telegramId, userData) {
+    try {
+      const userId = String(telegramId).trim();
+      const existingUser = await this.getUser(userId);
+      if (existingUser) {
+        const updateData = { ...userData, updated_at: new Date().toISOString(), last_activity: new Date().toISOString() };
+        if (userData.trial_requested && !existingUser.trial_requested) updateData.trial_requested_at = new Date().toISOString();
+        if (userData.trial_received && !existingUser.trial_received) updateData.trial_sent_at = new Date().toISOString();
+        if (userData.referrer_id && !existingUser.referrer_id) {
+          updateData.referrer_id = userData.referrer_id;
+          updateData.referrer_username = userData.referrer_username;
+        }
+        const { data, error } = await dbClient
+          .from('users')
+          .update(updateData)
+          .eq('telegram_id', userId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        const insertData = {
+          telegram_id: userId,
+          ...userData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_activity: new Date().toISOString(),
+          is_active: userData.is_active !== undefined ? userData.is_active : true
+        };
+        const { data, error } = await dbClient
+          .from('users')
+          .insert([insertData])
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
       }
-      tb.innerHTML += `<tr>
-        <td><strong style="color:var(--sig)">${c.code}</strong>${c.description ? `<br><small>${c.description}</small>` : ''}</td>
-        <td><span class="badge active">${c.discount}%</span></td>
-        <td>${c.stock}</td>
-        <td>${c.used || 0}</td>
-        <td>${expiry}</td>
-        <td>${statusBadge}</td>
-        <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
-        <td>
-          <button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button>
-          ${c.status === 'active' ? `<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>` : `<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`}
-          <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button>
-        </td>
-      </tr>`;
-    });
-    tableWrap.style.display = 'block';
-    console.log('✅ [ADMIN] Cupones renderizados correctamente');
-  } catch (error) {
-    console.error('❌ [ADMIN] Error cargando cupones:', error);
-    loadingDiv.style.display = 'none';
-    errorDiv.style.display = 'block';
-    errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error al cargar cupones: ${error.message}<br><br>Revisa la consola (F12) para más detalles.`;
+    } catch (error) {
+      console.error('❌ Error en saveUser:', error);
+      throw error;
+    }
+  },
+
+  async updateUser(telegramId, updateData) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data, error } = await dbClient
+        .from('users')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('telegram_id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateUser:', error);
+      throw error;
+    }
+  },
+
+  async updateUserActiveStatus(telegramId, isActive, lastError = null) {
+    const updateData = { is_active: isActive, updated_at: new Date().toISOString() };
+    if (lastError) updateData.last_error = lastError;
+    return await this.updateUser(telegramId, updateData);
+  },
+
+  async acceptTerms(telegramId) {
+    return await this.saveUser(telegramId, { accepted_terms: true, terms_date: new Date().toISOString() });
+  },
+
+  async makeUserVIP(telegramId, vipData = {}) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data, error } = await dbClient
+        .from('users')
+        .update({
+          vip: true,
+          plan: vipData.plan || 'vip',
+          plan_price: vipData.plan_price || 0,
+          vip_since: vipData.vip_since || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+          // payment_method eliminado porque no existe en la tabla
+        })
+        .eq('telegram_id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en makeUserVIP:', error);
+      throw error;
+    }
+  },
+
+  async removeVIP(telegramId) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data, error } = await dbClient
+        .from('users')
+        .update({ vip: false, plan: null, plan_price: null, vip_since: null, updated_at: new Date().toISOString() })
+        .eq('telegram_id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en removeVIP:', error);
+      throw error;
+    }
+  },
+
+  async getAllUsers() {
+    try {
+      let allUsers = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await dbClient
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allUsers = allUsers.concat(data);
+          from += pageSize;
+          if (data.length < pageSize) hasMore = false;
+        } else {
+          hasMore = false;
+        }
+      }
+      return allUsers;
+    } catch (error) {
+      console.error('❌ Error en getAllUsers:', error);
+      return [];
+    }
+  },
+
+  async getVIPUsers() {
+    try {
+      const { data, error } = await dbClient
+        .from('users')
+        .select('*')
+        .eq('vip', true)
+        .order('vip_since', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getVIPUsers:', error);
+      return [];
+    }
+  },
+
+  async getActiveUsers(days = 30) {
+    try {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      const { data, error } = await dbClient
+        .from('users')
+        .select('*')
+        .gte('last_activity', date.toISOString())
+        .order('last_activity', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getActiveUsers:', error);
+      return [];
+    }
+  },
+
+  // ========== REFERIDOS ==========
+  async createReferral(referrerId, referredId, referredUsername = null, referredName = null) {
+    try {
+      const referrerIdStr = String(referrerId).trim();
+      const referredIdStr = String(referredId).trim();
+      const { data: existing } = await dbClient
+        .from('referrals')
+        .select('id')
+        .eq('referrer_id', referrerIdStr)
+        .eq('referred_id', referredIdStr)
+        .maybeSingle();
+      if (existing) return existing;
+      const { data, error } = await dbClient
+        .from('referrals')
+        .insert([{
+          referrer_id: referrerIdStr,
+          referred_id: referredIdStr,
+          referred_username: referredUsername,
+          referred_name: referredName,
+          level: 1,
+          has_paid: false,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      // Nivel 2
+      const { data: referrerReferrals } = await dbClient
+        .from('referrals')
+        .select('referrer_id')
+        .eq('referred_id', referrerIdStr)
+        .eq('level', 1)
+        .maybeSingle();
+      if (referrerReferrals && referrerReferrals.referrer_id) {
+        await dbClient
+          .from('referrals')
+          .insert([{
+            referrer_id: referrerReferrals.referrer_id,
+            referred_id: referredIdStr,
+            referred_username: referredUsername,
+            referred_name: referredName,
+            level: 2,
+            has_paid: false,
+            created_at: new Date().toISOString()
+          }]);
+      }
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createReferral:', error);
+      throw error;
+    }
+  },
+
+  async getReferralStats(telegramId) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data: level1, error: error1 } = await dbClient
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', userId)
+        .eq('level', 1);
+      const { data: level2, error: error2 } = await dbClient
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', userId)
+        .eq('level', 2);
+      const level1Paid = level1?.filter(r => r.has_paid).length || 0;
+      const level2Paid = level2?.filter(r => r.has_paid).length || 0;
+      const totalReferrals = (level1?.length || 0) + (level2?.length || 0);
+      const totalPaid = level1Paid + level2Paid;
+      const discount = (level1Paid * 20) + (level2Paid * 10);
+      const discountPercentage = discount > 100 ? 100 : discount;
+      return {
+        level1: { total: level1?.length || 0, paid: level1Paid },
+        level2: { total: level2?.length || 0, paid: level2Paid },
+        total_referrals: totalReferrals,
+        total_paid: totalPaid,
+        discount_percentage: discountPercentage,
+        paid_referrals: totalPaid
+      };
+    } catch (error) {
+      console.error('❌ Error en getReferralStats:', error);
+      return { level1: { total: 0, paid: 0 }, level2: { total: 0, paid: 0 }, total_referrals: 0, total_paid: 0, discount_percentage: 0, paid_referrals: 0 };
+    }
+  },
+
+  async getAllReferralsStats() {
+    try {
+      const { data: referrals, error } = await dbClient.from('referrals').select('*');
+      if (error) throw error;
+      const referrersMap = new Map();
+      referrals?.forEach(r => {
+        const id = r.referrer_id;
+        if (!referrersMap.has(id)) {
+          referrersMap.set(id, { referrer_id: id, total: 0, paid: 0, level1: 0, level2: 0 });
+        }
+        const stats = referrersMap.get(id);
+        stats.total++;
+        if (r.has_paid) stats.paid++;
+        if (r.level === 1) stats.level1++;
+        if (r.level === 2) stats.level2++;
+      });
+      const top_referrers = Array.from(referrersMap.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+      const recent_referrals = referrals
+        ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 10) || [];
+      const total_referrals = referrals?.length || 0;
+      const total_paid = referrals?.filter(r => r.has_paid).length || 0;
+      const level1_referrals = referrals?.filter(r => r.level === 1).length || 0;
+      const level2_referrals = referrals?.filter(r => r.level === 2).length || 0;
+      const paid_level1 = referrals?.filter(r => r.level === 1 && r.has_paid).length || 0;
+      const paid_level2 = referrals?.filter(r => r.level === 2 && r.has_paid).length || 0;
+      return {
+        total_referrals,
+        total_paid,
+        top_referrers,
+        recent_referrals,
+        paid_referrals: total_paid,
+        level1_referrals,
+        level2_referrals,
+        paid_level1,
+        paid_level2
+      };
+    } catch (error) {
+      console.error('❌ Error en getAllReferralsStats:', error);
+      return {
+        total_referrals: 0,
+        total_paid: 0,
+        top_referrers: [],
+        recent_referrals: [],
+        paid_referrals: 0,
+        level1_referrals: 0,
+        level2_referrals: 0,
+        paid_level1: 0,
+        paid_level2: 0
+      };
+    }
+  },
+
+  async markReferralAsPaid(referredId, level = 1) {
+    try {
+      const userId = String(referredId).trim();
+      const { data, error } = await dbClient
+        .from('referrals')
+        .update({ has_paid: true })
+        .eq('referred_id', userId)
+        .select();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en markReferralAsPaid:', error);
+      throw error;
+    }
+  },
+
+  async getReferralsByReferrer(referrerId) {
+    try {
+      const userId = String(referrerId).trim();
+      const { data, error } = await dbClient
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getReferralsByReferrer:', error);
+      return [];
+    }
+  },
+
+  // ========== PAGOS ==========
+  async createPayment(paymentData) {
+    try {
+      const telegramId = String(paymentData.telegram_id).trim();
+      const { data, error } = await dbClient
+        .from('payments')
+        .insert([{
+          telegram_id: telegramId,
+          plan: paymentData.plan,
+          price: paymentData.price,
+          original_price: paymentData.original_price || paymentData.price,
+          method: paymentData.method || 'transfer',
+          screenshot_url: paymentData.screenshot_url || '',
+          notes: paymentData.notes || '',
+          status: paymentData.status || 'pending',
+          coupon_used: paymentData.coupon_used || false,
+          coupon_code: paymentData.coupon_code || null,
+          coupon_discount: paymentData.coupon_discount || 0,
+          created_at: paymentData.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createPayment:', error);
+      throw error;
+    }
+  },
+
+  async getPayment(paymentId) {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .select('*')
+        .eq('id', paymentId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getPayment:', error);
+      return null;
+    }
+  },
+
+  async getPendingPayments() {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getPendingPayments:', error);
+      return [];
+    }
+  },
+
+  async getApprovedPayments() {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getApprovedPayments:', error);
+      return [];
+    }
+  },
+
+  async approvePayment(paymentId) {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .update({ status: 'approved', approved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en approvePayment:', error);
+      throw error;
+    }
+  },
+
+  async rejectPayment(paymentId, reason) {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .update({ status: 'rejected', rejected_reason: reason, rejected_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en rejectPayment:', error);
+      throw error;
+    }
+  },
+
+  async updatePayment(paymentId, updateData) {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', paymentId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updatePayment:', error);
+      throw error;
+    }
+  },
+
+  async getUserPayments(telegramId) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data, error } = await dbClient
+        .from('payments')
+        .select('*')
+        .eq('telegram_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getUserPayments:', error);
+      return [];
+    }
+  },
+
+  // ========== PAGOS USDT ==========
+  async createUsdtPayment(usdtData) {
+    try {
+      const { data, error } = await dbClient
+        .from('usdt_payments')
+        .insert([{ ...usdtData, status: 'pending', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createUsdtPayment:', error);
+      throw error;
+    }
+  },
+
+  async getUsdtPaymentByAddress(address) {
+    try {
+      const { data, error } = await dbClient
+        .from('usdt_payments')
+        .select('*')
+        .eq('usdt_address', address)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getUsdtPaymentByAddress:', error);
+      return null;
+    }
+  },
+
+  async updateUsdtPaymentStatus(address, status, transactionHash = null, sender = null) {
+    try {
+      const updateData = { status, updated_at: new Date().toISOString() };
+      if (transactionHash) updateData.transaction_hash = transactionHash;
+      if (sender) updateData.sender_address = sender;
+      if (status === 'completed') updateData.completed_at = new Date().toISOString();
+      const { data, error } = await dbClient
+        .from('usdt_payments')
+        .update(updateData)
+        .eq('usdt_address', address)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateUsdtPaymentStatus:', error);
+      throw error;
+    }
+  },
+
+  // ========== ARCHIVOS DE PLANES ==========
+  async savePlanFile(planFileData) {
+    try {
+      const { data: existing } = await dbClient
+        .from('plan_files')
+        .select('*')
+        .eq('plan', planFileData.plan)
+        .maybeSingle();
+      if (existing) {
+        if (planFileData.plan === 'trial' && existing.storage_filename) {
+          await supabaseAdmin.storage.from('trial-files').remove([existing.storage_filename]).catch(e => console.warn);
+        }
+        const { data, error } = await dbClient
+          .from('plan_files')
+          .update({ ...planFileData, updated_at: new Date().toISOString() })
+          .eq('plan', planFileData.plan)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await dbClient
+          .from('plan_files')
+          .insert([{ ...planFileData, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }])
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    } catch (error) {
+      console.error('❌ Error en savePlanFile:', error);
+      throw error;
+    }
+  },
+
+  async getPlanFile(plan) {
+    try {
+      const { data, error } = await dbClient
+        .from('plan_files')
+        .select('*')
+        .eq('plan', plan)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getPlanFile:', error);
+      return null;
+    }
+  },
+
+  async getAllPlanFiles() {
+    try {
+      const { data, error } = await dbClient
+        .from('plan_files')
+        .select('*')
+        .order('plan', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getAllPlanFiles:', error);
+      return [];
+    }
+  },
+
+  async deletePlanFile(plan) {
+    try {
+      const fileData = await this.getPlanFile(plan);
+      if (fileData && fileData.storage_filename) {
+        const bucket = plan === 'trial' ? 'trial-files' : 'plan-files';
+        await supabaseAdmin.storage.from(bucket).remove([fileData.storage_filename]).catch(e => console.warn);
+      }
+      const { data, error } = await dbClient
+        .from('plan_files')
+        .delete()
+        .eq('plan', plan)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en deletePlanFile:', error);
+      throw error;
+    }
+  },
+
+  // ========== ESTADÍSTICAS ==========
+  async getStats() {
+    try {
+      const [
+        { count: totalUsers },
+        { count: vipUsers },
+        { count: trialRequests },
+        { count: trialReceived },
+        { count: usersWithReferrer },
+        { count: activeUsers },
+        { count: inactiveUsers }
+      ] = await Promise.all([
+        dbClient.from('users').select('*', { count: 'exact', head: true }),
+        dbClient.from('users').select('*', { count: 'exact', head: true }).eq('vip', true),
+        dbClient.from('users').select('*', { count: 'exact', head: true }).eq('trial_requested', true),
+        dbClient.from('users').select('*', { count: 'exact', head: true }).eq('trial_received', true),
+        dbClient.from('users').select('*', { count: 'exact', head: true }).not('referrer_id', 'is', null),
+        dbClient.from('users').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        dbClient.from('users').select('*', { count: 'exact', head: true }).eq('is_active', false)
+      ]);
+
+      const { data: paymentsData, error: paymentsError } = await dbClient
+        .from('payments')
+        .select('status, price, method, coupon_used, coupon_code, coupon_discount');
+      if (paymentsError) throw paymentsError;
+
+      const totalPayments = paymentsData?.length || 0;
+      const pendingPayments = paymentsData?.filter(p => p.status === 'pending')?.length || 0;
+      const approvedPayments = paymentsData?.filter(p => p.status === 'approved')?.length || 0;
+      const rejectedPayments = paymentsData?.filter(p => p.status === 'rejected')?.length || 0;
+      const usdtPayments = paymentsData?.filter(p => p.method === 'usdt')?.length || 0;
+      const couponPayments = paymentsData?.filter(p => p.coupon_used)?.length || 0;
+
+      const totalRevenue = paymentsData
+        ?.filter(p => p.status === 'approved' && p.price)
+        ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
+
+      const totalDiscounts = paymentsData
+        ?.filter(p => p.status === 'approved' && p.coupon_discount && p.price)
+        ?.reduce((sum, p) => {
+          const originalPrice = p.original_price || p.price / (1 - (p.coupon_discount / 100));
+          const discountAmount = originalPrice - parseFloat(p.price);
+          return sum + discountAmount;
+        }, 0) || 0;
+
+      const referralsStats = await this.getAllReferralsStats();
+      const { data: usdtData } = await dbClient.from('usdt_payments').select('status');
+      const totalUsdtPayments = usdtData?.length || 0;
+      const pendingUsdt = usdtData?.filter(p => p.status === 'pending')?.length || 0;
+      const completedUsdt = usdtData?.filter(p => p.status === 'completed')?.length || 0;
+
+      const { data: broadcastsData } = await dbClient.from('broadcasts').select('status');
+      const totalBroadcasts = broadcastsData?.length || 0;
+      const completedBroadcasts = broadcastsData?.filter(b => b.status === 'completed')?.length || 0;
+
+      const couponsStats = await this.getCouponsStats();
+
+      return {
+        users: {
+          total: totalUsers || 0,
+          vip: vipUsers || 0,
+          regular: (totalUsers || 0) - (vipUsers || 0),
+          trial_requests: trialRequests || 0,
+          trial_received: trialReceived || 0,
+          trial_pending: (trialRequests || 0) - (trialReceived || 0),
+          with_referrer: usersWithReferrer || 0,
+          active: activeUsers || 0,
+          inactive: inactiveUsers || 0
+        },
+        payments: {
+          total: totalPayments,
+          pending: pendingPayments,
+          approved: approvedPayments,
+          rejected: rejectedPayments,
+          usdt: usdtPayments,
+          with_coupon: couponPayments
+        },
+        revenue: {
+          total: totalRevenue,
+          discounts: totalDiscounts,
+          average: approvedPayments > 0 ? totalRevenue / approvedPayments : 0
+        },
+        referrals: referralsStats,
+        usdt: {
+          total: totalUsdtPayments,
+          pending: pendingUsdt,
+          completed: completedUsdt
+        },
+        broadcasts: {
+          total: totalBroadcasts,
+          completed: completedBroadcasts
+        },
+        coupons: couponsStats
+      };
+    } catch (error) {
+      console.error('❌ Error en getStats:', error);
+      return {
+        users: { total: 0, vip: 0, regular: 0, trial_requests: 0, trial_received: 0, trial_pending: 0, with_referrer: 0, active: 0, inactive: 0 },
+        payments: { total: 0, pending: 0, approved: 0, rejected: 0, usdt: 0, with_coupon: 0 },
+        revenue: { total: 0, discounts: 0, average: 0 },
+        referrals: { total_referrals: 0, total_paid: 0, top_referrers: [], recent_referrals: [], paid_referrals: 0, level1_referrals: 0, level2_referrals: 0, paid_level1: 0, paid_level2: 0 },
+        usdt: { total: 0, pending: 0, completed: 0 },
+        broadcasts: { total: 0, completed: 0 },
+        coupons: { total: 0, active: 0, expired: 0, used: 0, average_discount: 0, low_stock: 0, out_of_stock: 0, coupons: [] }
+      };
+    }
+  },
+
+  // ========== PRUEBAS GRATUITAS ==========
+  async getTrialStats() {
+    try {
+      const { data, error } = await dbClient
+        .from('users')
+        .select('trial_requested, trial_received, trial_requested_at, trial_sent_at, trial_plan_type')
+        .eq('trial_requested', true);
+      if (error) throw error;
+      const totalRequests = data?.length || 0;
+      const completedTrials = data?.filter(u => u.trial_received)?.length || 0;
+      const pendingTrials = totalRequests - completedTrials;
+      const today = new Date().toISOString().split('T')[0];
+      const todayRequests = data?.filter(u => u.trial_requested_at && u.trial_requested_at.startsWith(today))?.length || 0;
+      const trialByType = {
+        '1h': data?.filter(u => u.trial_plan_type === '1h')?.length || 0,
+        '24h': data?.filter(u => u.trial_plan_type === '24h')?.length || 0
+      };
+      return { total_requests: totalRequests, completed: completedTrials, pending: pendingTrials, today_requests: todayRequests, by_type: trialByType };
+    } catch (error) {
+      console.error('❌ Error en getTrialStats:', error);
+      return { total_requests: 0, completed: 0, pending: 0, today_requests: 0, by_type: {} };
+    }
+  },
+
+  async getPendingTrials() {
+    try {
+      const { data, error } = await dbClient
+        .from('users')
+        .select('*')
+        .eq('trial_requested', true)
+        .eq('trial_received', false)
+        .order('trial_requested_at', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getPendingTrials:', error);
+      return [];
+    }
+  },
+
+  async markTrialAsSent(telegramId, sentBy) {
+    try {
+      const userId = String(telegramId).trim();
+      const { data, error } = await dbClient
+        .from('users')
+        .update({
+          trial_received: true,
+          trial_sent_at: new Date().toISOString(),
+          trial_sent_by: sentBy,
+          updated_at: new Date().toISOString()
+        })
+        .eq('telegram_id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en markTrialAsSent:', error);
+      throw error;
+    }
+  },
+
+  async checkTrialEligibility(telegramId) {
+    try {
+      const user = await this.getUser(telegramId);
+      if (!user) return { eligible: true, reason: 'Nuevo usuario' };
+      if (!user.trial_requested) return { eligible: true, reason: 'Primera solicitud' };
+      if (user.trial_requested && !user.trial_received) return { eligible: false, reason: 'Ya tiene una solicitud pendiente' };
+      if (user.trial_received && user.trial_sent_at) {
+        const lastTrialDate = new Date(user.trial_sent_at);
+        const now = new Date();
+        const daysSinceLastTrial = Math.floor((now - lastTrialDate) / (1000 * 60 * 60 * 24));
+        if (daysSinceLastTrial < 30) {
+          return { eligible: false, reason: `Debe esperar ${30 - daysSinceLastTrial} días para solicitar otra prueba`, days_remaining: 30 - daysSinceLastTrial };
+        }
+      }
+      return { eligible: true, reason: 'Puede solicitar nueva prueba' };
+    } catch (error) {
+      console.error('❌ Error en checkTrialEligibility:', error);
+      return { eligible: false, reason: 'Error verificando elegibilidad' };
+    }
+  },
+
+  // ========== BROADCASTS ==========
+  async createBroadcast(message, targetUsers = 'all', sentBy) {
+    try {
+      const { data, error } = await dbClient
+        .from('broadcasts')
+        .insert([{
+          message,
+          target_users: targetUsers,
+          sent_by: sentBy,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createBroadcast:', error);
+      throw error;
+    }
+  },
+
+  async getBroadcasts(limit = 50) {
+    try {
+      const { data, error } = await dbClient
+        .from('broadcasts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getBroadcasts:', error);
+      return [];
+    }
+  },
+
+  async getBroadcast(broadcastId) {
+    try {
+      const { data, error } = await dbClient
+        .from('broadcasts')
+        .select('*')
+        .eq('id', parseInt(broadcastId))
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getBroadcast:', error);
+      return null;
+    }
+  },
+
+  async updateBroadcastStatus(broadcastId, status, stats = {}) {
+    try {
+      const updateData = { status, updated_at: new Date().toISOString() };
+      if (status === 'completed' || status === 'failed') {
+        updateData.completed_at = new Date().toISOString();
+        updateData.sent_count = stats.sent_count || 0;
+        updateData.failed_count = stats.failed_count || 0;
+        updateData.total_users = stats.total_users || 0;
+        updateData.unavailable_count = stats.unavailable_count || 0;
+      } else if (status === 'sending') {
+        updateData.sent_count = stats.sent_count || 0;
+        updateData.total_users = stats.total_users || 0;
+        updateData.failed_count = stats.failed_count || 0;
+        updateData.unavailable_count = stats.unavailable_count || 0;
+      }
+      const { data, error } = await dbClient
+        .from('broadcasts')
+        .update(updateData)
+        .eq('id', broadcastId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateBroadcastStatus:', error);
+      throw error;
+    }
+  },
+
+  async getUsersForBroadcast(targetUsers = 'all') {
+    try {
+      let query = dbClient.from('users').select('telegram_id, username, first_name, vip, trial_requested, trial_received, last_activity, is_active');
+      if (targetUsers === 'vip') query = query.eq('vip', true);
+      else if (targetUsers === 'non_vip') query = query.eq('vip', false);
+      else if (targetUsers === 'trial_pending') query = query.eq('trial_requested', true).eq('trial_received', false);
+      else if (targetUsers === 'trial_received') query = query.eq('trial_received', true);
+      else if (targetUsers === 'active') {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        query = query.gte('last_activity', thirtyDaysAgo.toISOString());
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getUsersForBroadcast:', error);
+      return [];
+    }
+  },
+
+  async retryFailedBroadcast(broadcastId) {
+    try {
+      const { data, error } = await dbClient
+        .from('broadcasts')
+        .update({ status: 'pending', updated_at: new Date().toISOString() })
+        .eq('id', broadcastId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en retryFailedBroadcast:', error);
+      throw error;
+    }
+  },
+
+  // ========== CUPONES ==========
+  async createCoupon(couponData) {
+    try {
+      const { data, error } = await dbClient
+        .from('coupons')
+        .insert([{
+          code: couponData.code,
+          discount: couponData.discount,
+          stock: couponData.stock,
+          expiry: couponData.expiry || null,
+          description: couponData.description || '',
+          status: couponData.status || 'active',
+          used: 0,
+          created_by: couponData.created_by || 'system',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en createCoupon:', error);
+      throw error;
+    }
+  },
+
+  async getCoupons() {
+    try {
+      const { data, error } = await dbClient
+        .from('coupons')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getCoupons:', error);
+      return [];
+    }
+  },
+
+  async getCoupon(code) {
+    try {
+      const { data, error } = await dbClient
+        .from('coupons')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getCoupon:', error);
+      return null;
+    }
+  },
+
+  async getCouponsStats() {
+    try {
+      const { data, error } = await dbClient.from('coupons').select('*');
+      if (error) throw error;
+      const total = data?.length || 0;
+      const active = data?.filter(c => c.status === 'active').length || 0;
+      const expired = data?.filter(c => c.status === 'expired').length || 0;
+      const inactive = data?.filter(c => c.status === 'inactive').length || 0;
+      const used = data?.reduce((sum, c) => sum + (c.used || 0), 0);
+      const averageDiscount = data?.length > 0 ? data.reduce((sum, c) => sum + (c.discount || 0), 0) / data.length : 0;
+      const lowStock = data?.filter(c => c.stock < 5 && c.stock > 0).length || 0;
+      const outOfStock = data?.filter(c => c.stock === 0).length || 0;
+      return {
+        total,
+        active,
+        expired,
+        inactive,
+        used,
+        average_discount: averageDiscount.toFixed(1),
+        low_stock: lowStock,
+        out_of_stock: outOfStock,
+        coupons: data || []
+      };
+    } catch (error) {
+      console.error('❌ Error en getCouponsStats:', error);
+      return {
+        total: 0,
+        active: 0,
+        expired: 0,
+        inactive: 0,
+        used: 0,
+        average_discount: '0',
+        low_stock: 0,
+        out_of_stock: 0,
+        coupons: []
+      };
+    }
+  },
+
+  async updateCoupon(code, updateData) {
+    try {
+      const { data, error } = await dbClient
+        .from('coupons')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('code', code.toUpperCase())
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateCoupon:', error);
+      throw error;
+    }
+  },
+
+  async updateCouponStatus(code, status, updatedBy) {
+    try {
+      const { data, error } = await dbClient
+        .from('coupons')
+        .update({ status, updated_by: updatedBy, updated_at: new Date().toISOString() })
+        .eq('code', code.toUpperCase())
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateCouponStatus:', error);
+      throw error;
+    }
+  },
+
+  async deleteCoupon(code) {
+    try {
+      const { data, error } = await dbClient
+        .from('coupons')
+        .delete()
+        .eq('code', code.toUpperCase())
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en deleteCoupon:', error);
+      throw error;
+    }
+  },
+
+  async hasUserUsedCoupon(telegramId, code) {
+    try {
+      const userId = String(telegramId).trim();
+      const couponCode = code.toUpperCase();
+      const { data, error } = await dbClient
+        .from('coupon_usage')
+        .select('id')
+        .eq('telegram_id', userId)
+        .eq('coupon_code', couponCode)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    } catch (error) {
+      console.error('❌ Error en hasUserUsedCoupon:', error);
+      return false;
+    }
+  },
+
+  async applyCouponToPayment(code, telegramId, paymentId) {
+    try {
+      const userId = String(telegramId).trim();
+      const couponCode = code.toUpperCase();
+      const coupon = await this.getCoupon(couponCode);
+      if (!coupon || coupon.status !== 'active') throw new Error('Cupón no válido o inactivo');
+      if (coupon.stock <= 0) throw new Error('Cupón agotado');
+      if (await this.hasUserUsedCoupon(userId, couponCode)) throw new Error('Usuario ya usó este cupón');
+      
+      const { data, error } = await dbClient
+        .from('coupon_usage')
+        .insert([{
+          coupon_code: couponCode,
+          telegram_id: userId,
+          payment_id: paymentId,
+          discount_applied: coupon.discount,
+          used_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      
+      await this.updateCoupon(couponCode, {
+        stock: coupon.stock - 1,
+        used: (coupon.used || 0) + 1,
+        updated_at: new Date().toISOString(),
+        updated_by: 'system'
+      });
+      return data;
+    } catch (error) {
+      console.error('❌ Error en applyCouponToPayment:', error);
+      throw error;
+    }
+  },
+
+  async getCouponUsageHistory(code) {
+    try {
+      const couponCode = code.toUpperCase();
+      const { data, error } = await dbClient
+        .from('coupon_usage')
+        .select(`
+          *,
+          payments:payment_id (id, plan, price, original_price, method, status, created_at),
+          users:telegram_id (telegram_id, username, first_name)
+        `)
+        .eq('coupon_code', couponCode)
+        .order('used_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getCouponUsageHistory:', error);
+      return [];
+    }
+  },
+
+  // ========== POOL DE ARCHIVOS DE PRUEBA ==========
+  async getTrialFiles() {
+    try {
+      const { data, error } = await dbClient
+        .from('trial_files')
+        .select('*')
+        .order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en getTrialFiles:', error);
+      return [];
+    }
+  },
+
+  async getTrialFile(id) {
+    try {
+      const { data, error } = await dbClient
+        .from('trial_files')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getTrialFile:', error);
+      return null;
+    }
+  },
+
+  async saveTrialFile(fileData) {
+    try {
+      const { data, error } = await dbClient
+        .from('trial_files')
+        .insert([{
+          ...fileData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en saveTrialFile:', error);
+      throw error;
+    }
+  },
+
+  async updateTrialFile(id, updateData) {
+    try {
+      const { data, error } = await dbClient
+        .from('trial_files')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('❌ Error en updateTrialFile:', error);
+      throw error;
+    }
+  },
+
+  async deleteTrialFile(id) {
+    try {
+      const { error } = await dbClient
+        .from('trial_files')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('❌ Error en deleteTrialFile:', error);
+      return false;
+    }
+  },
+
+  // ========== OTRAS UTILIDADES ==========
+  async searchUsers(searchTerm) {
+    try {
+      const { data, error } = await dbClient
+        .from('users')
+        .select('*')
+        .or(`telegram_id.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en searchUsers:', error);
+      return [];
+    }
+  },
+
+  async searchPayments(searchTerm) {
+    try {
+      const { data, error } = await dbClient
+        .from('payments')
+        .select('*')
+        .or(`id.eq.${searchTerm},telegram_id.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en searchPayments:', error);
+      return [];
+    }
+  },
+
+  async getRecentActivity(limit = 20) {
+    try {
+      const { data: payments, error: paymentsError } = await dbClient
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      const { data: users, error: usersError } = await dbClient
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (paymentsError || usersError) throw paymentsError || usersError;
+      const activity = [
+        ...(payments || []).map(p => ({ type: 'payment', ...p })),
+        ...(users || []).map(u => ({ type: 'user', ...u }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, limit);
+      return activity;
+    } catch (error) {
+      console.error('❌ Error en getRecentActivity:', error);
+      return [];
+    }
+  },
+
+  async getGamesStatistics() {
+    try {
+      const { data, error } = await dbClient
+        .from('users')
+        .select('trial_game_server, trial_connection_type, trial_requested_at')
+        .eq('trial_requested', true);
+      if (error) throw error;
+      const gamesMap = new Map();
+      const connectionsMap = new Map();
+      data?.forEach(user => {
+        const game = user.trial_game_server || 'No especificado';
+        const connection = user.trial_connection_type || 'No especificado';
+        if (!gamesMap.has(game)) gamesMap.set(game, { game, count: 0, lastRequest: user.trial_requested_at });
+        const gameData = gamesMap.get(game);
+        gameData.count += 1;
+        if (user.trial_requested_at && (!gameData.lastRequest || user.trial_requested_at > gameData.lastRequest)) gameData.lastRequest = user.trial_requested_at;
+        if (!connectionsMap.has(connection)) connectionsMap.set(connection, { connection, count: 0 });
+        connectionsMap.get(connection).count += 1;
+      });
+      const games = Array.from(gamesMap.values()).sort((a, b) => b.count - a.count);
+      const connections = Array.from(connectionsMap.values()).sort((a, b) => b.count - a.count);
+      return { games, connections };
+    } catch (error) {
+      console.error('❌ Error en getGamesStatistics:', error);
+      return { games: [], connections: [] };
+    }
+  },
+
+  async testDatabaseConnection() {
+    try {
+      const { error: usersError } = await dbClient.from('users').select('count').limit(1);
+      const { error: paymentsError } = await dbClient.from('payments').select('count').limit(1);
+      const { error: usdtError } = await dbClient.from('usdt_payments').select('count').limit(1);
+      const { error: broadcastsError } = await dbClient.from('broadcasts').select('count').limit(1);
+      const { error: couponsError } = await dbClient.from('coupons').select('count').limit(1);
+      return {
+        users: usersError ? `Error: ${usersError.message}` : '✅ Conectado',
+        payments: paymentsError ? `Error: ${paymentsError.message}` : '✅ Conectado',
+        usdt_payments: usdtError ? `Error: ${usdtError.message}` : '✅ Conectado',
+        broadcasts: broadcastsError ? `Error: ${broadcastsError.message}` : '✅ Conectado',
+        coupons: couponsError ? `Error: ${couponsError.message}` : '✅ Conectado'
+      };
+    } catch (error) {
+      console.error('❌ Error en testDatabaseConnection:', error);
+      return {
+        users: `Error: ${error.message}`,
+        payments: 'No probado',
+        usdt_payments: 'No probado',
+        broadcasts: 'No probado',
+        coupons: 'No probado'
+      };
+    }
   }
-}
+};
 
-function openEditCouponModal(code){ const c=allCoupons.find(x=>x.code===code); if(!c) return; currentCouponCode=code; document.getElementById('editCouponCode').value=c.code; document.getElementById('editCouponStock').value=c.stock; document.getElementById('editCouponStatus').value=c.status; document.getElementById('editCouponModal').classList.add('active'); }
-function adjustStock(n){ const el=document.getElementById('editCouponStock'); el.value=Math.max(0,(parseInt(el.value)||0)+n); }
-function closeEditCouponModal(){ document.getElementById('editCouponModal').classList.remove('active'); currentCouponCode=null; }
-async function updateCoupon(){ const stock=parseInt(document.getElementById('editCouponStock').value); const status=document.getElementById('editCouponStatus').value; if(isNaN(stock)||stock<0){ showNotification('❌ Stock inválido','error'); return; } const btn=document.getElementById('updateCouponBtn'); btn.disabled=true; try{ const res=await fetch(`/api/coupons/${currentCouponCode}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({stock,status,adminId:currentUserId})}); if(res.ok){ showNotification('✅ Cupón actualizado','success'); closeEditCouponModal(); loadCoupons(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } btn.disabled=false; }
-async function toggleCouponStatus(code,status){ try{ await fetch(`/api/coupons/${code}/status`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,adminId:currentUserId})}); showNotification(`✅ ${status==='active'?'Activado':'Desactivado'}`,'success'); loadCoupons(); }catch(e){ showNotification('Error','error'); } }
-async function deleteCoupon(code){ if(!confirm(`⚠️ ¿Eliminar permanentemente el cupón ${code}?\n\nSi ya ha sido usado, no se podrá eliminar.`)) return; try{ const res=await fetch(`/api/coupons/${code}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); const data=await res.json(); if(res.ok){ showNotification(`✅ Cupón ${code} eliminado`,'success'); loadCoupons(); loadStats(); } else { showNotification(`❌ ${data.error||'Error al eliminar'}`,'error'); } }catch(e){ console.error(e); showNotification('❌ Error de red al eliminar','error'); } }
-
-// ── BROADCAST ────────────────────────────────────────
-async function sendBroadcast(){ const message=document.getElementById('broadcastMessage').value.trim(); const target=document.getElementById('broadcastTarget').value; if(!message){ showNotification('❌ Escribe mensaje','error'); return; } if(!confirm(`¿Enviar a "${target}"?`)) return; const btn=document.getElementById('broadcastButton'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Enviando...'; try{ const res=await fetch('/api/broadcast/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,target,adminId:currentUserId})}); const data=await res.json(); if(res.ok&&data.success){ showNotification(`✅ Enviado a ${data.totalUsers||0} usuarios`,'success'); document.getElementById('broadcastMessage').value=''; loadBroadcasts(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> <span>Enviar broadcast</span>'; }
-async function loadBroadcasts(){ document.getElementById('broadcastLoading').style.display='flex'; try{ const res=await fetch('/api/broadcasts'); const broadcasts=await res.json(); document.getElementById('broadcastLoading').style.display='none'; if(!broadcasts?.length){ document.getElementById('broadcastNoData').style.display='block'; return; } const targetNames={all:'👥 Todos',vip:'👑 VIP',non_vip:'👤 No VIP',trial_pending:'⏳ Pruebas',trial_received:'✅ Recibidas',active:'📱 Activos'}; const tb=document.getElementById('broadcastTableBody'); tb.innerHTML=''; broadcasts.forEach(b=>{ const statusBadge=b.status==='completed'?'<span class="badge active">Completado</span>':b.status==='sending'?'<span class="badge pending">Enviando</span>':'<span class="badge expired">Fallido</span>'; tb.innerHTML+=`<tr><td style="color:var(--sig)">${b.id}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${b.message}">${b.message?.substring(0,50)||'—'}</td><td>${targetNames[b.target_users]||b.target_users||'—'}</td><td>${b.sent_count||0}/${b.total_users||0}</td><td>${statusBadge}</td><td>${b.created_at?new Date(b.created_at).toLocaleDateString('es-ES'):'—'}</td>`; }); document.getElementById('broadcastTableWrap').style.display='block'; }catch(e){ document.getElementById('broadcastLoading').style.display='none'; showNotification('Error','error'); } }
-
-// ── JUEGOS ───────────────────────────────────────────
-async function loadGamesStats(){ document.getElementById('gamesLoading').style.display='flex'; try{ const res=await fetch('/api/games-stats'); const games=await res.json(); document.getElementById('gamesLoading').style.display='none'; if(!games?.length){ document.getElementById('gamesNoData').style.display='block'; return; } const tb=document.getElementById('gamesTableBody'); tb.innerHTML=''; games.forEach(g=>{ tb.innerHTML+=`<tr><td><strong>${g.game_server||g.game||'—'}</strong></td><td>${g.request_count||g.count||0}</td><td>${g.connection_types?.join(', ')||'—'}</td><td>${g.last_request?new Date(g.last_request).toLocaleDateString('es-ES'):'—'}</td>`; }); document.getElementById('gamesTableWrap').style.display='block'; }catch(e){ document.getElementById('gamesLoading').style.display='none'; showNotification('Error','error'); } }
-
-// ── ESTADÍSTICAS DE ARCHIVOS ─────────────────────────
-function showFilesStatsModal(){ document.getElementById('filesStatsModal').classList.add('active'); loadFilesStats(); }
-function closeFilesStatsModal(){ document.getElementById('filesStatsModal').classList.remove('active'); }
-async function loadFilesStats(){ document.getElementById('filesStatsLoading').style.display='flex'; document.getElementById('filesStatsContent').style.display='none'; try{ const planFiles=await(await fetch('/api/plan-files')).json(); const trialFiles=await(await fetch('/api/trial-files')).json(); const allFiles = [...(planFiles||[]), ...(trialFiles||[]).map(f=>({...f,plan:'trial'}))]; let totalUploaded = allFiles.length; let totalSent = 0; let totalAvailable = 0; const filesStats = []; for(const f of allFiles){ const sentCount = f.sent_count || 0; const maxUses = f.max_uses || null; const available = maxUses ? (maxUses - sentCount) : 'Ilimitado'; totalSent += sentCount; if(maxUses) totalAvailable += Math.max(0, maxUses - sentCount); else totalAvailable = 'Ilimitado'; filesStats.push({ plan: f.plan, filename: f.original_name || f.storage_filename || '—', uploaded_at: f.updated_at, sent_count: sentCount, available_count: available, max_uses: maxUses, last_sent: f.last_sent, last_sent_to: f.last_sent_to, status: sentCount>=maxUses && maxUses ? 'agotado' : 'disponible' }); } document.getElementById('totalFilesUploaded').textContent = totalUploaded; document.getElementById('totalFilesSent').textContent = totalSent; document.getElementById('totalAvailableFiles').textContent = (totalAvailable === 'Ilimitado') ? '∞' : totalAvailable; document.getElementById('totalUsersWithFiles').textContent = 0; const tbody = document.getElementById('filesStatsTableBody'); tbody.innerHTML = ''; filesStats.forEach(f=>{ const statusBadge = f.status==='agotado'?'<span class="badge expired">Agotado</span>':'<span class="badge active">Disponible</span>'; tbody.innerHTML += `<tr><td>${getPlanName(f.plan)}</td><td><div class="filename-display">${f.filename}</div></td><td>${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</td><td>${f.sent_count}</td><td>${f.available_count}</td><td>${f.last_sent?new Date(f.last_sent).toLocaleDateString('es-ES'):'Nunca'}</td><td>${statusBadge}</td><td><button class="btn" onclick="viewFileDetails('${f.plan}')"><i class="fas fa-eye"></i></button></td>`; }); document.getElementById('filesStatsLoading').style.display='none'; document.getElementById('filesStatsContent').style.display='block'; }catch(e){ document.getElementById('filesStatsLoading').style.display='none'; showNotification('Error cargando estadísticas','error'); } }
-function viewFileDetails(plan){ showNotification(`Detalles de ${getPlanName(plan)} próximamente.`,'info'); }
-
-// ── HELPERS Y NAVEGACIÓN ─────────────────────────────
-function getPlanName(p){ const m={basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)',trial:'Prueba Gratuita'}; return m[p]||p||'—'; }
-function getMethodBadge(m){ const b={transfer:'<span class="badge bpa">BPA</span>',metropolitan:'<span class="badge bpa">Metropolitana</span>',mitransfer:'<span class="badge bpa">MITRANSFER</span>',mobile:'<span class="badge active">Saldo Móvil</span>',usdt:'<span class="badge usdt">USDT</span>'}; return b[m]||`<span class="badge">${m||'—'}</span>`; }
-function showNotification(msg,type='info'){ const n=document.getElementById('notification'); n.textContent=msg; n.style.borderLeftColor=type==='success'?'var(--green)':type==='error'?'var(--red)':type==='warning'?'var(--amber)':'var(--sig)'; n.style.transform='translateX(0)'; clearTimeout(window.__nt); window.__nt=setTimeout(()=>{ n.style.transform='translateX(160%)'; }, type==='error'?8000:4500); }
-function closeModal(){ document.getElementById('screenshotModal').classList.remove('active'); }
-function closeConfigModal(){ document.getElementById('configModal').classList.remove('active'); document.getElementById('configFile').value=''; }
-
-const tabTitles={stats:'// Estadísticas',pending:'// Pagos Pendientes',approved:'// Pagos Aprobados','trial-pending':'// Solicitudes de Prueba',users:'// Usuarios',referrals:'// Sistema de Referidos','plan-files':'// Archivos de Planes','trial-files':'// Pool de Pruebas',coupons:'// Cupones',broadcast:'// Broadcast',games:'// Juegos'};
-function switchTab(name){ currentTab=name; document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); const panel=document.getElementById(name+'Panel'); if(panel) panel.classList.add('active'); const navItem=document.querySelector(`.nav-item[data-tab="${name}"]`); if(navItem) navItem.classList.add('active'); document.getElementById('topbarTitle').textContent=tabTitles[name]||'// '+name; const loaders={stats:loadStats,pending:loadPendingPayments,approved:loadApprovedPayments,'trial-pending':loadPendingTrials,users:loadUsers,referrals:loadReferrals,'plan-files':loadPlanFiles,'trial-files':loadTrialFiles,coupons:loadCoupons,broadcast:loadBroadcasts,games:loadGamesStats}; if(loaders[name]) loaders[name](); }
-function refreshCurrentTab(){ switchTab(currentTab); }
-
-document.addEventListener('DOMContentLoaded',()=>{ checkAdminAccess(); setInterval(()=>{ if(currentTab==='stats') loadStats(); },60000); });
-document.querySelectorAll('.modal-bg').forEach(bg=>{ bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('active'); }); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-bg.active').forEach(m=>m.classList.remove('active')); });
-</script>
-</body>
-</html>
+module.exports = db;

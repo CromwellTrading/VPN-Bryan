@@ -165,7 +165,6 @@ const db = {
           plan_price: vipData.plan_price || 0,
           vip_since: vipData.vip_since || new Date().toISOString(),
           updated_at: new Date().toISOString()
-          // payment_method eliminado porque no existe en la tabla
         })
         .eq('telegram_id', userId)
         .select()
@@ -345,8 +344,12 @@ const db = {
     try {
       const { data: referrals, error } = await dbClient.from('referrals').select('*');
       if (error) throw error;
+      
+      // Asegurar que referrals sea un array
+      const referralsArray = referrals || [];
       const referrersMap = new Map();
-      referrals?.forEach(r => {
+      
+      referralsArray.forEach(r => {
         const id = r.referrer_id;
         if (!referrersMap.has(id)) {
           referrersMap.set(id, { referrer_id: id, total: 0, paid: 0, level1: 0, level2: 0 });
@@ -357,18 +360,22 @@ const db = {
         if (r.level === 1) stats.level1++;
         if (r.level === 2) stats.level2++;
       });
+      
       const top_referrers = Array.from(referrersMap.values())
         .sort((a, b) => b.total - a.total)
         .slice(0, 10);
-      const recent_referrals = referrals
-        ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 10) || [];
-      const total_referrals = referrals?.length || 0;
-      const total_paid = referrals?.filter(r => r.has_paid).length || 0;
-      const level1_referrals = referrals?.filter(r => r.level === 1).length || 0;
-      const level2_referrals = referrals?.filter(r => r.level === 2).length || 0;
-      const paid_level1 = referrals?.filter(r => r.level === 1 && r.has_paid).length || 0;
-      const paid_level2 = referrals?.filter(r => r.level === 2 && r.has_paid).length || 0;
+      
+      const recent_referrals = [...referralsArray]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 10);
+      
+      const total_referrals = referralsArray.length;
+      const total_paid = referralsArray.filter(r => r.has_paid).length;
+      const level1_referrals = referralsArray.filter(r => r.level === 1).length;
+      const level2_referrals = referralsArray.filter(r => r.level === 2).length;
+      const paid_level1 = referralsArray.filter(r => r.level === 1 && r.has_paid).length;
+      const paid_level2 = referralsArray.filter(r => r.level === 2 && r.has_paid).length;
+      
       return {
         total_referrals,
         total_paid,
@@ -382,6 +389,7 @@ const db = {
       };
     } catch (error) {
       console.error('❌ Error en getAllReferralsStats:', error);
+      // Retornar estructura vacía pero consistente
       return {
         total_referrals: 0,
         total_paid: 0,
@@ -727,7 +735,7 @@ const db = {
 
       const { data: paymentsData, error: paymentsError } = await dbClient
         .from('payments')
-        .select('status, price, method, coupon_used, coupon_code, coupon_discount');
+        .select('status, price, method, coupon_used, coupon_code, coupon_discount, original_price');
       if (paymentsError) throw paymentsError;
 
       const totalPayments = paymentsData?.length || 0;
@@ -749,7 +757,23 @@ const db = {
           return sum + discountAmount;
         }, 0) || 0;
 
-      const referralsStats = await this.getAllReferralsStats();
+      let referralsStats = {
+        total_referrals: 0,
+        total_paid: 0,
+        top_referrers: [],
+        recent_referrals: [],
+        paid_referrals: 0,
+        level1_referrals: 0,
+        level2_referrals: 0,
+        paid_level1: 0,
+        paid_level2: 0
+      };
+      try {
+        referralsStats = await this.getAllReferralsStats();
+      } catch (refErr) {
+        console.error('❌ Error obteniendo stats de referidos (no crítico):', refErr.message);
+      }
+
       const { data: usdtData } = await dbClient.from('usdt_payments').select('status');
       const totalUsdtPayments = usdtData?.length || 0;
       const pendingUsdt = usdtData?.filter(p => p.status === 'pending')?.length || 0;

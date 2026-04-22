@@ -164,8 +164,8 @@ const db = {
           plan: vipData.plan || 'vip',
           plan_price: vipData.plan_price || 0,
           vip_since: vipData.vip_since || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          payment_method: vipData.payment_method || null
+          updated_at: new Date().toISOString()
+          // payment_method eliminado porque no existe en la tabla
         })
         .eq('telegram_id', userId)
         .select()
@@ -1183,6 +1183,7 @@ const db = {
       if (!coupon || coupon.status !== 'active') throw new Error('Cupón no válido o inactivo');
       if (coupon.stock <= 0) throw new Error('Cupón agotado');
       if (await this.hasUserUsedCoupon(userId, couponCode)) throw new Error('Usuario ya usó este cupón');
+      
       const { data, error } = await dbClient
         .from('coupon_usage')
         .insert([{
@@ -1195,6 +1196,7 @@ const db = {
         .select()
         .single();
       if (error) throw error;
+      
       await this.updateCoupon(couponCode, {
         stock: coupon.stock - 1,
         used: (coupon.used || 0) + 1,

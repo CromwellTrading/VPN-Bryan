@@ -12,42 +12,26 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-// Cliente para operaciones normales (usando anon key)
+// Cliente para operaciones normales
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Cliente para operaciones de administración (usando service role key) - evita RLS
+// Cliente para operaciones de administración (evita RLS)
 const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : supabase;
-
 if (!supabaseServiceKey) {
   console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no configurada. Usando anon key para admin. Algunas operaciones pueden fallar por RLS.');
 }
-
-// Helper para usar supabaseAdmin en todas las operaciones de tablas
 const dbClient = supabaseAdmin;
 
 const db = {
-  // ========== STORAGE (IMÁGENES Y ARCHIVOS) ==========
+  // ========== STORAGE ==========
   async uploadImage(filePath, telegramId) {
     try {
-      console.log(`📤 Subiendo imagen para usuario ${telegramId}: ${filePath}`);
-      
       const fileBuffer = await fs.readFile(filePath);
       const fileName = `screenshot_${telegramId}_${Date.now()}.jpg`;
-      
       const { data, error } = await supabaseAdmin.storage
         .from('payments-screenshots')
-        .upload(fileName, fileBuffer, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: false
-        });
-
+        .upload(fileName, fileBuffer, { contentType: 'image/jpeg', cacheControl: '3600', upsert: false });
       if (error) throw error;
-
-      const { data: { publicUrl } } = supabaseAdmin.storage
-        .from('payments-screenshots')
-        .getPublicUrl(fileName);
-
+      const { data: { publicUrl } } = supabaseAdmin.storage.from('payments-screenshots').getPublicUrl(fileName);
       return publicUrl;
     } catch (error) {
       console.error('❌ Error en uploadImage:', error);
@@ -55,7 +39,7 @@ const db = {
     }
   },
 
-  async uploadPlanFile(fileBuffer, plan, originalFileName, useTimestamp = true) {
+  async uploadPlanFile(fileBuffer, plan, originalFileName) {
     try {
       const bucket = plan === 'trial' ? 'trial-files' : 'plan-files';
       const extension = path.extname(originalFileName).toLowerCase();
@@ -63,28 +47,13 @@ const db = {
       if (extension === '.conf') contentType = 'text/plain';
       if (extension === '.zip') contentType = 'application/zip';
       if (extension === '.rar') contentType = 'application/x-rar-compressed';
-      
       const storageFileName = originalFileName;
-      
       const { data, error } = await supabaseAdmin.storage
         .from(bucket)
-        .upload(storageFileName, fileBuffer, {
-          contentType: contentType,
-          cacheControl: '3600',
-          upsert: true
-        });
-
+        .upload(storageFileName, fileBuffer, { contentType, cacheControl: '3600', upsert: true });
       if (error) throw error;
-
-      const { data: { publicUrl } } = supabaseAdmin.storage
-        .from(bucket)
-        .getPublicUrl(storageFileName);
-
-      return {
-        filename: storageFileName,
-        publicUrl: publicUrl,
-        originalName: originalFileName
-      };
+      const { data: { publicUrl } } = supabaseAdmin.storage.from(bucket).getPublicUrl(storageFileName);
+      return { filename: storageFileName, publicUrl, originalName: originalFileName };
     } catch (error) {
       console.error('❌ Error en uploadPlanFile:', error);
       throw error;
@@ -94,10 +63,7 @@ const db = {
   async deleteOldPlanFile(oldFileName) {
     try {
       if (!oldFileName) return;
-      const { error } = await supabaseAdmin.storage
-        .from('plan-files')
-        .remove([oldFileName]);
-      if (error) console.error('❌ Error eliminando archivo antiguo:', error);
+      await supabaseAdmin.storage.from('plan-files').remove([oldFileName]);
     } catch (error) {
       console.error('❌ Error en deleteOldPlanFile:', error);
     }
@@ -112,7 +78,6 @@ const db = {
         .select('*')
         .eq('telegram_id', userId)
         .maybeSingle();
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -125,31 +90,20 @@ const db = {
     try {
       const userId = String(telegramId).trim();
       const existingUser = await this.getUser(userId);
-      
       if (existingUser) {
-        const updateData = {
-          ...userData,
-          updated_at: new Date().toISOString(),
-          last_activity: new Date().toISOString()
-        };
-        if (userData.trial_requested && !existingUser.trial_requested) {
-          updateData.trial_requested_at = new Date().toISOString();
-        }
-        if (userData.trial_received && !existingUser.trial_received) {
-          updateData.trial_sent_at = new Date().toISOString();
-        }
+        const updateData = { ...userData, updated_at: new Date().toISOString(), last_activity: new Date().toISOString() };
+        if (userData.trial_requested && !existingUser.trial_requested) updateData.trial_requested_at = new Date().toISOString();
+        if (userData.trial_received && !existingUser.trial_received) updateData.trial_sent_at = new Date().toISOString();
         if (userData.referrer_id && !existingUser.referrer_id) {
           updateData.referrer_id = userData.referrer_id;
           updateData.referrer_username = userData.referrer_username;
         }
-        
         const { data, error } = await dbClient
           .from('users')
           .update(updateData)
           .eq('telegram_id', userId)
           .select()
           .single();
-        
         if (error) throw error;
         return data;
       } else {
@@ -161,13 +115,11 @@ const db = {
           last_activity: new Date().toISOString(),
           is_active: userData.is_active !== undefined ? userData.is_active : true
         };
-        
         const { data, error } = await dbClient
           .from('users')
           .insert([insertData])
           .select()
           .single();
-        
         if (error) throw error;
         return data;
       }
@@ -182,14 +134,10 @@ const db = {
       const userId = String(telegramId).trim();
       const { data, error } = await dbClient
         .from('users')
-        .update({
-          ...updateData,
-          updated_at: new Date().toISOString()
-        })
+        .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('telegram_id', userId)
         .select()
         .single();
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -205,10 +153,7 @@ const db = {
   },
 
   async acceptTerms(telegramId) {
-    return await this.saveUser(telegramId, {
-      accepted_terms: true,
-      terms_date: new Date().toISOString()
-    });
+    return await this.saveUser(telegramId, { accepted_terms: true, terms_date: new Date().toISOString() });
   },
 
   async makeUserVIP(telegramId, vipData = {}) {
@@ -227,7 +172,6 @@ const db = {
         .eq('telegram_id', userId)
         .select()
         .single();
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -241,17 +185,10 @@ const db = {
       const userId = String(telegramId).trim();
       const { data, error } = await dbClient
         .from('users')
-        .update({
-          vip: false,
-          plan: null,
-          plan_price: null,
-          vip_since: null,
-          updated_at: new Date().toISOString()
-        })
+        .update({ vip: false, plan: null, plan_price: null, vip_since: null, updated_at: new Date().toISOString() })
         .eq('telegram_id', userId)
         .select()
         .single();
-      
       if (error) throw error;
       return data;
     } catch (error) {
@@ -260,22 +197,18 @@ const db = {
     }
   },
 
-  // Obtener TODOS los usuarios con paginación automática (más de 1000)
   async getAllUsers() {
     try {
-      console.log('👥 Obteniendo todos los usuarios con paginación...');
       let allUsers = [];
       let from = 0;
       const pageSize = 1000;
       let hasMore = true;
-
       while (hasMore) {
         const { data, error } = await dbClient
           .from('users')
           .select('*')
           .order('created_at', { ascending: false })
           .range(from, from + pageSize - 1);
-
         if (error) throw error;
         if (data && data.length > 0) {
           allUsers = allUsers.concat(data);
@@ -285,7 +218,6 @@ const db = {
           hasMore = false;
         }
       }
-      console.log(`✅ Total de usuarios obtenidos: ${allUsers.length}`);
       return allUsers;
     } catch (error) {
       console.error('❌ Error en getAllUsers:', error);
@@ -330,16 +262,13 @@ const db = {
     try {
       const referrerIdStr = String(referrerId).trim();
       const referredIdStr = String(referredId).trim();
-      
       const { data: existing } = await dbClient
         .from('referrals')
         .select('id')
         .eq('referrer_id', referrerIdStr)
         .eq('referred_id', referredIdStr)
         .maybeSingle();
-      
       if (existing) return existing;
-      
       const { data, error } = await dbClient
         .from('referrals')
         .insert([{
@@ -353,9 +282,7 @@ const db = {
         }])
         .select()
         .single();
-      
       if (error) throw error;
-      
       // Nivel 2
       const { data: referrerReferrals } = await dbClient
         .from('referrals')
@@ -363,7 +290,6 @@ const db = {
         .eq('referred_id', referrerIdStr)
         .eq('level', 1)
         .maybeSingle();
-      
       if (referrerReferrals && referrerReferrals.referrer_id) {
         await dbClient
           .from('referrals')
@@ -392,20 +318,17 @@ const db = {
         .select('*')
         .eq('referrer_id', userId)
         .eq('level', 1);
-      
       const { data: level2, error: error2 } = await dbClient
         .from('referrals')
         .select('*')
         .eq('referrer_id', userId)
         .eq('level', 2);
-      
       const level1Paid = level1?.filter(r => r.has_paid).length || 0;
       const level2Paid = level2?.filter(r => r.has_paid).length || 0;
       const totalReferrals = (level1?.length || 0) + (level2?.length || 0);
       const totalPaid = level1Paid + level2Paid;
       const discount = (level1Paid * 20) + (level2Paid * 10);
       const discountPercentage = discount > 100 ? 100 : discount;
-      
       return {
         level1: { total: level1?.length || 0, paid: level1Paid },
         level2: { total: level2?.length || 0, paid: level2Paid },
@@ -427,23 +350,51 @@ const db = {
       const referrersMap = new Map();
       referrals?.forEach(r => {
         const id = r.referrer_id;
-        if (!referrersMap.has(id)) referrersMap.set(id, { referrer_id: id, total: 0, paid: 0, level1: 0, level2: 0 });
+        if (!referrersMap.has(id)) {
+          referrersMap.set(id, { referrer_id: id, total: 0, paid: 0, level1: 0, level2: 0 });
+        }
         const stats = referrersMap.get(id);
         stats.total++;
         if (r.has_paid) stats.paid++;
         if (r.level === 1) stats.level1++;
         if (r.level === 2) stats.level2++;
       });
-      const topReferrers = Array.from(referrersMap.values()).sort((a,b) => b.total - a.total).slice(0,10);
-      const recentReferrals = referrals?.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0,10) || [];
+      const topReferrers = Array.from(referrersMap.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+      const recentReferrals = referrals
+        ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 10) || [];
       const total_referrals = referrals?.length || 0;
       const total_paid = referrals?.filter(r => r.has_paid).length || 0;
       const level1_referrals = referrals?.filter(r => r.level === 1).length || 0;
       const level2_referrals = referrals?.filter(r => r.level === 2).length || 0;
-      return { total_referrals, total_paid, top_referrers, recent_referrals, paid_referrals: total_paid, level1_referrals, level2_referrals, paid_level1: referrals?.filter(r => r.level===1 && r.has_paid).length || 0, paid_level2: referrals?.filter(r => r.level===2 && r.has_paid).length || 0 };
+      const paid_level1 = referrals?.filter(r => r.level === 1 && r.has_paid).length || 0;
+      const paid_level2 = referrals?.filter(r => r.level === 2 && r.has_paid).length || 0;
+      return {
+        total_referrals,
+        total_paid,
+        top_referrers,
+        recent_referrals,
+        paid_referrals: total_paid,
+        level1_referrals,
+        level2_referrals,
+        paid_level1,
+        paid_level2
+      };
     } catch (error) {
       console.error('❌ Error en getAllReferralsStats:', error);
-      return { total_referrals:0, total_paid:0, top_referrers:[], recent_referrals:[], paid_referrals:0, level1_referrals:0, level2_referrals:0, paid_level1:0, paid_level2:0 };
+      return {
+        total_referrals: 0,
+        total_paid: 0,
+        top_referrers: [],
+        recent_referrals: [],
+        paid_referrals: 0,
+        level1_referrals: 0,
+        level2_referrals: 0,
+        paid_level1: 0,
+        paid_level2: 0
+      };
     }
   },
 
@@ -678,7 +629,6 @@ const db = {
         .select('*')
         .eq('plan', planFileData.plan)
         .maybeSingle();
-      
       if (existing) {
         if (planFileData.plan === 'trial' && existing.storage_filename) {
           await supabaseAdmin.storage.from('trial-files').remove([existing.storage_filename]).catch(e => console.warn);
@@ -756,10 +706,10 @@ const db = {
     }
   },
 
-  // ========== ESTADÍSTICAS (CORREGIDAS CON COUNT EXACTO) ==========
+  // ========== ESTADÍSTICAS ==========
   async getStats() {
     try {
-      // Usar COUNT(*) en lugar de traer todos los registros para evitar límite de 1000
+      // Usar COUNT(*) para evitar límite de 1000
       const [
         { count: totalUsers },
         { count: vipUsers },
@@ -778,23 +728,22 @@ const db = {
         dbClient.from('users').select('*', { count: 'exact', head: true }).eq('is_active', false)
       ]);
 
-      // Pagos
       const { data: paymentsData, error: paymentsError } = await dbClient
         .from('payments')
         .select('status, price, method, coupon_used, coupon_code, coupon_discount');
       if (paymentsError) throw paymentsError;
-      
+
       const totalPayments = paymentsData?.length || 0;
       const pendingPayments = paymentsData?.filter(p => p.status === 'pending')?.length || 0;
       const approvedPayments = paymentsData?.filter(p => p.status === 'approved')?.length || 0;
       const rejectedPayments = paymentsData?.filter(p => p.status === 'rejected')?.length || 0;
       const usdtPayments = paymentsData?.filter(p => p.method === 'usdt')?.length || 0;
       const couponPayments = paymentsData?.filter(p => p.coupon_used)?.length || 0;
-      
+
       const totalRevenue = paymentsData
         ?.filter(p => p.status === 'approved' && p.price)
         ?.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) || 0;
-      
+
       const totalDiscounts = paymentsData
         ?.filter(p => p.status === 'approved' && p.coupon_discount && p.price)
         ?.reduce((sum, p) => {
@@ -802,20 +751,19 @@ const db = {
           const discountAmount = originalPrice - parseFloat(p.price);
           return sum + discountAmount;
         }, 0) || 0;
-      
+
       const referralsStats = await this.getAllReferralsStats();
-      
       const { data: usdtData } = await dbClient.from('usdt_payments').select('status');
       const totalUsdtPayments = usdtData?.length || 0;
       const pendingUsdt = usdtData?.filter(p => p.status === 'pending')?.length || 0;
       const completedUsdt = usdtData?.filter(p => p.status === 'completed')?.length || 0;
-      
+
       const { data: broadcastsData } = await dbClient.from('broadcasts').select('status');
       const totalBroadcasts = broadcastsData?.length || 0;
       const completedBroadcasts = broadcastsData?.filter(b => b.status === 'completed')?.length || 0;
-      
+
       const couponsStats = await this.getCouponsStats();
-      
+
       return {
         users: {
           total: totalUsers || 0,
@@ -862,12 +810,12 @@ const db = {
         referrals: { total_referrals: 0, total_paid: 0, top_referrers: [], recent_referrals: [], paid_referrals: 0, level1_referrals: 0, level2_referrals: 0, paid_level1: 0, paid_level2: 0 },
         usdt: { total: 0, pending: 0, completed: 0 },
         broadcasts: { total: 0, completed: 0 },
-        coupons: { total: 0, active: 0, expired: 0, used: 0, coupons: [] }
+        coupons: { total: 0, active: 0, expired: 0, used: 0, average_discount: 0, low_stock: 0, out_of_stock: 0, coupons: [] }
       };
     }
   },
 
-  // ========== FUNCIONES DE PRUEBA GRATUITA ==========
+  // ========== PRUEBAS GRATUITAS ==========
   async getTrialStats() {
     try {
       const { data, error } = await dbClient
@@ -956,7 +904,7 @@ const db = {
       const { data, error } = await dbClient
         .from('broadcasts')
         .insert([{
-          message: message,
+          message,
           target_users: targetUsers,
           sent_by: sentBy,
           status: 'pending',
@@ -1137,10 +1085,30 @@ const db = {
       const averageDiscount = data?.length > 0 ? data.reduce((sum, c) => sum + (c.discount || 0), 0) / data.length : 0;
       const lowStock = data?.filter(c => c.stock < 5 && c.stock > 0).length || 0;
       const outOfStock = data?.filter(c => c.stock === 0).length || 0;
-      return { total, active, expired, inactive, used, average_discount: averageDiscount.toFixed(1), low_stock, out_of_stock, coupons: data || [] };
+      return {
+        total,
+        active,
+        expired,
+        inactive,
+        used,
+        average_discount: averageDiscount.toFixed(1),
+        low_stock: lowStock,
+        out_of_stock: outOfStock,
+        coupons: data || []
+      };
     } catch (error) {
       console.error('❌ Error en getCouponsStats:', error);
-      return { total: 0, active: 0, expired: 0, inactive: 0, used: 0, average_discount: 0, low_stock: 0, out_of_stock: 0, coupons: [] };
+      return {
+        total: 0,
+        active: 0,
+        expired: 0,
+        inactive: 0,
+        used: 0,
+        average_discount: '0',
+        low_stock: 0,
+        out_of_stock: 0,
+        coupons: []
+      };
     }
   },
 
@@ -1218,7 +1186,6 @@ const db = {
       if (!coupon || coupon.status !== 'active') throw new Error('Cupón no válido o inactivo');
       if (coupon.stock <= 0) throw new Error('Cupón agotado');
       if (await this.hasUserUsedCoupon(userId, couponCode)) throw new Error('Usuario ya usó este cupón');
-      
       const { data, error } = await dbClient
         .from('coupon_usage')
         .insert([{
@@ -1231,7 +1198,6 @@ const db = {
         .select()
         .single();
       if (error) throw error;
-      
       await this.updateCoupon(couponCode, {
         stock: coupon.stock - 1,
         used: (coupon.used || 0) + 1,
@@ -1265,7 +1231,7 @@ const db = {
     }
   },
 
-  // ========== FUNCIONES PARA ARCHIVOS DE PRUEBA (POOL) ==========
+  // ========== POOL DE ARCHIVOS DE PRUEBA ==========
   async getTrialFiles() {
     try {
       const { data, error } = await dbClient
@@ -1393,7 +1359,7 @@ const db = {
       const activity = [
         ...(payments || []).map(p => ({ type: 'payment', ...p })),
         ...(users || []).map(u => ({ type: 'user', ...u }))
-      ].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, limit);
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, limit);
       return activity;
     } catch (error) {
       console.error('❌ Error en getRecentActivity:', error);
@@ -1420,8 +1386,8 @@ const db = {
         if (!connectionsMap.has(connection)) connectionsMap.set(connection, { connection, count: 0 });
         connectionsMap.get(connection).count += 1;
       });
-      const games = Array.from(gamesMap.values()).sort((a,b) => b.count - a.count);
-      const connections = Array.from(connectionsMap.values()).sort((a,b) => b.count - a.count);
+      const games = Array.from(gamesMap.values()).sort((a, b) => b.count - a.count);
+      const connections = Array.from(connectionsMap.values()).sort((a, b) => b.count - a.count);
       return { games, connections };
     } catch (error) {
       console.error('❌ Error en getGamesStatistics:', error);
@@ -1445,7 +1411,13 @@ const db = {
       };
     } catch (error) {
       console.error('❌ Error en testDatabaseConnection:', error);
-      return { users: `Error: ${error.message}`, payments: 'No probado', usdt_payments: 'No probado', broadcasts: 'No probado', coupons: 'No probado' };
+      return {
+        users: `Error: ${error.message}`,
+        payments: 'No probado',
+        usdt_payments: 'No probado',
+        broadcasts: 'No probado',
+        coupons: 'No probado'
+      };
     }
   }
 };

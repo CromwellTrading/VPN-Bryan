@@ -527,21 +527,21 @@ select option { background: var(--ink); }
       </div>
 
       <!-- PAGOS PENDIENTES -->
-      <div id="pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-clock"></i> Pagos Pendientes</div><button class="btn" onclick="loadPendingPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="pendingLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="pendingNoData" style="display:none"><i class="fas fa-check-circle"></i>No hay pagos pendientes</div><div class="table-wrap" id="pendingTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="pendingTableBody"></tbody></table></div></div></div></div>
+      <div id="pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-clock"></i> Pagos Pendientes</div><button class="btn" onclick="loadPendingPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="pendingLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="pendingNoData" style="display:none"><i class="fas fa-check-circle"></i>No hay pagos pendientes</div><div class="table-wrap" id="pendingTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="pendingTableBody"></tbody></table></div></div></div></div>
 
       <!-- PAGOS APROBADOS -->
-      <div id="approvedPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-check"></i> Pagos Aprobados</div><button class="btn green" onclick="loadApprovedPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="approvedLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="approvedNoData" style="display:none"><i class="fas fa-inbox"></i>Sin pagos aprobados</div><div class="table-wrap" id="approvedTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Cupón</th><th>Fecha</th><th>Config.</th><th>Acción</th></tr></thead><tbody id="approvedTableBody"></tbody></table></div></div></div></div>
+      <div id="approvedPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-check"></i> Pagos Aprobados</div><button class="btn green" onclick="loadApprovedPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="approvedLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="approvedNoData" style="display:none"><i class="fas fa-inbox"></i>Sin pagos aprobados</div><div class="table-wrap" id="approvedTableWrap" style="display:none"><tr><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Cupón</th><th>Fecha</th><th>Config.</th><th>Acción</th></tr></thead><tbody id="approvedTableBody"></tbody></table></div></div></div></div>
 
       <!-- PRUEBAS PENDIENTES -->
-      <div id="trial-pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-gift"></i> Solicitudes de Prueba</div><div style="display:flex;gap:8px"><button class="btn green" onclick="sendAllTrials()"><i class="fas fa-paper-plane"></i> <span>Enviar todas</span></button><button class="btn" onclick="loadPendingTrials()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Los archivos se toman del Pool de Pruebas (múltiples archivos rotativos). Si el pool está vacío, se usará el archivo de prueba individual de la sección "Archivos Planes".</div><div class="loading" id="trialLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialNoData" style="display:none"><i class="fas fa-gift"></i>Sin solicitudes pendientes</div><div class="table-wrap" id="trialTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Usuario</th><th>Juego</th><th>Conexión</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="trialTableBody"></tbody></table></div></div></div></div>
+      <div id="trial-pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-gift"></i> Solicitudes de Prueba</div><div style="display:flex;gap:8px"><button class="btn green" onclick="sendAllTrials()"><i class="fas fa-paper-plane"></i> <span>Enviar todas</span></button><button class="btn" onclick="loadPendingTrials()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Los archivos se toman del Pool de Pruebas (múltiples archivos rotativos). Si el pool está vacío, se usará el archivo de prueba individual de la sección "Archivos Planes".</div><div class="loading" id="trialLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialNoData" style="display:none"><i class="fas fa-gift"></i>Sin solicitudes pendientes</div><div class="table-wrap" id="trialTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Juego</th><th>Conexión</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="trialTableBody"></tbody></table></div></div></div></div>
 
       <!-- USUARIOS -->
       <div id="usersPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-users"></i> Usuarios</div><button class="btn" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="search-row" style="display:flex;gap:8px;margin-bottom:14px"><input type="text" id="searchUserInput" placeholder="// buscar por nombre, @usuario o ID..." oninput="searchUsers()"></div><div class="loading" id="usersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="usersNoData" style="display:none"><i class="fas fa-users"></i>Sin usuarios</div><div class="table-wrap" id="usersTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Plan</th><th>VIP</th><th>Referidor</th><th>Registro</th><th>Acciones</th></tr></thead><tbody id="usersTableBody"></tbody></table></div><div class="pagination" id="usersPagination" style="display:none"><button class="btn" id="usersPrevBtn" onclick="changeUsersPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="usersCurrentPage">1</strong> de <strong id="usersTotalPages">1</strong></span><button class="btn" id="usersNextBtn" onclick="changeUsersPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
 
       <!-- REFERIDOS -->
-      <div id="referralsPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-share-alt"></i> Referidos</div><button class="btn" onclick="loadReferrals()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="totalReferralsCount">0</div><div class="ref-lbl">Total referidos</div></div><div class="ref-card"><div class="ref-val" id="paidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="level1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="level2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div></div><div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Top Referidores</div><div class="loading" id="topReferrersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="topReferrersNoData" style="display:none"><i class="fas fa-users"></i>Sin datos</div><div class="table-wrap" id="topReferrersWrap" style="display:none"><table><thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Ver</th></tr></thead><tbody id="topReferrersTableBody"></tbody></table></div></div><div class="search-row" style="display:flex;gap:8px;margin:14px 0"><input type="text" id="searchUserReferrals" placeholder="// buscar usuario por ID..."><select id="searchType" style="width:180px"><option value="all">Usuario específico</option><option value="with_referrals">Con referidos</option><option value="without_referrals">Sin referidos</option></select><button class="btn" onclick="searchUserReferrals()"><i class="fas fa-search"></i></button><button class="btn" onclick="clearSearch()"><i class="fas fa-times"></i></button></div><div id="searchResults" style="display:none"><div class="loading" id="userDetailsLoading" style="display:none"><div class="spinner"></div></div><div class="no-data" id="userNoData" style="display:none"><i class="fas fa-search"></i>Sin resultados</div><div id="userDetailsContent" style="display:none"><div style="font-family:var(--f-head);font-size:.9rem;color:var(--txt);margin-bottom:6px" id="userName"></div><div style="font-family:var(--f-mono);font-size:.68rem;color:var(--txt-2);margin-bottom:12px" id="userDetails"></div><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="userTotalReferrals">0</div><div class="ref-lbl">Total</div></div><div class="ref-card"><div class="ref-val" id="userPaidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="userLevel1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="userLevel2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div><div class="ref-card"><div class="ref-val" id="userDiscount">0%</div><div class="ref-lbl">Descuento</div></div></div><table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table></div></div><div style="margin-top:16px;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Lista completa</div><div><input type="text" id="filterReferrals" placeholder="// filtrar..." oninput="filterReferralsList()" style="margin-bottom:10px"></div><div class="loading" id="referralsListLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="referralsListNoData" style="display:none"><i class="fas fa-share-alt"></i>Sin referidos</div><div class="table-wrap"><table><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Ver</th></tr></thead><tbody id="referralsListTableBody"></tbody></table></div><div class="pagination" id="referralsPagination" style="display:none"><button class="btn" id="prevPageBtn" onclick="changeReferralsPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="currentPage">1</strong> de <strong id="totalPages">1</strong></span><button class="btn" id="nextPageBtn" onclick="changeReferralsPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
+      <div id="referralsPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-share-alt"></i> Referidos</div><button class="btn" onclick="loadReferrals()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="totalReferralsCount">0</div><div class="ref-lbl">Total referidos</div></div><div class="ref-card"><div class="ref-val" id="paidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="level1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="level2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div></div><div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Top Referidores</div><div class="loading" id="topReferrersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="topReferrersNoData" style="display:none"><i class="fas fa-users"></i>Sin datos</div><div class="table-wrap" id="topReferrersWrap" style="display:none"><table><thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Ver</th></tr></thead><tbody id="topReferrersTableBody"></tbody></table></div></div><div class="search-row" style="display:flex;gap:8px;margin:14px 0"><input type="text" id="searchUserReferrals" placeholder="// buscar usuario por ID..."><select id="searchType" style="width:180px"><option value="all">Usuario específico</option><option value="with_referrals">Con referidos</option><option value="without_referrals">Sin referidos</option></select><button class="btn" onclick="searchUserReferrals()"><i class="fas fa-search"></i></button><button class="btn" onclick="clearSearch()"><i class="fas fa-times"></i></button></div><div id="searchResults" style="display:none"><div class="loading" id="userDetailsLoading" style="display:none"><div class="spinner"></div></div><div class="no-data" id="userNoData" style="display:none"><i class="fas fa-search"></i>Sin resultados</div><div id="userDetailsContent" style="display:none"><div style="font-family:var(--f-head);font-size:.9rem;color:var(--txt);margin-bottom:6px" id="userName"></div><div style="font-family:var(--f-mono);font-size:.68rem;color:var(--txt-2);margin-bottom:12px" id="userDetails"></div><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="userTotalReferrals">0</div><div class="ref-lbl">Total</div></div><div class="ref-card"><div class="ref-val" id="userPaidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="userLevel1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="userLevel2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div><div class="ref-card"><div class="ref-val" id="userDiscount">0%</div><div class="ref-lbl">Descuento</div></div></div><table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table></div></div><div style="margin-top:16px;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Lista completa</div><div><input type="text" id="filterReferrals" placeholder="// filtrar..." oninput="filterReferralsList()" style="margin-bottom:10px"></div><div class="loading" id="referralsListLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="referralsListNoData" style="display:none"><i class="fas fa-share-alt"></i>Sin referidos</div><div class="table-wrap"></table><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Ver</th></tr></thead><tbody id="referralsListTableBody"></tbody></table></div><div class="pagination" id="referralsPagination" style="display:none"><button class="btn" id="prevPageBtn" onclick="changeReferralsPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="currentPage">1</strong> de <strong id="totalPages">1</strong></span><button class="btn" id="nextPageBtn" onclick="changeReferralsPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
 
-      <!-- ARCHIVOS DE PLANES (con tarjeta de prueba individual) -->
+      <!-- ARCHIVOS DE PLANES -->
       <div id="plan-filesPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-folder"></i> Archivos de Planes</div><div><button class="btn" onclick="showFilesStatsModal()"><i class="fas fa-chart-bar"></i> <span>Estadísticas</span></button><button class="btn" onclick="loadPlanFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Sube el archivo de configuración para cada plan de pago. Para pruebas, usa el "Pool de Pruebas" (pestaña aparte) o sube un archivo individual aquí.</div><div class="warn-box"><i class="fas fa-exclamation-triangle"></i> Para pagos USDT: el usuario envía captura, el admin aprueba y luego envía el archivo manualmente.</div><div class="plan-grid" id="planFilesGrid"></div><div style="margin-top:20px; border-top:1px solid var(--wire); padding-top:16px;"><div class="card-title"><i class="fas fa-gift"></i> Plan Prueba (individual)</div><div class="info-box"><i class="fas fa-info-circle"></i> Archivo de prueba único. Si tienes el Pool de Pruebas activo, se usará el pool primero. Este archivo es el respaldo.</div><div id="trialPlanCard" class="plan-card" style="margin-top:8px"></div></div></div></div></div>
 
       <!-- POOL DE PRUEBAS -->
@@ -549,38 +549,8 @@ select option { background: var(--ink); }
 
       <!-- CUPONES CON FILTRO -->
       <div id="couponsPanel" class="tab-panel">
-        <div class="card">
-          <div class="card-head"><div class="card-title"><i class="fas fa-plus"></i> Crear Cupón</div></div>
-          <div class="card-body">
-            <div class="form-grid">
-              <div class="form-group"><div class="form-label">Código</div><input type="text" id="couponCode" placeholder="VERANO25" maxlength="20" style="text-transform:uppercase"></div>
-              <div class="form-group"><div class="form-label">Descuento (%)</div><input type="number" id="couponDiscount" placeholder="20" min="1" max="100"></div>
-              <div class="form-group"><div class="form-label">Stock</div><input type="number" id="couponStock" placeholder="50" min="1"></div>
-              <div class="form-group"><div class="form-label">Expiración (opcional)</div><input type="datetime-local" id="couponExpiry"></div>
-              <div class="form-group" style="grid-column:1/-1"><div class="form-label">Descripción</div><input type="text" id="couponDescription" placeholder="Descripción opcional"></div>
-            </div>
-            <div style="margin-top:12px"><button class="btn green" id="createCouponBtn" onclick="createCoupon()"><i class="fas fa-plus-circle"></i> <span>Crear cupón</span></button></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-head"><div class="card-title"><i class="fas fa-tag"></i> Cupones</div></div>
-          <div class="card-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <div>
-                <label style="font-family: var(--f-mono); font-size: .6rem; color: var(--txt-3);">Mostrar:</label>
-                <select id="couponFilter" onchange="loadCoupons()" style="width: auto; margin-left: 8px;">
-                  <option value="active">✅ Solo activos (con stock)</option>
-                  <option value="all">📋 Todos (incluye usados/inactivos)</option>
-                  <option value="inactive">⏸️ Solo inactivos/agotados</option>
-                </select>
-              </div>
-              <button class="btn" onclick="loadCoupons()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button>
-            </div>
-            <div class="loading" id="couponsLoading"><div class="spinner"></div> Cargando...</div>
-            <div class="no-data" id="couponsNoData" style="display:none"><i class="fas fa-tag"></i>Sin cupones</div>
-            <div class="table-wrap" id="couponsTableWrap" style="display:none"><table><thead><tr><th>Código</th><th>Descuento</th><th>Stock</th><th>Usado</th><th>Expira</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="couponsTableBody"></tbody></table></div>
-          </div>
-        </div>
+        <div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-plus"></i> Crear Cupón</div></div><div class="card-body"><div class="form-grid"><div class="form-group"><div class="form-label">Código</div><input type="text" id="couponCode" placeholder="VERANO25" maxlength="20" style="text-transform:uppercase"></div><div class="form-group"><div class="form-label">Descuento (%)</div><input type="number" id="couponDiscount" placeholder="20" min="1" max="100"></div><div class="form-group"><div class="form-label">Stock</div><input type="number" id="couponStock" placeholder="50" min="1"></div><div class="form-group"><div class="form-label">Expiración (opcional)</div><input type="datetime-local" id="couponExpiry"></div><div class="form-group" style="grid-column:1/-1"><div class="form-label">Descripción</div><input type="text" id="couponDescription" placeholder="Descripción opcional"></div></div><div style="margin-top:12px"><button class="btn green" id="createCouponBtn" onclick="createCoupon()"><i class="fas fa-plus-circle"></i> <span>Crear cupón</span></button></div></div></div>
+        <div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-tag"></i> Cupones</div></div><div class="card-body"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"><div><label style="font-family: var(--f-mono); font-size: .6rem; color: var(--txt-3);">Mostrar:</label><select id="couponFilter" onchange="loadCoupons()" style="width: auto; margin-left: 8px;"><option value="active">✅ Solo activos (con stock)</option><option value="all">📋 Todos (incluye usados/inactivos)</option><option value="inactive">⏸️ Solo inactivos/agotados</option></select></div><button class="btn" onclick="loadCoupons()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="loading" id="couponsLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="couponsNoData" style="display:none"><i class="fas fa-tag"></i>Sin cupones</div><div class="table-wrap" id="couponsTableWrap" style="display:none"></table><thead><tr><th>Código</th><th>Descuento</th><th>Stock</th><th>Usado</th><th>Expira</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="couponsTableBody"></tbody></table></div></div></div>
       </div>
 
       <!-- BROADCAST -->
@@ -601,7 +571,6 @@ select option { background: var(--ink); }
 
 <div class="modal-bg" id="editCouponModal"><div class="modal-box"><button class="modal-close" onclick="closeEditCouponModal()">×</button><div class="modal-title">// EDITAR CUPÓN</div><div class="form-group"><div class="form-label">Código</div><input type="text" id="editCouponCode" disabled></div><div class="form-group"><div class="form-label">Stock</div><div style="display:flex;gap:6px;align-items:center"><button class="btn red" onclick="adjustStock(-1)"><i class="fas fa-minus"></i></button><input type="number" id="editCouponStock" style="text-align:center"><button class="btn green" onclick="adjustStock(1)"><i class="fas fa-plus"></i></button><button class="btn green" onclick="adjustStock(5)"><i class="fas fa-plus"></i> +5</button></div></div><div class="form-group"><div class="form-label">Estado</div><select id="editCouponStatus"><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="expired">Expirado</option></select></div><button class="btn green" id="updateCouponBtn" onclick="updateCoupon()"><i class="fas fa-save"></i> <span>Guardar cambios</span></button></div></div>
 
-<!-- MODAL ESTADÍSTICAS DE ARCHIVOS -->
 <div class="modal-bg" id="filesStatsModal"><div class="modal-box"><button class="modal-close" onclick="closeFilesStatsModal()">×</button><div class="modal-title">// ESTADÍSTICAS DE ARCHIVOS</div><div class="loading" id="filesStatsLoading"><div class="spinner"></div> Cargando...</div><div id="filesStatsContent" style="display:none"><div class="stats-grid"><div class="stat-card"><div class="stat-val" id="totalFilesUploaded">0</div><div class="stat-lbl">Archivos subidos</div></div><div class="stat-card"><div class="stat-val" id="totalFilesSent">0</div><div class="stat-lbl">Envios totales</div></div><div class="stat-card"><div class="stat-val" id="totalAvailableFiles">0</div><div class="stat-lbl">Disponibles</div></div><div class="stat-card"><div class="stat-val" id="totalUsersWithFiles">0</div><div class="stat-lbl">Usuarios con archivo</div></div></div><div class="table-wrap"><table id="filesStatsTable"><thead><tr><th>Plan</th><th>Archivo</th><th>Subido</th><th>Envíos</th><th>Disponibles</th><th>Último envío</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="filesStatsTableBody"></tbody></table></div><div style="margin-top:20px"><h4 style="font-family:var(--f-mono);font-size:.7rem;margin-bottom:8px">// Historial reciente</h4><div class="table-wrap"><table id="filesHistoryTable"><thead><tr><th>Usuario</th><th>Plan</th><th>Archivo</th><th>Fecha</th><th>Método</th><th>Estado</th></tr></thead><tbody id="filesHistoryTableBody"></tbody></table></div></div></div></div></div>
 
 <div id="notification"></div>
@@ -616,7 +585,6 @@ let allCoupons = [];
 
 function toggleSidebar(force) { const sb = document.getElementById('sidebar'); const ov = document.getElementById('sidebarOverlay'); if (force === false) { sb.classList.remove('open'); ov.classList.remove('active'); } else { sb.classList.toggle('open'); ov.classList.toggle('active'); } }
 
-// ── ADMIN CHECK ──────────────────────────────────────
 async function checkAdminAccess() {
   const urlParams = new URLSearchParams(window.location.search);
   let userId = urlParams.get('userId') || tg.initDataUnsafe?.user?.id?.toString();
@@ -628,10 +596,9 @@ async function checkAdminAccess() {
     isAdminUser = true; currentUserId = userId;
     document.getElementById('adminIdDisplay').textContent = '// ID: '+userId;
     loadStats(); loadPlanFiles();
-  } catch(e) { showNotification('❌ Error verificando admin', 'error'); }
+  } catch(e) { showNotification('❌ Error verificando admin', 'error'); console.error(e); }
 }
 
-// ── STATS ────────────────────────────────────────────
 async function loadStats() {
   try {
     const res = await fetch('/api/stats'); if(!res.ok) throw new Error(); const stats = await res.json();
@@ -644,197 +611,372 @@ async function loadStats() {
   } catch(e) { console.error(e); }
 }
 
-// ── PAGOS ────────────────────────────────────────────
-async function loadPendingPayments() { document.getElementById('pendingLoading').style.display='flex'; try{ const res=await fetch('/api/payments/pending'); const payments=await res.json(); document.getElementById('pendingLoading').style.display='none'; if(!payments?.length){ document.getElementById('pendingNoData').style.display='block'; return; } const tb=document.getElementById('pendingTableBody'); tb.innerHTML=''; payments.forEach(p=>{ tb.innerHTML+=`<tr><td>${p.id}</td><td><strong>${p.user?.first_name||'Usuario'}</strong><br><small>@${p.user?.username||''}</small></td><td>${getPlanName(p.plan)}</td><td>${getMethodBadge(p.method)}</td><td style="color:var(--sig)">${p.price} ${p.method==='usdt'?'USDT':'CUP'}</td><td>${p.created_at?new Date(p.created_at).toLocaleDateString('es-ES'):''}</td><td><button class="btn" onclick="viewScreenshot('${p.id}','${p.telegram_id}','${p.plan}','${p.price}','${p.created_at}','${p.screenshot_url}','${p.method}')"><i class="fas fa-eye"></i> <span>Ver</span></button></td>`; }); document.getElementById('pendingTableWrap').style.display='block'; }catch(e){ document.getElementById('pendingLoading').style.display='none'; showNotification('Error','error'); } }
-function viewScreenshot(paymentId,telegramId,plan,amount,date,screenshotUrl,method){ currentPaymentId=paymentId; document.getElementById('screenshotImage').src=screenshotUrl; document.getElementById('modalUserId').textContent=telegramId; document.getElementById('modalPlan').textContent=getPlanName(plan); document.getElementById('modalAmount').textContent=amount; document.getElementById('modalCurrency').textContent=method==='usdt'?'USDT':'CUP'; document.getElementById('modalDate').textContent=new Date(date).toLocaleDateString('es-ES'); document.getElementById('modalMethod').innerHTML=getMethodBadge(method); document.getElementById('screenshotModal').classList.add('active'); }
-async function approvePayment(paymentId){ if(!confirm('¿Aprobar pago? Envío manual después.')) return; showNotification('⏳ Aprobando...','info'); try{ const res=await fetch(`/api/payments/${paymentId}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); if(res.ok){ showNotification('✅ Aprobado','success'); closeModal(); loadPendingPayments(); loadApprovedPayments(); loadStats();} else showNotification('Error','error'); }catch(e){ showNotification('Error','error'); } }
-async function rejectPayment(paymentId){ const reason=prompt('Motivo del rechazo:'); if(!reason) return; try{ await fetch(`/api/payments/${paymentId}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason,adminId:currentUserId})}); showNotification('✅ Rechazado','success'); closeModal(); loadPendingPayments(); loadStats(); }catch(e){ showNotification('Error','error'); } }
-async function loadApprovedPayments() { document.getElementById('approvedLoading').style.display='flex'; try{ const res=await fetch('/api/payments/approved'); const payments=await res.json(); document.getElementById('approvedLoading').style.display='none'; if(!payments?.length){ document.getElementById('approvedNoData').style.display='block'; return; } const tb=document.getElementById('approvedTableBody'); tb.innerHTML=''; payments.forEach(p=>{ const couponInfo=p.coupon_used?`<span class="badge active">${p.coupon_code} -${p.coupon_discount}%</span>`:'—'; tb.innerHTML+=`<tr><td>${p.id}</td><td><strong>${p.user?.first_name||'Usuario'}</strong><br><small>@${p.user?.username||''}</small></td><td>${getPlanName(p.plan)}</td><td>${getMethodBadge(p.method)}</td><td>${p.price} ${p.method==='usdt'?'USDT':'CUP'}</td><td>${couponInfo}</td><td>${p.approved_at?new Date(p.approved_at).toLocaleDateString('es-ES'):''}</td><td>${p.config_sent?'<span class="badge active">Enviada</span>':'<span class="badge pending">Pendiente</span>'}</td><td>${!p.config_sent?`<button class="btn green" onclick="openConfigModal('${p.id}','${p.telegram_id}','${p.plan}')"><i class="fas fa-paper-plane"></i> <span>Enviar</span></button>`:'—'}</td>`; }); document.getElementById('approvedTableWrap').style.display='block'; }catch(e){ document.getElementById('approvedLoading').style.display='none'; showNotification('Error','error'); } }
-function openConfigModal(paymentId,telegramId,plan){ currentPaymentId=paymentId; document.getElementById('configPaymentId').textContent=paymentId; document.getElementById('configUserId').textContent=telegramId; document.getElementById('configPlan').textContent=getPlanName(plan); document.getElementById('configFile').value=''; document.getElementById('configFileName').innerHTML=''; document.getElementById('configModal').classList.add('active'); document.getElementById('configFile').onchange=e=>{ const f=e.target.files[0]; document.getElementById('configFileName').innerHTML=f?f.name:''; }; }
-async function sendConfigFile(){ const file=document.getElementById('configFile').files[0]; if(!file){ showNotification('❌ Selecciona archivo','error'); return; } showNotification('⏳ Enviando...','info'); const fd=new FormData(); fd.append('configFile',file); fd.append('paymentId',currentPaymentId); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/send-config',{method:'POST',body:fd}); const data=await res.json(); if(res.ok&&data.success){ showNotification('✅ Enviado','success'); closeConfigModal(); loadApprovedPayments(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } }
-
-// ── PRUEBAS ──────────────────────────────────────────
-async function loadPendingTrials() { document.getElementById('trialLoading').style.display='flex'; try{ const res=await fetch('/api/trials/pending'); const trials=await res.json(); document.getElementById('trialLoading').style.display='none'; if(!trials?.length){ document.getElementById('trialNoData').style.display='block'; document.getElementById('badge-trial').textContent='0'; return; } document.getElementById('badge-trial').textContent=trials.length; const tb=document.getElementById('trialTableBody'); tb.innerHTML=''; trials.forEach(t=>{ tb.innerHTML+=`<tr><td><code>${t.telegram_id}</code></td><td><strong>${t.first_name||t.username||'Usuario'}</strong><br><small>@${t.username||''}</small></td><td>${t.trial_info?.game_server||t.trial_game_server||'No especificado'}</td><td>${t.trial_info?.connection_type||t.trial_connection_type||'No especificado'}</td><td>${t.trial_requested_at?new Date(t.trial_requested_at).toLocaleDateString('es-ES'):''}</td><td><button class="btn green" onclick="sendTrialConfig('${t.telegram_id}','${(t.first_name||t.username||'Usuario').replace(/'/g,"\\'")}')"><i class="fas fa-gift"></i> Enviar</button> <button class="btn red" onclick="deleteTrialRequest('${t.telegram_id}','${(t.first_name||t.username||'Usuario').replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i> Eliminar</button></td>`; }); document.getElementById('trialTableWrap').style.display='block'; }catch(e){ document.getElementById('trialLoading').style.display='none'; showNotification('Error','error'); } }
-async function sendAllTrials(){ if(!confirm('¿Enviar prueba a TODOS los pendientes?')) return; showNotification('⏳ Procesando...','info'); try{ const res=await fetch('/api/send-trials-to-valid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); const data=await res.json(); if(data.success) showNotification(`✅ Enviadas: ${data.sent}, Fallidas: ${data.failed}`,'success'); else showNotification('❌ Error','error'); loadPendingTrials(); }catch(e){ showNotification('Error','error'); } }
-async function sendTrialConfig(telegramId,userName){ if(!telegramId) return; if(!confirm(`¿Enviar prueba a ${userName}?`)) return; showNotification('⏳ Enviando...','info'); try{ const res=await fetch('/api/send-trial-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegramId,adminId:currentUserId})}); const data=await res.json(); if(res.ok&&data.success) showNotification(`✅ Enviado a ${userName}`,'success'); else showNotification(`❌ ${data.error||'Error'}`,'error'); loadPendingTrials(); }catch(e){ showNotification('Error','error'); } }
-async function deleteTrialRequest(telegramId,userName){ if(!confirm(`¿Eliminar solicitud de ${userName}?`)) return; try{ await fetch(`/api/trials/${telegramId}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ Eliminada','success'); loadPendingTrials(); }catch(e){ showNotification('Error','error'); } }
-
-// ── USUARIOS ─────────────────────────────────────────
-async function loadUsers(){ document.getElementById('usersLoading').style.display='flex'; try{ const res=await fetch('/api/all-users'); const users=await res.json(); document.getElementById('usersLoading').style.display='none'; if(!users?.length){ document.getElementById('usersNoData').style.display='block'; return; } allUsers=users.map(u=>({...u,vip:u.vip||false})); filteredUsers=[...allUsers]; displayUsersPage(1); }catch(e){ document.getElementById('usersLoading').style.display='none'; showNotification('Error','error'); } }
-function displayUsersPage(page){ currentUsersPage=page; const start=(page-1)*usersPerPage; const pageUsers=filteredUsers.slice(start,start+usersPerPage); const tb=document.getElementById('usersTableBody'); tb.innerHTML=''; if(!pageUsers.length){ document.getElementById('usersNoData').style.display='block'; document.getElementById('usersPagination').style.display='none'; return; } document.getElementById('usersNoData').style.display='none'; pageUsers.forEach(u=>{ const vipBadge=u.vip?'<span class="badge vip">VIP</span>':'<span class="badge non-vip">No VIP</span>'; const referrer=u.referrer_id?(u.referrer_username?'@'+u.referrer_username:'ID:'+u.referrer_id):'—'; tb.innerHTML+=`<tr><td><code>${u.telegram_id}</code></td><td><strong>${u.first_name||'Usuario'}</strong></td><td>${u.username?'@'+u.username:'—'}</td><td>${getPlanName(u.plan||u.current_plan)||'—'}</td><td>${vipBadge}</td><td style="font-size:.65rem">${referrer}</td><td>${u.created_at?new Date(u.created_at).toLocaleDateString('es-ES'):'—'}</td><td><button class="btn" onclick="viewUserDetailsModal('${u.telegram_id}')"><i class="fas fa-eye"></i></button> ${u.vip?`<button class="btn red" onclick="removeVipFromUser('${u.telegram_id}')"><i class="fas fa-crown"></i></button>`:''}</td>`; }); document.getElementById('usersTableWrap').style.display='block'; const totalPages=Math.ceil(filteredUsers.length/usersPerPage); document.getElementById('usersCurrentPage').textContent=page; document.getElementById('usersTotalPages').textContent=totalPages; document.getElementById('usersPrevBtn').disabled=page<=1; document.getElementById('usersNextBtn').disabled=page>=totalPages; document.getElementById('usersPagination').style.display=totalPages>1?'flex':'none'; }
-function changeUsersPage(dir){ const n=currentUsersPage+dir; const t=Math.ceil(filteredUsers.length/usersPerPage); if(n>=1&&n<=t) displayUsersPage(n); }
-function searchUsers(){ const term=document.getElementById('searchUserInput').value.toLowerCase(); filteredUsers=term?allUsers.filter(u=>(u.first_name?.toLowerCase().includes(term)||u.username?.toLowerCase().includes(term)||u.telegram_id?.toString().includes(term))):[...allUsers]; displayUsersPage(1); }
-async function viewUserDetailsModal(userId){ currentUserDetailsId=userId; document.getElementById('userDetailsModal').classList.add('active'); document.getElementById('userDetailsModalLoading').style.display='flex'; document.getElementById('userDetailsModalContent').style.display='none'; try{ const res=await fetch(`/api/user/${userId}/details`); const data=await res.json(); document.getElementById('userDetailsModalLoading').style.display='none'; document.getElementById('userDetailsModalContent').style.display='block'; document.getElementById('modalUserIdDetail').textContent=data.telegram_id||'N/A'; document.getElementById('modalUserName').textContent=data.first_name||'Usuario'; document.getElementById('modalUserUsername').textContent='@'+(data.username||'sin_usuario'); document.getElementById('modalUserPlan').textContent=getPlanName(data.plan||data.current_plan)||'—'; document.getElementById('modalUserVip').innerHTML=data.vip?'<span class="badge vip">VIP ✅</span>':'<span class="badge non-vip">No VIP</span>'; document.getElementById('modalUserVipSince').textContent=data.vip_since?new Date(data.vip_since).toLocaleDateString('es-ES'):'—'; document.getElementById('modalUserPlanPrice').textContent=data.plan_price?data.plan_price+' CUP':'—'; document.getElementById('modalUserActive').innerHTML=data.is_active!==false?'<span class="badge active">Activo</span>':'<span class="badge expired">Inactivo</span>'; document.getElementById('modalUserReferrer').textContent=data.referrer_id?'@'+(data.referrer_username||data.referrer_id):'Directo'; document.getElementById('modalUserReferrals').textContent=data.level1_referrals||0; document.getElementById('modalUserTotalReferrals').textContent=data.total_referrals||0; document.getElementById('modalUserPaidReferrals').textContent=data.paid_referrals||0; document.getElementById('modalUserJoinDate').textContent=data.created_at?new Date(data.created_at).toLocaleDateString('es-ES'):'—'; const trialEl=document.getElementById('modalUserTrial'); if(data.trial_received) trialEl.innerHTML='<span class="badge active">Recibida</span>'; else if(data.trial_requested) trialEl.innerHTML='<span class="badge pending">Solicitada</span>'; else trialEl.innerHTML='<span class="badge non-vip">No solicitada</span>'; document.getElementById('removeVipBtn').style.display=data.vip?'inline-flex':'none'; }catch(e){ document.getElementById('userDetailsModalLoading').style.display='none'; showNotification('Error cargando','error'); } }
-function closeUserDetailsModal(){ document.getElementById('userDetailsModal').classList.remove('active'); }
-async function removeVipFromUser(userId){ if(!confirm('¿Quitar VIP?')) return; try{ await fetch(`/api/user/${userId}/remove-vip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ VIP quitado','success'); closeUserDetailsModal(); loadUsers(); loadStats(); }catch(e){ showNotification('Error','error'); } }
-async function messageUser(userId){ const msg=prompt('Mensaje:'); if(!msg) return; try{ await fetch(`/api/user/${userId}/message`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId,message:msg})}); showNotification('✅ Enviado','success'); }catch(e){ showNotification('Error','error'); } }
-
-// ── REFERIDOS ────────────────────────────────────────
-async function loadReferrals(){ try{ const stats=await (await fetch('/api/referrals/stats')).json(); document.getElementById('totalReferralsCount').textContent=stats.total_referrals||0; document.getElementById('paidReferrals').textContent=stats.paid_referrals||0; document.getElementById('level1Referrals').textContent=stats.level1_referrals||0; document.getElementById('level2Referrals').textContent=stats.level2_referrals||0; }catch(e){} try{ const top=await(await fetch('/api/referrals/top')).json(); document.getElementById('topReferrersLoading').style.display='none'; const tb=document.getElementById('topReferrersTableBody'); tb.innerHTML=''; if(top?.length){ document.getElementById('topReferrersWrap').style.display='block'; top.forEach((r,i)=>{ const disc=Math.min((r.paid_referrals||0)*20,100); tb.innerHTML+=`<tr><td style="color:var(--sig)">${i+1}</td><td><strong>${r.first_name||'Usuario'}</strong><br><small>@${r.username||''}</small></td><td>${r.total_referrals||0}</td><td>${r.paid_referrals||0}</td><td><span class="badge active">${disc}%</span></td><td><button class="btn" onclick="searchUserById('${r.telegram_id||r.referrer_id}')"><i class="fas fa-eye"></i></button></td>`; }); } else document.getElementById('topReferrersNoData').style.display='block'; }catch(e){ document.getElementById('topReferrersLoading').style.display='none'; document.getElementById('topReferrersNoData').style.display='block'; } try{ const list=await(await fetch('/api/referrals/list')).json(); allReferrals=list||[]; filteredReferrals=[...allReferrals]; displayReferralsPage(1); document.getElementById('referralsListLoading').style.display='none'; }catch(e){ document.getElementById('referralsListLoading').style.display='none'; } }
-function displayReferralsPage(page){ currentReferralsPage=page; const start=(page-1)*referralsPerPage; const pageR=filteredReferrals.slice(start,start+referralsPerPage); const tb=document.getElementById('referralsListTableBody'); tb.innerHTML=''; if(!pageR.length){ document.getElementById('referralsListNoData').style.display='block'; document.getElementById('referralsPagination').style.display='none'; return; } document.getElementById('referralsListNoData').style.display='none'; pageR.forEach(r=>{ const levelBadge=r.level===1?'<span class="badge active">Nivel 1</span>':'<span class="badge vip">Nivel 2</span>'; const paidBadge=r.has_paid?'<span class="badge active">Pagado</span>':'<span class="badge pending">No pagado</span>'; const disc=r.has_paid?(r.level===1?'20%':'10%'):'0%'; tb.innerHTML+=`<tr><td><code>${r.user_id}</code></td><td><strong>${r.user_name||'Usuario'}</strong></td><td>${r.referrer_name||'—'}</td><td>${levelBadge}</td><td>${getPlanName(r.plan)||'—'}</td><td>${paidBadge}</td><td style="color:var(--green)">${disc}</td><td>${r.referred_at?new Date(r.referred_at).toLocaleDateString('es-ES'):'—'}</td><td><button class="btn" onclick="searchUserById('${r.user_id}')"><i class="fas fa-eye"></i></button></td>`; }); const totalPages=Math.ceil(filteredReferrals.length/referralsPerPage); document.getElementById('currentPage').textContent=page; document.getElementById('totalPages').textContent=totalPages; document.getElementById('prevPageBtn').disabled=page<=1; document.getElementById('nextPageBtn').disabled=page>=totalPages; document.getElementById('referralsPagination').style.display=totalPages>1?'flex':'none'; }
-function changeReferralsPage(dir){ const n=currentReferralsPage+dir; const t=Math.ceil(filteredReferrals.length/referralsPerPage); if(n>=1&&n<=t) displayReferralsPage(n); }
-function filterReferralsList(){ const f=document.getElementById('filterReferrals').value.toLowerCase(); filteredReferrals=f?allReferrals.filter(r=>r.user_name?.toLowerCase().includes(f)||r.user_id?.toString().includes(f)||r.referrer_name?.toLowerCase().includes(f)):[...allReferrals]; displayReferralsPage(1); }
-async function searchUserReferrals(){ const term=document.getElementById('searchUserReferrals').value.trim(); const type=document.getElementById('searchType').value; document.getElementById('searchResults').style.display='block'; document.getElementById('userDetailsLoading').style.display='flex'; document.getElementById('userDetailsContent').style.display='none'; document.getElementById('userNoData').style.display='none'; try{ if(type==='all'&&term){ const user=await(await fetch(`/api/user-info/${term}`)).json(); const refRes=await fetch(`/api/referrals/user/${term}`); const refData=refRes.ok?await refRes.json():{referrals:[]}; displayUserReferrals({user,referrals:refData.referrals||[],referral_stats:refData},'all'); } else if(type==='with_referrals'){ const data=await(await fetch('/api/users/with-referrals')).json(); displayUserReferrals(data,'with_referrals'); } else if(type==='without_referrals'){ const data=await(await fetch('/api/users/without-referrals')).json(); displayUserReferrals(data,'without_referrals'); } else throw new Error(); }catch(e){ document.getElementById('userDetailsLoading').style.display='none'; document.getElementById('userNoData').style.display='block'; } }
-function displayUserReferrals(data,type){ document.getElementById('userDetailsLoading').style.display='none'; if(type==='all'){ const u=data.user,stats=data.referral_stats||{}; document.getElementById('userDetailsContent').style.display='block'; document.getElementById('userName').textContent=u.first_name||u.username||'Usuario'; document.getElementById('userDetails').innerHTML=`ID: ${u.telegram_id} · @${u.username||'sin_usuario'} · VIP: ${u.vip?'✅':'❌'}`; document.getElementById('userTotalReferrals').textContent=stats.total_referrals||0; document.getElementById('userPaidReferrals').textContent=stats.paid_referrals||0; document.getElementById('userLevel1Referrals').textContent=stats.level1?.total||0; document.getElementById('userLevel2Referrals').textContent=stats.level2?.total||0; let disc=((stats.level1?.paid||0)*20)+((stats.level2?.paid||0)*10); document.getElementById('userDiscount').textContent=Math.min(disc,100)+'%'; const tb=document.getElementById('userReferralsTableBody'); tb.innerHTML=''; (data.referrals||[]).forEach(r=>{ tb.innerHTML+=`<tr><td><strong>${r.referred_name||r.user_name||'Usuario'}</strong><br><small>ID: ${r.referred_id}</small></td><td>${r.level===1?'Nivel 1':'Nivel 2'}</td><td>${getPlanName(r.plan)||'—'}</td><td>${r.has_paid?'Pagado':'No pagado'}</td><td>${r.has_paid?(r.level===1?'20%':'10%'):'0%'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('es-ES'):'N/A'}</td>`; }); } else { document.getElementById('userDetailsContent').style.display='block'; document.getElementById('userName').textContent=type==='with_referrals'?'Usuarios con Referidos':'Usuarios sin Referidos'; document.getElementById('userDetails').textContent=`Total: ${Array.isArray(data)?data.length:0}`; const tb=document.getElementById('userReferralsTableBody'); tb.innerHTML=''; (Array.isArray(data)?data:[]).forEach(u=>{ tb.innerHTML+=`<tr><td><strong>${u.first_name||u.username||'Usuario'}</strong><br><small>ID: ${u.telegram_id||u.id}</small></td><td>${u.total_referrals||0}</td><td>${u.paid_referrals||0}</td><td>${u.level1_referrals||0}</td><td>${u.level2_referrals||0}</td><td><button class="btn" onclick="searchUserById('${u.telegram_id||u.id}')"><i class="fas fa-eye"></i></button></td>`; }); } }
-function clearSearch(){ document.getElementById('searchUserReferrals').value=''; document.getElementById('searchType').value='all'; document.getElementById('searchResults').style.display='none'; }
-function searchUserById(id,tab=false){ if(tab){ switchTab('referrals'); setTimeout(()=>{ document.getElementById('searchUserReferrals').value=id; searchUserReferrals(); },100); } else { document.getElementById('searchUserReferrals').value=id; document.getElementById('searchType').value='all'; searchUserReferrals(); } }
-
-// ── ARCHIVOS DE PLANES ───────────────────────────────
-async function loadPlanFiles(){ try{ const res=await fetch('/api/plan-files'); const files=await res.json(); const plans=['basico','avanzado','premium','anual']; const planNames={basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)'}; const grid=document.getElementById('planFilesGrid'); grid.innerHTML=''; for(const plan of plans){ const file=(files||[]).find(f=>f.plan===plan); grid.innerHTML+=`<div class="plan-card"><div class="plan-card-name">${planNames[plan]}</div><div class="plan-file-info">Archivo: <span>${file?.original_name||file?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${file?.updated_at?new Date(file.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('planFileInput_${plan}').click()"><i class="fas fa-upload"></i> <span>Subir</span></button></div><input type="file" id="planFileInput_${plan}" accept=".conf,.zip,.rar" hidden onchange="handlePlanFileChange(event,'${plan}')"></div>`; } const trialFile=(files||[]).find(f=>f.plan==='trial'); const trialCard=document.getElementById('trialPlanCard'); trialCard.innerHTML=`<div class="plan-card-name">Prueba (individual)</div><div class="plan-file-info">Archivo: <span>${trialFile?.original_name||trialFile?.storage_filename||'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${trialFile?.updated_at?new Date(trialFile.updated_at).toLocaleDateString('es-ES'):'N/A'}</span></div><div class="plan-file-info">Usuarios que recibieron: <span>${trialFile?.users_count||0}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('trialPlanFileInput').click()"><i class="fas fa-upload"></i> <span>Subir archivo de prueba</span></button></div><input type="file" id="trialPlanFileInput" accept=".conf,.zip,.rar" hidden onchange="handleTrialPlanFileChange(event)">`; }catch(e){ showNotification('Error archivos','error'); } }
-async function handlePlanFileChange(event,plan){ const file=event.target.files[0]; if(!file) return; showNotification(`⏳ Subiendo ${file.name}...`,'info'); const fd=new FormData(); fd.append('file',file); fd.append('plan',plan); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/upload-plan-file',{method:'POST',body:fd}); if(res.ok){ showNotification('✅ Archivo subido','success'); loadPlanFiles(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } event.target.value=''; }
-async function handleTrialPlanFileChange(event){ const file=event.target.files[0]; if(!file) return; showNotification(`⏳ Subiendo archivo de prueba...`,'info'); const fd=new FormData(); fd.append('file',file); fd.append('plan','trial'); fd.append('adminId',currentUserId); try{ const res=await fetch('/api/upload-trial-file',{method:'POST',body:fd}); if(res.ok){ showNotification('✅ Archivo de prueba subido','success'); loadPlanFiles(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } event.target.value=''; }
-
-// ── POOL DE PRUEBAS ──────────────────────────────────
-let isUploadingMultiple = false;
-async function uploadTrialFilesToPool(input) {
-    const files = Array.from(input.files);
-    if (!files.length) return;
-    if (isUploadingMultiple) { showNotification('⏳ Ya hay una subida en curso, espera...', 'warning'); input.value = ''; return; }
-    isUploadingMultiple = true;
-    let successCount = 0, failCount = 0;
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (!['conf', 'zip', 'rar'].includes(ext)) { showNotification(`❌ ${file.name} no es .conf, .zip o .rar`, 'error'); failCount++; continue; }
-        if (file.size > 10 * 1024 * 1024) { showNotification(`❌ ${file.name} excede 10MB`, 'error'); failCount++; continue; }
-        showNotification(`📤 Subiendo ${file.name} (${i+1}/${files.length})...`, 'info');
-        const fd = new FormData(); fd.append('file', file); fd.append('adminId', currentUserId); fd.append('label', file.name);
-        try {
-            const res = await fetch('/api/trial-files/upload', { method: 'POST', body: fd });
-            if (res.ok) { successCount++; showNotification(`✅ ${file.name} subido correctamente`, 'success'); }
-            else { const err = await res.text(); throw new Error(err); }
-        } catch (e) { failCount++; showNotification(`❌ Error en ${file.name}: ${e.message}`, 'error'); }
-    }
-    isUploadingMultiple = false;
-    input.value = '';
-    showNotification(`✅ Subida completada: ${successCount} éxito, ${failCount} fallos`, successCount ? 'success' : 'error');
-    if (successCount > 0) loadTrialFiles();
-}
-async function loadTrialFiles(){ document.getElementById('trialFilesLoading').style.display='flex'; try{ const res=await fetch('/api/trial-files'); const files=await res.json(); document.getElementById('trialFilesLoading').style.display='none'; if(!files?.length){ document.getElementById('trialFilesNoData').style.display='block'; return; } document.getElementById('trialFilesNoData').style.display='none'; const pool=document.getElementById('trialFilesPool'); pool.innerHTML=''; files.forEach(f=>{ const div=document.createElement('div'); div.className='trial-file-row'+(f.is_active===false?' inactive':''); const status=f.is_active!==false?'<span class="badge active">Activo</span>':'<span class="badge expired">Inactivo</span>'; div.innerHTML=`<div class="tf-name">${f.label||f.original_name}</div><div class="tf-meta">${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</div>${status}<div class="tf-actions"><button class="btn ${f.is_active!==false?'amber':'green'}" onclick="toggleTrialFile(${f.id},${f.is_active!==false})"><i class="fas fa-${f.is_active!==false?'pause':'play'}"></i></button><button class="btn red" onclick="deleteTrialFile(${f.id},'${(f.label||f.original_name).replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button></div>`; pool.appendChild(div); }); }catch(e){ document.getElementById('trialFilesLoading').style.display='none'; showNotification('Error cargando pool','error'); } }
-async function toggleTrialFile(id,currentlyActive){ try{ await fetch(`/api/trial-files/${id}/toggle`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId,is_active:!currentlyActive})}); showNotification(currentlyActive?'⏸ Desactivado':'▶ Activado','success'); loadTrialFiles(); }catch(e){ showNotification('Error','error'); } }
-async function deleteTrialFile(id,name){ if(!confirm(`¿Eliminar "${name}"?`)) return; try{ await fetch(`/api/trial-files/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); showNotification('✅ Eliminado','success'); loadTrialFiles(); }catch(e){ showNotification('Error','error'); } }
-
-// ── CUPONES CON FILTRO ───────────────────────────────
-async function createCoupon(){ 
-  const code=document.getElementById('couponCode').value.trim().toUpperCase(); 
-  const discount=parseFloat(document.getElementById('couponDiscount').value); 
-  const stock=parseInt(document.getElementById('couponStock').value); 
-  const expiry=document.getElementById('couponExpiry').value; 
-  const description=document.getElementById('couponDescription').value.trim(); 
-  if(!code||!/^[A-Z0-9]+$/.test(code)){ showNotification('❌ Código inválido','error'); return; } 
-  if(!discount||discount<1||discount>100){ showNotification('❌ Descuento 1-100','error'); return; } 
-  if(!stock||stock<1){ showNotification('❌ Stock >0','error'); return; } 
-  const btn=document.getElementById('createCouponBtn'); btn.disabled=true; 
-  try{ 
-    const res=await fetch('/api/coupons',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,discount,stock,expiry:expiry||null,description,adminId:currentUserId})}); 
-    if(res.ok){ 
-      showNotification('✅ Cupón creado','success'); 
-      document.getElementById('couponCode').value=''; 
-      document.getElementById('couponDiscount').value=''; 
-      document.getElementById('couponStock').value=''; 
-      document.getElementById('couponExpiry').value=''; 
-      document.getElementById('couponDescription').value=''; 
-      loadCoupons(); 
-      loadStats(); 
-    } else { 
-      const err=await res.json(); 
-      showNotification(`❌ ${err.error||'Error al crear'}`,'error'); 
-    } 
-  }catch(e){ showNotification('Error','error'); } 
-  btn.disabled=false; 
-}
-
-async function loadCoupons() {
-  document.getElementById('couponsLoading').style.display = 'flex';
-  document.getElementById('couponsTableWrap').style.display = 'none';
-  document.getElementById('couponsNoData').style.display = 'none';
+async function loadPendingPayments() {
+  console.log('🔄 loadPendingPayments() iniciada');
+  document.getElementById('pendingLoading').style.display = 'flex';
+  document.getElementById('pendingTableWrap').style.display = 'none';
+  document.getElementById('pendingNoData').style.display = 'none';
   try {
-    const res = await fetch('/api/coupons');
-    const coupons = await res.json();
-    document.getElementById('couponsLoading').style.display = 'none';
-    if (!coupons?.length) {
-      document.getElementById('couponsNoData').style.display = 'block';
+    console.log('📡 Fetching /api/payments/pending...');
+    const res = await fetch('/api/payments/pending');
+    console.log('📡 Respuesta recibida, status:', res.status);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payments = await res.json();
+    console.log('✅ Pagos recibidos:', payments);
+    document.getElementById('pendingLoading').style.display = 'none';
+    if (!payments || payments.length === 0) {
+      console.log('📭 No hay pagos pendientes');
+      document.getElementById('pendingNoData').style.display = 'block';
       return;
     }
-    allCoupons = coupons;
-    const filter = document.getElementById('couponFilter').value;
-    let filteredCoupons = [...coupons];
-    if (filter === 'active') {
-      filteredCoupons = coupons.filter(c => c.status === 'active' && c.stock > 0);
-    } else if (filter === 'inactive') {
-      filteredCoupons = coupons.filter(c => c.status !== 'active' || c.stock === 0);
-    }
-    const tb = document.getElementById('couponsTableBody');
+    const tb = document.getElementById('pendingTableBody');
     tb.innerHTML = '';
-    if (filteredCoupons.length === 0) {
-      document.getElementById('couponsNoData').style.display = 'block';
-      return;
-    }
-    filteredCoupons.forEach(c => {
-      let statusBadge = c.status === 'active' ? '<span class="badge active">Activo</span>' : (c.status === 'expired' ? '<span class="badge expired">Expirado</span>' : '<span class="badge pending">Inactivo</span>');
-      let expiry = 'No expira';
-      if (c.expiry) {
-        const ed = new Date(c.expiry);
-        expiry = ed.toLocaleDateString('es-ES');
-        if (ed < new Date() && c.status !== 'expired') statusBadge = '<span class="badge expired">Expirado</span>';
-      }
+    payments.forEach(p => {
       tb.innerHTML += `<tr>
-        <td><strong style="color:var(--sig)">${c.code}</strong>${c.description ? `<br><small>${c.description}</small>` : ''}</td>
-        <td><span class="badge active">${c.discount}%</span></td>
-        <td>${c.stock}</td>
-        <td>${c.used || 0}</td>
-        <td>${expiry}</td>
-        <td>${statusBadge}</td>
-        <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
-        <td>
-          <button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button>
-          ${c.status === 'active' ? `<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>` : `<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`}
-          <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button>
-        </td>
+        <td>${p.id}</td>
+        <td><strong>${p.user?.first_name || 'Usuario'}</strong><br><small>@${p.user?.username || ''}</small></td>
+        <td>${getPlanName(p.plan)}</td>
+        <td>${getMethodBadge(p.method)}</td>
+        <td style="color:var(--sig)">${p.price} ${p.method === 'usdt' ? 'USDT' : 'CUP'}</td>
+        <td>${p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES') : ''}</td>
+        <td><button class="btn" onclick="viewScreenshot('${p.id}','${p.telegram_id}','${p.plan}','${p.price}','${p.created_at}','${p.screenshot_url}','${p.method}')"><i class="fas fa-eye"></i> <span>Ver</span></button></td>
       </tr>`;
     });
-    document.getElementById('couponsTableWrap').style.display = 'block';
+    document.getElementById('pendingTableWrap').style.display = 'block';
   } catch (e) {
-    document.getElementById('couponsLoading').style.display = 'none';
-    showNotification('Error cargando cupones', 'error');
-    console.error(e);
+    console.error('❌ Error en loadPendingPayments:', e);
+    document.getElementById('pendingLoading').style.display = 'none';
+    showNotification('Error al cargar pagos pendientes: ' + e.message, 'error');
   }
 }
 
-function openEditCouponModal(code){ const c=allCoupons.find(x=>x.code===code); if(!c) return; currentCouponCode=code; document.getElementById('editCouponCode').value=c.code; document.getElementById('editCouponStock').value=c.stock; document.getElementById('editCouponStatus').value=c.status; document.getElementById('editCouponModal').classList.add('active'); }
-function adjustStock(n){ const el=document.getElementById('editCouponStock'); el.value=Math.max(0,(parseInt(el.value)||0)+n); }
-function closeEditCouponModal(){ document.getElementById('editCouponModal').classList.remove('active'); currentCouponCode=null; }
-async function updateCoupon(){ const stock=parseInt(document.getElementById('editCouponStock').value); const status=document.getElementById('editCouponStatus').value; if(isNaN(stock)||stock<0){ showNotification('❌ Stock inválido','error'); return; } const btn=document.getElementById('updateCouponBtn'); btn.disabled=true; try{ const res=await fetch(`/api/coupons/${currentCouponCode}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({stock,status,adminId:currentUserId})}); if(res.ok){ showNotification('✅ Cupón actualizado','success'); closeEditCouponModal(); loadCoupons(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } btn.disabled=false; }
-async function toggleCouponStatus(code,status){ try{ await fetch(`/api/coupons/${code}/status`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,adminId:currentUserId})}); showNotification(`✅ ${status==='active'?'Activado':'Desactivado'}`,'success'); loadCoupons(); }catch(e){ showNotification('Error','error'); } }
-async function deleteCoupon(code){ if(!confirm(`⚠️ ¿Eliminar permanentemente el cupón ${code}?\n\nSi ya ha sido usado, no se podrá eliminar.`)) return; try{ const res=await fetch(`/api/coupons/${code}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUserId})}); const data=await res.json(); if(res.ok){ showNotification(`✅ Cupón ${code} eliminado`,'success'); loadCoupons(); loadStats(); } else { showNotification(`❌ ${data.error||'Error al eliminar'}`,'error'); } }catch(e){ console.error(e); showNotification('❌ Error de red al eliminar','error'); } }
+async function loadPendingTrials() {
+  console.log('🔄 loadPendingTrials() iniciada');
+  document.getElementById('trialLoading').style.display = 'flex';
+  document.getElementById('trialTableWrap').style.display = 'none';
+  document.getElementById('trialNoData').style.display = 'none';
+  try {
+    console.log('📡 Fetching /api/trials/pending...');
+    const res = await fetch('/api/trials/pending');
+    console.log('📡 Respuesta recibida, status:', res.status);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const trials = await res.json();
+    console.log('✅ Solicitudes de prueba recibidas:', trials);
+    document.getElementById('trialLoading').style.display = 'none';
+    if (!trials || trials.length === 0) {
+      console.log('📭 No hay solicitudes pendientes');
+      document.getElementById('trialNoData').style.display = 'block';
+      document.getElementById('badge-trial').textContent = '0';
+      return;
+    }
+    document.getElementById('badge-trial').textContent = trials.length;
+    const tb = document.getElementById('trialTableBody');
+    tb.innerHTML = '';
+    trials.forEach(t => {
+      tb.innerHTML += `<tr>
+        <td><code>${t.telegram_id}</code></td>
+        <td><strong>${t.first_name || t.username || 'Usuario'}</strong><br><small>@${t.username || ''}</small></td>
+        <td>${t.trial_info?.game_server || t.trial_game_server || 'No especificado'}</td>
+        <td>${t.trial_info?.connection_type || t.trial_connection_type || 'No especificado'}</td>
+        <td>${t.trial_requested_at ? new Date(t.trial_requested_at).toLocaleDateString('es-ES') : ''}</td>
+        <td><button class="btn green" onclick="sendTrialConfig('${t.telegram_id}','${(t.first_name || t.username || 'Usuario').replace(/'/g, "\\'")}')"><i class="fas fa-gift"></i> Enviar</button> <button class="btn red" onclick="deleteTrialRequest('${t.telegram_id}','${(t.first_name || t.username || 'Usuario').replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i> Eliminar</button></td>
+      </tr>`;
+    });
+    document.getElementById('trialTableWrap').style.display = 'block';
+  } catch (e) {
+    console.error('❌ Error en loadPendingTrials:', e);
+    document.getElementById('trialLoading').style.display = 'none';
+    showNotification('Error al cargar pruebas pendientes: ' + e.message, 'error');
+  }
+}
 
-// ── BROADCAST ────────────────────────────────────────
-async function sendBroadcast(){ const message=document.getElementById('broadcastMessage').value.trim(); const target=document.getElementById('broadcastTarget').value; if(!message){ showNotification('❌ Escribe mensaje','error'); return; } if(!confirm(`¿Enviar a "${target}"?`)) return; const btn=document.getElementById('broadcastButton'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Enviando...'; try{ const res=await fetch('/api/broadcast/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,target,adminId:currentUserId})}); const data=await res.json(); if(res.ok&&data.success){ showNotification(`✅ Enviado a ${data.totalUsers||0} usuarios`,'success'); document.getElementById('broadcastMessage').value=''; loadBroadcasts(); } else showNotification('❌ Error','error'); }catch(e){ showNotification('Error','error'); } btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> <span>Enviar broadcast</span>'; }
-async function loadBroadcasts(){ document.getElementById('broadcastLoading').style.display='flex'; try{ const res=await fetch('/api/broadcasts'); const broadcasts=await res.json(); document.getElementById('broadcastLoading').style.display='none'; if(!broadcasts?.length){ document.getElementById('broadcastNoData').style.display='block'; return; } const targetNames={all:'👥 Todos',vip:'👑 VIP',non_vip:'👤 No VIP',trial_pending:'⏳ Pruebas',trial_received:'✅ Recibidas',active:'📱 Activos'}; const tb=document.getElementById('broadcastTableBody'); tb.innerHTML=''; broadcasts.forEach(b=>{ const statusBadge=b.status==='completed'?'<span class="badge active">Completado</span>':b.status==='sending'?'<span class="badge pending">Enviando</span>':'<span class="badge expired">Fallido</span>'; tb.innerHTML+=`<tr><td style="color:var(--sig)">${b.id}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${b.message}">${b.message?.substring(0,50)||'—'}</td><td>${targetNames[b.target_users]||b.target_users||'—'}</td><td>${b.sent_count||0}/${b.total_users||0}</td><td>${statusBadge}</td><td>${b.created_at?new Date(b.created_at).toLocaleDateString('es-ES'):'—'}</td>`; }); document.getElementById('broadcastTableWrap').style.display='block'; }catch(e){ document.getElementById('broadcastLoading').style.display='none'; showNotification('Error','error'); } }
+async function loadApprovedPayments() {
+  document.getElementById('approvedLoading').style.display = 'flex';
+  try {
+    const res = await fetch('/api/payments/approved');
+    const payments = await res.json();
+    document.getElementById('approvedLoading').style.display = 'none';
+    if (!payments?.length) { document.getElementById('approvedNoData').style.display = 'block'; return; }
+    const tb = document.getElementById('approvedTableBody');
+    tb.innerHTML = '';
+    payments.forEach(p => {
+      const couponInfo = p.coupon_used ? `<span class="badge active">${p.coupon_code} -${p.coupon_discount}%</span>` : '—';
+      tb.innerHTML += `<tr>
+        <td>${p.id}</td>
+        <td><strong>${p.user?.first_name || 'Usuario'}</strong><br><small>@${p.user?.username || ''}</small></td>
+        <td>${getPlanName(p.plan)}</td>
+        <td>${getMethodBadge(p.method)}</td>
+        <td>${p.price} ${p.method === 'usdt' ? 'USDT' : 'CUP'}</td>
+        <td>${couponInfo}</td>
+        <td>${p.approved_at ? new Date(p.approved_at).toLocaleDateString('es-ES') : ''}</td>
+        <td>${p.config_sent ? '<span class="badge active">Enviada</span>' : '<span class="badge pending">Pendiente</span>'}</td>
+        <td>${!p.config_sent ? `<button class="btn green" onclick="openConfigModal('${p.id}','${p.telegram_id}','${p.plan}')"><i class="fas fa-paper-plane"></i> <span>Enviar</span></button>` : '—'}</td>
+      </tr>`;
+    });
+    document.getElementById('approvedTableWrap').style.display = 'block';
+  } catch (e) { document.getElementById('approvedLoading').style.display = 'none'; showNotification('Error', 'error'); console.error(e); }
+}
 
-// ── JUEGOS ───────────────────────────────────────────
-async function loadGamesStats(){ document.getElementById('gamesLoading').style.display='flex'; try{ const res=await fetch('/api/games-stats'); const games=await res.json(); document.getElementById('gamesLoading').style.display='none'; if(!games?.length){ document.getElementById('gamesNoData').style.display='block'; return; } const tb=document.getElementById('gamesTableBody'); tb.innerHTML=''; games.forEach(g=>{ tb.innerHTML+=`<tr><td><strong>${g.game_server||g.game||'—'}</strong></td><td>${g.request_count||g.count||0}</td><td>${g.connection_types?.join(', ')||'—'}</td><td>${g.last_request?new Date(g.last_request).toLocaleDateString('es-ES'):'—'}</td>`; }); document.getElementById('gamesTableWrap').style.display='block'; }catch(e){ document.getElementById('gamesLoading').style.display='none'; showNotification('Error','error'); } }
+function viewScreenshot(paymentId, telegramId, plan, amount, date, screenshotUrl, method) {
+  currentPaymentId = paymentId;
+  document.getElementById('screenshotImage').src = screenshotUrl;
+  document.getElementById('modalUserId').textContent = telegramId;
+  document.getElementById('modalPlan').textContent = getPlanName(plan);
+  document.getElementById('modalAmount').textContent = amount;
+  document.getElementById('modalCurrency').textContent = method === 'usdt' ? 'USDT' : 'CUP';
+  document.getElementById('modalDate').textContent = new Date(date).toLocaleDateString('es-ES');
+  document.getElementById('modalMethod').innerHTML = getMethodBadge(method);
+  document.getElementById('screenshotModal').classList.add('active');
+}
 
-// ── ESTADÍSTICAS DE ARCHIVOS ─────────────────────────
-function showFilesStatsModal(){ document.getElementById('filesStatsModal').classList.add('active'); loadFilesStats(); }
-function closeFilesStatsModal(){ document.getElementById('filesStatsModal').classList.remove('active'); }
-async function loadFilesStats(){ document.getElementById('filesStatsLoading').style.display='flex'; document.getElementById('filesStatsContent').style.display='none'; try{ const planFiles=await(await fetch('/api/plan-files')).json(); const trialFiles=await(await fetch('/api/trial-files')).json(); const allFiles = [...(planFiles||[]), ...(trialFiles||[]).map(f=>({...f,plan:'trial'}))]; let totalUploaded = allFiles.length; let totalSent = 0; let totalAvailable = 0; const filesStats = []; for(const f of allFiles){ const sentCount = f.sent_count || 0; const maxUses = f.max_uses || null; const available = maxUses ? (maxUses - sentCount) : 'Ilimitado'; totalSent += sentCount; if(maxUses) totalAvailable += Math.max(0, maxUses - sentCount); else totalAvailable = 'Ilimitado'; filesStats.push({ plan: f.plan, filename: f.original_name || f.storage_filename || '—', uploaded_at: f.updated_at, sent_count: sentCount, available_count: available, max_uses: maxUses, last_sent: f.last_sent, last_sent_to: f.last_sent_to, status: sentCount>=maxUses && maxUses ? 'agotado' : 'disponible' }); } document.getElementById('totalFilesUploaded').textContent = totalUploaded; document.getElementById('totalFilesSent').textContent = totalSent; document.getElementById('totalAvailableFiles').textContent = (totalAvailable === 'Ilimitado') ? '∞' : totalAvailable; document.getElementById('totalUsersWithFiles').textContent = 0; const tbody = document.getElementById('filesStatsTableBody'); tbody.innerHTML = ''; filesStats.forEach(f=>{ const statusBadge = f.status==='agotado'?'<span class="badge expired">Agotado</span>':'<span class="badge active">Disponible</span>'; tbody.innerHTML += `<tr><td>${getPlanName(f.plan)}</td><td><div class="filename-display">${f.filename}</div></td><td>${f.uploaded_at?new Date(f.uploaded_at).toLocaleDateString('es-ES'):'N/A'}</td><td>${f.sent_count}</td><td>${f.available_count}</td><td>${f.last_sent?new Date(f.last_sent).toLocaleDateString('es-ES'):'Nunca'}</td><td>${statusBadge}</td><td><button class="btn" onclick="viewFileDetails('${f.plan}')"><i class="fas fa-eye"></i></button></td>`; }); document.getElementById('filesStatsLoading').style.display='none'; document.getElementById('filesStatsContent').style.display='block'; }catch(e){ document.getElementById('filesStatsLoading').style.display='none'; showNotification('Error cargando estadísticas','error'); } }
-function viewFileDetails(plan){ showNotification(`Detalles de ${getPlanName(plan)} próximamente.`,'info'); }
+async function approvePayment(paymentId) {
+  if (!confirm('¿Aprobar pago? Envío manual después.')) return;
+  showNotification('⏳ Aprobando...', 'info');
+  try {
+    const res = await fetch(`/api/payments/${paymentId}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId }) });
+    if (res.ok) { showNotification('✅ Aprobado', 'success'); closeModal(); loadPendingPayments(); loadApprovedPayments(); loadStats(); }
+    else showNotification('Error', 'error');
+  } catch (e) { showNotification('Error', 'error'); console.error(e); }
+}
 
-// ── HELPERS Y NAVEGACIÓN ─────────────────────────────
-function getPlanName(p){ const m={basico:'Básico (1 mes)',avanzado:'Avanzado (2 meses)',premium:'Gaming (1 mes)',anual:'Anual (12 meses)',trial:'Prueba Gratuita'}; return m[p]||p||'—'; }
-function getMethodBadge(m){ const b={transfer:'<span class="badge bpa">BPA</span>',metropolitan:'<span class="badge bpa">Metropolitana</span>',mitransfer:'<span class="badge bpa">MITRANSFER</span>',mobile:'<span class="badge active">Saldo Móvil</span>',usdt:'<span class="badge usdt">USDT</span>'}; return b[m]||`<span class="badge">${m||'—'}</span>`; }
-function showNotification(msg,type='info'){ const n=document.getElementById('notification'); n.textContent=msg; n.style.borderLeftColor=type==='success'?'var(--green)':type==='error'?'var(--red)':type==='warning'?'var(--amber)':'var(--sig)'; n.style.transform='translateX(0)'; clearTimeout(window.__nt); window.__nt=setTimeout(()=>{ n.style.transform='translateX(160%)'; }, type==='error'?8000:4500); }
-function closeModal(){ document.getElementById('screenshotModal').classList.remove('active'); }
-function closeConfigModal(){ document.getElementById('configModal').classList.remove('active'); document.getElementById('configFile').value=''; }
+async function rejectPayment(paymentId) {
+  const reason = prompt('Motivo del rechazo:');
+  if (!reason) return;
+  try {
+    await fetch(`/api/payments/${paymentId}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, adminId: currentUserId }) });
+    showNotification('✅ Rechazado', 'success'); closeModal(); loadPendingPayments(); loadStats();
+  } catch (e) { showNotification('Error', 'error'); console.error(e); }
+}
 
-const tabTitles={stats:'// Estadísticas',pending:'// Pagos Pendientes',approved:'// Pagos Aprobados','trial-pending':'// Solicitudes de Prueba',users:'// Usuarios',referrals:'// Sistema de Referidos','plan-files':'// Archivos de Planes','trial-files':'// Pool de Pruebas',coupons:'// Cupones',broadcast:'// Broadcast',games:'// Juegos'};
-function switchTab(name){ currentTab=name; document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); const panel=document.getElementById(name+'Panel'); if(panel) panel.classList.add('active'); const navItem=document.querySelector(`.nav-item[data-tab="${name}"]`); if(navItem) navItem.classList.add('active'); document.getElementById('topbarTitle').textContent=tabTitles[name]||'// '+name; const loaders={stats:loadStats,pending:loadPendingPayments,approved:loadApprovedPayments,'trial-pending':loadPendingTrials,users:loadUsers,referrals:loadReferrals,'plan-files':loadPlanFiles,'trial-files':loadTrialFiles,coupons:loadCoupons,broadcast:loadBroadcasts,games:loadGamesStats}; if(loaders[name]) loaders[name](); }
-function refreshCurrentTab(){ switchTab(currentTab); }
+function openConfigModal(paymentId, telegramId, plan) {
+  currentPaymentId = paymentId;
+  document.getElementById('configPaymentId').textContent = paymentId;
+  document.getElementById('configUserId').textContent = telegramId;
+  document.getElementById('configPlan').textContent = getPlanName(plan);
+  document.getElementById('configFile').value = '';
+  document.getElementById('configFileName').innerHTML = '';
+  document.getElementById('configModal').classList.add('active');
+  document.getElementById('configFile').onchange = e => { const f = e.target.files[0]; document.getElementById('configFileName').innerHTML = f ? f.name : ''; };
+}
 
-document.addEventListener('DOMContentLoaded',()=>{ checkAdminAccess(); setInterval(()=>{ if(currentTab==='stats') loadStats(); },60000); });
-document.querySelectorAll('.modal-bg').forEach(bg=>{ bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('active'); }); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-bg.active').forEach(m=>m.classList.remove('active')); });
+async function sendConfigFile() {
+  const file = document.getElementById('configFile').files[0];
+  if (!file) { showNotification('❌ Selecciona archivo', 'error'); return; }
+  showNotification('⏳ Enviando...', 'info');
+  const fd = new FormData();
+  fd.append('configFile', file);
+  fd.append('paymentId', currentPaymentId);
+  fd.append('adminId', currentUserId);
+  try {
+    const res = await fetch('/api/send-config', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (res.ok && data.success) { showNotification('✅ Enviado', 'success'); closeConfigModal(); loadApprovedPayments(); }
+    else showNotification('❌ Error', 'error');
+  } catch (e) { showNotification('Error', 'error'); console.error(e); }
+}
+
+async function sendAllTrials() {
+  if (!confirm('¿Enviar prueba a TODOS los pendientes?')) return;
+  showNotification('⏳ Procesando...', 'info');
+  try {
+    const res = await fetch('/api/send-trials-to-valid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId }) });
+    const data = await res.json();
+    if (data.success) showNotification(`✅ Enviadas: ${data.sent}, Fallidas: ${data.failed}`, 'success');
+    else showNotification('❌ Error', 'error');
+    loadPendingTrials();
+  } catch (e) { showNotification('Error', 'error'); console.error(e); }
+}
+
+async function sendTrialConfig(telegramId, userName) {
+  if (!telegramId) return;
+  if (!confirm(`¿Enviar prueba a ${userName}?`)) return;
+  showNotification('⏳ Enviando...', 'info');
+  try {
+    const res = await fetch('/api/send-trial-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telegramId, adminId: currentUserId }) });
+    const data = await res.json();
+    if (res.ok && data.success) showNotification(`✅ Enviado a ${userName}`, 'success');
+    else showNotification(`❌ ${data.error || 'Error'}`, 'error');
+    loadPendingTrials();
+  } catch (e) { showNotification('Error', 'error'); console.error(e); }
+}
+
+async function deleteTrialRequest(telegramId, userName) {
+  if (!confirm(`¿Eliminar solicitud de ${userName}?`)) return;
+  try {
+    await fetch(`/api/trials/${telegramId}/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId }) });
+    showNotification('✅ Eliminada', 'success');
+    loadPendingTrials();
+  } catch (e) { showNotification('Error', 'error'); console.error(e); }
+}
+
+async function loadUsers() {
+  document.getElementById('usersLoading').style.display = 'flex';
+  try {
+    const res = await fetch('/api/all-users');
+    const users = await res.json();
+    document.getElementById('usersLoading').style.display = 'none';
+    if (!users?.length) { document.getElementById('usersNoData').style.display = 'block'; return; }
+    allUsers = users.map(u => ({ ...u, vip: u.vip || false }));
+    filteredUsers = [...allUsers];
+    displayUsersPage(1);
+  } catch (e) { document.getElementById('usersLoading').style.display = 'none'; showNotification('Error', 'error'); console.error(e); }
+}
+
+function displayUsersPage(page) {
+  currentUsersPage = page;
+  const start = (page - 1) * usersPerPage;
+  const pageUsers = filteredUsers.slice(start, start + usersPerPage);
+  const tb = document.getElementById('usersTableBody');
+  tb.innerHTML = '';
+  if (!pageUsers.length) { document.getElementById('usersNoData').style.display = 'block'; document.getElementById('usersPagination').style.display = 'none'; return; }
+  document.getElementById('usersNoData').style.display = 'none';
+  pageUsers.forEach(u => {
+    const vipBadge = u.vip ? '<span class="badge vip">VIP</span>' : '<span class="badge non-vip">No VIP</span>';
+    const referrer = u.referrer_id ? (u.referrer_username ? '@' + u.referrer_username : 'ID:' + u.referrer_id) : '—';
+    tb.innerHTML += `<tr>
+      <td><code>${u.telegram_id}</code></td>
+      <td><strong>${u.first_name || 'Usuario'}</strong></td>
+      <td>${u.username ? '@' + u.username : '—'}</td>
+      <td>${getPlanName(u.plan || u.current_plan) || '—'}</td>
+      <td>${vipBadge}</td>
+      <td style="font-size:.65rem">${referrer}</td>
+      <td>${u.created_at ? new Date(u.created_at).toLocaleDateString('es-ES') : '—'}</td>
+      <td><button class="btn" onclick="viewUserDetailsModal('${u.telegram_id}')"><i class="fas fa-eye"></i></button> ${u.vip ? `<button class="btn red" onclick="removeVipFromUser('${u.telegram_id}')"><i class="fas fa-crown"></i></button>` : ''}</td>
+    </tr>`;
+  });
+  document.getElementById('usersTableWrap').style.display = 'block';
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  document.getElementById('usersCurrentPage').textContent = page;
+  document.getElementById('usersTotalPages').textContent = totalPages;
+  document.getElementById('usersPrevBtn').disabled = page <= 1;
+  document.getElementById('usersNextBtn').disabled = page >= totalPages;
+  document.getElementById('usersPagination').style.display = totalPages > 1 ? 'flex' : 'none';
+}
+
+function changeUsersPage(dir) { const n = currentUsersPage + dir; const t = Math.ceil(filteredUsers.length / usersPerPage); if (n >= 1 && n <= t) displayUsersPage(n); }
+function searchUsers() { const term = document.getElementById('searchUserInput').value.toLowerCase(); filteredUsers = term ? allUsers.filter(u => (u.first_name?.toLowerCase().includes(term) || u.username?.toLowerCase().includes(term) || u.telegram_id?.toString().includes(term))) : [...allUsers]; displayUsersPage(1); }
+
+async function viewUserDetailsModal(userId) {
+  currentUserDetailsId = userId;
+  document.getElementById('userDetailsModal').classList.add('active');
+  document.getElementById('userDetailsModalLoading').style.display = 'flex';
+  document.getElementById('userDetailsModalContent').style.display = 'none';
+  try {
+    const res = await fetch(`/api/user/${userId}/details`);
+    const data = await res.json();
+    document.getElementById('userDetailsModalLoading').style.display = 'none';
+    document.getElementById('userDetailsModalContent').style.display = 'block';
+    document.getElementById('modalUserIdDetail').textContent = data.telegram_id || 'N/A';
+    document.getElementById('modalUserName').textContent = data.first_name || 'Usuario';
+    document.getElementById('modalUserUsername').textContent = '@' + (data.username || 'sin_usuario');
+    document.getElementById('modalUserPlan').textContent = getPlanName(data.plan || data.current_plan) || '—';
+    document.getElementById('modalUserVip').innerHTML = data.vip ? '<span class="badge vip">VIP ✅</span>' : '<span class="badge non-vip">No VIP</span>';
+    document.getElementById('modalUserVipSince').textContent = data.vip_since ? new Date(data.vip_since).toLocaleDateString('es-ES') : '—';
+    document.getElementById('modalUserPlanPrice').textContent = data.plan_price ? data.plan_price + ' CUP' : '—';
+    document.getElementById('modalUserActive').innerHTML = data.is_active !== false ? '<span class="badge active">Activo</span>' : '<span class="badge expired">Inactivo</span>';
+    document.getElementById('modalUserReferrer').textContent = data.referrer_id ? '@' + (data.referrer_username || data.referrer_id) : 'Directo';
+    document.getElementById('modalUserReferrals').textContent = data.level1_referrals || 0;
+    document.getElementById('modalUserTotalReferrals').textContent = data.total_referrals || 0;
+    document.getElementById('modalUserPaidReferrals').textContent = data.paid_referrals || 0;
+    document.getElementById('modalUserJoinDate').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('es-ES') : '—';
+    const trialEl = document.getElementById('modalUserTrial');
+    if (data.trial_received) trialEl.innerHTML = '<span class="badge active">Recibida</span>';
+    else if (data.trial_requested) trialEl.innerHTML = '<span class="badge pending">Solicitada</span>';
+    else trialEl.innerHTML = '<span class="badge non-vip">No solicitada</span>';
+    document.getElementById('removeVipBtn').style.display = data.vip ? 'inline-flex' : 'none';
+  } catch (e) { document.getElementById('userDetailsModalLoading').style.display = 'none'; showNotification('Error cargando', 'error'); console.error(e); }
+}
+
+function closeUserDetailsModal() { document.getElementById('userDetailsModal').classList.remove('active'); }
+async function removeVipFromUser(userId) { if (!confirm('¿Quitar VIP?')) return; try { await fetch(`/api/user/${userId}/remove-vip`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId }) }); showNotification('✅ VIP quitado', 'success'); closeUserDetailsModal(); loadUsers(); loadStats(); } catch (e) { showNotification('Error', 'error'); console.error(e); } }
+async function messageUser(userId) { const msg = prompt('Mensaje:'); if (!msg) return; try { await fetch(`/api/user/${userId}/message`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId, message: msg }) }); showNotification('✅ Enviado', 'success'); } catch (e) { showNotification('Error', 'error'); console.error(e); } }
+
+async function loadReferrals() {
+  try { const stats = await (await fetch('/api/referrals/stats')).json(); document.getElementById('totalReferralsCount').textContent = stats.total_referrals || 0; document.getElementById('paidReferrals').textContent = stats.paid_referrals || 0; document.getElementById('level1Referrals').textContent = stats.level1_referrals || 0; document.getElementById('level2Referrals').textContent = stats.level2_referrals || 0; } catch (e) { console.error(e); }
+  try { const top = await (await fetch('/api/referrals/top')).json(); document.getElementById('topReferrersLoading').style.display = 'none'; const tb = document.getElementById('topReferrersTableBody'); tb.innerHTML = ''; if (top?.length) { document.getElementById('topReferrersWrap').style.display = 'block'; top.forEach((r, i) => { const disc = Math.min((r.paid_referrals || 0) * 20, 100); tb.innerHTML += `<tr><td style="color:var(--sig)">${i + 1}</td><td><strong>${r.first_name || 'Usuario'}</strong><br><small>@${r.username || ''}</small></td><td>${r.total_referrals || 0}</td><td>${r.paid_referrals || 0}</td><td><span class="badge active">${disc}%</span></td><td><button class="btn" onclick="searchUserById('${r.telegram_id || r.referrer_id}')"><i class="fas fa-eye"></i></button></td></tr>`; }); } else document.getElementById('topReferrersNoData').style.display = 'block'; } catch (e) { document.getElementById('topReferrersLoading').style.display = 'none'; document.getElementById('topReferrersNoData').style.display = 'block'; }
+  try { const list = await (await fetch('/api/referrals/list')).json(); allReferrals = list || []; filteredReferrals = [...allReferrals]; displayReferralsPage(1); document.getElementById('referralsListLoading').style.display = 'none'; } catch (e) { document.getElementById('referralsListLoading').style.display = 'none'; console.error(e); }
+}
+
+function displayReferralsPage(page) {
+  currentReferralsPage = page;
+  const start = (page - 1) * referralsPerPage;
+  const pageR = filteredReferrals.slice(start, start + referralsPerPage);
+  const tb = document.getElementById('referralsListTableBody');
+  tb.innerHTML = '';
+  if (!pageR.length) { document.getElementById('referralsListNoData').style.display = 'block'; document.getElementById('referralsPagination').style.display = 'none'; return; }
+  document.getElementById('referralsListNoData').style.display = 'none';
+  pageR.forEach(r => {
+    const levelBadge = r.level === 1 ? '<span class="badge active">Nivel 1</span>' : '<span class="badge vip">Nivel 2</span>';
+    const paidBadge = r.has_paid ? '<span class="badge active">Pagado</span>' : '<span class="badge pending">No pagado</span>';
+    const disc = r.has_paid ? (r.level === 1 ? '20%' : '10%') : '0%';
+    tb.innerHTML += `<tr>
+      <td><code>${r.user_id}</code></td>
+      <td><strong>${r.user_name || 'Usuario'}</strong></td>
+      <td>${r.referrer_name || '—'}</td>
+      <td>${levelBadge}</td>
+      <td>${getPlanName(r.plan) || '—'}</td>
+      <td>${paidBadge}</td>
+      <td style="color:var(--green)">${disc}</td>
+      <td>${r.referred_at ? new Date(r.referred_at).toLocaleDateString('es-ES') : '—'}</td>
+      <td><button class="btn" onclick="searchUserById('${r.user_id}')"><i class="fas fa-eye"></i></button></td>
+    </tr>`;
+  });
+  const totalPages = Math.ceil(filteredReferrals.length / referralsPerPage);
+  document.getElementById('currentPage').textContent = page;
+  document.getElementById('totalPages').textContent = totalPages;
+  document.getElementById('prevPageBtn').disabled = page <= 1;
+  document.getElementById('nextPageBtn').disabled = page >= totalPages;
+  document.getElementById('referralsPagination').style.display = totalPages > 1 ? 'flex' : 'none';
+}
+
+function changeReferralsPage(dir) { const n = currentReferralsPage + dir; const t = Math.ceil(filteredReferrals.length / referralsPerPage); if (n >= 1 && n <= t) displayReferralsPage(n); }
+function filterReferralsList() { const f = document.getElementById('filterReferrals').value.toLowerCase(); filteredReferrals = f ? allReferrals.filter(r => r.user_name?.toLowerCase().includes(f) || r.user_id?.toString().includes(f) || r.referrer_name?.toLowerCase().includes(f)) : [...allReferrals]; displayReferralsPage(1); }
+async function searchUserReferrals() { const term = document.getElementById('searchUserReferrals').value.trim(); const type = document.getElementById('searchType').value; document.getElementById('searchResults').style.display = 'block'; document.getElementById('userDetailsLoading').style.display = 'flex'; document.getElementById('userDetailsContent').style.display = 'none'; document.getElementById('userNoData').style.display = 'none'; try { if (type === 'all' && term) { const user = await (await fetch(`/api/user-info/${term}`)).json(); const refRes = await fetch(`/api/referrals/user/${term}`); const refData = refRes.ok ? await refRes.json() : { referrals: [] }; displayUserReferrals({ user, referrals: refData.referrals || [], referral_stats: refData }, 'all'); } else if (type === 'with_referrals') { const data = await (await fetch('/api/users/with-referrals')).json(); displayUserReferrals(data, 'with_referrals'); } else if (type === 'without_referrals') { const data = await (await fetch('/api/users/without-referrals')).json(); displayUserReferrals(data, 'without_referrals'); } else throw new Error(); } catch (e) { document.getElementById('userDetailsLoading').style.display = 'none'; document.getElementById('userNoData').style.display = 'block'; console.error(e); } }
+function displayUserReferrals(data, type) { document.getElementById('userDetailsLoading').style.display = 'none'; if (type === 'all') { const u = data.user, stats = data.referral_stats || {}; document.getElementById('userDetailsContent').style.display = 'block'; document.getElementById('userName').textContent = u.first_name || u.username || 'Usuario'; document.getElementById('userDetails').innerHTML = `ID: ${u.telegram_id} · @${u.username || 'sin_usuario'} · VIP: ${u.vip ? '✅' : '❌'}`; document.getElementById('userTotalReferrals').textContent = stats.total_referrals || 0; document.getElementById('userPaidReferrals').textContent = stats.paid_referrals || 0; document.getElementById('userLevel1Referrals').textContent = stats.level1?.total || 0; document.getElementById('userLevel2Referrals').textContent = stats.level2?.total || 0; let disc = ((stats.level1?.paid || 0) * 20) + ((stats.level2?.paid || 0) * 10); document.getElementById('userDiscount').textContent = Math.min(disc, 100) + '%'; const tb = document.getElementById('userReferralsTableBody'); tb.innerHTML = ''; (data.referrals || []).forEach(r => { tb.innerHTML += `<tr><td><strong>${r.referred_name || r.user_name || 'Usuario'}</strong><br><small>ID: ${r.referred_id}</small></td><td>${r.level === 1 ? 'Nivel 1' : 'Nivel 2'}</td><td>${getPlanName(r.plan) || '—'}</td><td>${r.has_paid ? 'Pagado' : 'No pagado'}</td><td>${r.has_paid ? (r.level === 1 ? '20%' : '10%') : '0%'}</td><td>${r.created_at ? new Date(r.created_at).toLocaleDateString('es-ES') : 'N/A'}</td></tr>`; }); } else { document.getElementById('userDetailsContent').style.display = 'block'; document.getElementById('userName').textContent = type === 'with_referrals' ? 'Usuarios con Referidos' : 'Usuarios sin Referidos'; document.getElementById('userDetails').textContent = `Total: ${Array.isArray(data) ? data.length : 0}`; const tb = document.getElementById('userReferralsTableBody'); tb.innerHTML = ''; (Array.isArray(data) ? data : []).forEach(u => { tb.innerHTML += `<tr><td><strong>${u.first_name || u.username || 'Usuario'}</strong><br><small>ID: ${u.telegram_id || u.id}</small></td><td>${u.total_referrals || 0}</td><td>${u.paid_referrals || 0}</td><td>${u.level1_referrals || 0}</td><td>${u.level2_referrals || 0}</td><td><button class="btn" onclick="searchUserById('${u.telegram_id || u.id}')"><i class="fas fa-eye"></i></button></td></tr>`; }); } }
+function clearSearch() { document.getElementById('searchUserReferrals').value = ''; document.getElementById('searchType').value = 'all'; document.getElementById('searchResults').style.display = 'none'; }
+function searchUserById(id, tab = false) { if (tab) { switchTab('referrals'); setTimeout(() => { document.getElementById('searchUserReferrals').value = id; searchUserReferrals(); }, 100); } else { document.getElementById('searchUserReferrals').value = id; document.getElementById('searchType').value = 'all'; searchUserReferrals(); } }
+
+async function loadPlanFiles() { try { const res = await fetch('/api/plan-files'); const files = await res.json(); const plans = ['basico', 'avanzado', 'premium', 'anual']; const planNames = { basico: 'Básico (1 mes)', avanzado: 'Avanzado (2 meses)', premium: 'Gaming (1 mes)', anual: 'Anual (12 meses)' }; const grid = document.getElementById('planFilesGrid'); grid.innerHTML = ''; for (const plan of plans) { const file = (files || []).find(f => f.plan === plan); grid.innerHTML += `<div class="plan-card"><div class="plan-card-name">${planNames[plan]}</div><div class="plan-file-info">Archivo: <span>${file?.original_name || file?.storage_filename || 'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${file?.updated_at ? new Date(file.updated_at).toLocaleDateString('es-ES') : 'N/A'}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('planFileInput_${plan}').click()"><i class="fas fa-upload"></i> <span>Subir</span></button></div><input type="file" id="planFileInput_${plan}" accept=".conf,.zip,.rar" hidden onchange="handlePlanFileChange(event,'${plan}')"></div>`; } const trialFile = (files || []).find(f => f.plan === 'trial'); const trialCard = document.getElementById('trialPlanCard'); trialCard.innerHTML = `<div class="plan-card-name">Prueba (individual)</div><div class="plan-file-info">Archivo: <span>${trialFile?.original_name || trialFile?.storage_filename || 'Sin subir'}</span></div><div class="plan-file-info">Actualizado: <span>${trialFile?.updated_at ? new Date(trialFile.updated_at).toLocaleDateString('es-ES') : 'N/A'}</span></div><div class="plan-file-info">Usuarios que recibieron: <span>${trialFile?.users_count || 0}</span></div><div style="margin-top:8px"><button class="btn green" onclick="document.getElementById('trialPlanFileInput').click()"><i class="fas fa-upload"></i> <span>Subir archivo de prueba</span></button></div><input type="file" id="trialPlanFileInput" accept=".conf,.zip,.rar" hidden onchange="handleTrialPlanFileChange(event)">`; } catch (e) { showNotification('Error archivos', 'error'); console.error(e); } }
+async function handlePlanFileChange(event, plan) { const file = event.target.files[0]; if (!file) return; showNotification(`⏳ Subiendo ${file.name}...`, 'info'); const fd = new FormData(); fd.append('file', file); fd.append('plan', plan); fd.append('adminId', currentUserId); try { const res = await fetch('/api/upload-plan-file', { method: 'POST', body: fd }); if (res.ok) { showNotification('✅ Archivo subido', 'success'); loadPlanFiles(); } else showNotification('❌ Error', 'error'); } catch (e) { showNotification('Error', 'error'); console.error(e); } event.target.value = ''; }
+async function handleTrialPlanFileChange(event) { const file = event.target.files[0]; if (!file) return; showNotification(`⏳ Subiendo archivo de prueba...`, 'info'); const fd = new FormData(); fd.append('file', file); fd.append('plan', 'trial'); fd.append('adminId', currentUserId); try { const res = await fetch('/api/upload-trial-file', { method: 'POST', body: fd }); if (res.ok) { showNotification('✅ Archivo de prueba subido', 'success'); loadPlanFiles(); } else showNotification('❌ Error', 'error'); } catch (e) { showNotification('Error', 'error'); console.error(e); } event.target.value = ''; }
+
+let isUploadingMultiple = false;
+async function uploadTrialFilesToPool(input) { const files = Array.from(input.files); if (!files.length) return; if (isUploadingMultiple) { showNotification('⏳ Ya hay una subida en curso, espera...', 'warning'); input.value = ''; return; } isUploadingMultiple = true; let successCount = 0, failCount = 0; for (let i = 0; i < files.length; i++) { const file = files[i]; const ext = file.name.split('.').pop().toLowerCase(); if (!['conf', 'zip', 'rar'].includes(ext)) { showNotification(`❌ ${file.name} no es .conf, .zip o .rar`, 'error'); failCount++; continue; } if (file.size > 10 * 1024 * 1024) { showNotification(`❌ ${file.name} excede 10MB`, 'error'); failCount++; continue; } showNotification(`📤 Subiendo ${file.name} (${i + 1}/${files.length})...`, 'info'); const fd = new FormData(); fd.append('file', file); fd.append('adminId', currentUserId); fd.append('label', file.name); try { const res = await fetch('/api/trial-files/upload', { method: 'POST', body: fd }); if (res.ok) { successCount++; showNotification(`✅ ${file.name} subido correctamente`, 'success'); } else { const err = await res.text(); throw new Error(err); } } catch (e) { failCount++; showNotification(`❌ Error en ${file.name}: ${e.message}`, 'error'); } } isUploadingMultiple = false; input.value = ''; showNotification(`✅ Subida completada: ${successCount} éxito, ${failCount} fallos`, successCount ? 'success' : 'error'); if (successCount > 0) loadTrialFiles(); }
+async function loadTrialFiles() { document.getElementById('trialFilesLoading').style.display = 'flex'; try { const res = await fetch('/api/trial-files'); const files = await res.json(); document.getElementById('trialFilesLoading').style.display = 'none'; if (!files?.length) { document.getElementById('trialFilesNoData').style.display = 'block'; return; } document.getElementById('trialFilesNoData').style.display = 'none'; const pool = document.getElementById('trialFilesPool'); pool.innerHTML = ''; files.forEach(f => { const div = document.createElement('div'); div.className = 'trial-file-row' + (f.is_active === false ? ' inactive' : ''); const status = f.is_active !== false ? '<span class="badge active">Activo</span>' : '<span class="badge expired">Inactivo</span>'; div.innerHTML = `<div class="tf-name">${f.label || f.original_name}</div><div class="tf-meta">${f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('es-ES') : 'N/A'}</div>${status}<div class="tf-actions"><button class="btn ${f.is_active !== false ? 'amber' : 'green'}" onclick="toggleTrialFile(${f.id},${f.is_active !== false})"><i class="fas fa-${f.is_active !== false ? 'pause' : 'play'}"></i></button><button class="btn red" onclick="deleteTrialFile(${f.id},'${(f.label || f.original_name).replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button></div>`; pool.appendChild(div); }); } catch (e) { document.getElementById('trialFilesLoading').style.display = 'none'; showNotification('Error cargando pool', 'error'); console.error(e); } }
+async function toggleTrialFile(id, currentlyActive) { try { await fetch(`/api/trial-files/${id}/toggle`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId, is_active: !currentlyActive }) }); showNotification(currentlyActive ? '⏸ Desactivado' : '▶ Activado', 'success'); loadTrialFiles(); } catch (e) { showNotification('Error', 'error'); console.error(e); } }
+async function deleteTrialFile(id, name) { if (!confirm(`¿Eliminar "${name}"?`)) return; try { await fetch(`/api/trial-files/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId }) }); showNotification('✅ Eliminado', 'success'); loadTrialFiles(); } catch (e) { showNotification('Error', 'error'); console.error(e); } }
+
+async function createCoupon() { const code = document.getElementById('couponCode').value.trim().toUpperCase(); const discount = parseFloat(document.getElementById('couponDiscount').value); const stock = parseInt(document.getElementById('couponStock').value); const expiry = document.getElementById('couponExpiry').value; const description = document.getElementById('couponDescription').value.trim(); if (!code || !/^[A-Z0-9]+$/.test(code)) { showNotification('❌ Código inválido', 'error'); return; } if (!discount || discount < 1 || discount > 100) { showNotification('❌ Descuento 1-100', 'error'); return; } if (!stock || stock < 1) { showNotification('❌ Stock >0', 'error'); return; } const btn = document.getElementById('createCouponBtn'); btn.disabled = true; try { const res = await fetch('/api/coupons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, discount, stock, expiry: expiry || null, description, adminId: currentUserId }) }); if (res.ok) { showNotification('✅ Cupón creado', 'success'); document.getElementById('couponCode').value = ''; document.getElementById('couponDiscount').value = ''; document.getElementById('couponStock').value = ''; document.getElementById('couponExpiry').value = ''; document.getElementById('couponDescription').value = ''; loadCoupons(); loadStats(); } else { const err = await res.json(); showNotification(`❌ ${err.error || 'Error al crear'}`, 'error'); } } catch (e) { showNotification('Error', 'error'); console.error(e); } btn.disabled = false; }
+
+async function loadCoupons() { document.getElementById('couponsLoading').style.display = 'flex'; document.getElementById('couponsTableWrap').style.display = 'none'; document.getElementById('couponsNoData').style.display = 'none'; try { const res = await fetch('/api/coupons'); const coupons = await res.json(); document.getElementById('couponsLoading').style.display = 'none'; if (!coupons?.length) { document.getElementById('couponsNoData').style.display = 'block'; return; } allCoupons = coupons; const filter = document.getElementById('couponFilter').value; let filteredCoupons = [...coupons]; if (filter === 'active') filteredCoupons = coupons.filter(c => c.status === 'active' && c.stock > 0); else if (filter === 'inactive') filteredCoupons = coupons.filter(c => c.status !== 'active' || c.stock === 0); const tb = document.getElementById('couponsTableBody'); tb.innerHTML = ''; if (filteredCoupons.length === 0) { document.getElementById('couponsNoData').style.display = 'block'; return; } filteredCoupons.forEach(c => { let statusBadge = c.status === 'active' ? '<span class="badge active">Activo</span>' : (c.status === 'expired' ? '<span class="badge expired">Expirado</span>' : '<span class="badge pending">Inactivo</span>'); let expiry = 'No expira'; if (c.expiry) { const ed = new Date(c.expiry); expiry = ed.toLocaleDateString('es-ES'); if (ed < new Date() && c.status !== 'expired') statusBadge = '<span class="badge expired">Expirado</span>'; } tb.innerHTML += `<tr><td><strong style="color:var(--sig)">${c.code}</strong>${c.description ? `<br><small>${c.description}</small>` : ''}</td><td><span class="badge active">${c.discount}%</span></td><td>${c.stock}</td><td>${c.used || 0}</td><td>${expiry}</td><td>${statusBadge}</td><td>${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'N/A'}</td><td><button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button> ${c.status === 'active' ? `<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>` : `<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`} <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button></td></tr>`; }); document.getElementById('couponsTableWrap').style.display = 'block'; } catch (e) { document.getElementById('couponsLoading').style.display = 'none'; showNotification('Error cargando cupones', 'error'); console.error(e); } }
+function openEditCouponModal(code) { const c = allCoupons.find(x => x.code === code); if (!c) return; currentCouponCode = code; document.getElementById('editCouponCode').value = c.code; document.getElementById('editCouponStock').value = c.stock; document.getElementById('editCouponStatus').value = c.status; document.getElementById('editCouponModal').classList.add('active'); }
+function adjustStock(n) { const el = document.getElementById('editCouponStock'); el.value = Math.max(0, (parseInt(el.value) || 0) + n); }
+function closeEditCouponModal() { document.getElementById('editCouponModal').classList.remove('active'); currentCouponCode = null; }
+async function updateCoupon() { const stock = parseInt(document.getElementById('editCouponStock').value); const status = document.getElementById('editCouponStatus').value; if (isNaN(stock) || stock < 0) { showNotification('❌ Stock inválido', 'error'); return; } const btn = document.getElementById('updateCouponBtn'); btn.disabled = true; try { const res = await fetch(`/api/coupons/${currentCouponCode}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock, status, adminId: currentUserId }) }); if (res.ok) { showNotification('✅ Cupón actualizado', 'success'); closeEditCouponModal(); loadCoupons(); } else showNotification('❌ Error', 'error'); } catch (e) { showNotification('Error', 'error'); console.error(e); } btn.disabled = false; }
+async function toggleCouponStatus(code, status) { try { await fetch(`/api/coupons/${code}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, adminId: currentUserId }) }); showNotification(`✅ ${status === 'active' ? 'Activado' : 'Desactivado'}`, 'success'); loadCoupons(); } catch (e) { showNotification('Error', 'error'); console.error(e); } }
+async function deleteCoupon(code) { if (!confirm(`⚠️ ¿Eliminar permanentemente el cupón ${code}?\n\nSi ya ha sido usado, no se podrá eliminar.`)) return; try { const res = await fetch(`/api/coupons/${code}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminId: currentUserId }) }); const data = await res.json(); if (res.ok) { showNotification(`✅ Cupón ${code} eliminado`, 'success'); loadCoupons(); loadStats(); } else { showNotification(`❌ ${data.error || 'Error al eliminar'}`, 'error'); } } catch (e) { console.error(e); showNotification('❌ Error de red al eliminar', 'error'); } }
+
+async function sendBroadcast() { const message = document.getElementById('broadcastMessage').value.trim(); const target = document.getElementById('broadcastTarget').value; if (!message) { showNotification('❌ Escribe mensaje', 'error'); return; } if (!confirm(`¿Enviar a "${target}"?`)) return; const btn = document.getElementById('broadcastButton'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; try { const res = await fetch('/api/broadcast/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, target, adminId: currentUserId }) }); const data = await res.json(); if (res.ok && data.success) { showNotification(`✅ Enviado a ${data.totalUsers || 0} usuarios`, 'success'); document.getElementById('broadcastMessage').value = ''; loadBroadcasts(); } else showNotification('❌ Error', 'error'); } catch (e) { showNotification('Error', 'error'); console.error(e); } btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Enviar broadcast</span>'; }
+async function loadBroadcasts() { document.getElementById('broadcastLoading').style.display = 'flex'; try { const res = await fetch('/api/broadcasts'); const broadcasts = await res.json(); document.getElementById('broadcastLoading').style.display = 'none'; if (!broadcasts?.length) { document.getElementById('broadcastNoData').style.display = 'block'; return; } const targetNames = { all: '👥 Todos', vip: '👑 VIP', non_vip: '👤 No VIP', trial_pending: '⏳ Pruebas', trial_received: '✅ Recibidas', active: '📱 Activos' }; const tb = document.getElementById('broadcastTableBody'); tb.innerHTML = ''; broadcasts.forEach(b => { const statusBadge = b.status === 'completed' ? '<span class="badge active">Completado</span>' : (b.status === 'sending' ? '<span class="badge pending">Enviando</span>' : '<span class="badge expired">Fallido</span>'); tb.innerHTML += `<tr><td style="color:var(--sig)">${b.id}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${b.message}">${b.message?.substring(0, 50) || '—'}</td><td>${targetNames[b.target_users] || b.target_users || '—'}</td><td>${b.sent_count || 0}/${b.total_users || 0}</td><td>${statusBadge}</td><td>${b.created_at ? new Date(b.created_at).toLocaleDateString('es-ES') : '—'}</td></tr>`; }); document.getElementById('broadcastTableWrap').style.display = 'block'; } catch (e) { document.getElementById('broadcastLoading').style.display = 'none'; showNotification('Error', 'error'); console.error(e); } }
+
+async function loadGamesStats() { document.getElementById('gamesLoading').style.display = 'flex'; try { const res = await fetch('/api/games-stats'); const games = await res.json(); document.getElementById('gamesLoading').style.display = 'none'; if (!games?.length) { document.getElementById('gamesNoData').style.display = 'block'; return; } const tb = document.getElementById('gamesTableBody'); tb.innerHTML = ''; games.forEach(g => { tb.innerHTML += `<tr><td><strong>${g.game_server || g.game || '—'}</strong></td><td>${g.request_count || g.count || 0}</td><td>${g.connection_types?.join(', ') || '—'}</td><td>${g.last_request ? new Date(g.last_request).toLocaleDateString('es-ES') : '—'}</td></tr>`; }); document.getElementById('gamesTableWrap').style.display = 'block'; } catch (e) { document.getElementById('gamesLoading').style.display = 'none'; showNotification('Error', 'error'); console.error(e); } }
+
+function showFilesStatsModal() { document.getElementById('filesStatsModal').classList.add('active'); loadFilesStats(); }
+function closeFilesStatsModal() { document.getElementById('filesStatsModal').classList.remove('active'); }
+async function loadFilesStats() { document.getElementById('filesStatsLoading').style.display = 'flex'; document.getElementById('filesStatsContent').style.display = 'none'; try { const planFiles = await (await fetch('/api/plan-files')).json(); const trialFiles = await (await fetch('/api/trial-files')).json(); const allFiles = [...(planFiles || []), ...(trialFiles || []).map(f => ({ ...f, plan: 'trial' }))]; let totalUploaded = allFiles.length; let totalSent = 0; let totalAvailable = 0; const filesStats = []; for (const f of allFiles) { const sentCount = f.sent_count || 0; const maxUses = f.max_uses || null; const available = maxUses ? (maxUses - sentCount) : 'Ilimitado'; totalSent += sentCount; if (maxUses) totalAvailable += Math.max(0, maxUses - sentCount); else totalAvailable = 'Ilimitado'; filesStats.push({ plan: f.plan, filename: f.original_name || f.storage_filename || '—', uploaded_at: f.updated_at, sent_count: sentCount, available_count: available, max_uses: maxUses, last_sent: f.last_sent, last_sent_to: f.last_sent_to, status: sentCount >= maxUses && maxUses ? 'agotado' : 'disponible' }); } document.getElementById('totalFilesUploaded').textContent = totalUploaded; document.getElementById('totalFilesSent').textContent = totalSent; document.getElementById('totalAvailableFiles').textContent = (totalAvailable === 'Ilimitado') ? '∞' : totalAvailable; document.getElementById('totalUsersWithFiles').textContent = 0; const tbody = document.getElementById('filesStatsTableBody'); tbody.innerHTML = ''; filesStats.forEach(f => { const statusBadge = f.status === 'agotado' ? '<span class="badge expired">Agotado</span>' : '<span class="badge active">Disponible</span>'; tbody.innerHTML += `<tr><td>${getPlanName(f.plan)}</td><td><div class="filename-display">${f.filename}</div></td><td>${f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('es-ES') : 'N/A'}</td><td>${f.sent_count}</td><td>${f.available_count}</td><td>${f.last_sent ? new Date(f.last_sent).toLocaleDateString('es-ES') : 'Nunca'}</td><td>${statusBadge}</td><td><button class="btn" onclick="viewFileDetails('${f.plan}')"><i class="fas fa-eye"></i></button></td></tr>`; }); document.getElementById('filesStatsLoading').style.display = 'none'; document.getElementById('filesStatsContent').style.display = 'block'; } catch (e) { document.getElementById('filesStatsLoading').style.display = 'none'; showNotification('Error cargando estadísticas', 'error'); console.error(e); } }
+function viewFileDetails(plan) { showNotification(`Detalles de ${getPlanName(plan)} próximamente.`, 'info'); }
+
+function getPlanName(p) { const m = { basico: 'Básico (1 mes)', avanzado: 'Avanzado (2 meses)', premium: 'Gaming (1 mes)', anual: 'Anual (12 meses)', trial: 'Prueba Gratuita' }; return m[p] || p || '—'; }
+function getMethodBadge(m) { const b = { transfer: '<span class="badge bpa">BPA</span>', metropolitan: '<span class="badge bpa">Metropolitana</span>', mitransfer: '<span class="badge bpa">MITRANSFER</span>', mobile: '<span class="badge active">Saldo Móvil</span>', usdt: '<span class="badge usdt">USDT</span>' }; return b[m] || `<span class="badge">${m || '—'}</span>`; }
+function showNotification(msg, type = 'info') { const n = document.getElementById('notification'); n.textContent = msg; n.style.borderLeftColor = type === 'success' ? 'var(--green)' : (type === 'error' ? 'var(--red)' : (type === 'warning' ? 'var(--amber)' : 'var(--sig)')); n.style.transform = 'translateX(0)'; clearTimeout(window.__nt); window.__nt = setTimeout(() => { n.style.transform = 'translateX(160%)'; }, type === 'error' ? 8000 : 4500); }
+function closeModal() { document.getElementById('screenshotModal').classList.remove('active'); }
+function closeConfigModal() { document.getElementById('configModal').classList.remove('active'); document.getElementById('configFile').value = ''; }
+const tabTitles = { stats: '// Estadísticas', pending: '// Pagos Pendientes', approved: '// Pagos Aprobados', 'trial-pending': '// Solicitudes de Prueba', users: '// Usuarios', referrals: '// Sistema de Referidos', 'plan-files': '// Archivos de Planes', 'trial-files': '// Pool de Pruebas', coupons: '// Cupones', broadcast: '// Broadcast', games: '// Juegos' };
+function switchTab(name) { currentTab = name; document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); const panel = document.getElementById(name + 'Panel'); if (panel) panel.classList.add('active'); const navItem = document.querySelector(`.nav-item[data-tab="${name}"]`); if (navItem) navItem.classList.add('active'); document.getElementById('topbarTitle').textContent = tabTitles[name] || '// ' + name; const loaders = { stats: loadStats, pending: loadPendingPayments, approved: loadApprovedPayments, 'trial-pending': loadPendingTrials, users: loadUsers, referrals: loadReferrals, 'plan-files': loadPlanFiles, 'trial-files': loadTrialFiles, coupons: loadCoupons, broadcast: loadBroadcasts, games: loadGamesStats }; if (loaders[name]) loaders[name](); }
+function refreshCurrentTab() { switchTab(currentTab); }
+document.addEventListener('DOMContentLoaded', () => { checkAdminAccess(); setInterval(() => { if (currentTab === 'stats') loadStats(); }, 60000); });
+document.querySelectorAll('.modal-bg').forEach(bg => { bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('active'); }); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.active').forEach(m => m.classList.remove('active')); });
 </script>
 </body>
-</html>
+  </html>

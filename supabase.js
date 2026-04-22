@@ -15,7 +15,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : supabase;
 if (!supabaseServiceKey) {
-  console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no configurada. Usando anon key. Algunas operaciones pueden fallar por RLS.');
+  console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no configurada. Usando anon key para admin. Algunas operaciones pueden fallar por RLS.');
 }
 const dbClient = supabaseAdmin;
 
@@ -165,6 +165,7 @@ const db = {
           plan_price: vipData.plan_price || 0,
           vip_since: vipData.vip_since || new Date().toISOString(),
           updated_at: new Date().toISOString()
+          // payment_method eliminado porque no existe en la tabla
         })
         .eq('telegram_id', userId)
         .select()

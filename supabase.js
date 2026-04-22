@@ -357,10 +357,10 @@ const db = {
         if (r.level === 1) stats.level1++;
         if (r.level === 2) stats.level2++;
       });
-      const topReferrers = Array.from(referrersMap.values())
+      const top_referrers = Array.from(referrersMap.values())
         .sort((a, b) => b.total - a.total)
         .slice(0, 10);
-      const recentReferrals = referrals
+      const recent_referrals = referrals
         ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 10) || [];
       const total_referrals = referrals?.length || 0;

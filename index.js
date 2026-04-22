@@ -498,7 +498,7 @@ async function initializeStorageBuckets() {
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO ARCHIVO LOCAL FIJO) ====================
+// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS) ====================
 // Índice rotativo para distribuir archivos de prueba entre los disponibles
 let trialFileRoundRobinIndex = 0;
 
@@ -612,7 +612,6 @@ async function sendTrialToValidUsers(adminId) {
       const user = pendingTrials[i];
       try {
         if (!user.telegram_id) { failedCount++; continue; }
-        // Enviar directamente — el retry interno de sendTrialConfigToUser maneja errores
         await sendTrialConfigToUser(user.telegram_id, adminId);
         sentCount++;
         await new Promise(resolve => setTimeout(resolve, 80));
@@ -639,19 +638,16 @@ async function sendTrialToValidUsers(adminId) {
 }
 
 // ==================== HELPER: OBTENER USUARIOS BROADCAST CON PAGINACIÓN ====================
-// getUsersForBroadcast en supabase.js no pagina — este wrapper obtiene TODOS en lotes de 1000
 async function getAllUsersForBroadcast(target) {
   try {
-    // Para targets que no son 'all', usar la función original (suelen tener <1000)
     if (target !== 'all' && target !== 'active') {
       const users = await db.getUsersForBroadcast(target);
       console.log(`📢 Broadcast target "${target}": ${users.length} usuarios`);
       return users;
     }
 
-    // Para 'all' y 'active' usar getAllUsers paginado que ya sabemos funciona
     console.log(`📢 Broadcast target "${target}": obteniendo TODOS con paginación...`);
-    const allUsers = await db.getAllUsers(); // getAllUsers ya pagina internamente según supabase.js
+    const allUsers = await db.getAllUsers();
     
     let filtered = allUsers;
     if (target === 'active') {
@@ -666,7 +662,6 @@ async function getAllUsersForBroadcast(target) {
     return filtered;
   } catch (err) {
     console.error('❌ Error en getAllUsersForBroadcast:', err.message);
-    // Fallback a la función original
     return await db.getUsersForBroadcast(target) || [];
   }
 }
@@ -802,7 +797,6 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       }
     }
 
-    // Si no se aplicó cupón, verificar si tiene descuento por referidos
     if (!couponUsed) {
       try {
         const refStats = await db.getReferralStats(telegramId);
@@ -941,7 +935,6 @@ app.get('/api/payments/pending', async (req, res) => {
       return res.json([]);
     }
 
-    // Batch user lookups — evita queries secuenciales N+1
     const uniqueIds = [...new Set(payments.map(p => p.telegram_id).filter(Boolean))];
     const userResults = await Promise.allSettled(uniqueIds.map(id => db.getUser(id)));
     const userMap = {};
@@ -969,7 +962,6 @@ app.get('/api/payments/approved', async (req, res) => {
       return res.json([]);
     }
 
-    // Obtener usuarios únicos en paralelo (evita N+1 queries secuenciales que causan timeout)
     const uniqueIds = [...new Set(payments.map(p => p.telegram_id).filter(Boolean))];
     const userResults = await Promise.allSettled(uniqueIds.map(id => db.getUser(id)));
     
@@ -1068,7 +1060,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
         await db.markReferralAsPaid(payment.telegram_id);
         console.log(`✅ Referido nivel 1 marcado como pagado: ${payment.telegram_id} -> referidor: ${user.referrer_id}`);
 
-        // Intentar también actualizar nivel 2: el referidor del referidor
         try {
           const referrerUser = await db.getUser(user.referrer_id);
           if (referrerUser && referrerUser.referrer_id) {
@@ -1080,7 +1071,6 @@ app.post('/api/payments/:id/approve', async (req, res) => {
         }
       } catch (refError) {
         console.error('❌ Error marcando referido como pagado:', refError.message);
-        // No fallar el proceso completo por esto
       }
     }
 
@@ -1129,10 +1119,8 @@ app.post('/api/payments/:id/reject', async (req, res) => {
 
 app.get('/api/stats', async (req, res) => {
   try {
-    // db.getStats() ya hace sus propias queries eficientes en supabase.js
     const stats = await db.getStats();
 
-    // Broadcasts: ya viene en stats desde getStats, pero refrescamos total
     try {
       const broadcasts = await db.getBroadcasts();
       stats.broadcasts = {
@@ -1152,7 +1140,6 @@ app.get('/api/stats', async (req, res) => {
       mode: 'manual'
     };
 
-    // Referidos: db.getStats() ya los incluye vía getAllReferralsStats()
     if (!stats.referrals) {
       try {
         const refStats = await db.getAllReferralsStats();
@@ -1167,7 +1154,6 @@ app.get('/api/stats', async (req, res) => {
       }
     }
 
-    // Cupones
     if (!stats.coupons) {
       try { stats.coupons = await db.getCouponsStats(); } catch(e) { stats.coupons = { total:0, active:0, expired:0, used:0 }; }
     }
@@ -1199,7 +1185,6 @@ app.get('/api/vip-users', async (req, res) => {
 
 app.get('/api/all-users', async (req, res) => {
   try {
-    // db.getAllUsers() ya tiene paginación interna en supabase.js (lotes de 1000)
     const users = await db.getAllUsers();
     console.log(`✅ /api/all-users: ${users.length} usuarios`);
     res.json(users);
@@ -1311,7 +1296,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
     try {
       console.log(`📤 Intentando enviar archivo a ${chatId}...`);
       
-      // Intentar con hasta 3 reintentos ante errores transitorios de Telegram
       const MAX_RETRIES = 3;
       let lastTelegramError = null;
       let sent = false;
@@ -1341,7 +1325,6 @@ app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
           lastTelegramError = retryErr;
           const errMsg = retryErr.description || retryErr.message || '';
           console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido al enviar config a ${chatId}: ${errMsg}`);
-          // No reintentar si es un error permanente del usuario
           if (
             errMsg.includes('chat not found') || errMsg.includes('chat not exist') ||
             errMsg.includes('bot was blocked') || errMsg.includes('user is deactivated') ||
@@ -1445,7 +1428,6 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
     
     const admin = isAdmin(req.params.telegramId);
 
-    // Siempre obtener estadísticas de referidos — necesarias para el descuento al comprar
     let referralStats = null;
     try {
       referralStats = await db.getReferralStats(req.params.telegramId);
@@ -1453,14 +1435,13 @@ app.get('/api/user-info/:telegramId', async (req, res) => {
       console.warn('⚠️ No se pudieron obtener stats de referidos:', e.message);
     }
 
-    // Calcular descuento disponible (limitado a 100%)
     const discountPct = referralStats ? Math.min(referralStats.discount_percentage || 0, 100) : 0;
     
     res.json({
       ...user,
       isAdmin: admin,
       referral_stats: referralStats,
-      referral_discount: discountPct  // campo explícito para que el frontend lo use fácilmente
+      referral_discount: discountPct
     });
   } catch (error) {
     console.error('❌ Error obteniendo información del usuario:', error);
@@ -1538,21 +1519,22 @@ app.post('/api/user/:userId/remove-vip', async (req, res) => {
   }
 });
 
-// GET endpoint for frontend pre-check before showing trial modal
 app.get('/api/check-trial-eligibility/:telegramId', async (req, res) => {
   try {
     const eligibility = await db.checkTrialEligibility(req.params.telegramId);
     res.json(eligibility);
   } catch (error) {
     console.error('❌ Error verificando elegibilidad:', error);
-    res.json({ eligible: true, reason: 'Error verificando' }); // fail open
+    res.json({ eligible: true, reason: 'Error verificando' });
   }
 });
 
+// ==================== SOLICITUD DE PRUEBA CON ENVÍO AUTOMÁTICO ====================
 app.post('/api/request-trial', async (req, res) => {
   try {
     const { telegramId, username, firstName, trialType = '1h', gameServer, connectionType } = req.body;
     
+    // 1. Verificar elegibilidad (una vez al mes)
     const eligibility = await db.checkTrialEligibility(telegramId);
     
     if (!eligibility.eligible) {
@@ -1561,6 +1543,7 @@ app.post('/api/request-trial', async (req, res) => {
       });
     }
     
+    // 2. Guardar la solicitud en la base de datos (trial_requested = true, pero aún no enviada)
     const updatedUser = await db.saveUser(telegramId, {
       telegram_id: telegramId,
       username: username,
@@ -1573,7 +1556,8 @@ app.post('/api/request-trial', async (req, res) => {
       is_active: true
     });
     
-    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA ${trialType.toUpperCase()}*\n\n` +
+    // 3. Notificar a los administradores (opcional, pero útil)
+    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA ${trialType.toUpperCase()}* (ENVÍO AUTOMÁTICO)\n\n` +
       `👤 *Usuario:* ${firstName}\n` +
       `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
       `🆔 *ID:* ${telegramId}\n` +
@@ -1590,34 +1574,69 @@ app.post('/api/request-trial', async (req, res) => {
       }
     }
     
+    // 4. --- ENVÍO AUTOMÁTICO DE LA CONFIGURACIÓN ---
+    let sentSuccessfully = false;
+    let sendError = null;
+    
     try {
+      // Verificar si el usuario puede recibir mensajes (opcional, pero evita errores)
       const canSend = await canSendMessageToUser(telegramId);
-      if (canSend.canSend) {
-        await bot.telegram.sendMessage(
-          telegramId,
-          `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\n` +
-          'Tu solicitud de prueba gratuita de 1 hora ha sido recibida.\n\n' +
-          `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Proceso:</b>\n` +
-          '1. Un administrador revisará tu solicitud\n' +
-          '2. Recibirás la configuración por este chat\n' +
-          '3. Tendrás 1 hora de acceso completo\n\n' +
-          `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Tiempo estimado:</b> Minutos\n\n` +
-          '¡Gracias por probar VPN Cuba! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>',
-          { parse_mode: 'HTML' }
-        );
-      } else {
-        console.log(`⚠️ Usuario ${telegramId} no disponible para notificación: ${canSend.reason}`);
+      if (!canSend.canSend) {
+        throw new Error(`Usuario no disponible: ${canSend.reason}`);
       }
-    } catch (userError) {
-      console.log('❌ No se pudo notificar al usuario:', userError.message);
+      
+      // Usar adminId = 'system' para indicar envío automático
+      await sendTrialConfigToUser(telegramId, 'system');
+      sentSuccessfully = true;
+      console.log(`✅ Prueba enviada automáticamente a ${telegramId}`);
+    } catch (error) {
+      sendError = error;
+      console.error(`❌ Error en envío automático a ${telegramId}:`, error.message);
+      // No marcamos como recibido, queda pendiente para reintento manual
     }
     
-    res.json({ 
-      success: true, 
-      message: 'Solicitud de prueba enviada. Recibirás la configuración por Telegram en minutos.',
-      trialType: trialType,
-      user: updatedUser
-    });
+    // 5. Responder al usuario según el resultado del envío
+    if (sentSuccessfully) {
+      // Envío exitoso: ya se marcó trial_received = true dentro de sendTrialConfigToUser
+      await bot.telegram.sendMessage(
+        telegramId,
+        `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita ya está aquí!</b>\n\n` +
+        `Acabo de enviarte el archivo de configuración.\n` +
+        `Revísalo en este mismo chat y actívalo en WireGuard.\n\n` +
+        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+        `¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
+        { parse_mode: 'HTML' }
+      );
+      
+      res.json({ 
+        success: true, 
+        message: 'Prueba gratuita enviada automáticamente. Revisa tu chat.',
+        trialType: trialType,
+        user: updatedUser,
+        autoSent: true
+      });
+    } else {
+      // Falló el envío automático: la solicitud queda pendiente (trial_received = false)
+      // Notificar al usuario que será manual
+      await bot.telegram.sendMessage(
+        telegramId,
+        `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\n` +
+        'Tu solicitud ha sido registrada. En breve un administrador revisará y te enviará la configuración.\n\n' +
+        `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Tiempo estimado:</b> Minutos\n\n` +
+        '¡Gracias por probar VPN Cuba!',
+        { parse_mode: 'HTML' }
+      );
+      
+      res.json({ 
+        success: true, 
+        message: 'Solicitud registrada. Recibirás la configuración manualmente en breve.',
+        trialType: trialType,
+        user: updatedUser,
+        autoSent: false,
+        error: sendError?.message
+      });
+    }
+    
   } catch (error) {
     console.error('❌ Error en solicitud de prueba:', error);
     res.status(500).json({ error: 'Error procesando solicitud de prueba: ' + error.message });
@@ -1698,7 +1717,6 @@ app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
   }
 });
 
-// ==================== CANCELAR/ELIMINAR SOLICITUD DE PRUEBA ====================
 app.post('/api/trials/:telegramId/cancel', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -1713,7 +1731,6 @@ app.post('/api/trials/:telegramId/cancel', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Resetear campos de solicitud de prueba
     const updated = await db.updateUser(telegramId, {
       trial_requested: false,
       trial_requested_at: null,
@@ -1731,7 +1748,6 @@ app.post('/api/trials/:telegramId/cancel', async (req, res) => {
   }
 });
 
-// ==================== RUTA CORREGIDA PARA ENVIAR PRUEBA ====================
 app.post('/api/send-trial-config', async (req, res) => {
   try {
     const { telegramId, adminId } = req.body;
@@ -1899,7 +1915,6 @@ app.post('/api/broadcast/send', async (req, res) => {
     
     console.log(`✅ Broadcast creado con ID: ${broadcast.id}`);
     
-    // Obtener usuarios con paginación completa (supera límite 1000)
     let users = [];
     try {
       users = await getAllUsersForBroadcast(target);
@@ -1914,7 +1929,6 @@ app.post('/api/broadcast/send', async (req, res) => {
       total_users: users.length
     });
     
-    // Lanzar en background sin bloquear la respuesta
     setImmediate(() => {
       sendBroadcastToUsers(broadcast.id, message, users, adminId);
     });
@@ -1974,9 +1988,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
           continue;
         }
         
-        // ENVÍO DIRECTO sin pre-chequeo de canSendMessageToUser.
-        // El pre-chequeo hacía un request extra por usuario (sendChatAction)
-        // causando rate limiting y lentitud. Ahora detectamos el error al enviar.
         await bot.telegram.sendMessage(
           user.telegram_id,
           `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Para consultas, contacta a soporte: @L0quen2_`,
@@ -1988,7 +1999,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         failedCount++;
         const errMsg = error.description || error.message || '';
 
-        // Detectar si el usuario bloqueó el bot o no existe
         const isPermanentError =
           errMsg.includes('blocked') ||
           errMsg.includes('chat not found') ||
@@ -2014,7 +2024,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         }
       }
 
-      // Actualizar progreso cada 25 usuarios o al terminar
       if ((i + 1) % 25 === 0 || i === users.length - 1) {
         console.log(`📊 Broadcast ${broadcastId} progreso: ${sentCount} enviados, ${failedCount} fallidos (${i+1}/${users.length})`);
         try {
@@ -2029,7 +2038,6 @@ async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
         }
       }
 
-      // Delay de 50ms entre mensajes para respetar el rate limit de Telegram (30 msg/seg max)
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     
@@ -2321,7 +2329,7 @@ app.get('/api/usdt/unassigned-transactions', async (req, res) => {
   }
 });
 
-// ==================== RUTAS PARA ARCHIVOS DE PLANES (CON COPIA LOCAL FIJA PARA PRUEBA) ====================
+// ==================== RUTAS PARA ARCHIVOS DE PLANES ====================
 
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
@@ -2390,7 +2398,6 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
 
 // ==================== MULTI-TRIAL FILES (múltiples archivos de prueba) ====================
 
-// Subir nuevo archivo de prueba (AGREGA al pool, no reemplaza)
 app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   try {
     const { adminId, label } = req.body;
@@ -2409,14 +2416,12 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Solo .conf, .zip o .rar' });
     }
 
-    // Guardar localmente con nombre único para no sobreescribir
     const ext = path.extname(req.file.originalname);
     const uniqueName = `trial_${Date.now()}${ext}`;
     const localPath = path.join(TRIAL_FILES_DIR, uniqueName);
     fs.copyFileSync(req.file.path, localPath);
     fs.unlink(req.file.path, () => {});
 
-    // Subir a Supabase como respaldo
     let publicUrl = null;
     try {
       const buf = fs.readFileSync(localPath);
@@ -2426,7 +2431,6 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
       console.warn('⚠️ Supabase backup falló (archivo local OK):', e.message);
     }
 
-    // Guardar en BD tabla trial_files
     const saved = await db.saveTrialFile({
       original_name: req.file.originalname,
       local_path: localPath,
@@ -2447,11 +2451,9 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Listar todos los archivos de prueba
 app.get('/api/trial-files', async (req, res) => {
   try {
     const files = await db.getTrialFiles();
-    // Enriquecer con info de si el archivo local existe
     const enriched = (files || []).map(f => ({
       ...f,
       local_exists: f.local_path ? fs.existsSync(f.local_path) : false
@@ -2463,7 +2465,6 @@ app.get('/api/trial-files', async (req, res) => {
   }
 });
 
-// Activar/desactivar archivo de prueba
 app.put('/api/trial-files/:id/toggle', async (req, res) => {
   try {
     const { adminId, is_active } = req.body;
@@ -2477,7 +2478,6 @@ app.put('/api/trial-files/:id/toggle', async (req, res) => {
   }
 });
 
-// Eliminar archivo de prueba
 app.delete('/api/trial-files/:id', async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2486,7 +2486,6 @@ app.delete('/api/trial-files/:id', async (req, res) => {
     const file = await db.getTrialFile(req.params.id);
     if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
 
-    // Eliminar local
     if (file.local_path && fs.existsSync(file.local_path)) {
       fs.unlinkSync(file.local_path);
     }
@@ -2499,7 +2498,6 @@ app.delete('/api/trial-files/:id', async (req, res) => {
   }
 });
 
-// MANTENER ruta legacy para compatibilidad con código anterior
 app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -2512,7 +2510,6 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Solo .conf, .zip o .rar' });
     }
 
-    // Guardar como archivo fijo (legacy) Y añadir al pool
     const ext = path.extname(req.file.originalname);
     const targetPath = TRIAL_CURRENT_FILE + ext;
     fs.copyFileSync(req.file.path, targetPath);
@@ -2575,7 +2572,6 @@ app.get('/api/plan-files/trial', async (req, res) => {
       return res.status(404).json({ error: 'Archivo de prueba no encontrado' });
     }
     
-    // También devolvemos información del archivo local si existe
     let localFileInfo = null;
     const extensions = ['.conf', '.zip', '.rar'];
     for (const ext of extensions) {
@@ -2611,7 +2607,6 @@ app.delete('/api/plan-files/:plan', async (req, res) => {
     
     const deletedFile = await db.deletePlanFile(req.params.plan);
     
-    // Si es archivo de prueba, eliminar también el archivo local
     if (req.params.plan === 'trial') {
       const extensions = ['.conf', '.zip', '.rar'];
       for (const ext of extensions) {
@@ -2666,7 +2661,6 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
     const level2Paid = level2Referrals.filter(r => r.has_paid).length;
 
     res.json({
-      // Campos del usuario aplanados para fácil acceso en el frontend
       ...user,
       telegram_id: user.telegram_id,
       first_name: user.first_name || 'Usuario',
@@ -2682,7 +2676,6 @@ app.get('/api/user/:telegramId/details', async (req, res) => {
       trial_requested: user.trial_requested || false,
       trial_received: user.trial_received || false,
       created_at: user.created_at || null,
-      // Estadísticas de referidos
       referral_stats: referralStats,
       payments: payments,
       referrals: referrals,
@@ -2799,9 +2792,6 @@ app.post('/api/coupons', async (req, res) => {
     
     let expiryDate = null;
     if (expiry) {
-      // Normalizar el formato de fecha para evitar problemas de timezone.
-      // Si viene como "YYYY-MM-DD" (sin hora), agregar T23:59:59 local
-      // para que el cupón sea válido todo el día indicado.
       let expiryStr = expiry;
       if (/^\d{4}-\d{2}-\d{2}$/.test(expiry)) {
         expiryStr = expiry + 'T23:59:59';
@@ -2809,7 +2799,6 @@ app.post('/api/coupons', async (req, res) => {
       expiryDate = new Date(expiryStr);
 
       if (isNaN(expiryDate.getTime())) {
-        // Fallback: intentar otros formatos
         expiryDate = new Date(expiry.replace('T', ' '));
       }
       
@@ -3051,7 +3040,6 @@ app.post('/api/coupons/verify/:code', async (req, res) => {
     }
     
     if (coupon.expiry) {
-      // Normalizar: si la fecha viene solo como "YYYY-MM-DD", considerarla válida hasta fin de ese día
       let expiryStr = coupon.expiry;
       if (/^\d{4}-\d{2}-\d{2}$/.test(expiryStr)) {
         expiryStr = expiryStr + 'T23:59:59';
@@ -3238,7 +3226,6 @@ bot.action('check_status', async (ctx) => {
     if (user?.vip) {
       const diasRestantes = calcularDiasRestantes(user);
 
-      // Si ya expiró (0 días), quitar VIP automáticamente
       if (diasRestantes <= 0) {
         await db.removeVIP(userId);
         await ctx.answerCbQuery();
@@ -3259,7 +3246,6 @@ bot.action('check_status', async (ctx) => {
         return;
       }
 
-      // Mostrar perfil VIP normal
       await ctx.reply(getVipStatusHtml(user), {
         parse_mode: 'HTML',
         reply_markup: {
@@ -3270,7 +3256,6 @@ bot.action('check_status', async (ctx) => {
         }
       });
 
-      // Enviar recordatorio de expiración como mensaje SEPARADO si quedan ≤ 5 días
       if (diasRestantes <= 5) {
         await ctx.reply(
           `⏰ <b>RECORDATORIO: Tu plan expira pronto</b>\n\n` +
@@ -3596,7 +3581,7 @@ app.listen(PORT, async () => {
         console.log('📝 Comandos del bot configurados');
     } catch (error) { console.error('❌ Error configurando comandos:', error); }
     startKeepAlive();
-    console.log(`🎯 Prueba gratuita: Disponible desde webapp (1 hora)`);
+    console.log(`🎯 Prueba gratuita: Envío automático (1 hora) desde webapp`);
     console.log(`📊 Estadísticas: /api/stats`);
     console.log(`🎫 Sistema de cupones: Habilitado`);
     console.log(`💰 Sistema USDT: MODO MANUAL - Captura requerida`);
@@ -3610,15 +3595,10 @@ process.on('unhandledRejection', async (reason, promise) => { console.error('❌
 process.on('SIGINT', () => { console.log('\n👋 Cerrando...'); bot.telegram.deleteWebhook().catch(() => {}); process.exit(0); });
 
 function startKeepAlive() {
-    // ==================== KEEP-ALIVE INTENSO PARA RENDER ====================
-    // Render duerme instancias gratis después de 15 min de inactividad.
-    // Estrategia triple: ping interno cada 4 min + ping externo cada 10 min + auto-request cada 8 min.
-
     const PORT_LOCAL = PORT;
     const EXTERNAL_URL = process.env.WEBAPP_URL || `http://localhost:${PORT_LOCAL}`;
     const healthCheckUrl = `http://localhost:${PORT_LOCAL}/api/health`;
 
-    // Capa 1: Ping interno al servidor local cada 4 minutos
     setInterval(async () => {
         try {
             const response = await fetch(healthCheckUrl);
@@ -3626,7 +3606,6 @@ function startKeepAlive() {
         } catch (error) { console.error('⚠️ Keep-alive interno falló:', error.message); }
     }, 4 * 60 * 1000);
 
-    // Capa 2: Ping a URL externa cada 10 minutos (útil en Render donde el proceso conoce su propia URL)
     setInterval(async () => {
         try {
             const response = await fetch(`${EXTERNAL_URL}/api/health`);
@@ -3634,7 +3613,6 @@ function startKeepAlive() {
         } catch (error) { console.error('⚠️ Keep-alive externo falló:', error.message); }
     }, 10 * 60 * 1000);
 
-    // Capa 3: Request variado cada 8 minutos para simular actividad real
     setInterval(async () => {
         try {
             await fetch(`${healthCheckUrl}?t=${Date.now()}`);

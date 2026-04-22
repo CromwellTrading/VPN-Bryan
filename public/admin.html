@@ -533,13 +533,13 @@ select option { background: var(--ink); }
       <div id="approvedPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-check"></i> Pagos Aprobados</div><button class="btn green" onclick="loadApprovedPayments()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="loading" id="approvedLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="approvedNoData" style="display:none"><i class="fas fa-inbox"></i>Sin pagos aprobados</div><div class="table-wrap" id="approvedTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Método</th><th>Monto</th><th>Cupón</th><th>Fecha</th><th>Config.</th><th>Acción</th></tr></thead><tbody id="approvedTableBody"></tbody></table></div></div></div></div>
 
       <!-- PRUEBAS PENDIENTES -->
-      <div id="trial-pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-gift"></i> Solicitudes de Prueba</div><div style="display:flex;gap:8px"><button class="btn green" onclick="sendAllTrials()"><i class="fas fa-paper-plane"></i> <span>Enviar todas</span></button><button class="btn" onclick="loadPendingTrials()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Los archivos se toman del Pool de Pruebas (múltiples archivos rotativos). Si el pool está vacío, se usará el archivo de prueba individual de la sección "Archivos Planes".</div><div class="loading" id="trialLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialNoData" style="display:none"><i class="fas fa-gift"></i>Sin solicitudes pendientes</div><div class="table-wrap" id="trialTableWrap" style="display:none"><tr><thead><tr><th>ID</th><th>Usuario</th><th>Juego</th><th>Conexión</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="trialTableBody"></tbody></table></div></div></div></div>
+      <div id="trial-pendingPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-gift"></i> Solicitudes de Prueba</div><div style="display:flex;gap:8px"><button class="btn green" onclick="sendAllTrials()"><i class="fas fa-paper-plane"></i> <span>Enviar todas</span></button><button class="btn" onclick="loadPendingTrials()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Los archivos se toman del Pool de Pruebas (múltiples archivos rotativos). Si el pool está vacío, se usará el archivo de prueba individual de la sección "Archivos Planes".</div><div class="loading" id="trialLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="trialNoData" style="display:none"><i class="fas fa-gift"></i>Sin solicitudes pendientes</div><div class="table-wrap" id="trialTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Usuario</th><th>Juego</th><th>Conexión</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="trialTableBody"></tbody></table></div></div></div></div>
 
       <!-- USUARIOS -->
-      <div id="usersPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-users"></i> Usuarios</div><button class="btn" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="search-row" style="display:flex;gap:8px;margin-bottom:14px"><input type="text" id="searchUserInput" placeholder="// buscar por nombre, @usuario o ID..." oninput="searchUsers()"></div><div class="loading" id="usersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="usersNoData" style="display:none"><i class="fas fa-users"></i>Sin usuarios</div><div class="table-wrap" id="usersTableWrap" style="display:none"></table><thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Plan</th><th>VIP</th><th>Referidor</th><th>Registro</th><th>Acciones</th></tr></thead><tbody id="usersTableBody"></tbody></table></div><div class="pagination" id="usersPagination" style="display:none"><button class="btn" id="usersPrevBtn" onclick="changeUsersPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="usersCurrentPage">1</strong> de <strong id="usersTotalPages">1</strong></span><button class="btn" id="usersNextBtn" onclick="changeUsersPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
+      <div id="usersPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-users"></i> Usuarios</div><button class="btn" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="search-row" style="display:flex;gap:8px;margin-bottom:14px"><input type="text" id="searchUserInput" placeholder="// buscar por nombre, @usuario o ID..." oninput="searchUsers()"></div><div class="loading" id="usersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="usersNoData" style="display:none"><i class="fas fa-users"></i>Sin usuarios</div><div class="table-wrap" id="usersTableWrap" style="display:none"><table><thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Plan</th><th>VIP</th><th>Referidor</th><th>Registro</th><th>Acciones</th></tr></thead><tbody id="usersTableBody"></tbody></table></div><div class="pagination" id="usersPagination" style="display:none"><button class="btn" id="usersPrevBtn" onclick="changeUsersPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="usersCurrentPage">1</strong> de <strong id="usersTotalPages">1</strong></span><button class="btn" id="usersNextBtn" onclick="changeUsersPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
 
       <!-- REFERIDOS -->
-      <div id="referralsPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-share-alt"></i> Referidos</div><button class="btn" onclick="loadReferrals()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="totalReferralsCount">0</div><div class="ref-lbl">Total referidos</div></div><div class="ref-card"><div class="ref-val" id="paidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="level1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="level2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div></div><div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Top Referidores</div><div class="loading" id="topReferrersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="topReferrersNoData" style="display:none"><i class="fas fa-users"></i>Sin datos</div><div class="table-wrap" id="topReferrersWrap" style="display:none"><table><thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Ver</th></tr></thead><tbody id="topReferrersTableBody"></tbody></table></div></div><div class="search-row" style="display:flex;gap:8px;margin:14px 0"><input type="text" id="searchUserReferrals" placeholder="// buscar usuario por ID..."><select id="searchType" style="width:180px"><option value="all">Usuario específico</option><option value="with_referrals">Con referidos</option><option value="without_referrals">Sin referidos</option></select><button class="btn" onclick="searchUserReferrals()"><i class="fas fa-search"></i></button><button class="btn" onclick="clearSearch()"><i class="fas fa-times"></i></button></div><div id="searchResults" style="display:none"><div class="loading" id="userDetailsLoading" style="display:none"><div class="spinner"></div></div><div class="no-data" id="userNoData" style="display:none"><i class="fas fa-search"></i>Sin resultados</div><div id="userDetailsContent" style="display:none"><div style="font-family:var(--f-head);font-size:.9rem;color:var(--txt);margin-bottom:6px" id="userName"></div><div style="font-family:var(--f-mono);font-size:.68rem;color:var(--txt-2);margin-bottom:12px" id="userDetails"></div><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="userTotalReferrals">0</div><div class="ref-lbl">Total</div></div><div class="ref-card"><div class="ref-val" id="userPaidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="userLevel1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="userLevel2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div><div class="ref-card"><div class="ref-val" id="userDiscount">0%</div><div class="ref-lbl">Descuento</div></div></div></table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table></div></div><div style="margin-top:16px;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Lista completa</div><div><input type="text" id="filterReferrals" placeholder="// filtrar..." oninput="filterReferralsList()" style="margin-bottom:10px"></div><div class="loading" id="referralsListLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="referralsListNoData" style="display:none"><i class="fas fa-share-alt"></i>Sin referidos</div><div class="table-wrap"><table><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Ver</th></tr></thead><tbody id="referralsListTableBody"></tbody></table></div><div class="pagination" id="referralsPagination" style="display:none"><button class="btn" id="prevPageBtn" onclick="changeReferralsPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="currentPage">1</strong> de <strong id="totalPages">1</strong></span><button class="btn" id="nextPageBtn" onclick="changeReferralsPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
+      <div id="referralsPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-share-alt"></i> Referidos</div><button class="btn" onclick="loadReferrals()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div><div class="card-body"><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="totalReferralsCount">0</div><div class="ref-lbl">Total referidos</div></div><div class="ref-card"><div class="ref-val" id="paidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="level1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="level2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div></div><div><div style="font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Top Referidores</div><div class="loading" id="topReferrersLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="topReferrersNoData" style="display:none"><i class="fas fa-users"></i>Sin datos</div><div class="table-wrap" id="topReferrersWrap" style="display:none"><table><thead><tr><th>#</th><th>Usuario</th><th>Total</th><th>Pagados</th><th>Descuento</th><th>Ver</th></tr></thead><tbody id="topReferrersTableBody"></tbody></table></div></div><div class="search-row" style="display:flex;gap:8px;margin:14px 0"><input type="text" id="searchUserReferrals" placeholder="// buscar usuario por ID..."><select id="searchType" style="width:180px"><option value="all">Usuario específico</option><option value="with_referrals">Con referidos</option><option value="without_referrals">Sin referidos</option></select><button class="btn" onclick="searchUserReferrals()"><i class="fas fa-search"></i></button><button class="btn" onclick="clearSearch()"><i class="fas fa-times"></i></button></div><div id="searchResults" style="display:none"><div class="loading" id="userDetailsLoading" style="display:none"><div class="spinner"></div></div><div class="no-data" id="userNoData" style="display:none"><i class="fas fa-search"></i>Sin resultados</div><div id="userDetailsContent" style="display:none"><div style="font-family:var(--f-head);font-size:.9rem;color:var(--txt);margin-bottom:6px" id="userName"></div><div style="font-family:var(--f-mono);font-size:.68rem;color:var(--txt-2);margin-bottom:12px" id="userDetails"></div><div class="ref-grid"><div class="ref-card"><div class="ref-val" id="userTotalReferrals">0</div><div class="ref-lbl">Total</div></div><div class="ref-card"><div class="ref-val" id="userPaidReferrals">0</div><div class="ref-lbl">Pagados</div></div><div class="ref-card"><div class="ref-val" id="userLevel1Referrals">0</div><div class="ref-lbl">Nivel 1</div></div><div class="ref-card"><div class="ref-val" id="userLevel2Referrals">0</div><div class="ref-lbl">Nivel 2</div></div><div class="ref-card"><div class="ref-val" id="userDiscount">0%</div><div class="ref-lbl">Descuento</div></div></div><table><thead><tr><th>Referido</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Descuento</th><th>Fecha</th></tr></thead><tbody id="userReferralsTableBody"></tbody></table></div></div><div style="margin-top:16px;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:8px">// Lista completa</div><div><input type="text" id="filterReferrals" placeholder="// filtrar..." oninput="filterReferralsList()" style="margin-bottom:10px"></div><div class="loading" id="referralsListLoading"><div class="spinner"></div> Cargando...</div><div class="no-data" id="referralsListNoData" style="display:none"><i class="fas fa-share-alt"></i>Sin referidos</div><div class="table-wrap"><table><thead><tr><th>ID Referido</th><th>Usuario</th><th>Referidor</th><th>Nivel</th><th>Plan</th><th>Pago</th><th>Desc.</th><th>Fecha</th><th>Ver</th></tr></thead><tbody id="referralsListTableBody"></tbody></table></div><div class="pagination" id="referralsPagination" style="display:none"><button class="btn" id="prevPageBtn" onclick="changeReferralsPage(-1)"><i class="fas fa-chevron-left"></i></button><span>Pág <strong id="currentPage">1</strong> de <strong id="totalPages">1</strong></span><button class="btn" id="nextPageBtn" onclick="changeReferralsPage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div></div>
 
       <!-- ARCHIVOS DE PLANES (con tarjeta de prueba individual) -->
       <div id="plan-filesPanel" class="tab-panel"><div class="card"><div class="card-head"><div class="card-title"><i class="fas fa-folder"></i> Archivos de Planes</div><div><button class="btn" onclick="showFilesStatsModal()"><i class="fas fa-chart-bar"></i> <span>Estadísticas</span></button><button class="btn" onclick="loadPlanFiles()"><i class="fas fa-sync-alt"></i> <span>Refrescar</span></button></div></div><div class="card-body"><div class="info-box"><i class="fas fa-info-circle"></i> Sube el archivo de configuración para cada plan de pago. Para pruebas, usa el "Pool de Pruebas" (pestaña aparte) o sube un archivo individual aquí.</div><div class="warn-box"><i class="fas fa-exclamation-triangle"></i> Para pagos USDT: el usuario envía captura, el admin aprueba y luego envía el archivo manualmente.</div><div class="plan-grid" id="planFilesGrid"></div><div style="margin-top:20px; border-top:1px solid var(--wire); padding-top:16px;"><div class="card-title"><i class="fas fa-gift"></i> Plan Prueba (individual)</div><div class="info-box"><i class="fas fa-info-circle"></i> Archivo de prueba único. Si tienes el Pool de Pruebas activo, se usará el pool primero. Este archivo es el respaldo.</div><div id="trialPlanCard" class="plan-card" style="margin-top:8px"></div></div></div></div></div>
@@ -877,52 +877,77 @@ async function loadUsers(){
   document.getElementById('usersLoading').style.display='flex'; 
   try{ 
     const res=await fetch('/api/all-users'); 
-    const users=await res.json(); 
-    logDebug(`Usuarios cargados: ${users?.length || 0}`);
+    const data=await res.json(); 
+    logDebug(`Usuarios cargados: ${data.users?.length || 0} de ${data.total || 0} totales, página ${data.page || 1}/${data.totalPages || 1}`);
     document.getElementById('usersLoading').style.display='none'; 
-    if(!users?.length){ 
+    if(!data.users?.length){ 
       document.getElementById('usersNoData').style.display='block'; 
       document.getElementById('usersTableWrap').style.display='none';
       return; 
     } 
-    allUsers=users.map(u=>({...u,vip:u.vip||false})); 
+    allUsers=data.users.map(u=>({...u,vip:u.vip||false})); 
     filteredUsers=[...allUsers]; 
-    displayUsersPage(1); 
+    totalUsersPages = data.totalPages || 1;
+    currentUsersPage = data.page || 1;
+    displayUsersPage(currentUsersPage); 
+    updateUsersPagination();
   }catch(e){ 
     logDebug('❌ Error loadUsers:', e);
     document.getElementById('usersLoading').style.display='none'; 
-    showNotification('Error','error'); 
+    showNotification('Error cargando usuarios', 'error'); 
   } 
 }
 
-function displayUsersPage(page){ 
-  currentUsersPage=page; 
-  const start=(page-1)*usersPerPage; 
-  const pageUsers=filteredUsers.slice(start,start+usersPerPage); 
+let totalUsersPages = 1;
+
+function updateUsersPagination() {
+  document.getElementById('usersCurrentPage').textContent = currentUsersPage;
+  document.getElementById('usersTotalPages').textContent = totalUsersPages;
+  document.getElementById('usersPrevBtn').disabled = currentUsersPage <= 1;
+  document.getElementById('usersNextBtn').disabled = currentUsersPage >= totalUsersPages;
+  document.getElementById('usersPagination').style.display = totalUsersPages > 1 ? 'flex' : 'none';
+}
+
+async function changeUsersPage(dir) {
+  const newPage = currentUsersPage + dir;
+  if (newPage < 1 || newPage > totalUsersPages) return;
+  currentUsersPage = newPage;
+  document.getElementById('usersLoading').style.display = 'flex';
+  try {
+    const res = await fetch(`/api/all-users?page=${currentUsersPage}&limit=${usersPerPage}`);
+    const data = await res.json();
+    if (data.users) {
+      allUsers = data.users.map(u => ({...u, vip: u.vip || false}));
+      filteredUsers = [...allUsers];
+      totalUsersPages = data.totalPages;
+      displayUsersPage(1); // mostrar la página actual
+      updateUsersPagination();
+    }
+    document.getElementById('usersLoading').style.display = 'none';
+  } catch(e) {
+    logDebug('❌ Error changeUsersPage:', e);
+    document.getElementById('usersLoading').style.display = 'none';
+    showNotification('Error cambiando página', 'error');
+  }
+}
+
+function displayUsersPage(page) { 
   const tb=document.getElementById('usersTableBody'); 
   tb.innerHTML=''; 
-  if(!pageUsers.length){ 
+  if(!filteredUsers.length){ 
     document.getElementById('usersNoData').style.display='block'; 
-    document.getElementById('usersPagination').style.display='none'; 
     return; 
   } 
   document.getElementById('usersNoData').style.display='none'; 
-  pageUsers.forEach(u=>{ 
+  filteredUsers.forEach(u=>{ 
     const vipBadge=u.vip?'<span class="badge vip">VIP</span>':'<span class="badge non-vip">No VIP</span>'; 
     const referrer=u.referrer_id?(u.referrer_username?'@'+u.referrer_username:'ID:'+u.referrer_id):'—'; 
     tb.innerHTML+=`<tr><td><code>${u.telegram_id}</code></td><td><strong>${u.first_name||'Usuario'}</strong></td><td>${u.username?'@'+u.username:'—'}</td><td>${getPlanName(u.plan||u.current_plan)||'—'}</td><td>${vipBadge}</td><td style="font-size:.65rem">${referrer}</td><td>${u.created_at?new Date(u.created_at).toLocaleDateString('es-ES'):'—'}</td><td><button class="btn" onclick="viewUserDetailsModal('${u.telegram_id}')"><i class="fas fa-eye"></i></button> ${u.vip?`<button class="btn red" onclick="removeVipFromUser('${u.telegram_id}')"><i class="fas fa-crown"></i></button>`:''}</td></tr>`; 
   }); 
   document.getElementById('usersTableWrap').style.display='block'; 
-  const totalPages=Math.ceil(filteredUsers.length/usersPerPage); 
-  document.getElementById('usersCurrentPage').textContent=page; 
-  document.getElementById('usersTotalPages').textContent=totalPages; 
-  document.getElementById('usersPrevBtn').disabled=page<=1; 
-  document.getElementById('usersNextBtn').disabled=page>=totalPages; 
-  document.getElementById('usersPagination').style.display=totalPages>1?'flex':'none'; 
 }
 
-function changeUsersPage(dir){ const n=currentUsersPage+dir; const t=Math.ceil(filteredUsers.length/usersPerPage); if(n>=1&&n<=t) displayUsersPage(n); }
-function searchUsers(){ const term=document.getElementById('searchUserInput').value.toLowerCase(); filteredUsers=term?allUsers.filter(u=>(u.first_name?.toLowerCase().includes(term)||u.username?.toLowerCase().includes(term)||u.telegram_id?.toString().includes(term))):[...allUsers]; displayUsersPage(1); }
+function searchUsers(){ const term=document.getElementById('searchUserInput').value.toLowerCase(); if(term){ filteredUsers=allUsers.filter(u=>(u.first_name?.toLowerCase().includes(term)||u.username?.toLowerCase().includes(term)||u.telegram_id?.toString().includes(term))); } else { filteredUsers=[...allUsers]; } displayUsersPage(1); }
 
 async function viewUserDetailsModal(userId){ 
   logDebug(`🔍 Viendo detalles de usuario ${userId}`);
@@ -1315,6 +1340,7 @@ async function loadCoupons() {
       filteredCoupons = coupons.filter(c => c.status !== 'active' || c.stock === 0);
     }
     const tb = document.getElementById('couponsTableBody');
+    if (!tb) { console.error('Elemento couponsTableBody no encontrado'); return; }
     tb.innerHTML = '';
     if (filteredCoupons.length === 0) {
       document.getElementById('couponsNoData').style.display = 'block';
@@ -1329,19 +1355,19 @@ async function loadCoupons() {
         if (ed < new Date() && c.status !== 'expired') statusBadge = '<span class="badge expired">Expirado</span>';
       }
       tb.innerHTML += `<tr>
-         <td><strong style="color:var(--sig)">${c.code}</strong>${c.description ? `<br><small>${c.description}</small>` : ''}</td>
-         <td><span class="badge active">${c.discount}%</span></td>
-         <td>${c.stock}</td>
-         <td>${c.used || 0}</td>
-         <td>${expiry}</td>
-         <td>${statusBadge}</td>
-         <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
-         <td>
-          <button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button>
-          ${c.status === 'active' ? `<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>` : `<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`}
-          <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button>
-         </td>
-       </tr>`;
+          <td><strong style="color:var(--sig)">${c.code}</strong>${c.description ? `<br><small>${c.description}</small>` : ''}</td>
+          <td><span class="badge active">${c.discount}%</span></td>
+          <td>${c.stock}</td>
+          <td>${c.used || 0}</td>
+          <td>${expiry}</td>
+          <td>${statusBadge}</td>
+          <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'N/A'}</td>
+          <td>
+            <button class="btn" onclick="openEditCouponModal('${c.code}')"><i class="fas fa-edit"></i></button>
+            ${c.status === 'active' ? `<button class="btn amber" onclick="toggleCouponStatus('${c.code}','inactive')"><i class="fas fa-pause"></i></button>` : `<button class="btn green" onclick="toggleCouponStatus('${c.code}','active')"><i class="fas fa-play"></i></button>`}
+            <button class="btn red" onclick="deleteCoupon('${c.code}')"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>`;
     });
     document.getElementById('couponsTableWrap').style.display = 'block';
   } catch (e) {
@@ -1547,4 +1573,4 @@ document.querySelectorAll('.modal-bg').forEach(bg=>{ bg.addEventListener('click'
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-bg.active').forEach(m=>m.classList.remove('active')); });
 </script>
 </body>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </html>
+</html>

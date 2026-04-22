@@ -194,28 +194,28 @@ const db = {
     }
   },
 
-  async getAllUsers() {
+  async getTotalUsersCount() {
     try {
-      let allUsers = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await dbClient
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (data && data.length > 0) {
-          allUsers = allUsers.concat(data);
-          from += pageSize;
-          if (data.length < pageSize) hasMore = false;
-        } else {
-          hasMore = false;
-        }
-      }
-      return allUsers;
+      const { count, error } = await dbClient
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      console.error('❌ Error en getTotalUsersCount:', error);
+      return 0;
+    }
+  },
+
+  async getAllUsers(limit = 100, offset = 0) {
+    try {
+      const { data, error } = await dbClient
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (error) throw error;
+      return data || [];
     } catch (error) {
       console.error('❌ Error en getAllUsers:', error);
       return [];
@@ -345,7 +345,6 @@ const db = {
       const { data: referrals, error } = await dbClient.from('referrals').select('*');
       if (error) throw error;
       
-      // Asegurar que referrals sea un array
       const referralsArray = referrals || [];
       const referrersMap = new Map();
       
@@ -389,7 +388,6 @@ const db = {
       };
     } catch (error) {
       console.error('❌ Error en getAllReferralsStats:', error);
-      // Retornar estructura vacía pero consistente
       return {
         total_referrals: 0,
         total_paid: 0,

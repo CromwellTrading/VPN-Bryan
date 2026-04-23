@@ -502,33 +502,6 @@ async function initializeStorageBuckets() {
 // Índice rotativo para distribuir archivos de prueba entre los disponibles
 let trialFileRoundRobinIndex = 0;
 
-      throw new Error('No hay archivo de prueba disponible. Sube uno en el panel de admin.');
-    }
-
-    // Envío con reintentos
-    const MAX_RETRIES = 3;
-    let lastError = null;
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        await bot.telegram.sendDocument(
-          telegramId,
-          { source: filePath, filename: fileName },
-          {
-            caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
-                     `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
-                     `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
-                     `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
-                     `<b>Instrucciones de instalación:</b>\n` +
-                     `1. Descarga este archivo\n` +
-                     `2. Importa el archivo .conf en tu cliente WireGuard\n` +
-                     `3. Activa la conexión\n` +
-                     `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
-                     `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
-                     `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
-            parse_mode: 'HTML'
-          }
-// En index.js, reemplaza sendTrialConfigToUser y sendTrialToValidUsers con estas versiones
-
 async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true) {
   try {
     const user = await db.getUser(telegramId);

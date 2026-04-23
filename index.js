@@ -502,7 +502,34 @@ async function initializeStorageBuckets() {
 // Índice rotativo para distribuir archivos de prueba entre los disponibles
 let trialFileRoundRobinIndex = 0;
 
-async function sendTrialConfigToUser(telegramId, adminId) {
+      throw new Error('No hay archivo de prueba disponible. Sube uno en el panel de admin.');
+    }
+
+    // Envío con reintentos
+    const MAX_RETRIES = 3;
+    let lastError = null;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await bot.telegram.sendDocument(
+          telegramId,
+          { source: filePath, filename: fileName },
+          {
+            caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
+                     `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
+                     `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
+                     `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
+                     `<b>Instrucciones de instalación:</b>\n` +
+                     `1. Descarga este archivo\n` +
+                     `2. Importa el archivo .conf en tu cliente WireGuard\n` +
+                     `3. Activa la conexión\n` +
+                     `4. ¡Disfruta de 1 hora de prueba gratis! <tg-emoji emoji-id="4978747001718966118">🎉</tg-emoji>\n\n` +
+                     `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+                     `<b>Importante:</b> Esta configuración expirará en 1 hora.`,
+            parse_mode: 'HTML'
+          }
+// En index.js, reemplaza sendTrialConfigToUser y sendTrialToValidUsers con estas versiones
+
+async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true) {
   try {
     const user = await db.getUser(telegramId);
     if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
@@ -510,30 +537,28 @@ async function sendTrialConfigToUser(telegramId, adminId) {
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
 
-    // 1. Intentar obtener archivos de prueba de la BD (multi-file)
     let filePath = null;
     let fileName = null;
-    let usedDbFile = false;
+    let fileId = null;
 
+    // 1. Intentar obtener archivos de prueba activos
     try {
-      const trialFiles = await db.getTrialFiles(); // devuelve array de {id, filename, local_path, public_url, ...}
+      const trialFiles = await db.getTrialFiles();
       const activeFiles = (trialFiles || []).filter(f => f.is_active !== false && f.local_path && fs.existsSync(f.local_path));
 
       if (activeFiles.length > 0) {
-        // Round-robin para distribuir carga entre archivos
-        trialFileRoundRobinIndex = trialFileRoundRobinIndex % activeFiles.length;
-        const chosen = activeFiles[trialFileRoundRobinIndex];
-        trialFileRoundRobinIndex++;
+        // Tomar el primero disponible (y luego eliminarlo si deleteAfterSend es true)
+        const chosen = activeFiles[0];
         filePath = chosen.local_path;
         fileName = chosen.original_name || path.basename(chosen.local_path);
-        usedDbFile = true;
+        fileId = chosen.id;
         console.log(`📁 Usando archivo de prueba BD #${chosen.id}: ${fileName}`);
       }
     } catch (dbErr) {
-      console.warn('⚠️ No se pudieron obtener archivos de prueba de BD, usando archivo local:', dbErr.message);
+      console.warn('⚠️ No se pudieron obtener archivos de prueba de BD:', dbErr.message);
     }
 
-    // 2. Fallback: archivo local fijo (TRIAL_CURRENT_FILE)
+    // 2. Fallback: archivo local fijo
     if (!filePath) {
       const extensions = ['.conf', '.zip', '.rar'];
       for (const ext of extensions) {
@@ -547,7 +572,6 @@ async function sendTrialConfigToUser(telegramId, adminId) {
     }
 
     if (!filePath) {
-      console.log(`❌ No hay archivo de prueba disponible para ${telegramId}`);
       throw new Error('No hay archivo de prueba disponible. Sube uno en el panel de admin.');
     }
 
@@ -576,22 +600,30 @@ async function sendTrialConfigToUser(telegramId, adminId) {
         );
         await db.markTrialAsSent(telegramId, adminId);
         console.log(`✅ Prueba enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
+
+        // Eliminar el archivo del pool si se usó uno de BD y deleteAfterSend es true
+        if (deleteAfterSend && fileId) {
+          const fileToDelete = await db.getTrialFile(fileId);
+          if (fileToDelete && fileToDelete.local_path && fs.existsSync(fileToDelete.local_path)) {
+            fs.unlinkSync(fileToDelete.local_path);
+            console.log(`🗑️ Archivo de prueba eliminado del sistema: ${fileToDelete.local_path}`);
+          }
+          await db.deleteTrialFile(fileId);
+          console.log(`🗑️ Registro de archivo de prueba ${fileId} eliminado de la BD`);
+        }
         return true;
       } catch (sendError) {
         lastError = sendError;
-        const errorCode = sendError.response?.error_code;
         const errorMsg = sendError.description || sendError.message || '';
         console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido para ${telegramId}: ${errorMsg}`);
-        if (
-          errorMsg.includes('chat not found') || errorMsg.includes('bot was blocked') ||
-          errorMsg.includes('user is deactivated') || errorMsg.includes('kicked') ||
-          errorCode === 403 || errorCode === 400
-        ) { break; }
+        if (errorMsg.includes('chat not found') || errorMsg.includes('bot was blocked') ||
+            errorMsg.includes('user is deactivated') || errorMsg.includes('kicked') ||
+            sendError.response?.error_code === 403 || sendError.response?.error_code === 400) {
+          break;
+        }
         if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, attempt * 1500));
       }
     }
-
-    console.error(`❌ Error enviando prueba a ${telegramId}:`, lastError?.message);
     throw lastError || new Error('Error desconocido al enviar prueba');
   } catch (error) {
     console.error(`❌ Error en sendTrialConfigToUser para ${telegramId}:`, error.message);
@@ -607,12 +639,28 @@ async function sendTrialToValidUsers(adminId) {
       console.log('📭 No hay pruebas pendientes');
       return { success: true, message: 'No hay pruebas pendientes' };
     }
+
     let sentCount = 0, failedCount = 0, unavailableCount = 0;
+    // Obtener todos los archivos activos disponibles
+    let availableFiles = await db.getTrialFiles();
+    availableFiles = availableFiles.filter(f => f.is_active !== false && f.local_path && fs.existsSync(f.local_path));
+
     for (let i = 0; i < pendingTrials.length; i++) {
       const user = pendingTrials[i];
       try {
         if (!user.telegram_id) { failedCount++; continue; }
-        await sendTrialConfigToUser(user.telegram_id, adminId);
+
+        // Si no hay más archivos disponibles, salir del bucle
+        if (availableFiles.length === 0) {
+          console.log(`⚠️ No quedan archivos de prueba para el usuario ${user.telegram_id}`);
+          failedCount++;
+          continue;
+        }
+
+        // Tomar el primer archivo de la lista (se eliminará después de enviar)
+        const chosenFile = availableFiles.shift();
+        // Enviar la prueba indicando que se debe eliminar el archivo después
+        await sendTrialConfigToUser(user.telegram_id, adminId, true);
         sentCount++;
         await new Promise(resolve => setTimeout(resolve, 80));
       } catch (error) {
@@ -629,6 +677,7 @@ async function sendTrialToValidUsers(adminId) {
         console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, errMsg);
       }
     }
+
     console.log(`✅ Envío de pruebas completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
     return { success: true, sent: sentCount, failed: failedCount, unavailable: unavailableCount, total: pendingTrials.length };
   } catch (error) {

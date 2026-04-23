@@ -209,11 +209,12 @@ const db = {
 
   async getAllUsers(limit = 100, offset = 0) {
     try {
+      const safeLimit = Math.min(limit, 1000);
       const { data, error } = await dbClient
         .from('users')
         .select('*')
         .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .range(offset, offset + safeLimit - 1);
       if (error) throw error;
       return data || [];
     } catch (error) {

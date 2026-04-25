@@ -389,7 +389,6 @@ body::before {
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.07);
-  /* Signal glow on border */
   box-shadow:
     0 0 0 1px rgba(0,0,0,.9),
     0 28px 70px -16px rgba(0,0,0,.98),
@@ -1360,6 +1359,9 @@ const urlParams = new URLSearchParams(window.location.search);
 const userId = urlParams.get('userId');
 const USDT_ADDRESS = '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519';
 
+// Variable para almacenar el descuento por referidos del usuario
+let userReferralDiscount = 0;
+
 /* ── SIGNAL BARS ANIMATION ─── */
 // Animate header meter bars independently
 const meters = document.querySelectorAll('.signal-meter');
@@ -1389,48 +1391,106 @@ function showNotification(msg, type = 'info') {
   window.__nTimer = setTimeout(() => { n.style.transform = 'translateX(160%)'; }, 3800);
 }
 
-/* ── SELECT PLAN ─── */
-function selectPlan(planType, price, usdtAmount, button) {
+/* ── OBTENER DESCUENTO POR REFERIDOS ── */
+async function loadReferralDiscount() {
+  if (!userId) return 0;
+  try {
+    const res = await fetch(`/api/user-info/${userId}`);
+    if (!res.ok) return 0;
+    const data = await res.json();
+    userReferralDiscount = data.referral_discount || 0;
+    if (userReferralDiscount > 0) {
+      applyDiscountToAllPlans(userReferralDiscount);
+      showNotification(`✅ Descuento por referidos del ${userReferralDiscount}% aplicado automáticamente`, 'success');
+    }
+    return userReferralDiscount;
+  } catch (e) {
+    console.warn('Error al obtener descuento por referidos', e);
+    return 0;
+  }
+}
+
+function applyDiscountToAllPlans(discountPercent) {
+  if (discountPercent <= 0) return;
+  const basePrices = {
+    basico: { cup: 900, mobile: 300, usdt: 1.4 },
+    avanzado: { cup: 1800, mobile: 600, usdt: 1.8 },
+    premium: { cup: 1500, mobile: 500, usdt: 2.3 },
+    anual: { cup: 15000, mobile: 5000, usdt: 30 }
+  };
+  const discountFactor = (100 - discountPercent) / 100;
+  // Actualizar cada plan
+  for (const [planKey, base] of Object.entries(basePrices)) {
+    const shell = document.querySelector(`.shell.${planKey}`);
+    if (!shell) continue;
+    const newCup = Math.round(base.cup * discountFactor);
+    const newMobile = Math.round(base.mobile * discountFactor);
+    const newUsdt = (base.usdt * discountFactor).toFixed(2);
+    const priceMain = shell.querySelector('.price-main');
+    if (priceMain) priceMain.textContent = newCup.toLocaleString() + ' CUP';
+    const priceMobile = shell.querySelector('.price-mobile');
+    if (priceMobile) priceMobile.innerHTML = `📱 ${newMobile.toLocaleString()} CUP móvil`;
+    const priceUsdt = shell.querySelector('.price-usdt');
+    if (priceUsdt) priceUsdt.textContent = `≈ ${newUsdt} USDT`;
+    // Guardar datos para pasar a payment.html
+    shell.dataset.discount = discountPercent;
+    shell.dataset.discountedCup = newCup;
+    shell.dataset.discountedMobile = newMobile;
+    shell.dataset.discountedUsdt = newUsdt;
+  }
+}
+
+/* ── SELECT PLAN (con descuento) ── */
+function selectPlan(planType, originalPrice, usdtAmount, button) {
   if (!userId) { alert('Error: no se pudo identificar el usuario.'); return; }
+  let finalPrice = originalPrice;
+  let finalUsdt = usdtAmount;
+  let discountApplied = 0;
+  const shell = button.closest('.shell');
+  if (shell && shell.dataset.discount) {
+    discountApplied = parseInt(shell.dataset.discount);
+    finalPrice = parseInt(shell.dataset.discountedCup);
+    finalUsdt = parseFloat(shell.dataset.discountedUsdt);
+  }
   const orig = button.innerHTML;
   button.disabled = true;
   button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+  // Guardar en localStorage para que payment.html lo recupere si no llega por URL
   localStorage.setItem('selectedPlan', JSON.stringify({
-    type: planType, price, usdtAmount,
-    usdtAddress: USDT_ADDRESS, userId,
+    type: planType,
+    originalPrice,
+    finalPrice,
+    finalUsdt,
+    discountApplied,
+    usdtAddress: USDT_ADDRESS,
+    userId,
     timestamp: new Date().toISOString()
   }));
   showNotification('Redirigiendo al pago...', 'info');
   setTimeout(() => {
-    window.location.href = `/payment.html?userId=${encodeURIComponent(userId)}&plan=${encodeURIComponent(planType)}&price=${encodeURIComponent(price)}&usdtAmount=${encodeURIComponent(usdtAmount)}&usdtAddress=${encodeURIComponent(USDT_ADDRESS)}`;
+    window.location.href = `/payment.html?userId=${encodeURIComponent(userId)}&plan=${encodeURIComponent(planType)}&price=${encodeURIComponent(finalPrice)}&usdtAmount=${encodeURIComponent(finalUsdt)}&usdtAddress=${encodeURIComponent(USDT_ADDRESS)}&discount=${encodeURIComponent(discountApplied)}`;
   }, 700);
   setTimeout(() => { button.innerHTML = orig; button.disabled = false; }, 1200);
 }
 
-/* ── TRIAL MODAL ─── */
-// Check eligibility before opening modal
+/* ── TRIAL MODAL ── */
 async function openTrialModal() {
   if (!userId) {
     alert('Error: no se pudo identificar el usuario.');
     return;
   }
-
-  // Check server-side eligibility (cooldown 30 days)
   try {
     const res = await fetch(`/api/check-trial-eligibility/${userId}`);
     if (res.ok) {
       const data = await res.json();
       if (!data.eligible) {
-        // Show blocked state instead of modal
         showNotification(`❌ ${data.reason}`, 'error');
         return;
       }
     }
   } catch (e) {
-    // If the check fails, allow opening (server will reject if ineligible)
     console.warn('No se pudo verificar elegibilidad, continuando:', e.message);
   }
-
   document.getElementById('trialModal').classList.add('active');
 }
 
@@ -1472,7 +1532,7 @@ document.getElementById('trialForm').addEventListener('submit', async (e) => {
   }
 });
 
-/* ── TERMS CHECK ─── */
+/* ── TERMS CHECK ── */
 function checkTermsAccepted(uid) {
   if (!uid) return false;
   return localStorage.getItem(`termsAccepted_${uid}`) === 'true';
@@ -1481,6 +1541,9 @@ function checkTermsAccepted(uid) {
 if (userId && !checkTermsAccepted(userId)) {
   window.location.href = `/index.html?userId=${encodeURIComponent(userId)}`;
 }
+
+// Inicializar descuento al cargar
+loadReferralDiscount();
 </script>
 </body>
 </html>

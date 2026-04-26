@@ -499,7 +499,6 @@ async function initializeStorageBuckets() {
 }
 
 // ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS) ====================
-// Índice rotativo para distribuir archivos de prueba entre los disponibles
 let trialFileRoundRobinIndex = 0;
 
 async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true) {
@@ -520,10 +519,9 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
       const activeFiles = (trialFiles || []).filter(f => f.is_active !== false && f.local_path && fs.existsSync(f.local_path));
 
       if (activeFiles.length > 0) {
-        // Tomar el primero disponible (y luego eliminarlo si deleteAfterSend es true)
         const chosen = activeFiles[0];
         filePath = chosen.local_path;
-        fileName = chosen.original_name || path.basename(chosen.local_path);
+        fileName = chosen.original_name;  // NOMBRE ORIGINAL
         fileId = chosen.id;
         console.log(`📁 Usando archivo de prueba BD #${chosen.id}: ${fileName}`);
       }
@@ -576,13 +574,16 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
 
         // Eliminar el archivo del pool si se usó uno de BD y deleteAfterSend es true
         if (deleteAfterSend && fileId) {
-          const fileToDelete = await db.getTrialFile(fileId);
-          if (fileToDelete && fileToDelete.local_path && fs.existsSync(fileToDelete.local_path)) {
-            fs.unlinkSync(fileToDelete.local_path);
-            console.log(`🗑️ Archivo de prueba eliminado del sistema: ${fileToDelete.local_path}`);
+          try {
+            if (filePath && fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+              console.log(`🗑️ Archivo de prueba eliminado del sistema: ${filePath}`);
+            }
+            await db.deleteTrialFile(fileId);
+            console.log(`🗑️ Registro de archivo de prueba ${fileId} eliminado de la BD`);
+          } catch (delErr) {
+            console.warn(`⚠️ No se pudo eliminar archivo #${fileId}:`, delErr.message);
           }
-          await db.deleteTrialFile(fileId);
-          console.log(`🗑️ Registro de archivo de prueba ${fileId} eliminado de la BD`);
         }
         return true;
       } catch (sendError) {
@@ -614,25 +615,12 @@ async function sendTrialToValidUsers(adminId) {
     }
 
     let sentCount = 0, failedCount = 0, unavailableCount = 0;
-    // Obtener todos los archivos activos disponibles
-    let availableFiles = await db.getTrialFiles();
-    availableFiles = availableFiles.filter(f => f.is_active !== false && f.local_path && fs.existsSync(f.local_path));
 
     for (let i = 0; i < pendingTrials.length; i++) {
       const user = pendingTrials[i];
       try {
         if (!user.telegram_id) { failedCount++; continue; }
 
-        // Si no hay más archivos disponibles, salir del bucle
-        if (availableFiles.length === 0) {
-          console.log(`⚠️ No quedan archivos de prueba para el usuario ${user.telegram_id}`);
-          failedCount++;
-          continue;
-        }
-
-        // Tomar el primer archivo de la lista (se eliminará después de enviar)
-        const chosenFile = availableFiles.shift();
-        // Enviar la prueba indicando que se debe eliminar el archivo después
         await sendTrialConfigToUser(user.telegram_id, adminId, true);
         sentCount++;
         await new Promise(resolve => setTimeout(resolve, 80));
@@ -3461,7 +3449,12 @@ bot.start(async (ctx) => {
     const startPayload = ctx.startPayload;
     let referrerId = null;
     let referrerUsername = null;
-    if (startPayload && startPayload.startsWith('ref')) {
+
+    // Detectar si es un grupo
+    const chatType = ctx.chat.type;
+    const isGroup = chatType === 'group' || chatType === 'supergroup';
+
+    if (startPayload && startPayload.startsWith('ref') && !isGroup) {
         referrerId = startPayload.replace('ref', '');
         try {
             const referrer = await db.getUser(referrerId);
@@ -3483,15 +3476,78 @@ bot.start(async (ctx) => {
         if (referrerId) { userData.referrer_id = referrerId; userData.referrer_username = referrerUsername; }
         await db.saveUser(userId.toString(), userData);
     } catch (error) { console.error('Error guardando usuario:', error); }
+
     await ctx.telegram.sendMessage(ctx.chat.id, '⌛', { reply_markup: { remove_keyboard: true } });
     const keyboard = buildMainMenuKeyboard(userId.toString(), firstName, esAdmin);
-    const welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nConéctate con la mejor latencia para gaming y navegación.\n\n${referrerId ? '👥 *¡Te invitó un amigo!*\nObtendrás beneficios especiales por ser referido.\n\n' : ''}${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}*Selecciona una opción:*`;
+    let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nConéctate con la mejor latencia para gaming y navegación.\n\n${referrerId ? '👥 *¡Te invitó un amigo!*\nObtendrás beneficios especiales por ser referido.\n\n' : ''}${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}*Selecciona una opción:*`;
+    
+    if (isGroup) {
+        welcomeMessage = `👋 Hola ${firstName || 'usuario'}! (grupo)\n\n` + welcomeMessage;
+    }
+
     await bot.telegram.callApi('sendMessage', {
         chat_id: ctx.chat.id,
         text: welcomeMessage,
         parse_mode: 'Markdown',
         ...keyboard
     });
+});
+
+// Comandos adicionales para grupos
+bot.command('help', async (ctx) => {
+    const userId = ctx.from.id;
+    const firstName = ctx.from.first_name;
+    const esAdmin = isAdmin(userId);
+    const keyboard = buildMainMenuKeyboard(userId, firstName, esAdmin);
+    await ctx.reply(`🆘 *Ayuda de VPN Cuba*\n\nUsa los botones para navegar. Si no ves el menú, envía /start de nuevo.`, { parse_mode: 'Markdown', ...keyboard });
+});
+
+bot.command('referidos', async (ctx) => {
+    const userId = ctx.from.id;
+    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
+    try {
+        const user = await db.getUser(userId);
+        let referralStats = null;
+        if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
+        await ctx.reply(getReferralInfoHtml(userId, referralStats), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+    } catch (error) {
+        await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.`, { parse_mode: 'Markdown' });
+    }
+});
+
+bot.command('cupon', async (ctx) => {
+    await ctx.reply(`🎫 *Verificar cupón*\n\nEnvía el código de cupón como respuesta a este mensaje.`, { parse_mode: 'Markdown' });
+    // Se podría implementar un listener, pero por simplicidad dejamos que el usuario use la web.
+});
+
+bot.command('trialstatus', async (ctx) => {
+    const userId = ctx.from.id;
+    const eligibility = await db.checkTrialEligibility(userId);
+    if (eligibility.eligible) {
+        await ctx.reply(`✅ *Puedes solicitar una prueba gratuita*\n\n${eligibility.reason}. Usa el botón VER PLANES en el menú.`, { parse_mode: 'Markdown' });
+    } else {
+        await ctx.reply(`❌ *No puedes solicitar una prueba*\n\n${eligibility.reason}`, { parse_mode: 'Markdown' });
+    }
+});
+
+bot.command('admin', async (ctx) => {
+    const userId = ctx.from.id;
+    if (!isAdmin(userId)) {
+        await ctx.reply('⛔ No tienes permisos de administrador.');
+        return;
+    }
+    const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
+    await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", { web_app: { url: adminUrl } })]] } });
+});
+
+bot.command('enviar', async (ctx) => {
+    const userId = ctx.from.id;
+    if (!isAdmin(userId)) {
+        await ctx.reply('⛔ No autorizado.');
+        return;
+    }
+    // Este comando solo funciona como ejemplo, se puede implementar un flujo de envío.
+    await ctx.reply('📤 *Envío manual de configuración*\n\nUsa el panel web para enviar archivos a usuarios.', { parse_mode: 'Markdown' });
 });
 
 bot.on('text', async (ctx) => {

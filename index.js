@@ -13,7 +13,6 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 const db = require('./supabase');
 
 // Métodos stub para trial_files — funcionan sin la tabla en BD todavía.
-// Cuando el usuario cree la tabla en Supabase, estos se pueden mover a supabase.js.
 if (!db.getTrialFiles) {
   db.getTrialFiles = async () => {
     try {
@@ -89,7 +88,7 @@ const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ?
 
 // ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {
-    WALLET_ADDRESS: '0x55B81bD7df1b0c6Db33fD532207CF2Bf137C1519',
+    WALLET_ADDRESS: '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2', // NUEVA DIRECCIÓN
     BSCSCAN_API_KEY: '',
     USDT_CONTRACT_ADDRESS: '0x55d398326f99059ff775485246999027b3197955',
     CHECK_INTERVAL: 0,
@@ -133,7 +132,7 @@ const BUTTON_ICONS = {
     'CÓMO FUNCIONA': '5873121512445187130',
     'VPN CANAL': '5771695636411847302',
     'POLÍTICAS': '6021738534916854774',
-    'WHATSAPP': '5884179047482659474',
+    'WHATSAPP': '5884179047482659474',   // Icono unificado
     'FAQ': '5879501875341955281',
     'PANEL ADMIN': '5839116473951328489',
     'WINDOWS': '5933679370202778681',
@@ -260,8 +259,7 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin) {
             createButton("POLÍTICAS", { callback_data: "politicas" })
         ],
         [
-            createButton("WHATSAPP G1", { url: "https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9" }),
-            createButton("WHATSAPP G2", { url: "https://chat.whatsapp.com/Lf3oMMKSHhY4pX5d2bE4TJ" })
+            createButton("WHATSAPP", { url: "https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t" }) // UNIFICADO Y ACTUALIZADO
         ],
         [
             createButton("FAQ", { callback_data: "faq" })
@@ -1587,7 +1585,7 @@ app.post('/api/request-trial', async (req, res) => {
       `🆔 *ID:* ${telegramId}\n` +
       `🎮 *Juego/Servidor:* ${gameServer || 'No especificado'}\n` +
       `📡 *Conexión:* ${connectionType || 'No especificado'}\n` +
-      `⏰ *Duración:* 1 hora\n` +
+      `⏰ *Duración:* ${trialType === '24h' ? '24 horas' : '1 hora'}\n` +
       `📅 *Fecha:* ${new Date().toLocaleString('es-ES')}`;
     
     for (const adminId of ADMIN_IDS) {
@@ -1627,7 +1625,7 @@ app.post('/api/request-trial', async (req, res) => {
         `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita ya está aquí!</b>\n\n` +
         `Acabo de enviarte el archivo de configuración.\n` +
         `Revísalo en este mismo chat y actívalo en WireGuard.\n\n` +
-        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> ${trialType === '24h' ? '24 horas' : '1 hora'}\n` +
         `¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
         { parse_mode: 'HTML' }
       );
@@ -3194,6 +3192,37 @@ app.get('/api/coupons/history/:code', async (req, res) => {
   }
 });
 
+// ==================== NUEVO ENDPOINT PARA CONSULTAR USO DE CUPÓN ====================
+app.get('/api/coupon-usage/:code', async (req, res) => {
+  try {
+    const code = req.params.code.toUpperCase();
+    const coupon = await db.getCoupon(code);
+    if (!coupon) return res.status(404).json({ error: 'Cupón no encontrado' });
+    
+    // Contar usos reales desde tabla coupon_usage
+    let usedCount = 0;
+    try {
+      const { count, error } = await supabaseAdmin
+        .from('coupon_usage')
+        .select('*', { count: 'exact', head: true })
+        .eq('coupon_code', code);
+      if (!error) usedCount = count || 0;
+      else usedCount = coupon.used || 0;
+    } catch (e) { usedCount = coupon.used || 0; }
+    
+    res.json({
+      code: coupon.code,
+      used: usedCount,
+      stock: coupon.stock,
+      discount: coupon.discount,
+      status: coupon.status,
+      expiry: coupon.expiry
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== SERVIR ARCHIVOS HTML ====================
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public/index.html')); });
 app.get('/plans.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/plans.html')); });
@@ -3224,7 +3253,7 @@ bot.action('show_support', async (ctx) => {
               createButton("MOD", { url: 'https://t.me/rov3r777' })
             ],
             [
-              createButton("WHATSAPP", { url: 'https://wa.me/5363806513' })
+              createButton("WHATSAPP", { url: 'https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t' }) // actualizado
             ],
             [
               createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })
@@ -3450,7 +3479,7 @@ bot.start(async (ctx) => {
     let referrerId = null;
     let referrerUsername = null;
 
-    // Detectar si es un grupo
+    // Detectar si es un grupo (ya no limitamos, mostramos menú completo)
     const chatType = ctx.chat.type;
     const isGroup = chatType === 'group' || chatType === 'supergroup';
 
@@ -3493,7 +3522,33 @@ bot.start(async (ctx) => {
     });
 });
 
-// Comandos adicionales para grupos
+// Comando /cupon_uso
+bot.command('cupon_uso', async (ctx) => {
+    const args = ctx.message.text.split(' ');
+    if (args.length < 2) {
+        return ctx.reply('❌ Uso: `/cupon_uso CODIGO`', { parse_mode: 'Markdown' });
+    }
+    const code = args[1].toUpperCase();
+    try {
+        const baseUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+        const res = await fetch(`${baseUrl}/api/coupon-usage/${code}`);
+        const data = await res.json();
+        if (data.error) return ctx.reply(`❌ ${data.error}`);
+        ctx.reply(
+            `📊 *Estadísticas del cupón* \`${code}\`\n\n` +
+            `• Usos totales: ${data.used}\n` +
+            `• Stock restante: ${data.stock}\n` +
+            `• Descuento: ${data.discount}%\n` +
+            `• Estado: ${data.status}\n` +
+            `• Expira: ${data.expiry ? new Date(data.expiry).toLocaleDateString() : 'Nunca'}`,
+            { parse_mode: 'Markdown' }
+        );
+    } catch (err) {
+        ctx.reply('❌ Error al consultar el cupón.');
+    }
+});
+
+// Comandos adicionales para grupos también funcionan
 bot.command('help', async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
@@ -3517,7 +3572,6 @@ bot.command('referidos', async (ctx) => {
 
 bot.command('cupon', async (ctx) => {
     await ctx.reply(`🎫 *Verificar cupón*\n\nEnvía el código de cupón como respuesta a este mensaje.`, { parse_mode: 'Markdown' });
-    // Se podría implementar un listener, pero por simplicidad dejamos que el usuario use la web.
 });
 
 bot.command('trialstatus', async (ctx) => {
@@ -3546,25 +3600,26 @@ bot.command('enviar', async (ctx) => {
         await ctx.reply('⛔ No autorizado.');
         return;
     }
-    // Este comando solo funciona como ejemplo, se puede implementar un flujo de envío.
     await ctx.reply('📤 *Envío manual de configuración*\n\nUsa el panel web para enviar archivos a usuarios.', { parse_mode: 'Markdown' });
 });
 
+// Manejo de mensajes de texto (incluyendo grupos, sin limitación)
 bot.on('text', async (ctx) => {
     const text = ctx.message.text;
     const userId = ctx.from.id.toString();
     const firstName = ctx.from.first_name;
     const esAdmin = isAdmin(userId);
-    console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
-    if (text === '📁 VER PLANES') {
+    console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId} en chat tipo ${ctx.chat.type}`);
+
+    // Comandos inline (palabras clave) - funcionan en cualquier chat
+    if (text === '📁 VER PLANES' || text === '/planes') {
         const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-        await ctx.reply(`📋 *NUESTROS PLANES* 🚀\n\n*PRUEBA GRATIS (1 hora)*\n💵 $0 CUP\n🎁 ¡Prueba completamente gratis!\n\n*BÁSICO (1 mes)*\n💵 $800 CUP\n💰 1.6 USDT\n\n*AVANZADO (2 meses)*\n💵 $1,300 CUP\n💰 2.7 USDT\n🎯 ¡Recomendado!\n\n*PREMIUM (1 mes)*\n💵 $1,200 CUP\n💰 2.5 USDT\n👑 Servidor privado\n\n*ANUAL (12 meses)*\n💵 $15,000 CUP\n💰 30 USDT\n🏆 ¡El mejor valor!\n\nPuedes ver los planes y adquirirlos en la web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '👑 MI ESTADO') {
-        await ctx.answerCbQuery();
+        await ctx.reply(`📋 *NUESTROS PLANES* 🚀\n\n*PRUEBA GRATIS (1 hora)*\n💵 $0 CUP\n🎁 ¡Prueba completamente gratis!\n\n*BÁSICO (1 mes)*\n💵 $900 CUP\n💰 1.4 USDT\n\n*AVANZADO (2 meses)*\n💵 $1,800 CUP\n💰 1.8 USDT\n🎯 ¡Recomendado!\n\n*PREMIUM (1 mes)*\n💵 $1,500 CUP\n💰 2.3 USDT\n👑 Servidor privado\n\n*ANUAL (12 meses)*\n💵 $15,000 CUP\n💰 30 USDT\n🏆 ¡El mejor valor!\n\nPuedes ver los planes y adquirirlos en la web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+    } else if (text === '👑 MI ESTADO' || text === '/estado') {
         await checkStatusHandler(ctx, userId);
-    } else if (text === '💻 DESCARGAR WIREGUARD') {
+    } else if (text === '💻 DESCARGAR WIREGUARD' || text === '/wireguard') {
         await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '🆘 SOPORTE') {
+    } else if (text === '🆘 SOPORTE' || text === '/soporte') {
         await ctx.reply(
             getSupportHtml(),
             {
@@ -3579,7 +3634,7 @@ bot.on('text', async (ctx) => {
                             createButton("MOD", { url: 'https://t.me/rov3r777' })
                         ],
                         [
-                            createButton("WHATSAPP", { url: 'https://wa.me/5363806513' })
+                            createButton("WHATSAPP", { url: 'https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t' })
                         ],
                         [
                             createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })
@@ -3588,7 +3643,7 @@ bot.on('text', async (ctx) => {
                 }
             }
         );
-    } else if (text === '♻️ REFERIDOS') {
+    } else if (text === '♻️ REFERIDOS' || text === '/referidos') {
         const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
         try {
             const user = await db.getUser(userId);
@@ -3599,26 +3654,27 @@ bot.on('text', async (ctx) => {
             console.error('❌ Error en handler de referidos:', error);
             await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\`\n\nComparte este enlace con tus amigos y obtén descuentos.\n\n*Nota:* No se pudieron cargar las estadísticas en este momento, pero el enlace sigue activo.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         }
-    } else if (text === '❓ CÓMO FUNCIONA') {
+    } else if (text === '❓ CÓMO FUNCIONA' || text === '/como') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
         await ctx.reply(getHowItWorksHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '🔈 VPN CANAL') {
+    } else if (text === '🔈 VPN CANAL' || text === '/canal') {
         await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete a nuestro canal de Telegram para estar al tanto de las últimas novedades, ofertas y actualizaciones.\n\n👉 https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("IR AL CANAL", { url: 'https://t.me/vpncubaw' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '📲 WHATSAPP') {
+    } else if (text === '📲 WHATSAPP' || text === '/whatsapp') {
         try {
-            await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WHATSAPP", { url: 'https://chat.whatsapp.com/BYa6hrCs4jkAuefEGwZUY9?mode=gi_t' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+            await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad en WhatsApp para interactuar con otros usuarios y recibir soporte rápido.\n\n👉 [Haz clic aquí para unirte al grupo](https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WHATSAPP", { url: 'https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         } catch (error) { console.error('❌ Error en handler de WhatsApp:', error); await ctx.reply('❌ Error al abrir WhatsApp. Intenta más tarde o contacta a soporte.'); }
-    } else if (text === '📜 Politicas') {
+    } else if (text === '📜 Politicas' || text === '/politicas') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
         const inlineKeyboard = [[createButton("TÉRMINOS DE SERVICIO", { web_app: { url: `${webappUrl}/politicas.html?section=terminos` } })],[createButton("POLÍTICA DE REEMBOLSO", { web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } })],[createButton("POLÍTICA DE PRIVACIDAD", { web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]];
         await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
-    } else if (text === '❓ FAQ') {
+    } else if (text === '❓ FAQ' || text === '/faq') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
         await ctx.reply(getFaqHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '⌨ PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
         await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", { web_app: { url: adminUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     }
+    // Si no reconoce el comando, no hacer nada (evitar respuestas no deseadas)
 });
 
 async function checkStatusHandler(ctx, userId) {
@@ -3668,6 +3724,7 @@ app.listen(PORT, async () => {
             { command: 'help', description: 'Mostrar ayuda' },
             { command: 'referidos', description: 'Obtener enlace de referidos' },
             { command: 'cupon', description: 'Verificar cupón de descuento' },
+            { command: 'cupon_uso', description: 'Ver estadísticas de un cupón' },
             { command: 'trialstatus', description: 'Ver estado de prueba gratuita' },
             { command: 'admin', description: 'Panel de administración (solo admins)' },
             { command: 'enviar', description: 'Enviar configuración (solo admins)' }
@@ -3675,11 +3732,11 @@ app.listen(PORT, async () => {
         console.log('📝 Comandos del bot configurados');
     } catch (error) { console.error('❌ Error configurando comandos:', error); }
     startKeepAlive();
-    console.log(`🎯 Prueba gratuita: Envío automático (1 hora) desde webapp`);
+    console.log(`🎯 Prueba gratuita: Envío automático (1h o 24h) desde webapp`);
     console.log(`📊 Estadísticas: /api/stats`);
-    console.log(`🎫 Sistema de cupones: Habilitado`);
+    console.log(`🎫 Sistema de cupones: Habilitado (consulta: /cupon_uso CODIGO)`);
     console.log(`💰 Sistema USDT: MODO MANUAL - Captura requerida`);
-    console.log(`👥 Sistema de referidos: Habilitado`);
+    console.log(`👥 Sistema de referidos: Habilitado (descuento aplica a todos los planes)`);
     console.log(`📁 Archivos automáticos: DESACTIVADO - Envío manual`);
     console.log(`📂 Archivos de prueba guardados localmente en: ${TRIAL_FILES_DIR}`);
 });

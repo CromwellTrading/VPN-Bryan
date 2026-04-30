@@ -11,6 +11,8 @@ channel = "stable-25_05"
 [userenv.shared]
 PORT = "5000"
 NODE_ENV = "development"
+WEBAPP_URL = "https://821f3278-8b22-4add-bca8-f2b32be03f49-00-addq1gfuw1td.kirk.replit.dev"
+API_BASE_URL = "https://821f3278-8b22-4add-bca8-f2b32be03f49-00-addq1gfuw1td.kirk.replit.dev"
 
 [workflows]
 runButton = "Project"
@@ -39,3 +41,7 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[deployment]
+deploymentTarget = "vm"
+run = ["node", "index.js"]

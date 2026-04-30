@@ -1598,13 +1598,17 @@ app.post('/api/request-trial', async (req, res) => {
       is_active: true
     });
     
-    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA ${trialType.toUpperCase()}* (ENVÍO AUTOMÁTICO)\n\n` +
+    const duracionLabel = trialType === '24h' ? '24 horas' : '1 hora';
+    const tipoBadge = trialType === '24h' ? '🟣 24 HORAS' : '🟢 1 HORA';
+
+    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA* (ENVÍO AUTOMÁTICO)\n\n` +
       `👤 *Usuario:* ${firstName}\n` +
       `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
       `🆔 *ID:* ${telegramId}\n` +
       `🎮 *Juego/Servidor:* ${gameServer || 'No especificado'}\n` +
       `📡 *Conexión:* ${connectionType || 'No especificado'}\n` +
-      `⏰ *Duración:* 1 hora\n` +
+      `⏱ *Tipo de prueba:* ${tipoBadge}\n` +
+      `⏰ *Duración:* ${duracionLabel}\n` +
       `📅 *Fecha:* ${new Date().toLocaleString('es-ES')}`;
     
     for (const adminId of ADMIN_IDS) {
@@ -1638,7 +1642,7 @@ app.post('/api/request-trial', async (req, res) => {
         `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita ya está aquí!</b>\n\n` +
         `Acabo de enviarte el archivo de configuración.\n` +
         `Revísalo en este mismo chat y actívalo en WireGuard.\n\n` +
-        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> 1 hora\n` +
+        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> ${duracionLabel}\n` +
         `¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
         { parse_mode: 'HTML' }
       );
@@ -1655,6 +1659,7 @@ app.post('/api/request-trial', async (req, res) => {
         telegramId,
         `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\n` +
         'Tu solicitud ha sido registrada. En breve un administrador revisará y te enviará la configuración.\n\n' +
+        `⏰ <b>Duración solicitada:</b> ${duracionLabel}\n` +
         `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Tiempo estimado:</b> Minutos\n\n` +
         '¡Gracias por probar VPN Cuba!',
         { parse_mode: 'HTML' }

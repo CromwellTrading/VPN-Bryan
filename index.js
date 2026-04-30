@@ -73,7 +73,7 @@ if (!db.deleteTrialFile) {
   };
 }
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 // Cliente Supabase Admin para crear buckets (usando service_role)
 const supabaseAdmin = createClient(
@@ -3539,7 +3539,7 @@ async function setWebhook() {
     }
 }
 
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅' : '❌'}`);
     console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);

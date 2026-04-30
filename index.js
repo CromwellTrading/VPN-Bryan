@@ -284,6 +284,17 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
     };
 }
 
+// Devuelve web_app en privado y url en grupos (web_app no funciona en grupos)
+function wa(url, ctx) {
+    const chatType = ctx.chat?.type || ctx.callbackQuery?.message?.chat?.type;
+    const inGroup = chatType === 'group' || chatType === 'supergroup';
+    return inGroup ? { url } : { web_app: { url } };
+}
+function isGroupCtx(ctx) {
+    const chatType = ctx.chat?.type || ctx.callbackQuery?.message?.chat?.type;
+    return chatType === 'group' || chatType === 'supergroup';
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -3143,12 +3154,11 @@ bot.action('show_support', async (ctx) => {
 
 bot.action('check_status', async (ctx) => {
   const userId = ctx.from.id.toString();
-  const firstName = ctx.from.first_name;
   try {
+    await ctx.answerCbQuery();
     const user = await db.getUser(userId);
     if (!user) {
       await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' });
-      await ctx.answerCbQuery();
       return;
     }
 
@@ -3159,7 +3169,6 @@ bot.action('check_status', async (ctx) => {
 
       if (diasRestantes <= 0) {
         await db.removeVIP(userId);
-        await ctx.answerCbQuery();
         await ctx.reply(
           `⚠️ <b>Tu plan VIP ha expirado</b>\n\n` +
           `Tu acceso VIP fue removido automáticamente porque tu plan llegó a su fin.\n\n` +
@@ -3168,7 +3177,7 @@ bot.action('check_status', async (ctx) => {
             parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
-                [createButton("VER PLANES", { web_app: { url: webappUrl } })],
+                [createButton("VER PLANES", wa(webappUrl, ctx))],
                 [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
               ]
             }
@@ -3181,7 +3190,7 @@ bot.action('check_status', async (ctx) => {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [createButton("VER PLANES", { web_app: { url: webappUrl } })],
+            [createButton("VER PLANES", wa(webappUrl, ctx))],
             [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
@@ -3196,7 +3205,7 @@ bot.action('check_status', async (ctx) => {
             parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
-                [createButton("RENOVAR AHORA", { web_app: { url: webappUrl } })]
+                [createButton("RENOVAR AHORA", wa(webappUrl, ctx))]
               ]
             }
           }
@@ -3207,14 +3216,13 @@ bot.action('check_status', async (ctx) => {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [createButton("VER PLANES", { web_app: { url: webappUrl } })],
+            [createButton("VER PLANES", wa(webappUrl, ctx))],
             [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
       });
     }
-    await ctx.answerCbQuery();
-  } catch (error) { console.error('❌ Error en check_status:', error); await ctx.reply(`❌ Error al verificar tu estado.`); await ctx.answerCbQuery(); }
+  } catch (error) { console.error('❌ Error en check_status:', error); try { await ctx.reply(`❌ Error al verificar tu estado.`); } catch(e){} try { await ctx.answerCbQuery(); } catch(e){} }
 });
 
 bot.action('download_wireguard', async (ctx) => {
@@ -3277,7 +3285,7 @@ bot.action('how_it_works', async (ctx) => {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],
+            [createButton("VER GUÍA COMPLETA", wa(`${webappUrl}/how.html`, ctx))],
             [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
           ]
         }
@@ -3294,7 +3302,7 @@ bot.action('main_menu', async (ctx) => {
   const userId = ctx.from.id.toString();
   const firstName = ctx.from.first_name;
   const esAdmin = isAdmin(userId);
-  const keyboard = buildMainMenuKeyboard(userId, firstName, esAdmin);
+  const keyboard = buildMainMenuKeyboard(userId, firstName, esAdmin, isGroupCtx(ctx));
   await ctx.reply(
     `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:`,
     {
@@ -3318,16 +3326,12 @@ bot.action('politicas', async (ctx) => {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
     await ctx.answerCbQuery('📜 Abriendo políticas del servicio...');
     const inlineKeyboard = [
-      [createButton("TÉRMINOS DE SERVICIO", { web_app: { url: `${webappUrl}/politicas.html?section=terminos` } })],
-      [createButton("POLÍTICA DE REEMBOLSO", { web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } })],
-      [createButton("POLÍTICA DE PRIVACIDAD", { web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } })],
+      [createButton("TÉRMINOS DE SERVICIO", wa(`${webappUrl}/politicas.html?section=terminos`, ctx))],
+      [createButton("POLÍTICA DE REEMBOLSO", wa(`${webappUrl}/politicas.html?section=reembolso`, ctx))],
+      [createButton("POLÍTICA DE PRIVACIDAD", wa(`${webappUrl}/politicas.html?section=privacidad`, ctx))],
       [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
     ];
-    if (ctx.callbackQuery.message) {
-      await ctx.editMessageText(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
-    } else {
-      await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
-    }
+    await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
   } catch (error) { console.error('❌ Error en action de políticas:', error); await ctx.answerCbQuery('❌ Error al abrir políticas.'); }
 });
 
@@ -3339,7 +3343,7 @@ bot.action('faq', async (ctx) => {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
-          [createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],
+          [createButton("VER PREGUNTAS FRECUENTES", wa(`${webappUrl}/faq.html`, ctx))],
           [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
         ]
       }
@@ -3468,7 +3472,7 @@ bot.command('admin', async (ctx) => {
         return;
     }
     const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-    await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", { web_app: { url: adminUrl } })]] } });
+    await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", wa(adminUrl, ctx))]] } });
 });
 
 bot.command('enviar', async (ctx) => {
@@ -3492,7 +3496,7 @@ bot.on('text', async (ctx) => {
     console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
     if (text === '📁 VER PLANES') {
         const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-        await ctx.reply(`📋 *NUESTROS PLANES* 🚀`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(`📋 *NUESTROS PLANES* 🚀`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", wa(webappUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '💻 DESCARGAR WIREGUARD') {
         await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🆘 SOPORTE') {
@@ -3519,21 +3523,21 @@ bot.on('text', async (ctx) => {
         }
     } else if (text === '❓ CÓMO FUNCIONA') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply(getHowItWorksHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", { web_app: { url: `${webappUrl}/how.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getHowItWorksHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", wa(`${webappUrl}/how.html`, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '🔈 VPN CANAL') {
         await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete: https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("IR AL CANAL", { url: 'https://t.me/vpncubaw' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '📲 WHATSAPP') {
         await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WHATSAPP", { url: WHATSAPP_GROUP_LINK })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '📜 Politicas') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        const inlineKeyboard = [[createButton("TÉRMINOS DE SERVICIO", { web_app: { url: `${webappUrl}/politicas.html?section=terminos` } })],[createButton("POLÍTICA DE REEMBOLSO", { web_app: { url: `${webappUrl}/politicas.html?section=reembolso` } })],[createButton("POLÍTICA DE PRIVACIDAD", { web_app: { url: `${webappUrl}/politicas.html?section=privacidad` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]];
+        const inlineKeyboard = [[createButton("TÉRMINOS DE SERVICIO", wa(`${webappUrl}/politicas.html?section=terminos`, ctx))],[createButton("POLÍTICA DE REEMBOLSO", wa(`${webappUrl}/politicas.html?section=reembolso`, ctx))],[createButton("POLÍTICA DE PRIVACIDAD", wa(`${webappUrl}/politicas.html?section=privacidad`, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]];
         await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
     } else if (text === '❓ FAQ') {
         const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply(getFaqHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", { web_app: { url: `${webappUrl}/faq.html` } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(getFaqHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", wa(`${webappUrl}/faq.html`, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else if (text === '⌨ PANEL ADMIN' && esAdmin) {
         const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-        await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", { web_app: { url: adminUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+        await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", wa(adminUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     }
 });
 
@@ -3541,12 +3545,11 @@ async function checkStatusHandler(ctx, userId) {
   try {
     const user = await db.getUser(userId);
     if (!user) { await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' }); return; }
+    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
     if (user?.vip) {
-      const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(getVipStatusHtml(user), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+      await ctx.reply(getVipStatusHtml(user), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     } else {
-      const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", { web_app: { url: webappUrl } })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     }
   } catch (error) { console.error('❌ Error en checkStatusHandler:', error); await ctx.reply(`❌ Error al verificar tu estado.`); }
 }

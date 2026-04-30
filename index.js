@@ -1576,7 +1576,7 @@ app.get('/api/check-trial-eligibility/:telegramId', async (req, res) => {
 // ==================== SOLICITUD DE PRUEBA CON ENVÍO AUTOMÁTICO ====================
 app.post('/api/request-trial', async (req, res) => {
   try {
-    const { telegramId, username, firstName, trialType = '1h', gameServer, connectionType } = req.body;
+    const { telegramId, username, firstName, trialType = '1h', gameServer, connectionType, trialPlanType } = req.body;
     
     const eligibility = await db.checkTrialEligibility(telegramId);
     
@@ -1586,29 +1586,43 @@ app.post('/api/request-trial', async (req, res) => {
       });
     }
     
+    // Mapeo de trialPlanType a nombre legible y etiqueta
+    const planNameMap = {
+      'basico': 'Básico',
+      'avanzado': 'Avanzado',
+      'premium': 'Gaming',
+      'anual': 'Anual'
+    };
+    const selectedPlan = trialPlanType ? (planNameMap[trialPlanType] || trialPlanType) : 'No especificado';
+    // Etiqueta visual para el admin (puedes usar emojis según el plan)
+    let planBadge = '';
+    switch(trialPlanType) {
+      case 'basico': planBadge = '🌐 BÁSICO'; break;
+      case 'avanzado': planBadge = '🌟 AVANZADO'; break;
+      case 'premium': planBadge = '🎮 GAMING'; break;
+      case 'anual': planBadge = '📅 ANUAL'; break;
+      default: planBadge = '🔘 OTRO';
+    }
+    
     const updatedUser = await db.saveUser(telegramId, {
       telegram_id: telegramId,
       username: username,
       first_name: firstName,
       trial_requested: true,
       trial_requested_at: new Date().toISOString(),
-      trial_plan_type: trialType,
+      trial_plan_type: trialPlanType || '1h',    // guardamos el tipo de plan
       trial_game_server: gameServer || '',
       trial_connection_type: connectionType || '',
       is_active: true
     });
     
-    const duracionLabel = trialType === '24h' ? '24 horas' : '1 hora';
-    const tipoBadge = trialType === '24h' ? '🟣 24 HORAS' : '🟢 1 HORA';
-
     const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA* (ENVÍO AUTOMÁTICO)\n\n` +
       `👤 *Usuario:* ${firstName}\n` +
       `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
       `🆔 *ID:* ${telegramId}\n` +
       `🎮 *Juego/Servidor:* ${gameServer || 'No especificado'}\n` +
       `📡 *Conexión:* ${connectionType || 'No especificado'}\n` +
-      `⏱ *Tipo de prueba:* ${tipoBadge}\n` +
-      `⏰ *Duración:* ${duracionLabel}\n` +
+      `📋 *Tipo de plan a probar:* ${planBadge} (${selectedPlan})\n` +
       `📅 *Fecha:* ${new Date().toLocaleString('es-ES')}`;
     
     for (const adminId of ADMIN_IDS) {
@@ -1640,9 +1654,9 @@ app.post('/api/request-trial', async (req, res) => {
       await bot.telegram.sendMessage(
         telegramId,
         `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita ya está aquí!</b>\n\n` +
-        `Acabo de enviarte el archivo de configuración.\n` +
+        `Acabo de enviarte el archivo de configuración para el plan <b>${selectedPlan}</b>.\n` +
         `Revísalo en este mismo chat y actívalo en WireGuard.\n\n` +
-        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Duración:</b> ${duracionLabel}\n` +
+        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Plan probado:</b> ${selectedPlan}\n` +
         `¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
         { parse_mode: 'HTML' }
       );
@@ -1650,7 +1664,7 @@ app.post('/api/request-trial', async (req, res) => {
       res.json({ 
         success: true, 
         message: 'Prueba gratuita enviada automáticamente. Revisa tu chat.',
-        trialType: trialType,
+        trialPlanType: trialPlanType,
         user: updatedUser,
         autoSent: true
       });
@@ -1658,17 +1672,16 @@ app.post('/api/request-trial', async (req, res) => {
       await bot.telegram.sendMessage(
         telegramId,
         `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\n` +
-        'Tu solicitud ha sido registrada. En breve un administrador revisará y te enviará la configuración.\n\n' +
-        `⏰ <b>Duración solicitada:</b> ${duracionLabel}\n` +
-        `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Tiempo estimado:</b> Minutos\n\n` +
-        '¡Gracias por probar VPN Cuba!',
+        `Tu solicitud para el plan <b>${selectedPlan}</b> ha sido registrada. En breve un administrador revisará y te enviará la configuración.\n\n` +
+        `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Plan solicitado:</b> ${selectedPlan}\n` +
+        `¡Gracias por probar VPN Cuba!`,
         { parse_mode: 'HTML' }
       );
       
       res.json({ 
         success: true, 
         message: 'Solicitud registrada. Recibirás la configuración manualmente en breve.',
-        trialType: trialType,
+        trialPlanType: trialPlanType,
         user: updatedUser,
         autoSent: false,
         error: sendError?.message
@@ -3411,8 +3424,6 @@ bot.start(async (ctx) => {
           `*Selecciona una opción:*`;
     }
 
-    // Enviar directamente el menú sin el emoji intermedio
-    // (el emoji ⌛ con remove_keyboard causaba que en grupos solo se viera eso)
     await bot.telegram.sendMessage(
         ctx.chat.id,
         welcomeMessage,

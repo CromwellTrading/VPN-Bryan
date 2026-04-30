@@ -240,14 +240,14 @@ function getFaqHtml() {
            `Haz clic en el botón para abrir la sección de preguntas frecuentes:`;
 }
 
-function buildMainMenuKeyboard(userId, firstName, esAdmin) {
+function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
 
     const inlineKeyboard = [
         [
-            createButton("VER PLANES", { web_app: { url: plansUrl } }),
+            createButton("VER PLANES", isGroup ? { url: plansUrl } : { web_app: { url: plansUrl } }),
             createButton("MI PERFIL", { callback_data: "check_status" })
         ],
         [
@@ -273,7 +273,7 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin) {
 
     if (esAdmin) {
         inlineKeyboard.push([
-            createButton("PANEL ADMIN", { web_app: { url: adminUrl } })
+            createButton("PANEL ADMIN", isGroup ? { url: adminUrl } : { web_app: { url: adminUrl } })
         ]);
     }
 
@@ -542,6 +542,34 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
           fileName = path.basename(testPath);
           break;
         }
+      }
+    }
+
+    // 3. Fallback: descargar desde Supabase public_url si el archivo local no existe
+    if (!filePath) {
+      try {
+        const trialFiles = await db.getTrialFiles();
+        const urlFiles = (trialFiles || []).filter(f => f.is_active !== false && f.public_url);
+        if (urlFiles.length > 0) {
+          const chosen = urlFiles[0];
+          console.log(`🌐 Descargando archivo de prueba desde Supabase: ${chosen.public_url}`);
+          const urlResponse = await fetch(chosen.public_url);
+          if (urlResponse.ok) {
+            const arrayBuf = await urlResponse.arrayBuffer();
+            const ext = path.extname(chosen.original_name || '') || '.conf';
+            const tempPath = path.join(TRIAL_FILES_DIR, `trial_dl_${Date.now()}${ext}`);
+            if (!fs.existsSync(TRIAL_FILES_DIR)) fs.mkdirSync(TRIAL_FILES_DIR, { recursive: true });
+            fs.writeFileSync(tempPath, Buffer.from(arrayBuf));
+            filePath = tempPath;
+            fileName = chosen.original_name || path.basename(tempPath);
+            fileId = chosen.id;
+            console.log(`✅ Archivo descargado y listo: ${fileName}`);
+          } else {
+            console.warn(`⚠️ Error descargando desde URL (${urlResponse.status}): ${chosen.public_url}`);
+          }
+        }
+      } catch (urlErr) {
+        console.warn('⚠️ No se pudo descargar archivo desde Supabase URL:', urlErr.message);
       }
     }
 
@@ -3356,7 +3384,7 @@ bot.start(async (ctx) => {
         await db.saveUser(userId.toString(), userData);
     } catch (error) { console.error('Error guardando usuario:', error); }
 
-    const keyboard = buildMainMenuKeyboard(userId.toString(), firstName, esAdmin);
+    const keyboard = buildMainMenuKeyboard(userId.toString(), firstName, esAdmin, isGroup);
 
     let welcomeMessage;
     if (isGroup) {

@@ -271,9 +271,9 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
         ]
     ];
 
-    if (esAdmin) {
+    if (esAdmin && !isGroup) {
         inlineKeyboard.push([
-            createButton("PANEL ADMIN", isGroup ? { url: adminUrl } : { web_app: { url: adminUrl } })
+            createButton("PANEL ADMIN", { web_app: { url: adminUrl } })
         ]);
     }
 

@@ -42,12 +42,12 @@ if (!db.saveTrialFile) {
     try {
       const { createClient } = require('@supabase/supabase-js');
       const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      // <-- NUEVO: asegurar que trial_type se guarde (si no existe, usar 'general')
-      const dataToInsert = {
+      // Asegurar que trial_type existe (por defecto 'general')
+      const insertData = {
         ...fileData,
         trial_type: fileData.trial_type || 'general'
       };
-      const { data, error } = await sb.from('trial_files').insert([dataToInsert]).select().single();
+      const { data, error } = await sb.from('trial_files').insert([insertData]).select().single();
       if (error) throw error;
       return data;
     } catch(e) { console.warn('⚠️ saveTrialFile falló (tabla puede no existir):', e.message); return fileData; }
@@ -59,7 +59,6 @@ if (!db.updateTrialFile) {
     try {
       const { createClient } = require('@supabase/supabase-js');
       const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      // <-- NUEVO: permitir actualizar trial_type
       const { data, error } = await sb.from('trial_files').update({ ...updateData, updated_at: new Date().toISOString() }).eq('id', id).select().single();
       if (error) throw error;
       return data;
@@ -518,17 +517,16 @@ async function initializeStorageBuckets() {
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS) ====================
+// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS POR TIPO) ====================
 let trialFileRoundRobinIndex = 0;
 
-// <-- NUEVO: añadido parámetro trialType (opcional)
 async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true, trialType = null) {
   try {
     const user = await db.getUser(telegramId);
     if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
 
-    // Si no se proporciona trialType, usar el guardado en el usuario
-    const targetTrialType = trialType || user.trial_plan_type || 'general'; // fallback 'general'
+    // Obtener el tipo de prueba desde el usuario si no se pasa explícitamente
+    const targetTrialType = trialType || user.trial_plan_type || 'basico';
 
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
@@ -537,7 +535,7 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
     let fileName = null;
     let fileId = null;
 
-    // 1. Intentar obtener archivos de prueba activos, filtrando por tipo
+    // 1. Intentar obtener archivos de prueba activos del tipo específico
     try {
       const allTrialFiles = await db.getTrialFiles();
       const activeFiles = (allTrialFiles || []).filter(f => 
@@ -547,9 +545,9 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
       );
 
       if (activeFiles.length > 0) {
-        // Priorizar los del tipo exacto, si no, los generales (o cualquier activo)
+        // Priorizar los del tipo exacto, si no, los generales
         let chosen = activeFiles.find(f => f.trial_type === targetTrialType);
-        if (!chosen) chosen = activeFiles[0]; // toma cualquier general o del tipo que haya
+        if (!chosen) chosen = activeFiles[0];
         filePath = chosen.local_path;
         fileName = chosen.original_name;
         fileId = chosen.id;
@@ -605,7 +603,7 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
     }
 
     if (!filePath) {
-      throw new Error(`No hay archivo de prueba disponible para el tipo "${targetTrialType}". Sube uno en el panel de admin.`);
+      throw new Error(`No hay archivo de prueba disponible para tipo "${targetTrialType}". Sube uno en el panel de admin.`);
     }
 
     const MAX_RETRIES = 3;
@@ -631,7 +629,7 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
           }
         );
         await db.markTrialAsSent(telegramId, adminId);
-        console.log(`✅ Prueba enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
+        console.log(`✅ Prueba (tipo ${targetTrialType}) enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
 
         if (deleteAfterSend && fileId) {
           try {
@@ -681,9 +679,7 @@ async function sendTrialToValidUsers(adminId) {
       try {
         if (!user.telegram_id) { failedCount++; continue; }
 
-        // <-- NUEVO: pasar el tipo de prueba del usuario
-        const trialType = user.trial_plan_type || 'general';
-        await sendTrialConfigToUser(user.telegram_id, adminId, true, trialType);
+        await sendTrialConfigToUser(user.telegram_id, adminId, true, user.trial_plan_type);
         sentCount++;
         await new Promise(resolve => setTimeout(resolve, 80));
       } catch (error) {
@@ -1664,7 +1660,6 @@ app.post('/api/request-trial', async (req, res) => {
         throw new Error(`Usuario no disponible: ${canSend.reason}`);
       }
       
-      // <-- NUEVO: pasar el tipo de prueba (trialPlanType)
       await sendTrialConfigToUser(telegramId, 'system', true, trialPlanType);
       sentSuccessfully = true;
       console.log(`✅ Prueba enviada automáticamente a ${telegramId}`);
@@ -1858,9 +1853,7 @@ app.post('/api/send-trial-config', async (req, res) => {
       });
     }
 
-    // <-- NUEVO: pasar el tipo de prueba del usuario
-    const trialType = user.trial_plan_type || 'general';
-    await sendTrialConfigToUser(chatId, adminId, true, trialType);
+    await sendTrialConfigToUser(chatId, adminId, true, user.trial_plan_type);
 
     res.json({
       success: true,
@@ -2456,7 +2449,7 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
 
 app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   try {
-    const { adminId, label, trialType } = req.body; // <-- NUEVO: recibir trialType
+    const { adminId, label, trialType } = req.body;
 
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
@@ -2487,7 +2480,6 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
       console.warn('⚠️ Supabase backup falló (archivo local OK):', e.message);
     }
 
-    // <-- NUEVO: guardar trial_type
     const saved = await db.saveTrialFile({
       original_name: req.file.originalname,
       local_path: localPath,
@@ -2495,7 +2487,7 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
       label: label || req.file.originalname,
       uploaded_by: adminId,
       is_active: true,
-      trial_type: trialType || 'general',   // <-- NUEVO
+      trial_type: trialType || 'general',  // NUEVO: tipo de prueba
       uploaded_at: new Date().toISOString()
     });
 
@@ -2584,8 +2576,7 @@ app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
     } catch(e) { console.warn('⚠️ Supabase backup falló:', e.message); }
 
     try {
-      // <-- NUEVO: guardar con trial_type 'general' para legacy
-      await db.saveTrialFile({ original_name: req.file.originalname, local_path: poolPath, public_url: publicUrl, label: req.file.originalname, uploaded_by: adminId, is_active: true, trial_type: 'general', uploaded_at: new Date().toISOString() });
+      await db.saveTrialFile({ original_name: req.file.originalname, local_path: poolPath, public_url: publicUrl, label: req.file.originalname, uploaded_by: adminId, is_active: true, uploaded_at: new Date().toISOString() });
     } catch(e) { console.warn('⚠️ No se pudo añadir al pool (tabla puede no existir aún):', e.message); }
 
     res.json({ success: true, message: 'Archivo de prueba subido', file: { local_path: targetPath } });
@@ -3495,7 +3486,7 @@ bot.command('referidos', async (ctx) => {
     }
 });
 
-bot.command('cupon', async (ctx) => {
+bot.command('cupon', async (req, res) => {
     await ctx.reply(`🎫 *Verificar cupón*\n\nEnvía el código de cupón como respuesta a este mensaje.`, { parse_mode: 'Markdown' });
 });
 

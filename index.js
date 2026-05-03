@@ -1,4 +1,4 @@
-const express = require('express');
+ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
@@ -12,83 +12,107 @@ const app = express();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const db = require('./supabase');
 
-// Métodos stub para trial_files — funcionan sin la tabla en BD todavía.
-if (!db.getTrialFiles) {
-  db.getTrialFiles = async () => {
+// ==================== PLAN TYPES ====================
+// Todos los tipos de plan con pool propio
+const PLAN_TYPES = ['basico', 'avanzado', 'premium', 'anual'];
+
+// ==================== STUB MÉTODOS TRIAL FILES (uno por plan) ====================
+// Cada función acepta planType para operar sobre la tabla/bucket correcto.
+// Las tablas en Supabase se llaman: trial_files_basico, trial_files_avanzado,
+// trial_files_premium, trial_files_anual
+
+function getTrialTableName(planType) {
+  const valid = ['basico', 'avanzado', 'premium', 'anual'];
+  return valid.includes(planType) ? `trial_files_${planType}` : 'trial_files_basico';
+}
+
+function getSbClient() {
+  const { createClient } = require('@supabase/supabase-js');
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
+  );
+}
+
+if (!db.getTrialFilesByPlan) {
+  db.getTrialFilesByPlan = async (planType) => {
     try {
-      const { createClient } = require('@supabase/supabase-js');
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      const { data, error } = await sb.from('trial_files').select('*').order('uploaded_at', { ascending: false });
+      const sb = getSbClient();
+      const table = getTrialTableName(planType);
+      const { data, error } = await sb.from(table).select('*').order('uploaded_at', { ascending: false });
       if (error) throw error;
       return data || [];
-    } catch(e) { console.warn('⚠️ trial_files tabla no existe aún:', e.message); return []; }
+    } catch(e) { console.warn(`⚠️ trial_files_${planType} tabla no existe aún:`, e.message); return []; }
   };
 }
 
-if (!db.getTrialFile) {
-  db.getTrialFile = async (id) => {
+if (!db.getTrialFileByPlan) {
+  db.getTrialFileByPlan = async (planType, id) => {
     try {
-      const { createClient } = require('@supabase/supabase-js');
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      const { data, error } = await sb.from('trial_files').select('*').eq('id', id).single();
+      const sb = getSbClient();
+      const table = getTrialTableName(planType);
+      const { data, error } = await sb.from(table).select('*').eq('id', id).single();
       if (error) throw error;
       return data;
     } catch(e) { return null; }
   };
 }
 
-if (!db.saveTrialFile) {
-  db.saveTrialFile = async (fileData) => {
+if (!db.saveTrialFileByPlan) {
+  db.saveTrialFileByPlan = async (planType, fileData) => {
     try {
-      const { createClient } = require('@supabase/supabase-js');
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      const { data, error } = await sb.from('trial_files').insert([fileData]).select().single();
+      const sb = getSbClient();
+      const table = getTrialTableName(planType);
+      const { data, error } = await sb.from(table).insert([fileData]).select().single();
       if (error) throw error;
       return data;
-    } catch(e) { console.warn('⚠️ saveTrialFile falló (tabla puede no existir):', e.message); return fileData; }
+    } catch(e) { console.warn(`⚠️ saveTrialFileByPlan(${planType}) falló:`, e.message); return fileData; }
   };
 }
 
-if (!db.updateTrialFile) {
-  db.updateTrialFile = async (id, updateData) => {
+if (!db.updateTrialFileByPlan) {
+  db.updateTrialFileByPlan = async (planType, id, updateData) => {
     try {
-      const { createClient } = require('@supabase/supabase-js');
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      const { data, error } = await sb.from('trial_files').update({ ...updateData, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+      const sb = getSbClient();
+      const table = getTrialTableName(planType);
+      const { data, error } = await sb.from(table).update({ ...updateData, updated_at: new Date().toISOString() }).eq('id', id).select().single();
       if (error) throw error;
       return data;
     } catch(e) { return null; }
   };
 }
 
-if (!db.deleteTrialFile) {
-  db.deleteTrialFile = async (id) => {
+if (!db.deleteTrialFileByPlan) {
+  db.deleteTrialFileByPlan = async (planType, id) => {
     try {
-      const { createClient } = require('@supabase/supabase-js');
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      const { error } = await sb.from('trial_files').delete().eq('id', id);
+      const sb = getSbClient();
+      const table = getTrialTableName(planType);
+      const { error } = await sb.from(table).delete().eq('id', id);
       if (error) throw error;
       return true;
     } catch(e) { return false; }
   };
 }
 
+// Compatibilidad: stubs legacy (sin plan) — redirigen a basico por defecto
+if (!db.getTrialFiles)    db.getTrialFiles    = async () => db.getTrialFilesByPlan('basico');
+if (!db.getTrialFile)     db.getTrialFile     = async (id) => db.getTrialFileByPlan('basico', id);
+if (!db.saveTrialFile)    db.saveTrialFile    = async (d) => db.saveTrialFileByPlan('basico', d);
+if (!db.updateTrialFile)  db.updateTrialFile  = async (id, d) => db.updateTrialFileByPlan('basico', id, d);
+if (!db.deleteTrialFile)  db.deleteTrialFile  = async (id) => db.deleteTrialFileByPlan('basico', id);
+
 const PORT = process.env.PORT || 5000;
 
-// Cliente Supabase Admin para crear buckets (usando service_role)
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// IDs de administradores
-const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ? 
-    process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) : 
+const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS ?
+    process.env.ADMIN_TELEGRAM_IDS.split(',').map(id => id.trim()) :
     ['6373481979', '5376388604', '6974850309', '5985313284'];
 
-// ==================== CONFIGURACIÓN USDT (MANUAL) ====================
 const USDT_CONFIG = {
-    // WALLET ACTUALIZADA
     WALLET_ADDRESS: '0x9065C7d2cC04134A55F6Abf2B4118C11A8A01ff2',
     BSCSCAN_API_KEY: '',
     USDT_CONTRACT_ADDRESS: '0x55d398326f99059ff775485246999027b3197955',
@@ -103,30 +127,26 @@ const USDT_PRICES = {
     'anual': '30'
 };
 
-// LINK DE WHATSAPP ACTUALIZADO
 const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t';
 
-// Verificar si es administrador
 function isAdmin(userId) {
     return ADMIN_IDS.includes(userId.toString());
 }
 
-// Función para verificar si un usuario puede recibir mensajes
 async function canSendMessageToUser(telegramId) {
     try {
         await bot.telegram.sendChatAction(telegramId, 'typing');
         return { canSend: true, reason: 'Usuario disponible' };
     } catch (error) {
         console.log(`❌ Usuario ${telegramId} no disponible: ${error.description || error.message}`);
-        return { 
-            canSend: false, 
+        return {
+            canSend: false,
             reason: error.description || error.message,
             errorCode: error.response?.error_code || 400
         };
     }
 }
 
-// ==================== MAPA DE ICONOS PERSONALIZADOS ====================
 const BUTTON_ICONS = {
     'VER PLANES': '5983399041197675256',
     'MI PERFIL': '6021659919835469581',
@@ -156,9 +176,7 @@ const BUTTON_ICONS = {
 function createButton(text, options) {
     const button = { text };
     const iconId = BUTTON_ICONS[text.toUpperCase()];
-    if (iconId) {
-        button.icon_custom_emoji_id = iconId;
-    }
+    if (iconId) button.icon_custom_emoji_id = iconId;
     Object.assign(button, options);
     return button;
 }
@@ -167,13 +185,11 @@ function getVipStatusHtml(user) {
     const vipSince = formatearFecha(user.vip_since);
     const diasRestantes = calcularDiasRestantes(user);
     const planNombre = user.plan ? getPlanName(user.plan) : 'No especificado';
-    
     let html = `<tg-emoji emoji-id="6019175208240289774">👑</tg-emoji> <b>¡ERES USUARIO VIP!</b>\n\n`;
     html += `<tg-emoji emoji-id="6023880246128810031">📅</tg-emoji> <b>Activado:</b> ${vipSince}\n`;
     html += `<tg-emoji emoji-id="6021435576513730578">📋</tg-emoji> <b>Plan:</b> ${planNombre}\n`;
     html += `<tg-emoji emoji-id="5778202206922608769">⏳</tg-emoji> <b>Días restantes:</b> ${diasRestantes} días\n`;
     html += `<tg-emoji emoji-id="5992430854909989581">💰</tg-emoji> <b>Precio:</b> $${user.plan_price || '0'} CUP\n\n`;
-    
     if (diasRestantes <= 7) {
         html += `<tg-emoji emoji-id="6019102674832595118">⚠️</tg-emoji> <b>TU PLAN ESTÁ POR EXPIRAR PRONTO</b>\nRenueva ahora para mantener tu acceso VIP.\n\n`;
     } else {
@@ -210,7 +226,6 @@ function getReferralInfoHtml(userId, referralStats) {
                `3. Por cada referido que pague un plan, obtienes un descuento:\n` +
                `   • Nivel 1 (referido directo): 20% de descuento\n` +
                `   • Nivel 2 (referido de tu referido): 10% de descuento\n\n`;
-    
     if (referralStats) {
         html += `<b>Tus estadísticas:</b>\n` +
                 `• Referidos directos (Nivel 1): ${referralStats.level1?.total || 0} (${referralStats.level1?.paid || 0} pagados)\n` +
@@ -244,7 +259,6 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}`;
     const plansUrl = `${webappUrl}/plans.html?userId=${userId}`;
     const adminUrl = `${webappUrl}/admin.html?userId=${userId}&admin=true`;
-
     const inlineKeyboard = [
         [
             createButton("VER PLANES", isGroup ? { url: plansUrl } : { web_app: { url: plansUrl } }),
@@ -266,25 +280,14 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
             createButton("WHATSAPP G1", { url: WHATSAPP_GROUP_LINK }),
             createButton("WHATSAPP G2", { url: "https://chat.whatsapp.com/Lf3oMMKSHhY4pX5d2bE4TJ" })
         ],
-        [
-            createButton("FAQ", { callback_data: "faq" })
-        ]
+        [createButton("FAQ", { callback_data: "faq" })]
     ];
-
     if (esAdmin && !isGroup) {
-        inlineKeyboard.push([
-            createButton("PANEL ADMIN", { web_app: { url: adminUrl } })
-        ]);
+        inlineKeyboard.push([createButton("PANEL ADMIN", { web_app: { url: adminUrl } })]);
     }
-
-    return {
-        reply_markup: {
-            inline_keyboard: inlineKeyboard
-        }
-    };
+    return { reply_markup: { inline_keyboard: inlineKeyboard } };
 }
 
-// Devuelve web_app en privado y url en grupos (web_app no funciona en grupos)
 function wa(url, ctx) {
     const chatType = ctx.chat?.type || ctx.callbackQuery?.message?.chat?.type;
     const inGroup = chatType === 'group' || chatType === 'supergroup';
@@ -301,43 +304,27 @@ app.use(express.static('public'));
 
 const storage = multer.diskStorage({
   destination: 'uploads/',
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+  filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
-  limits: { 
-    fileSize: 20 * 1024 * 1024,
-    files: 1 
-  },
+  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'screenshot') {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Solo se permiten imágenes JPG, PNG, GIF o WebP'));
-      }
-    } else if (file.fieldname === 'configFile' || file.fieldname === 'trialConfigFile' || file.fieldname === 'planFile') {
+      if (allowedTypes.includes(file.mimetype)) cb(null, true);
+      else cb(new Error('Solo se permiten imágenes JPG, PNG, GIF o WebP'));
+    } else if (['configFile', 'trialConfigFile', 'planFile', 'file'].includes(file.fieldname)) {
       const allowedExtensions = ['.conf', '.zip', '.rar'];
       const allowedMimeTypes = [
-        'application/zip', 
-        'application/x-rar-compressed', 
-        'application/x-zip-compressed',
-        'application/octet-stream',
-        'text/plain',
-        'application/x-conf'
+        'application/zip', 'application/x-rar-compressed',
+        'application/x-zip-compressed', 'application/octet-stream',
+        'text/plain', 'application/x-conf'
       ];
       const fileExt = path.extname(file.originalname).toLowerCase();
-      const fileMime = file.mimetype.toLowerCase();
-      
-      if (allowedExtensions.includes(fileExt) || allowedMimeTypes.includes(fileMime)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Solo se permiten archivos .conf, .zip o .rar'));
-      }
+      if (allowedExtensions.includes(fileExt) || allowedMimeTypes.includes(file.mimetype.toLowerCase())) cb(null, true);
+      else cb(new Error('Solo se permiten archivos .conf, .zip o .rar'));
     } else {
       cb(null, true);
     }
@@ -345,49 +332,54 @@ const upload = multer({
 });
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
-const TRIAL_FILES_DIR = path.join(__dirname, 'uploads/trial_files');
+// Carpetas por plan
+const TRIAL_DIRS = {};
+for (const pt of PLAN_TYPES) {
+  TRIAL_DIRS[pt] = path.join(__dirname, `uploads/trial_files_${pt}`);
+}
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-if (!fs.existsSync(TRIAL_FILES_DIR)) fs.mkdirSync(TRIAL_FILES_DIR, { recursive: true });
+for (const pt of PLAN_TYPES) {
+  if (!fs.existsSync(TRIAL_DIRS[pt])) fs.mkdirSync(TRIAL_DIRS[pt], { recursive: true });
+}
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 
-// Ruta fija para el archivo de prueba actual (sin depender de BD)
-const TRIAL_CURRENT_FILE = path.join(TRIAL_FILES_DIR, 'trial_current');
+// Ruta de fallback (archivo de plan individual para trial legacy)
+const TRIAL_CURRENT_FILE = path.join(UPLOADS_DIR, 'trial_files_basico', 'trial_current');
 
 function getPlanName(planType) {
   const plans = {
     'basico': 'Básico (1 mes)',
     'avanzado': 'Avanzado (2 meses)',
-    'premium': 'Premium (1 mes)',
+    'premium': 'Gaming (1 mes)',
     'anual': 'Anual (12 meses)',
     'trial': 'Prueba Gratuita'
   };
   return plans[planType] || planType;
 }
 
-function generateUniqueUsdtAddress() {
-    return USDT_CONFIG.WALLET_ADDRESS;
+function getPlanLabel(planType) {
+  const labels = {
+    'basico': '🌐 Básico',
+    'avanzado': '🌟 Avanzado',
+    'premium': '🎮 Gaming',
+    'anual': '📅 Anual'
+  };
+  return labels[planType] || planType;
 }
+
+function generateUniqueUsdtAddress() { return USDT_CONFIG.WALLET_ADDRESS; }
 
 function formatearFecha(fecha) {
     if (!fecha) return 'N/A';
     try {
         const date = new Date(fecha);
-        if (isNaN(date.getTime())) {
-            return 'Fecha inválida';
-        }
-        const options = { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
+        if (isNaN(date.getTime())) return 'Fecha inválida';
+        return date.toLocaleDateString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
             timeZone: 'America/Havana'
-        };
-        return date.toLocaleDateString('es-ES', options);
-    } catch (error) {
-        return 'Error fecha';
-    }
+        });
+    } catch (error) { return 'Error fecha'; }
 }
 
 function calcularDiasRestantes(user) {
@@ -420,83 +412,42 @@ async function initializeUsdtSystem() {
 async function createStorageBucket(bucketName, isPublic = true) {
   try {
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
-    if (listError) {
-      console.error('❌ Error listando buckets:', listError.message);
-      return { success: false, error: listError.message };
-    }
+    if (listError) { console.error('❌ Error listando buckets:', listError.message); return { success: false, error: listError.message }; }
     const bucketExists = buckets?.some(b => b.name === bucketName);
-    if (bucketExists) {
-      console.log(`✅ Bucket ${bucketName} ya existe`);
-      return { success: true, exists: true };
-    }
+    if (bucketExists) { console.log(`✅ Bucket ${bucketName} ya existe`); return { success: true, exists: true }; }
     const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
-      public: isPublic,
-      allowedMimeTypes: null,
-      fileSizeLimit: 20971520,
-      avifAutodetection: false
+      public: isPublic, allowedMimeTypes: null, fileSizeLimit: 20971520, avifAutodetection: false
     });
-    if (error) {
-      console.error(`❌ Error creando bucket ${bucketName}:`, error.message);
-      return await createBucketViaAPI(bucketName, isPublic);
-    }
+    if (error) { console.error(`❌ Error creando bucket ${bucketName}:`, error.message); return await createBucketViaAPI(bucketName, isPublic); }
     console.log(`✅ Bucket ${bucketName} creado exitosamente`);
     return { success: true, data };
-  } catch (error) {
-    console.error(`❌ Error en createStorageBucket:`, error.message);
-    return { success: false, error: error.message };
-  }
+  } catch (error) { console.error(`❌ Error en createStorageBucket:`, error.message); return { success: false, error: error.message }; }
 }
 
 async function createBucketViaAPI(bucketName, isPublic = true) {
   try {
     const response = await fetch(`${process.env.SUPABASE_URL}/storage/v1/bucket`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY
-      },
-      body: JSON.stringify({
-        name: bucketName,
-        public: isPublic,
-        allowed_mime_types: null,
-        file_size_limit: 20971520
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY },
+      body: JSON.stringify({ name: bucketName, public: isPublic, allowed_mime_types: null, file_size_limit: 20971520 })
     });
-    if (response.ok) {
-      console.log(`✅ Bucket ${bucketName} creado via API REST`);
-      return { success: true };
-    } else {
-      const errorText = await response.text();
-      console.error(`❌ Error API REST para ${bucketName}:`, errorText);
-      return { success: false, error: errorText };
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+    if (response.ok) { console.log(`✅ Bucket ${bucketName} creado via API REST`); return { success: true }; }
+    else { const errorText = await response.text(); console.error(`❌ Error API REST para ${bucketName}:`, errorText); return { success: false, error: errorText }; }
+  } catch (error) { return { success: false, error: error.message }; }
 }
 
 async function verifyStorageBuckets() {
   try {
-    const buckets = ['payments-screenshots', 'plan-files', 'trial-files'];
+    const buckets = ['payments-screenshots', 'plan-files', 'trial-files-basico', 'trial-files-avanzado', 'trial-files-premium', 'trial-files-anual'];
     for (const bucketName of buckets) {
       try {
         const { data, error } = await supabaseAdmin.storage.from(bucketName).list();
-        if (error && error.message.includes('not found')) {
-          console.log(`📦 Creando bucket ${bucketName}...`);
-          await createStorageBucket(bucketName, true);
-        } else if (error) {
-          console.error(`⚠️ Error verificando ${bucketName}:`, error.message);
-        } else {
-          console.log(`✅ Bucket ${bucketName} existe`);
-        }
-      } catch (bucketError) {
-        console.error(`⚠️ Error procesando ${bucketName}:`, bucketError.message);
-      }
+        if (error && error.message.includes('not found')) { console.log(`📦 Creando bucket ${bucketName}...`); await createStorageBucket(bucketName, true); }
+        else if (error) console.error(`⚠️ Error verificando ${bucketName}:`, error.message);
+        else console.log(`✅ Bucket ${bucketName} existe`);
+      } catch (bucketError) { console.error(`⚠️ Error procesando ${bucketName}:`, bucketError.message); }
     }
-  } catch (error) {
-    console.error('❌ Error en verifyStorageBuckets:', error.message);
-  }
+  } catch (error) { console.error('❌ Error en verifyStorageBuckets:', error.message); }
 }
 
 async function initializeStorageBuckets() {
@@ -504,18 +455,16 @@ async function initializeStorageBuckets() {
   const buckets = [
     { name: 'payments-screenshots', public: true },
     { name: 'plan-files', public: true },
-    { name: 'trial-files', public: true }
+    { name: 'trial-files-basico', public: true },
+    { name: 'trial-files-avanzado', public: true },
+    { name: 'trial-files-premium', public: true },
+    { name: 'trial-files-anual', public: true }
   ];
-  for (const bucket of buckets) {
-    await createStorageBucket(bucket.name, bucket.public);
-  }
+  for (const bucket of buckets) { await createStorageBucket(bucket.name, bucket.public); }
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS POR TIPO DE PLAN) ====================
-// Índice round‑robin por tipo de plan
-let trialFileRoundRobinIndexByType = {};   // ej: { "basico": 0, "premium": 0, "general": 0 }
-
+// ==================== ENVIAR PRUEBA (POOL POR PLAN) ====================
 async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true) {
   try {
     const user = await db.getUser(telegramId);
@@ -523,101 +472,67 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
 
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
-    const planType = user.trial_plan_type || null;   // "basico", "avanzado", "premium", "anual"
+    // Determinar qué pool usar según el plan que pidió el usuario
+    const trialPlanType = user.trial_plan_type || 'basico';
+    const planLabel = getPlanLabel(trialPlanType);
 
     let filePath = null;
     let fileName = null;
     let fileId = null;
-    let isTemporaryFile = false;   // para saber si debemos borrarlo después
 
-    // 1. Obtener archivos activos de prueba desde la BD, opcionalmente filtrados por plan_type
-    let activeFiles = [];
+    // 1. Intentar pool del plan correspondiente (BD)
     try {
-      const trialFiles = await db.getTrialFiles();   // obtiene todos
-      activeFiles = trialFiles.filter(f => {
-        if (f.is_active === false) return false;
-        // Si el archivo tiene un plan_type específico, debe coincidir con el del usuario
-        if (f.plan_type && planType && f.plan_type !== planType) return false;
-        // Si el archivo NO tiene plan_type, se considera "general" → válido para cualquier plan
-        // (solo si no existe un archivo específico para el plan, pero lo manejamos después)
-        return true;
-      });
+      const trialFiles = await db.getTrialFilesByPlan(trialPlanType);
+      const activeFiles = (trialFiles || []).filter(f => f.is_active !== false && f.local_path && fs.existsSync(f.local_path));
+      if (activeFiles.length > 0) {
+        const chosen = activeFiles[0];
+        filePath = chosen.local_path;
+        fileName = chosen.original_name;
+        fileId = chosen.id;
+        console.log(`📁 Pool ${trialPlanType}: usando archivo #${chosen.id}: ${fileName}`);
+      }
     } catch (dbErr) {
-      console.warn('⚠️ No se pudieron obtener archivos de prueba de BD:', dbErr.message);
+      console.warn(`⚠️ No se pudieron obtener archivos del pool ${trialPlanType}:`, dbErr.message);
     }
 
-    // 2. Si no hay archivos, intentar con archivos generales (plan_type = null)
-    if (activeFiles.length === 0 && planType) {
-      try {
-        const trialFiles = await db.getTrialFiles();
-        activeFiles = trialFiles.filter(f => f.is_active !== false && !f.plan_type);
-      } catch (dbErr) {}
-    }
-
-    // 3. Si todavía no hay archivos, intentar archivo local fijo (trial_current)
-    if (activeFiles.length === 0) {
-      const extensions = ['.conf', '.zip', '.rar'];
-      for (const ext of extensions) {
-        const testPath = TRIAL_CURRENT_FILE + ext;
-        if (fs.existsSync(testPath)) {
-          filePath = testPath;
-          fileName = path.basename(testPath);
-          break;
-        }
+    // 2. Fallback: archivo local legacy (ruta fija)
+    if (!filePath) {
+      const dir = TRIAL_DIRS[trialPlanType] || TRIAL_DIRS['basico'];
+      for (const ext of ['.conf', '.zip', '.rar']) {
+        const testPath = path.join(dir, 'trial_current' + ext);
+        if (fs.existsSync(testPath)) { filePath = testPath; fileName = path.basename(testPath); break; }
       }
     }
 
-    // 4. Fallback: descargar desde Supabase public_url (solo si el archivo local no existe)
-    if (!filePath && activeFiles.length === 0) {
+    // 3. Fallback: descargar desde Supabase public_url
+    if (!filePath) {
       try {
-        const trialFiles = await db.getTrialFiles();
-        const urlFiles = trialFiles.filter(f => f.is_active !== false && f.public_url);
+        const trialFiles = await db.getTrialFilesByPlan(trialPlanType);
+        const urlFiles = (trialFiles || []).filter(f => f.is_active !== false && f.public_url);
         if (urlFiles.length > 0) {
           const chosen = urlFiles[0];
-          console.log(`🌐 Descargando archivo de prueba desde Supabase: ${chosen.public_url}`);
+          console.log(`🌐 Descargando desde Supabase (${trialPlanType}): ${chosen.public_url}`);
           const urlResponse = await fetch(chosen.public_url);
           if (urlResponse.ok) {
             const arrayBuf = await urlResponse.arrayBuffer();
             const ext = path.extname(chosen.original_name || '') || '.conf';
-            const tempPath = path.join(TRIAL_FILES_DIR, `trial_dl_${Date.now()}${ext}`);
-            if (!fs.existsSync(TRIAL_FILES_DIR)) fs.mkdirSync(TRIAL_FILES_DIR, { recursive: true });
+            const dir = TRIAL_DIRS[trialPlanType] || TRIAL_DIRS['basico'];
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            const tempPath = path.join(dir, `trial_dl_${Date.now()}${ext}`);
             fs.writeFileSync(tempPath, Buffer.from(arrayBuf));
-            filePath = tempPath;
-            fileName = chosen.original_name || path.basename(tempPath);
-            fileId = chosen.id;
-            isTemporaryFile = true;
-            console.log(`✅ Archivo descargado y listo: ${fileName}`);
-          } else {
-            console.warn(`⚠️ Error descargando desde URL (${urlResponse.status}): ${chosen.public_url}`);
+            filePath = tempPath; fileName = chosen.original_name || path.basename(tempPath); fileId = chosen.id;
+            console.log(`✅ Archivo descargado (${trialPlanType}): ${fileName}`);
           }
         }
       } catch (urlErr) {
-        console.warn('⚠️ No se pudo descargar archivo desde Supabase URL:', urlErr.message);
+        console.warn(`⚠️ No se pudo descargar archivo desde Supabase (${trialPlanType}):`, urlErr.message);
       }
-    }
-
-    // 5. Selección round‑robin si tenemos múltiples archivos en activeFiles (pool local)
-    if (activeFiles.length > 0 && !filePath) {
-      // Inicializar índice para este tipo de plan si no existe
-      const typeKey = planType || 'general';
-      if (trialFileRoundRobinIndexByType[typeKey] === undefined) {
-        trialFileRoundRobinIndexByType[typeKey] = 0;
-      }
-      const idx = trialFileRoundRobinIndexByType[typeKey] % activeFiles.length;
-      const chosen = activeFiles[idx];
-      trialFileRoundRobinIndexByType[typeKey] = idx + 1;
-
-      filePath = chosen.local_path;
-      fileName = chosen.original_name;
-      fileId = chosen.id;
-      console.log(`📁 Usando archivo de prueba #${chosen.id} (${typeKey} pool): ${fileName}`);
     }
 
     if (!filePath) {
-      throw new Error('No hay archivo de prueba disponible para este tipo de plan. Sube uno en el panel de admin.');
+      throw new Error(`No hay archivo de prueba disponible para el plan ${planLabel}. Sube uno en el panel de admin → Pool de Pruebas.`);
     }
 
-    // Enviar el documento
     const MAX_RETRIES = 3;
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -627,7 +542,8 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
           { source: filePath, filename: fileName },
           {
             caption: `<tg-emoji emoji-id="5875465628285931233">🎁</tg-emoji> <b>¡Tu prueba gratuita de VPN Cuba está lista!</b>\n\n` +
-                     `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n\n` +
+                     `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${fileName}\n` +
+                     `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Plan probado:</b> ${planLabel}\n\n` +
                      `<tg-emoji emoji-id="6021744990252702234">🎮</tg-emoji> <b>Juego/Servidor:</b> ${gameServer}\n` +
                      `<tg-emoji emoji-id="6021744990252702234">📡</tg-emoji> <b>Conexión:</b> ${connectionType}\n\n` +
                      `<b>Instrucciones de instalación:</b>\n` +
@@ -641,16 +557,15 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
           }
         );
         await db.markTrialAsSent(telegramId, adminId);
-        console.log(`✅ Prueba enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
+        console.log(`✅ Prueba ${planLabel} enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
 
-        // Eliminar solo si es un archivo temporal o si se pidió explícitamente (deleteAfterSend)
-        if (deleteAfterSend && isTemporaryFile) {
-          if (filePath && fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`🗑️ Archivo temporal eliminado: ${filePath}`);
-          }
+        if (deleteAfterSend && fileId) {
+          try {
+            if (filePath && fs.existsSync(filePath)) { fs.unlinkSync(filePath); console.log(`🗑️ Archivo eliminado: ${filePath}`); }
+            await db.deleteTrialFileByPlan(trialPlanType, fileId);
+            console.log(`🗑️ Registro #${fileId} del pool ${trialPlanType} eliminado`);
+          } catch (delErr) { console.warn(`⚠️ No se pudo eliminar archivo #${fileId}:`, delErr.message); }
         }
-        // NO eliminar archivos del pool (ni su registro) porque son reutilizables
         return true;
       } catch (sendError) {
         lastError = sendError;
@@ -658,9 +573,7 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
         console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido para ${telegramId}: ${errorMsg}`);
         if (errorMsg.includes('chat not found') || errorMsg.includes('bot was blocked') ||
             errorMsg.includes('user is deactivated') || errorMsg.includes('kicked') ||
-            sendError.response?.error_code === 403 || sendError.response?.error_code === 400) {
-          break;
-        }
+            sendError.response?.error_code === 403 || sendError.response?.error_code === 400) break;
         if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, attempt * 1500));
       }
     }
@@ -675,18 +588,12 @@ async function sendTrialToValidUsers(adminId) {
   try {
     console.log('🎯 Enviando pruebas a usuarios pendientes...');
     const pendingTrials = await db.getPendingTrials();
-    if (!pendingTrials || pendingTrials.length === 0) {
-      console.log('📭 No hay pruebas pendientes');
-      return { success: true, message: 'No hay pruebas pendientes' };
-    }
-
+    if (!pendingTrials || pendingTrials.length === 0) { console.log('📭 No hay pruebas pendientes'); return { success: true, message: 'No hay pruebas pendientes' }; }
     let sentCount = 0, failedCount = 0, unavailableCount = 0;
-
     for (let i = 0; i < pendingTrials.length; i++) {
       const user = pendingTrials[i];
       try {
         if (!user.telegram_id) { failedCount++; continue; }
-
         await sendTrialConfigToUser(user.telegram_id, adminId, true);
         sentCount++;
         await new Promise(resolve => setTimeout(resolve, 80));
@@ -697,15 +604,12 @@ async function sendTrialToValidUsers(adminId) {
                             errMsg.includes('user is deactivated') || errMsg.includes('kicked');
         if (isPermanent) {
           unavailableCount++;
-          try {
-            await db.updateUser(user.telegram_id, { is_active: false, last_error: errMsg, updated_at: new Date().toISOString() });
-          } catch (e) { /* no crítico */ }
+          try { await db.updateUser(user.telegram_id, { is_active: false, last_error: errMsg, updated_at: new Date().toISOString() }); } catch (e) {}
         }
         console.error(`❌ Error procesando prueba para ${user.telegram_id}:`, errMsg);
       }
     }
-
-    console.log(`✅ Envío de pruebas completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
+    console.log(`✅ Envío completado: ${sentCount} enviadas, ${failedCount} fallidas, ${unavailableCount} no disponibles`);
     return { success: true, sent: sentCount, failed: failedCount, unavailable: unavailableCount, total: pendingTrials.length };
   } catch (error) {
     console.error('❌ Error en sendTrialToValidUsers:', error);
@@ -713,7 +617,6 @@ async function sendTrialToValidUsers(adminId) {
   }
 }
 
-// ==================== HELPER: OBTENER USUARIOS BROADCAST CON PAGINACIÓN ====================
 async function getAllUsersForBroadcast(target) {
   try {
     if (target !== 'all' && target !== 'active') {
@@ -721,18 +624,14 @@ async function getAllUsersForBroadcast(target) {
       console.log(`📢 Broadcast target "${target}": ${users.length} usuarios`);
       return users;
     }
-
     console.log(`📢 Broadcast target "${target}": obteniendo TODOS con paginación...`);
     const allUsers = await db.getAllUsers(1000000, 0);
     let filtered = allUsers;
     if (target === 'active') {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      filtered = allUsers.filter(u => 
-        u.last_activity && new Date(u.last_activity) >= thirtyDaysAgo
-      );
+      filtered = allUsers.filter(u => u.last_activity && new Date(u.last_activity) >= thirtyDaysAgo);
     }
-
     console.log(`📢 Broadcast target "${target}": ${filtered.length} usuarios (de ${allUsers.length} totales)`);
     return filtered;
   } catch (err) {
@@ -744,260 +643,88 @@ async function getAllUsersForBroadcast(target) {
 // ==================== RUTAS API ====================
 
 app.get('/api/check-admin/:telegramId', (req, res) => {
-  const isAdminUser = isAdmin(req.params.telegramId);
-  res.json({ isAdmin: isAdminUser });
+  res.json({ isAdmin: isAdmin(req.params.telegramId) });
 });
 
 app.post('/api/accept-terms', async (req, res) => {
   try {
     const { telegramId, username, firstName, referrerId, referrerUsername } = req.body;
-    
-    const userData = {
-      telegram_id: telegramId,
-      username: username,
-      first_name: firstName,
-      accepted_terms: true,
-      terms_date: new Date().toISOString(),
-      is_active: true
-    };
-
+    const userData = { telegram_id: telegramId, username, first_name: firstName, accepted_terms: true, terms_date: new Date().toISOString(), is_active: true };
     if (referrerId) {
-      userData.referrer_id = referrerId;
-      userData.referrer_username = referrerUsername;
-      try {
-        await db.createReferral(referrerId, telegramId, username, firstName);
-        console.log(`✅ Referido creado: ${referrerId} -> ${telegramId}`);
-      } catch (refError) {
-        console.log('⚠️ Error creando referido, continuando...', refError.message);
-      }
+      userData.referrer_id = referrerId; userData.referrer_username = referrerUsername;
+      try { await db.createReferral(referrerId, telegramId, username, firstName); } catch (refError) { console.log('⚠️ Error creando referido:', refError.message); }
     }
-
     const user = await db.saveUser(telegramId, userData);
     res.json({ success: true, user });
-  } catch (error) {
-    console.error('❌ Error aceptando términos:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+  } catch (error) { console.error('❌ Error aceptando términos:', error); res.status(500).json({ error: 'Error interno del servidor' }); }
 });
 
 app.get('/api/check-terms/:telegramId', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
-    res.json({ 
-      accepted: user?.accepted_terms || false,
-      user: user
-    });
-  } catch (error) {
-    console.error('❌ Error verificando términos:', error);
-    res.json({ accepted: false });
-  }
+    res.json({ accepted: user?.accepted_terms || false, user });
+  } catch (error) { res.json({ accepted: false }); }
 });
 
 app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
   try {
-    console.log('📥 Pago recibido:', {
-      telegramId: req.body.telegramId,
-      plan: req.body.plan,
-      price: req.body.price,
-      method: req.body.method,
-      couponCode: req.body.couponCode
-    });
-    
     const { telegramId, plan, price, notes, method, couponCode } = req.body;
-    
-    if (!telegramId || !plan || !price) {
-      return res.status(400).json({ error: 'Datos incompletos' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: 'Captura de pantalla requerida para todos los métodos de pago' });
-    }
+    if (!telegramId || !plan || !price) return res.status(400).json({ error: 'Datos incompletos' });
+    if (!req.file) return res.status(400).json({ error: 'Captura de pantalla requerida' });
 
     let screenshotUrl = '';
-    if (req.file) {
-      try {
-        screenshotUrl = await db.uploadImage(req.file.path, telegramId);
-        fs.unlink(req.file.path, (err) => {
-          if (err) console.error('❌ Error eliminando archivo local:', err);
-        });
-      } catch (uploadError) {
-        screenshotUrl = `/uploads/${req.file.filename}`;
-      }
-    }
+    try {
+      screenshotUrl = await db.uploadImage(req.file.path, telegramId);
+      fs.unlink(req.file.path, () => {});
+    } catch (uploadError) { screenshotUrl = `/uploads/${req.file.filename}`; }
 
     const user = await db.getUser(telegramId);
     const username = user?.username ? `@${user.username}` : 'Sin usuario';
     const firstName = user?.first_name || 'Usuario';
 
-    let couponUsed = false;
-    let couponDiscount = 0;
-    let finalPrice = parseFloat(price);
-    let appliedCoupon = null;
-    let referralDiscountApplied = 0;
-    
+    let couponUsed = false, couponDiscount = 0, finalPrice = parseFloat(price), appliedCoupon = null, referralDiscountApplied = 0;
     if (couponCode && couponCode.trim() !== '') {
       try {
-        console.log(`🎫 Verificando cupón: ${couponCode.toUpperCase()}`);
         const coupon = await db.getCoupon(couponCode.toUpperCase());
-        
-        if (coupon) {
-          console.log(`🔍 Cupón encontrado: ${JSON.stringify(coupon, null, 2)}`);
-          
-          if (coupon.status !== 'active') {
-            console.log(`⚠️ Cupón no activo: ${couponCode}, estado: ${coupon.status}`);
-          } 
-          else if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
-            console.log(`⚠️ Cupón expirado: ${couponCode}, expiry: ${coupon.expiry}`);
-            await db.updateCouponStatus(couponCode.toUpperCase(), 'expired', 'system');
-          } 
-          else if (coupon.stock <= 0) {
-            console.log(`⚠️ Cupón agotado: ${couponCode}, stock: ${coupon.stock}`);
-          } 
-          else if (await db.hasUserUsedCoupon(telegramId, couponCode.toUpperCase())) {
-            console.log(`⚠️ Usuario ya usó este cupón: ${couponCode}`);
-          } 
-          else {
-            couponUsed = true;
-            couponDiscount = coupon.discount;
-            appliedCoupon = coupon;
-            finalPrice = finalPrice * (1 - couponDiscount / 100);
-            console.log(`✅ Cupón aplicado: ${couponCode} - ${couponDiscount}% de descuento`);
-            console.log(`💰 Precio original: ${price}, Precio final: ${finalPrice.toFixed(2)}`);
-          }
-        } else {
-          console.log(`⚠️ Cupón no encontrado: ${couponCode}`);
+        if (coupon && coupon.status === 'active' && !(coupon.expiry && new Date(coupon.expiry) < new Date()) && coupon.stock > 0 && !(await db.hasUserUsedCoupon(telegramId, couponCode.toUpperCase()))) {
+          couponUsed = true; couponDiscount = coupon.discount; appliedCoupon = coupon;
+          finalPrice = finalPrice * (1 - couponDiscount / 100);
         }
-      } catch (couponError) {
-        console.log('⚠️ Error verificando cupón:', couponError.message);
-      }
+      } catch (couponError) { console.log('⚠️ Error verificando cupón:', couponError.message); }
     }
-
     if (!couponUsed) {
       try {
         const refStats = await db.getReferralStats(telegramId);
         if (refStats && refStats.discount_percentage > 0) {
           referralDiscountApplied = Math.min(refStats.discount_percentage, 100);
           finalPrice = finalPrice * (1 - referralDiscountApplied / 100);
-          console.log(`👥 Descuento de referidos aplicado: ${referralDiscountApplied}% — Precio: ${price} → ${finalPrice.toFixed(2)}`);
         }
-      } catch (refErr) {
-        console.log('⚠️ No se pudo verificar descuento de referidos:', refErr.message);
-      }
+      } catch (refErr) {}
     }
 
     const payment = await db.createPayment({
-      telegram_id: telegramId,
-      plan: plan,
-      price: finalPrice,
-      original_price: parseFloat(price),
-      method: method || 'transfer',
-      screenshot_url: screenshotUrl,
-      notes: notes || '',
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      coupon_used: couponUsed,
-      coupon_code: couponUsed ? couponCode?.toUpperCase() : null,
-      coupon_discount: couponDiscount
+      telegram_id: telegramId, plan, price: finalPrice, original_price: parseFloat(price),
+      method: method || 'transfer', screenshot_url: screenshotUrl, notes: notes || '',
+      status: 'pending', created_at: new Date().toISOString(),
+      coupon_used: couponUsed, coupon_code: couponUsed ? couponCode?.toUpperCase() : null, coupon_discount: couponDiscount
     });
-
-    if (!payment) {
-      throw new Error('No se pudo crear el pago en la base de datos');
-    }
-
-    console.log(`✅ Pago creado con ID: ${payment.id}, telegram_id: ${telegramId}, cupón: ${couponUsed ? 'Sí' : 'No'}`);
+    if (!payment) throw new Error('No se pudo crear el pago en la base de datos');
 
     try {
-      const methodNames = {
-        'transfer': 'BPA',
-        'metropolitan': 'Metropolitana',
-        'mitransfer': 'MITRANSFER',
-        'mobile': 'Saldo Móvil',
-        'usdt': 'USDT (BEP20)'
-      };
-      
-      let adminMessage = `💰 *NUEVO PAGO RECIBIDO - ${method === 'usdt' ? 'USDT' : 'CUP'}*\n\n` +
-        `👤 *Usuario:* ${firstName}\n` +
-        `📱 *Telegram:* ${username}\n` +
-        `🆔 *ID:* ${telegramId}\n` +
-        `📋 *Plan:* ${getPlanName(plan)}\n` +
-        `💰 *Monto original:* ${price} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
-        
-      if (couponUsed) {
-        adminMessage += `🎫 *Cupón:* ${couponCode} (${couponDiscount}% descuento)\n` +
-          `💰 *Monto final:* ${finalPrice.toFixed(2)} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
-      } else if (referralDiscountApplied > 0) {
-        adminMessage += `👥 *Descuento referidos:* ${referralDiscountApplied}%\n` +
-          `💰 *Monto final:* ${finalPrice.toFixed(2)} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
-      }
-      
-      adminMessage += `💳 *Método:* ${methodNames[method] || method}\n` +
-        `⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
-        `📝 *Estado:* ⏳ Pendiente de revisión manual\n` +
-        `📸 *Captura:* Requerida ✅\n` +
-        `📁 *Archivo:* Envío manual requerido`;
-      
+      const methodNames = { transfer: 'BPA', metropolitan: 'Metropolitana', mitransfer: 'MITRANSFER', mobile: 'Saldo Móvil', usdt: 'USDT (BEP20)' };
+      let adminMessage = `💰 *NUEVO PAGO - ${method === 'usdt' ? 'USDT' : 'CUP'}*\n\n👤 *Usuario:* ${firstName}\n📱 *Telegram:* ${username}\n🆔 *ID:* ${telegramId}\n📋 *Plan:* ${getPlanName(plan)}\n💰 *Monto:* ${price} ${method === 'usdt' ? 'USDT' : 'CUP'}\n`;
+      if (couponUsed) adminMessage += `🎫 *Cupón:* ${couponCode} (${couponDiscount}%)\n💰 *Final:* ${finalPrice.toFixed(2)}\n`;
+      else if (referralDiscountApplied > 0) adminMessage += `👥 *Descuento:* ${referralDiscountApplied}%\n💰 *Final:* ${finalPrice.toFixed(2)}\n`;
+      adminMessage += `💳 *Método:* ${methodNames[method] || method}\n⏰ *Fecha:* ${new Date().toLocaleString('es-ES')}\n📝 *Estado:* ⏳ Pendiente`;
       for (const adminId of ADMIN_IDS) {
-        try {
-          await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
-        } catch (adminError) {
-          console.log(`❌ No se pudo notificar al admin ${adminId}`);
-        }
+        try { await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' }); } catch (e) {}
       }
-    } catch (adminError) {
-      console.log('❌ Error al notificar a los admins:', adminError.message);
-    }
+    } catch (e) {}
 
-    if (method === 'usdt') {
-      try {
-        const usdtAddress = USDT_CONFIG.WALLET_ADDRESS;
-        const usdtAmount = USDT_PRICES[plan] || '1.4';
-        
-        await bot.telegram.sendMessage(
-          telegramId,
-          `💸 *PAGO USDT RECIBIDO - REVISIÓN MANUAL*\n\n` +
-          `📋 *Plan:* ${getPlanName(plan)}\n` +
-          `💰 *Monto exacto:* ${usdtAmount} USDT\n` +
-          `🏦 *Dirección:* \`${usdtAddress}\`\n` +
-          `🌐 *Red:* BEP20 (Binance Smart Chain)\n` +
-          `📸 *Captura enviada:* Sí\n` +
-          `${couponUsed ? `🎫 *Cupón aplicado:* ${couponCode} (${couponDiscount}% descuento)\n` : ''}` +
-          `\n*Instrucciones importantes:*\n` +
-          `1. El administrador revisará manualmente tu captura\n` +
-          `2. Una vez aprobado, recibirás la confirmación\n` +
-          `3. El administrador te enviará el archivo manualmente\n\n` +
-          `*Verificar en BSCScan:* https://bscscan.com/address/${usdtAddress}\n\n` +
-          `*Nota:* Sistema de detección automática desactivado.`,
-          { parse_mode: 'Markdown' }
-        );
-        
-        await db.updatePayment(payment.id, {
-          notes: 'Pago USDT pendiente - Revisión manual con captura'
-        });
-        
-      } catch (usdtError) {
-        console.log('❌ Error enviando información USDT:', usdtError.message);
-      }
-    }
-
-    res.json({ 
-      success: true, 
-      message: method === 'usdt' ? 
-        'Pago USDT recibido con captura. El administrador revisará manualmente.' : 
-        'Pago recibido. El administrador revisará la captura y te notificará.',
-      payment,
-      couponApplied: couponUsed,
-      discount: couponDiscount,
-      finalPrice: finalPrice
-    });
+    res.json({ success: true, message: 'Pago recibido. El administrador revisará la captura y te notificará.', payment, couponApplied: couponUsed, discount: couponDiscount, finalPrice });
   } catch (error) {
     console.error('❌ Error procesando pago:', error);
-    
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-    }
-    
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
     res.status(500).json({ error: 'Error procesando pago: ' + error.message });
   }
 });
@@ -1005,257 +732,89 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
 app.get('/api/payments/pending', async (req, res) => {
   try {
     const payments = await db.getPendingPayments();
-
-    if (!payments || payments.length === 0) {
-      return res.json([]);
-    }
-
+    if (!payments || payments.length === 0) return res.json([]);
     const uniqueIds = [...new Set(payments.map(p => p.telegram_id).filter(Boolean))];
     const userResults = await Promise.allSettled(uniqueIds.map(id => db.getUser(id)));
     const userMap = {};
-    uniqueIds.forEach((id, i) => {
-      if (userResults[i].status === 'fulfilled') userMap[id] = userResults[i].value;
-    });
-
-    const paymentsWithUsers = payments.map(payment => ({
-      ...payment,
-      user: userMap[payment.telegram_id] || null
-    }));
-    
-    res.json(paymentsWithUsers);
-  } catch (error) {
-    console.error('❌ Error obteniendo pagos pendientes:', error);
-    res.status(500).json({ error: 'Error obteniendo pagos pendientes' });
-  }
+    uniqueIds.forEach((id, i) => { if (userResults[i].status === 'fulfilled') userMap[id] = userResults[i].value; });
+    res.json(payments.map(p => ({ ...p, user: userMap[p.telegram_id] || null })));
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo pagos pendientes' }); }
 });
 
 app.get('/api/payments/approved', async (req, res) => {
   try {
     const payments = await db.getApprovedPayments();
-    
-    if (!payments || payments.length === 0) {
-      return res.json([]);
-    }
-
+    if (!payments || payments.length === 0) return res.json([]);
     const uniqueIds = [...new Set(payments.map(p => p.telegram_id).filter(Boolean))];
     const userResults = await Promise.allSettled(uniqueIds.map(id => db.getUser(id)));
-    
     const userMap = {};
-    uniqueIds.forEach((id, i) => {
-      if (userResults[i].status === 'fulfilled') {
-        userMap[id] = userResults[i].value;
-      }
-    });
-
-    const paymentsWithUsers = payments.map(payment => ({
-      ...payment,
-      user: userMap[payment.telegram_id] || null
-    }));
-    
-    res.json(paymentsWithUsers);
-  } catch (error) {
-    console.error('❌ Error obteniendo pagos aprobados:', error);
-    res.status(500).json({ error: 'Error obteniendo pagos aprobados' });
-  }
+    uniqueIds.forEach((id, i) => { if (userResults[i].status === 'fulfilled') userMap[id] = userResults[i].value; });
+    res.json(payments.map(p => ({ ...p, user: userMap[p.telegram_id] || null })));
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo pagos aprobados' }); }
 });
 
 app.post('/api/payments/:id/approve', async (req, res) => {
   try {
     const payment = await db.approvePayment(req.params.id);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-
-    console.log(`✅ Pago aprobado: ${payment.id}, telegram_id: ${payment.telegram_id}`);
-
-    if (!payment.telegram_id) {
-      console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
-      return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
-    }
+    if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
+    if (!payment.telegram_id) return res.status(400).json({ error: 'El pago no tiene un usuario asociado' });
 
     if (payment.coupon_used && payment.coupon_code) {
       try {
-        console.log(`🎫 Aplicando cupón ${payment.coupon_code} al pago ${payment.id}`);
         const coupon = await db.getCoupon(payment.coupon_code);
-        
         if (coupon && coupon.stock > 0) {
           const applied = await db.applyCouponToPayment(payment.coupon_code, payment.telegram_id, payment.id);
-          
-          if (applied) {
-            const newStock = coupon.stock - 1;
-            await db.updateCoupon(payment.coupon_code, {
-              stock: newStock,
-              used: (coupon.used || 0) + 1,
-              updated_at: new Date().toISOString(),
-              updated_by: payment.config_sent_by || 'system'
-            });
-            
-            console.log(`✅ Cupón ${payment.coupon_code} aplicado. Stock actualizado: ${newStock}`);
-          }
-        } else {
-          console.log(`⚠️ Cupón ${payment.coupon_code} no disponible o sin stock`);
+          if (applied) await db.updateCoupon(payment.coupon_code, { stock: coupon.stock - 1, used: (coupon.used || 0) + 1, updated_at: new Date().toISOString(), updated_by: payment.config_sent_by || 'system' });
         }
-      } catch (couponError) {
-        console.error('❌ Error aplicando cupón:', couponError.message);
-      }
+      } catch (couponError) { console.error('❌ Error aplicando cupón:', couponError.message); }
     }
 
     try {
-      let userMessage = '<tg-emoji emoji-id="6019175208240289774">🎉</tg-emoji> <b>¡Tu pago ha sido aprobado!</b>\n\n' +
-        'Ahora eres usuario VIP de VPN Cuba.\n' +
-        'El administrador te enviará manualmente el archivo de configuración por este mismo chat en breve.\n\n';
-      
-      if (payment.coupon_used && payment.coupon_discount) {
-        userMessage += `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón aplicado:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
-      }
-      
+      let userMessage = '<tg-emoji emoji-id="6019175208240289774">🎉</tg-emoji> <b>¡Tu pago ha sido aprobado!</b>\n\nAhora eres usuario VIP de VPN Cuba.\nEl administrador te enviará el archivo de configuración en breve.\n\n';
+      if (payment.coupon_used && payment.coupon_discount) userMessage += `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n`;
       userMessage += '<b>Nota:</b> Sistema de envío automático desactivado.';
-      
-      await bot.telegram.sendMessage(
-        payment.telegram_id,
-        userMessage,
-        { parse_mode: 'HTML' }
-      );
-    } catch (botError) {
-      console.log('❌ No se pudo notificar al usuario:', botError.message);
-    }
+      await bot.telegram.sendMessage(payment.telegram_id, userMessage, { parse_mode: 'HTML' });
+    } catch (botError) { console.log('❌ No se pudo notificar al usuario:', botError.message); }
 
     const user = await db.getUser(payment.telegram_id);
-    if (!user.vip) {
-      await db.makeUserVIP(payment.telegram_id, {
-        plan: payment.plan,
-        plan_price: payment.price,
-        vip_since: new Date().toISOString()
-      });
-    }
+    if (!user.vip) await db.makeUserVIP(payment.telegram_id, { plan: payment.plan, plan_price: payment.price, vip_since: new Date().toISOString() });
 
     if (user.referrer_id) {
       try {
         await db.markReferralAsPaid(payment.telegram_id);
-        console.log(`✅ Referido nivel 1 marcado como pagado: ${payment.telegram_id} -> referidor: ${user.referrer_id}`);
-
-        try {
-          const referrerUser = await db.getUser(user.referrer_id);
-          if (referrerUser && referrerUser.referrer_id) {
-            await db.markReferralAsPaid(user.referrer_id, 2);
-            console.log(`✅ Referido nivel 2 marcado como pagado: ${user.referrer_id} -> referidor nivel2: ${referrerUser.referrer_id}`);
-          }
-        } catch (level2Err) {
-          console.log('⚠️ Error actualizando referido nivel 2 (no crítico):', level2Err.message);
-        }
-      } catch (refError) {
-        console.error('❌ Error marcando referido como pagado:', refError.message);
-      }
+        const referrerUser = await db.getUser(user.referrer_id);
+        if (referrerUser?.referrer_id) await db.markReferralAsPaid(user.referrer_id, 2);
+      } catch (refError) { console.error('❌ Error marcando referido:', refError.message); }
     }
 
     res.json({ success: true, payment });
-  } catch (error) {
-    console.error('❌ Error aprobando pago:', error);
-    res.status(500).json({ error: 'Error aprobando pago' });
-  }
+  } catch (error) { console.error('❌ Error aprobando pago:', error); res.status(500).json({ error: 'Error aprobando pago' }); }
 });
 
 app.post('/api/payments/:id/reject', async (req, res) => {
   try {
     const { reason } = req.body;
-    
-    if (!reason) {
-      return res.status(400).json({ error: 'Se requiere un motivo de rechazo' });
-    }
-
+    if (!reason) return res.status(400).json({ error: 'Se requiere un motivo de rechazo' });
     const payment = await db.rejectPayment(req.params.id, reason);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-
-    if (!payment.telegram_id) {
-      console.error(`❌ Pago ${payment.id} no tiene telegram_id`);
-      return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' });
-    }
-
-    try {
-      await bot.telegram.sendMessage(
-        payment.telegram_id,
-        `❌ *Tu pago ha sido rechazado*\n\nMotivo: ${reason}\n\nPor favor, contacta con soporte si necesitas más información.`,
-        { parse_mode: 'Markdown' }
-      );
-    } catch (botError) {
-      console.log('❌ No se pudo notificar al usuario:', botError.message);
-    }
-
+    if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
+    try { await bot.telegram.sendMessage(payment.telegram_id, `❌ *Tu pago ha sido rechazado*\n\nMotivo: ${reason}\n\nContacta con soporte si necesitas más información.`, { parse_mode: 'Markdown' }); } catch (e) {}
     res.json({ success: true, payment });
-  } catch (error) {
-    console.error('❌ Error rechazando pago:', error);
-    res.status(500).json({ error: 'Error rechazando pago' });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error rechazando pago' }); }
 });
 
 app.get('/api/stats', async (req, res) => {
   try {
     const stats = await db.getStats();
-
-    try {
-      const broadcasts = await db.getBroadcasts();
-      stats.broadcasts = {
-        total: broadcasts.length,
-        completed: broadcasts.filter(b => b.status === 'completed').length,
-        pending:   broadcasts.filter(b => b.status === 'pending').length,
-        sending:   broadcasts.filter(b => b.status === 'sending').length,
-        failed:    broadcasts.filter(b => b.status === 'failed').length
-      };
-    } catch(e) {
-      stats.broadcasts = stats.broadcasts || { total: 0, completed: 0 };
-    }
-
-    stats.usdt = {
-      wallet_address: USDT_CONFIG.WALLET_ADDRESS,
-      verification_enabled: false,
-      mode: 'manual'
-    };
-
-    if (!stats.referrals) {
-      try {
-        const refStats = await db.getAllReferralsStats();
-        stats.referrals = {
-          total: refStats.total_referrals || 0,
-          paid:  refStats.paid_referrals  || 0,
-          level1: refStats.level1_referrals || 0,
-          level2: refStats.level2_referrals || 0
-        };
-      } catch(e) {
-        stats.referrals = { total: 0, paid: 0, level1: 0, level2: 0 };
-      }
-    }
-
-    if (!stats.coupons) {
-      try { stats.coupons = await db.getCouponsStats(); } catch(e) { stats.coupons = { total:0, active:0, expired:0, used:0 }; }
-    }
-
+    try { const broadcasts = await db.getBroadcasts(); stats.broadcasts = { total: broadcasts.length, completed: broadcasts.filter(b => b.status === 'completed').length, pending: broadcasts.filter(b => b.status === 'pending').length, sending: broadcasts.filter(b => b.status === 'sending').length, failed: broadcasts.filter(b => b.status === 'failed').length }; } catch(e) { stats.broadcasts = stats.broadcasts || { total: 0, completed: 0 }; }
+    stats.usdt = { wallet_address: USDT_CONFIG.WALLET_ADDRESS, verification_enabled: false, mode: 'manual' };
+    if (!stats.referrals) { try { const refStats = await db.getAllReferralsStats(); stats.referrals = { total: refStats.total_referrals || 0, paid: refStats.paid_referrals || 0, level1: refStats.level1_referrals || 0, level2: refStats.level2_referrals || 0 }; } catch(e) { stats.referrals = { total: 0, paid: 0, level1: 0, level2: 0 }; } }
+    if (!stats.coupons) { try { stats.coupons = await db.getCouponsStats(); } catch(e) { stats.coupons = { total:0, active:0, expired:0, used:0 }; } }
     res.json(stats);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas:', error);
-    res.status(500).json({ 
-      error: 'Error obteniendo estadísticas',
-      users: { total: 0, vip: 0, trial_requests: 0, trial_pending: 0, active: 0, inactive: 0 },
-      payments: { pending: 0, approved: 0 },
-      revenue: { total: 0 },
-      broadcasts: { total: 0, completed: 0 },
-      coupons: { total: 0, active: 0, expired: 0, used: 0 },
-      referrals: { total: 0, paid: 0, level1: 0, level2: 0 }
-    });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo estadísticas', users:{total:0,vip:0,trial_requests:0,trial_pending:0,active:0,inactive:0}, payments:{pending:0,approved:0}, revenue:{total:0}, broadcasts:{total:0,completed:0}, coupons:{total:0,active:0,expired:0,used:0}, referrals:{total:0,paid:0,level1:0,level2:0} }); }
 });
 
 app.get('/api/vip-users', async (req, res) => {
-  try {
-    const users = await db.getVIPUsers();
-    res.json(users);
-  } catch (error) {
-    console.error('❌ Error obteniendo usuarios VIP:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios VIP' });
-  }
+  try { res.json(await db.getVIPUsers()); } catch (error) { res.status(500).json({ error: 'Error obteniendo usuarios VIP' }); }
 });
 
 app.get('/api/all-users', async (req, res) => {
@@ -1263,225 +822,74 @@ app.get('/api/all-users', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
     const offset = (page - 1) * limit;
-    
     const users = await db.getAllUsers(limit, offset);
     const total = await db.getTotalUsersCount();
-    
-    console.log(`✅ /api/all-users: página ${page}, ${users.length} usuarios (total ${total})`);
-    
-    res.json({
-      users,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo usuarios:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios: ' + error.message });
-  }
+    res.json({ users, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo usuarios: ' + error.message }); }
 });
 
 app.get('/api/payments/:id', async (req, res) => {
   try {
     const payment = await db.getPayment(req.params.id);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-    
+    if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
     const user = await db.getUser(payment.telegram_id);
     res.json({ ...payment, user: user || null });
-  } catch (error) {
-    console.error('❌ Error obteniendo pago:', error);
-    res.status(500).json({ error: 'Error obteniendo pago' });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo pago' }); }
 });
 
 app.post('/api/send-config', upload.single('configFile'), async (req, res) => {
   try {
     const { paymentId, adminId } = req.body;
-    
-    console.log('📤 Recibiendo solicitud de envío de configuración:', { paymentId, adminId });
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!paymentId) {
-      return res.status(400).json({ error: 'ID de pago requerido' });
-    }
-    
-    if (!req.file) {
-      return res.status(400).json({ error: 'Archivo de configuración requerido' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!paymentId) return res.status(400).json({ error: 'ID de pago requerido' });
+    if (!req.file) return res.status(400).json({ error: 'Archivo de configuración requerido' });
+
     const fileName = req.file.originalname.toLowerCase();
     if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
+      fs.unlink(req.file.path, () => {});
       return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
     }
-    
-    const payment = await db.getPayment(paymentId);
-    
-    if (!payment) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      console.error(`❌ Pago no encontrado: ${paymentId}`);
-      return res.status(404).json({ error: 'Pago no encontrado' });
-    }
-    
-    if (payment.status !== 'approved') {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      console.error(`❌ Pago no está aprobado, estado: ${payment.status}`);
-      return res.status(400).json({ error: 'El pago no está aprobado' });
-    }
-    
-    const telegramId = payment.telegram_id;
-    
-    if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      console.error('❌ El pago no tiene un telegram_id válido:', telegramId);
-      return res.status(400).json({ 
-        error: 'El pago no tiene un usuario asociado (telegram_id). Por favor, verifica la base de datos.' 
-      });
-    }
-    
-    const chatId = telegramId.toString().trim();
-    
-    const user = await db.getUser(chatId);
-    if (!user) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      console.error(`❌ Usuario ${chatId} no encontrado en la base de datos`);
-      return res.status(400).json({ 
-        error: `El usuario ${chatId} no está registrado en el sistema.` 
-      });
-    }
-    
-    try {
-      console.log(`📤 Intentando enviar archivo a ${chatId}...`);
-      
-      const MAX_RETRIES = 3;
-      let lastTelegramError = null;
-      let sent = false;
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-          await bot.telegram.sendDocument(
-            chatId,
-            { source: req.file.path, filename: req.file.originalname },
-            {
-              caption: `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu configuración VPN Cuba está lista!</b>\n\n` +
-                       `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${req.file.originalname}\n` +
-                       `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Plan:</b> ${getPlanName(payment.plan)}\n` +
-                       `${payment.coupon_used ? `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón aplicado:</b> ${payment.coupon_code} (${payment.coupon_discount}% descuento)\n` : ''}` +
-                       `\n<b>Instrucciones de instalación:</b>\n` +
-                       `1. Descarga este archivo\n` +
-                       `2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime el ZIP/RAR en tu dispositivo'}\n` +
-                       `3. Importa el archivo .conf en tu cliente WireGuard\n` +
-                       `4. Activa la conexión\n` +
-                       `5. ¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>\n\n` +
-                       `<b>Soporte:</b> Contacta con soporte si tienes problemas.`,
-              parse_mode: 'HTML'
-            }
-          );
-          sent = true;
-          break;
-        } catch (retryErr) {
-          lastTelegramError = retryErr;
-          const errMsg = retryErr.description || retryErr.message || '';
-          console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido al enviar config a ${chatId}: ${errMsg}`);
-          if (
-            errMsg.includes('chat not found') || errMsg.includes('chat not exist') ||
-            errMsg.includes('bot was blocked') || errMsg.includes('user is deactivated') ||
-            errMsg.includes('kicked') ||
-            retryErr.response?.error_code === 403 || retryErr.response?.error_code === 400
-          ) {
-            break;
-          }
-          if (attempt < MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-          }
-        }
-      }
 
-      if (!sent) {
-        throw lastTelegramError || new Error('No se pudo enviar el archivo tras varios intentos');
-      }
-      
-      await db.updatePayment(paymentId, {
-        config_sent: true,
-        config_sent_at: new Date().toISOString(),
-        config_file: req.file.filename,
-        config_sent_by: adminId
-      });
-      
-      if (user && !user.vip) {
-        await db.makeUserVIP(chatId, {
-          plan: payment.plan,
-          plan_price: payment.price,
-          vip_since: new Date().toISOString()
+    const payment = await db.getPayment(paymentId);
+    if (!payment) { fs.unlink(req.file.path, () => {}); return res.status(404).json({ error: 'Pago no encontrado' }); }
+    if (payment.status !== 'approved') { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'El pago no está aprobado' }); }
+    if (!payment.telegram_id || payment.telegram_id === 'undefined' || payment.telegram_id === 'null') { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'El pago no tiene un usuario asociado (telegram_id)' }); }
+
+    const chatId = payment.telegram_id.toString().trim();
+    const user = await db.getUser(chatId);
+    if (!user) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: `El usuario ${chatId} no está registrado` }); }
+
+    const MAX_RETRIES = 3;
+    let lastTelegramError = null, sent = false;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await bot.telegram.sendDocument(chatId, { source: req.file.path, filename: req.file.originalname }, {
+          caption: `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu configuración VPN Cuba está lista!</b>\n\n` +
+                   `<tg-emoji emoji-id="6021375494216226506">📁</tg-emoji> <b>Archivo:</b> ${req.file.originalname}\n` +
+                   `<tg-emoji emoji-id="6021744990252702234">📋</tg-emoji> <b>Plan:</b> ${getPlanName(payment.plan)}\n` +
+                   `${payment.coupon_used ? `<tg-emoji emoji-id="6021793768196282527">🎫</tg-emoji> <b>Cupón:</b> ${payment.coupon_code} (${payment.coupon_discount}%)\n` : ''}` +
+                   `\n<b>Instrucciones:</b>\n1. Descarga este archivo\n2. ${fileName.endsWith('.conf') ? 'Importa el archivo .conf directamente' : 'Descomprime y luego importa el .conf'}\n3. Importa en WireGuard\n4. Activa la conexión\n5. ¡Disfruta! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
+          parse_mode: 'HTML'
         });
-        console.log(`✅ Usuario ${chatId} marcado como VIP`);
+        sent = true; break;
+      } catch (retryErr) {
+        lastTelegramError = retryErr;
+        const errMsg = retryErr.description || retryErr.message || '';
+        console.warn(`⚠️ Intento ${attempt}/${MAX_RETRIES} fallido: ${errMsg}`);
+        if (errMsg.includes('chat not found') || errMsg.includes('bot was blocked') || errMsg.includes('user is deactivated') || errMsg.includes('kicked') || retryErr.response?.error_code === 403 || retryErr.response?.error_code === 400) break;
+        if (attempt < MAX_RETRIES) await new Promise(resolve => setTimeout(resolve, attempt * 1500));
       }
-      
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo después de enviar:', err);
-      });
-      
-      console.log(`✅ Configuración enviada al usuario ${chatId}`);
-      
-      res.json({ 
-        success: true, 
-        message: 'Configuración enviada manualmente',
-        filename: req.file.filename,
-        telegramId: chatId
-      });
-      
-    } catch (telegramError) {
-      console.error('❌ Error enviando archivo por Telegram:', telegramError.message);
-      
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      
-      if (telegramError.message.includes('chat_id') || telegramError.message.includes('chat id') || 
-          telegramError.message.includes('chat not found') || telegramError.message.includes('chat not exist')) {
-        try {
-          await db.updateUser(chatId, {
-            is_active: false,
-            last_error: telegramError.message,
-            updated_at: new Date().toISOString()
-          });
-        } catch (updateError) {
-          console.error(`⚠️ Error actualizando usuario ${chatId}:`, updateError.message);
-        }
-        
-        return res.status(400).json({ 
-          error: `Error: El usuario ${chatId} no ha iniciado el bot o lo ha bloqueado. Chat_id inválido.` 
-        });
-      }
-      
-      res.status(500).json({ error: 'Error enviando archivo por Telegram: ' + telegramError.message });
     }
-    
+
+    if (!sent) { fs.unlink(req.file.path, () => {}); throw lastTelegramError || new Error('No se pudo enviar el archivo'); }
+
+    await db.updatePayment(paymentId, { config_sent: true, config_sent_at: new Date().toISOString(), config_file: req.file.filename, config_sent_by: adminId });
+    if (user && !user.vip) await db.makeUserVIP(chatId, { plan: payment.plan, plan_price: payment.price, vip_since: new Date().toISOString() });
+    fs.unlink(req.file.path, () => {});
+    res.json({ success: true, message: 'Configuración enviada manualmente', filename: req.file.filename, telegramId: chatId });
   } catch (error) {
     console.error('❌ Error en send-config:', error);
-    
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-    }
-    
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
@@ -1491,1016 +899,330 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 app.get('/api/user-info/:telegramId', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const admin = isAdmin(req.params.telegramId);
-
     let referralStats = null;
-    try {
-      referralStats = await db.getReferralStats(req.params.telegramId);
-    } catch (e) {
-      console.warn('⚠️ No se pudieron obtener stats de referidos:', e.message);
-    }
-
+    try { referralStats = await db.getReferralStats(req.params.telegramId); } catch (e) {}
     const discountPct = referralStats ? Math.min(referralStats.discount_percentage || 0, 100) : 0;
-    
-    res.json({
-      ...user,
-      isAdmin: admin,
-      referral_stats: referralStats,
-      referral_discount: discountPct
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo información del usuario:', error);
-    res.status(500).json({ error: 'Error obteniendo información del usuario' });
-  }
+    res.json({ ...user, isAdmin: admin, referral_stats: referralStats, referral_discount: discountPct });
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo información del usuario' }); }
 });
 
 app.post('/api/send-message', async (req, res) => {
   try {
     const { telegramId, message, adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
-      return res.status(400).json({ error: 'ID de usuario inválido' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!telegramId || telegramId === 'undefined' || telegramId === 'null') return res.status(400).json({ error: 'ID de usuario inválido' });
     const chatId = telegramId.toString().trim();
     const canSend = await canSendMessageToUser(chatId);
-    if (!canSend.canSend) {
-      return res.status(400).json({ 
-        error: `No se puede enviar mensaje al usuario: ${canSend.reason}` 
-      });
-    }
-    
-    await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
-      parse_mode: 'Markdown' 
-    });
-    
+    if (!canSend.canSend) return res.status(400).json({ error: `No se puede enviar mensaje: ${canSend.reason}` });
+    await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { parse_mode: 'Markdown' });
     res.json({ success: true, message: 'Mensaje enviado' });
-  } catch (error) {
-    console.error('❌ Error enviando mensaje:', error);
-    res.status(500).json({ error: 'Error enviando mensaje: ' + error.message });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error enviando mensaje: ' + error.message }); }
 });
 
 app.post('/api/user/:userId/remove-vip', async (req, res) => {
   try {
     const { adminId } = req.body;
-    const userId = req.params.userId;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    const user = await db.removeVIP(userId);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    const user = await db.removeVIP(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     try {
-      const canSend = await canSendMessageToUser(userId);
-      if (canSend.canSend) {
-        await bot.telegram.sendMessage(
-          userId,
-          '⚠️ *Tu acceso VIP ha sido removido*\n\n' +
-          'Tu suscripción VIP ha sido cancelada.\n' +
-          'Si crees que es un error, contacta con soporte.',
-          { parse_mode: 'Markdown' }
-        );
-      } else {
-        console.log(`⚠️ No se pudo notificar al usuario ${userId}: ${canSend.reason}`);
-      }
-    } catch (botError) {
-      console.log('❌ No se pudo notificar al usuario:', botError.message);
-    }
-    
+      const canSend = await canSendMessageToUser(req.params.userId);
+      if (canSend.canSend) await bot.telegram.sendMessage(req.params.userId, '⚠️ *Tu acceso VIP ha sido removido*\n\nTu suscripción VIP ha sido cancelada.\nContacta con soporte si crees que es un error.', { parse_mode: 'Markdown' });
+    } catch (e) {}
     res.json({ success: true, message: 'VIP removido', user });
-  } catch (error) {
-    console.error('❌ Error removiendo VIP:', error);
-    res.status(500).json({ error: 'Error removiendo VIP' });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error removiendo VIP' }); }
 });
 
 app.get('/api/check-trial-eligibility/:telegramId', async (req, res) => {
-  try {
-    const eligibility = await db.checkTrialEligibility(req.params.telegramId);
-    res.json(eligibility);
-  } catch (error) {
-    console.error('❌ Error verificando elegibilidad:', error);
-    res.json({ eligible: true, reason: 'Error verificando' });
-  }
+  try { res.json(await db.checkTrialEligibility(req.params.telegramId)); } catch (error) { res.json({ eligible: true, reason: 'Error verificando' }); }
 });
 
-// ==================== SOLICITUD DE PRUEBA CON ENVÍO AUTOMÁTICO ====================
+// ==================== SOLICITUD DE PRUEBA ====================
 app.post('/api/request-trial', async (req, res) => {
   try {
     const { telegramId, username, firstName, trialType = '1h', gameServer, connectionType, trialPlanType } = req.body;
-    
+
     const eligibility = await db.checkTrialEligibility(telegramId);
-    
-    if (!eligibility.eligible) {
-      return res.status(400).json({ 
-        error: `No puedes solicitar una prueba en este momento: ${eligibility.reason}` 
-      });
-    }
-    
-    // Mapeo de trialPlanType a nombre legible y etiqueta
-    const planNameMap = {
-      'basico': 'Básico',
-      'avanzado': 'Avanzado',
-      'premium': 'Gaming',
-      'anual': 'Anual'
-    };
-    const selectedPlan = trialPlanType ? (planNameMap[trialPlanType] || trialPlanType) : 'No especificado';
-    // Etiqueta visual para el admin (puedes usar emojis según el plan)
-    let planBadge = '';
-    switch(trialPlanType) {
-      case 'basico': planBadge = '🌐 BÁSICO'; break;
-      case 'avanzado': planBadge = '🌟 AVANZADO'; break;
-      case 'premium': planBadge = '🎮 GAMING'; break;
-      case 'anual': planBadge = '📅 ANUAL'; break;
-      default: planBadge = '🔘 OTRO';
-    }
-    
+    if (!eligibility.eligible) return res.status(400).json({ error: `No puedes solicitar una prueba: ${eligibility.reason}` });
+
+    const selectedPlan = getPlanLabel(trialPlanType) || 'No especificado';
+
     const updatedUser = await db.saveUser(telegramId, {
-      telegram_id: telegramId,
-      username: username,
-      first_name: firstName,
-      trial_requested: true,
-      trial_requested_at: new Date().toISOString(),
-      trial_plan_type: trialPlanType || '1h',    // guardamos el tipo de plan
+      telegram_id: telegramId, username, first_name: firstName,
+      trial_requested: true, trial_requested_at: new Date().toISOString(),
+      trial_plan_type: trialPlanType || 'basico',
       trial_game_server: gameServer || '',
       trial_connection_type: connectionType || '',
       is_active: true
     });
-    
-    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA* (ENVÍO AUTOMÁTICO)\n\n` +
-      `👤 *Usuario:* ${firstName}\n` +
-      `📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n` +
-      `🆔 *ID:* ${telegramId}\n` +
-      `🎮 *Juego/Servidor:* ${gameServer || 'No especificado'}\n` +
-      `📡 *Conexión:* ${connectionType || 'No especificado'}\n` +
-      `📋 *Tipo de plan a probar:* ${planBadge} (${selectedPlan})\n` +
-      `📅 *Fecha:* ${new Date().toLocaleString('es-ES')}`;
-    
-    for (const adminId of ADMIN_IDS) {
-      try {
-        await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' });
-      } catch (adminError) {
-        console.log(`❌ No se pudo notificar al admin ${adminId}:`, adminError.message);
-      }
-    }
-    
-    let sentSuccessfully = false;
-    let sendError = null;
-    
+
+    const adminMessage = `🎯 *NUEVA SOLICITUD DE PRUEBA*\n\n👤 *Usuario:* ${firstName}\n📱 *Telegram:* ${username ? `@${username}` : 'Sin usuario'}\n🆔 *ID:* ${telegramId}\n🎮 *Juego/Servidor:* ${gameServer || 'No especificado'}\n📡 *Conexión:* ${connectionType || 'No especificado'}\n📋 *Plan a probar:* ${selectedPlan}\n📅 *Fecha:* ${new Date().toLocaleString('es-ES')}`;
+    for (const adminId of ADMIN_IDS) { try { await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' }); } catch (e) {} }
+
+    let sentSuccessfully = false, sendError = null;
     try {
       const canSend = await canSendMessageToUser(telegramId);
-      if (!canSend.canSend) {
-        throw new Error(`Usuario no disponible: ${canSend.reason}`);
-      }
-      
+      if (!canSend.canSend) throw new Error(`Usuario no disponible: ${canSend.reason}`);
       await sendTrialConfigToUser(telegramId, 'system');
       sentSuccessfully = true;
-      console.log(`✅ Prueba enviada automáticamente a ${telegramId}`);
-    } catch (error) {
-      sendError = error;
-      console.error(`❌ Error en envío automático a ${telegramId}:`, error.message);
-    }
-    
+    } catch (error) { sendError = error; console.error(`❌ Error en envío automático a ${telegramId}:`, error.message); }
+
     if (sentSuccessfully) {
-      await bot.telegram.sendMessage(
-        telegramId,
-        `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita ya está aquí!</b>\n\n` +
-        `Acabo de enviarte el archivo de configuración para el plan <b>${selectedPlan}</b>.\n` +
-        `Revísalo en este mismo chat y actívalo en WireGuard.\n\n` +
-        `<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Plan probado:</b> ${selectedPlan}\n` +
-        `¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
-        { parse_mode: 'HTML' }
-      );
-      
-      res.json({ 
-        success: true, 
-        message: 'Prueba gratuita enviada automáticamente. Revisa tu chat.',
-        trialPlanType: trialPlanType,
-        user: updatedUser,
-        autoSent: true
-      });
+      await bot.telegram.sendMessage(telegramId,
+        `<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita ya está aquí!</b>\n\nAcabo de enviarte el archivo de configuración para el plan <b>${selectedPlan}</b>.\nRevísalo en este mismo chat y actívalo en WireGuard.\n\n<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Plan probado:</b> ${selectedPlan}\n¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>`,
+        { parse_mode: 'HTML' });
+      res.json({ success: true, message: 'Prueba gratuita enviada automáticamente.', trialPlanType, user: updatedUser, autoSent: true });
     } else {
-      await bot.telegram.sendMessage(
-        telegramId,
-        `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\n` +
-        `Tu solicitud para el plan <b>${selectedPlan}</b> ha sido registrada. En breve un administrador revisará y te enviará la configuración.\n\n` +
-        `<tg-emoji emoji-id="5807879906951960923">⏰</tg-emoji> <b>Plan solicitado:</b> ${selectedPlan}\n` +
-        `¡Gracias por probar VPN Cuba!`,
-        { parse_mode: 'HTML' }
-      );
-      
-      res.json({ 
-        success: true, 
-        message: 'Solicitud registrada. Recibirás la configuración manualmente en breve.',
-        trialPlanType: trialPlanType,
-        user: updatedUser,
-        autoSent: false,
-        error: sendError?.message
-      });
+      await bot.telegram.sendMessage(telegramId,
+        `<tg-emoji emoji-id="6019175208240289774">✅</tg-emoji> <b>Solicitud de prueba recibida</b>\n\nTu solicitud para el plan <b>${selectedPlan}</b> ha sido registrada. Un administrador te enviará la configuración en breve.\n\n¡Gracias por probar VPN Cuba!`,
+        { parse_mode: 'HTML' });
+      res.json({ success: true, message: 'Solicitud registrada. Recibirás la configuración en breve.', trialPlanType, user: updatedUser, autoSent: false, error: sendError?.message });
     }
-    
   } catch (error) {
     console.error('❌ Error en solicitud de prueba:', error);
-    res.status(500).json({ error: 'Error procesando solicitud de prueba: ' + error.message });
+    res.status(500).json({ error: 'Error procesando solicitud: ' + error.message });
   }
 });
 
 app.get('/api/trial-stats', async (req, res) => {
-  try {
-    const stats = await db.getTrialStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de prueba:', error);
-    res.status(500).json({ error: 'Error obteniendo estadísticas de prueba' });
-  }
+  try { res.json(await db.getTrialStats()); } catch (error) { res.status(500).json({ error: 'Error obteniendo estadísticas de prueba' }); }
 });
 
 app.get('/api/trials/pending', async (req, res) => {
   try {
     const trials = await db.getPendingTrials();
-    
-    const trialsWithUsers = await Promise.all(trials.map(async (user) => {
-      return {
-        ...user,
-        trial_info: {
-          requested_at: user.trial_requested_at,
-          plan_type: user.trial_plan_type || '1h',
-          game_server: user.trial_game_server || '',
-          connection_type: user.trial_connection_type || '',
-          days_ago: user.trial_requested_at ? 
-            Math.floor((new Date() - new Date(user.trial_requested_at)) / (1000 * 60 * 60 * 24)) : 0
-        }
-      };
+    const trialsWithUsers = trials.map(t => ({
+      ...t,
+      trial_info: { requested_at: t.trial_requested_at, plan_type: t.trial_plan_type || 'basico', game_server: t.trial_game_server || '', connection_type: t.trial_connection_type || '', days_ago: t.trial_requested_at ? Math.floor((new Date() - new Date(t.trial_requested_at)) / (1000 * 60 * 60 * 24)) : 0 }
     }));
-    
     res.json(trialsWithUsers);
-  } catch (error) {
-    console.error('❌ Error obteniendo pruebas pendientes:', error);
-    res.status(500).json({ error: 'Error obteniendo pruebas pendientes' });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo pruebas pendientes' }); }
 });
 
 app.post('/api/trials/:telegramId/mark-sent', async (req, res) => {
   try {
     const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     const user = await db.markTrialAsSent(req.params.telegramId, adminId);
-    
     try {
       const canSend = await canSendMessageToUser(req.params.telegramId);
-      if (canSend.canSend) {
-        await bot.telegram.sendMessage(
-          req.params.telegramId,
-          '<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita está lista!</b>\n\n' +
-          'Has recibido la configuración de prueba de 1 hora.\n' +
-          '¡Disfruta de baja latencia! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>\n\n' +
-          '<tg-emoji emoji-id="5778202206922608769">⏰</tg-emoji> <b>Nota:</b> Esta prueba expirará en 1 hora.',
-          { parse_mode: 'HTML' }
-        );
-      }
-    } catch (botError) {
-      console.log('❌ No se pudo notificar al usuario:', botError.message);
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Prueba marcada como enviada',
-      user 
-    });
-  } catch (error) {
-    console.error('❌ Error marcando prueba como enviada:', error);
-    res.status(500).json({ error: 'Error marcando prueba como enviada' });
-  }
+      if (canSend.canSend) await bot.telegram.sendMessage(req.params.telegramId, '<tg-emoji emoji-id="5875465628285931233">🎉</tg-emoji> <b>¡Tu prueba gratuita está lista!</b>\n\nHas recibido la configuración de prueba.\n¡Disfruta! <tg-emoji emoji-id="4978747001718966118">🚀</tg-emoji>', { parse_mode: 'HTML' });
+    } catch (e) {}
+    res.json({ success: true, message: 'Prueba marcada como enviada', user });
+  } catch (error) { res.status(500).json({ error: 'Error marcando prueba como enviada' }); }
 });
 
 app.post('/api/trials/:telegramId/cancel', async (req, res) => {
   try {
     const { adminId } = req.body;
-    const telegramId = req.params.telegramId;
-
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-
-    const user = await db.getUser(telegramId);
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    const updated = await db.updateUser(telegramId, {
-      trial_requested: false,
-      trial_requested_at: null,
-      trial_game_server: null,
-      trial_connection_type: null,
-      trial_plan_type: null
-    });
-
-    console.log(`🗑️ Solicitud de prueba cancelada por admin ${adminId} para usuario ${telegramId}`);
-
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    const user = await db.getUser(req.params.telegramId);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const updated = await db.updateUser(req.params.telegramId, { trial_requested: false, trial_requested_at: null, trial_game_server: null, trial_connection_type: null, trial_plan_type: null });
     res.json({ success: true, message: 'Solicitud de prueba eliminada', user: updated });
-  } catch (error) {
-    console.error('❌ Error cancelando solicitud de prueba:', error);
-    res.status(500).json({ error: 'Error cancelando solicitud: ' + error.message });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error cancelando solicitud: ' + error.message }); }
 });
 
 app.post('/api/send-trial-config', async (req, res) => {
   try {
     const { telegramId, adminId } = req.body;
-
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-
-    if (!telegramId || telegramId === 'undefined' || telegramId === 'null' || telegramId === '') {
-      return res.status(400).json({ error: 'ID de usuario inválido' });
-    }
-
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!telegramId || telegramId === 'undefined') return res.status(400).json({ error: 'ID de usuario inválido' });
     const chatId = telegramId.toString().trim();
     const user = await db.getUser(chatId);
-
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    if (!user.trial_requested) {
-      return res.status(400).json({ error: 'El usuario no solicitó prueba' });
-    }
-
-    if (user.trial_received) {
-      return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
-    }
-
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user.trial_requested) return res.status(400).json({ error: 'El usuario no solicitó prueba' });
+    if (user.trial_received) return res.status(400).json({ error: 'El usuario ya recibió la prueba' });
     const canSend = await canSendMessageToUser(chatId);
-    if (!canSend.canSend) {
-      await db.updateUser(chatId, {
-        is_active: false,
-        last_error: canSend.reason
-      });
-      return res.status(400).json({
-        error: `El usuario no puede recibir mensajes: ${canSend.reason}. Marcado como inactivo.`
-      });
-    }
-
+    if (!canSend.canSend) { await db.updateUser(chatId, { is_active: false, last_error: canSend.reason }); return res.status(400).json({ error: `El usuario no puede recibir mensajes: ${canSend.reason}` }); }
     await sendTrialConfigToUser(chatId, adminId);
-
-    res.json({
-      success: true,
-      message: 'Configuración de prueba enviada correctamente',
-      trialType: '1h',
-      gameServer: user.trial_game_server || 'No especificado',
-      connectionType: user.trial_connection_type || 'No especificado'
-    });
-  } catch (error) {
-    console.error('❌ Error en send-trial-config:', error);
-    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
-  }
+    res.json({ success: true, message: 'Configuración de prueba enviada', trialPlanType: user.trial_plan_type || 'basico', gameServer: user.trial_game_server || 'No especificado', connectionType: user.trial_connection_type || 'No especificado' });
+  } catch (error) { res.status(500).json({ error: 'Error interno: ' + error.message }); }
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString(),
-    admins: ADMIN_IDS,
-    port: PORT,
-    bot_token: process.env.BOT_TOKEN ? '✅ Configurado' : '❌ No configurado',
-    supabase_url: process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado',
-    supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado',
-    usdt_system: {
-      enabled: true,
-      mode: 'MANUAL',
-      wallet_address: USDT_CONFIG.WALLET_ADDRESS,
-      bscscan_api_key: '❌ Desactivado - Flujo manual',
-      verification_interval: 'Verificación automática desactivada',
-      notes: 'Todos los pagos requieren captura y aprobación manual'
-    }
-  });
+  res.json({ status: 'OK', timestamp: new Date().toISOString(), admins: ADMIN_IDS, port: PORT, bot_token: process.env.BOT_TOKEN ? '✅' : '❌', usdt_system: { enabled: true, mode: 'MANUAL', wallet_address: USDT_CONFIG.WALLET_ADDRESS } });
 });
 
 app.get('/api/image/:filename', (req, res) => {
-  try {
-    const filename = req.params.filename;
-    const filePath = path.join(UPLOADS_DIR, filename);
-    
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      res.status(404).json({ error: 'Imagen no encontrada' });
-    }
-  } catch (error) {
-    console.error('❌ Error sirviendo imagen:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+  const filePath = path.join(UPLOADS_DIR, req.params.filename);
+  if (fs.existsSync(filePath)) res.sendFile(filePath);
+  else res.status(404).json({ error: 'Imagen no encontrada' });
 });
 
 app.get('/api/storage-status', async (req, res) => {
   try {
     const buckets = [];
-    
-    try {
-      const { data: screenshots } = await supabaseAdmin.storage
-        .from('payments-screenshots')
-        .list();
-      buckets.push({
-        name: 'payments-screenshots',
-        status: '✅ Existe',
-        fileCount: screenshots?.length || 0
-      });
-    } catch (e) {
-      buckets.push({
-        name: 'payments-screenshots', 
-        status: '❌ No existe o error: ' + e.message
-      });
+    for (const name of ['payments-screenshots', 'plan-files', 'trial-files-basico', 'trial-files-avanzado', 'trial-files-premium', 'trial-files-anual']) {
+      try { const { data } = await supabaseAdmin.storage.from(name).list(); buckets.push({ name, status: '✅ Existe', fileCount: data?.length || 0 }); }
+      catch (e) { buckets.push({ name, status: '❌ Error: ' + e.message }); }
     }
-    
-    try {
-      const { data: planFiles } = await supabaseAdmin.storage
-        .from('plan-files')
-        .list();
-      buckets.push({
-        name: 'plan-files',
-        status: '✅ Existe',
-        fileCount: planFiles?.length || 0
-      });
-    } catch (e) {
-      buckets.push({
-        name: 'plan-files', 
-        status: '❌ No existe o error: ' + e.message
-      });
-    }
-    
-    res.json({ 
-      success: true,
-      buckets,
-      service_key_configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      service_key_configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    });
-  }
+    res.json({ success: true, buckets, service_key_configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
 app.post('/api/broadcast/send', async (req, res) => {
   try {
     const { message, target, adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!message || message.trim() === '') {
-      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!message?.trim()) return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
     const validTargets = ['all', 'vip', 'non_vip', 'trial_pending', 'trial_received', 'active', 'with_referrals', 'usdt_payers'];
-    if (!validTargets.includes(target)) {
-      return res.status(400).json({ error: 'Target de broadcast inválido' });
-    }
-    
+    if (!validTargets.includes(target)) return res.status(400).json({ error: 'Target de broadcast inválido' });
     const broadcast = await db.createBroadcast(message, target, adminId);
-    
-    if (!broadcast || !broadcast.id) {
-      throw new Error('No se pudo crear el broadcast');
-    }
-    
-    let users = [];
-    try {
-      users = await getAllUsersForBroadcast(target);
-    } catch (err) {
-      console.error('❌ Error obteniendo usuarios para broadcast:', err.message);
-      throw new Error('No se pudieron obtener los usuarios: ' + err.message);
-    }
-    
-    await db.updateBroadcastStatus(broadcast.id, 'pending', {
-      total_users: users.length
-    });
-    
-    setImmediate(() => {
-      sendBroadcastToUsers(broadcast.id, message, users, adminId);
-    });
-    
-    res.json({ 
-      success: true, 
-      message: 'Broadcast creado y en proceso de envío',
-      broadcast: {
-        id: broadcast.id,
-        message: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
-        target: target,
-        total_users: users.length,
-        status: 'pending'
-      },
-      totalUsers: users.length
-    });
-    
-  } catch (error) {
-    console.error('❌ Error creando broadcast:', error);
-    res.status(500).json({ error: 'Error creando broadcast: ' + error.message });
-  }
+    if (!broadcast?.id) throw new Error('No se pudo crear el broadcast');
+    const users = await getAllUsersForBroadcast(target);
+    await db.updateBroadcastStatus(broadcast.id, 'pending', { total_users: users.length });
+    setImmediate(() => { sendBroadcastToUsers(broadcast.id, message, users, adminId); });
+    res.json({ success: true, message: 'Broadcast creado', broadcast: { id: broadcast.id, target, total_users: users.length, status: 'pending' }, totalUsers: users.length });
+  } catch (error) { res.status(500).json({ error: 'Error creando broadcast: ' + error.message }); }
 });
 
 async function sendBroadcastToUsers(broadcastId, message, users, adminId) {
   try {
-    if (!broadcastId) {
-      console.error('❌ ID de broadcast no proporcionado');
-      return;
-    }
-    
-    if (!users || users.length === 0) {
-      console.log('⚠️ No hay usuarios para este broadcast');
-      await db.updateBroadcastStatus(broadcastId, 'completed', {
-        sent_count: 0, failed_count: 0, unavailable_count: 0, total_users: 0
-      });
-      return;
-    }
-
-    await db.updateBroadcastStatus(broadcastId, 'sending', {
-      total_users: users.length,
-      sent_count: 0
-    });
-    
-    let sentCount = 0;
-    let failedCount = 0;
-    let unavailableCount = 0;
-    
+    if (!users?.length) { await db.updateBroadcastStatus(broadcastId, 'completed', { sent_count: 0, failed_count: 0, unavailable_count: 0, total_users: 0 }); return; }
+    await db.updateBroadcastStatus(broadcastId, 'sending', { total_users: users.length, sent_count: 0 });
+    let sentCount = 0, failedCount = 0, unavailableCount = 0;
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
-      
       try {
-        if (!user.telegram_id) {
-          failedCount++;
-          continue;
-        }
-        
-        await bot.telegram.sendMessage(
-          user.telegram_id,
-          `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Para consultas, contacta a soporte: @L0quen2_`,
-          { parse_mode: 'Markdown' }
-        );
+        if (!user.telegram_id) { failedCount++; continue; }
+        await bot.telegram.sendMessage(user.telegram_id, `📢 *MENSAJE IMPORTANTE - VPN CUBA*\n\n${message}\n\n_Soporte: @L0quen2_`, { parse_mode: 'Markdown' });
         sentCount++;
-
       } catch (error) {
         failedCount++;
         const errMsg = error.description || error.message || '';
-
-        const isPermanentError =
-          errMsg.includes('blocked') ||
-          errMsg.includes('chat not found') ||
-          errMsg.includes('kicked') ||
-          errMsg.includes('user is deactivated') ||
-          error.response?.error_code === 403;
-
-        if (isPermanentError) {
+        if (errMsg.includes('blocked') || errMsg.includes('chat not found') || errMsg.includes('kicked') || errMsg.includes('user is deactivated') || error.response?.error_code === 403) {
           unavailableCount++;
-          try {
-            await db.updateUser(user.telegram_id, {
-              is_active: false,
-              last_error: errMsg,
-              updated_at: new Date().toISOString()
-            });
-          } catch (updateErr) {
-            console.log(`⚠️ No se pudo marcar inactivo ${user.telegram_id}:`, updateErr.message);
-          }
+          try { await db.updateUser(user.telegram_id, { is_active: false, last_error: errMsg, updated_at: new Date().toISOString() }); } catch (e) {}
         }
       }
-
       if ((i + 1) % 25 === 0 || i === users.length - 1) {
-        try {
-          await db.updateBroadcastStatus(broadcastId, 'sending', {
-            sent_count: sentCount,
-            failed_count: failedCount,
-            unavailable_count: unavailableCount,
-            total_users: users.length
-          });
-        } catch (progressErr) {
-          console.warn('⚠️ Error actualizando progreso de broadcast:', progressErr.message);
-        }
+        try { await db.updateBroadcastStatus(broadcastId, 'sending', { sent_count: sentCount, failed_count: failedCount, unavailable_count: unavailableCount, total_users: users.length }); } catch (e) {}
       }
-
       await new Promise(resolve => setTimeout(resolve, 50));
     }
-    
-    await db.updateBroadcastStatus(broadcastId, 'completed', {
-      sent_count: sentCount,
-      failed_count: failedCount,
-      unavailable_count: unavailableCount,
-      total_users: users.length
-    });
-    
+    await db.updateBroadcastStatus(broadcastId, 'completed', { sent_count: sentCount, failed_count: failedCount, unavailable_count: unavailableCount, total_users: users.length });
   } catch (error) {
     console.error(`❌ Error crítico en broadcast ${broadcastId}:`, error);
-    try {
-      await db.updateBroadcastStatus(broadcastId, 'failed', {
-        sent_count: 0,
-        failed_count: users?.length || 0,
-        unavailable_count: 0,
-        total_users: users?.length || 0
-      });
-    } catch (updateError) {
-      console.error('❌ Error actualizando estado de broadcast a fallido:', updateError);
-    }
+    try { await db.updateBroadcastStatus(broadcastId, 'failed', { sent_count: 0, failed_count: users?.length || 0, unavailable_count: 0, total_users: users?.length || 0 }); } catch (e) {}
   }
 }
 
-app.get('/api/broadcasts', async (req, res) => {
-  try {
-    const broadcasts = await db.getBroadcasts();
-    res.json(broadcasts);
-  } catch (error) {
-    console.error('❌ Error obteniendo broadcasts:', error);
-    res.status(500).json({ error: 'Error obteniendo broadcasts' });
-  }
-});
-
-app.get('/api/broadcast/status/:id', async (req, res) => {
-  try {
-    const broadcastId = req.params.id;
-    
-    if (!broadcastId || isNaN(parseInt(broadcastId))) {
-      return res.status(400).json({ error: 'ID de broadcast inválido' });
-    }
-    
-    const broadcast = await db.getBroadcast(broadcastId);
-    
-    if (!broadcast) {
-      return res.status(404).json({ error: 'Broadcast no encontrado' });
-    }
-    
-    res.json(broadcast);
-  } catch (error) {
-    console.error('❌ Error obteniendo estado de broadcast:', error);
-    res.status(500).json({ error: 'Error obteniendo estado de broadcast' });
-  }
-});
+app.get('/api/broadcasts', async (req, res) => { try { res.json(await db.getBroadcasts()); } catch (e) { res.status(500).json({ error: 'Error obteniendo broadcasts' }); } });
+app.get('/api/broadcast/status/:id', async (req, res) => { try { const b = await db.getBroadcast(req.params.id); if (!b) return res.status(404).json({ error: 'No encontrado' }); res.json(b); } catch (e) { res.status(500).json({ error: 'Error' }); } });
+app.get('/api/broadcast/:id', async (req, res) => { try { const b = await db.getBroadcast(req.params.id); if (!b) return res.status(404).json({ error: 'No encontrado' }); res.json(b); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 
 app.post('/api/broadcast/retry/:id', async (req, res) => {
   try {
     const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     const broadcast = await db.retryFailedBroadcast(req.params.id);
-    
-    if (!broadcast) {
-      return res.status(404).json({ error: 'Broadcast no encontrado' });
-    }
-    
+    if (!broadcast) return res.status(404).json({ error: 'No encontrado' });
     const users = await getAllUsersForBroadcast(broadcast.target_users);
-    
-    setTimeout(() => {
-      sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId);
-    }, 100);
-    
-    res.json({ 
-      success: true, 
-      message: 'Broadcast programado para reintento',
-      broadcast
-    });
-    
-  } catch (error) {
-    console.error('❌ Error reintentando broadcast:', error);
-    res.status(500).json({ error: 'Error reintentando broadcast: ' + error.message });
-  }
+    setTimeout(() => { sendBroadcastToUsers(broadcast.id, broadcast.message, users, adminId); }, 100);
+    res.json({ success: true, message: 'Reintentando broadcast', broadcast });
+  } catch (error) { res.status(500).json({ error: 'Error reintentando: ' + error.message }); }
 });
 
-app.get('/api/users/active', async (req, res) => {
-  try {
-    const users = await db.getActiveUsers(30);
-    res.json(users);
-  } catch (error) {
-    console.error('❌ Error obteniendo usuarios activos:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios activos' });
-  }
-});
+app.get('/api/users/active', async (req, res) => { try { res.json(await db.getActiveUsers(30)); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 
-app.get('/api/broadcast/:id', async (req, res) => {
-  try {
-    const broadcastId = req.params.id;
-    
-    if (!broadcastId || isNaN(parseInt(broadcastId))) {
-      return res.status(400).json({ error: 'ID de broadcast inválido' });
-    }
-    
-    const broadcast = await db.getBroadcast(broadcastId);
-    
-    if (!broadcast) {
-      return res.status(404).json({ error: 'Broadcast no encontrado' });
-    }
-    
-    res.json(broadcast);
-  } catch (error) {
-    console.error('❌ Error obteniendo broadcast:', error);
-    res.status(500).json({ error: 'Error obteniendo broadcast' });
-  }
-});
-
-app.get('/api/referrals/stats', async (req, res) => {
-  try {
-    const stats = await db.getAllReferralsStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de referidos:', error);
-    res.status(500).json({ error: 'Error obteniendo estadísticas de referidos' });
-  }
-});
-
+app.get('/api/referrals/stats', async (req, res) => { try { res.json(await db.getAllReferralsStats()); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 app.get('/api/referrals/top', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
-    const topReferrers = stats.top_referrers || [];
-    
-    const referrersWithInfo = await Promise.all(topReferrers.map(async (referrer) => {
-      const user = await db.getUser(referrer.referrer_id);
-      return {
-        ...referrer,
-        first_name: user?.first_name || 'Usuario',
-        username: user?.username || 'sin_usuario'
-      };
-    }));
-    
-    res.json(referrersWithInfo);
-  } catch (error) {
-    console.error('❌ Error obteniendo top referidores:', error);
-    res.status(500).json({ error: 'Error obteniendo top referidores' });
-  }
+    const top = await Promise.all((stats.top_referrers || []).map(async r => { const u = await db.getUser(r.referrer_id); return { ...r, first_name: u?.first_name || 'Usuario', username: u?.username || 'sin_usuario' }; }));
+    res.json(top);
+  } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
-
 app.get('/api/referrals/list', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
-    const referrals = stats.recent_referrals || [];
-    
-    const referralsWithInfo = await Promise.all(referrals.map(async (referral) => {
-      const user = await db.getUser(referral.referred_id);
-      const referrer = await db.getUser(referral.referrer_id);
-      
-      return {
-        ...referral,
-        user_name: user?.first_name || 'Usuario',
-        user_id: user?.telegram_id,
-        referrer_name: referrer?.first_name || 'Usuario',
-        referrer_id: referrer?.telegram_id
-      };
-    }));
-    
-    res.json(referralsWithInfo);
-  } catch (error) {
-    console.error('❌ Error obteniendo lista de referidos:', error);
-    res.status(500).json({ error: 'Error obteniendo lista de referidos' });
-  }
+    const referrals = await Promise.all((stats.recent_referrals || []).map(async r => { const u = await db.getUser(r.referred_id); const ref = await db.getUser(r.referrer_id); return { ...r, user_name: u?.first_name || 'Usuario', user_id: u?.telegram_id, referrer_name: ref?.first_name || 'Usuario', referrer_id: ref?.telegram_id }; }));
+    res.json(referrals);
+  } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
-
-app.get('/api/referrals/user/:telegramId', async (req, res) => {
-  try {
-    const stats = await db.getReferralStats(req.params.telegramId);
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de referidos por usuario:', error);
-    res.status(500).json({ error: 'Error obteniendo estadísticas de referidos por usuario' });
-  }
-});
-
+app.get('/api/referrals/user/:telegramId', async (req, res) => { try { res.json(await db.getReferralStats(req.params.telegramId)); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 app.get('/api/users/with-referrals', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
-    const usersWithReferrals = stats.top_referrers || [];
-    
-    const usersWithInfo = await Promise.all(usersWithReferrals.map(async (user) => {
-      const userInfo = await db.getUser(user.referrer_id);
-      return {
-        ...user,
-        first_name: userInfo?.first_name || 'Usuario',
-        username: userInfo?.username || 'sin_usuario',
-        telegram_id: user.referrer_id
-      };
-    }));
-    
-    res.json(usersWithInfo);
-  } catch (error) {
-    console.error('❌ Error obteniendo usuarios con referidos:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios con referidos' });
-  }
+    const users = await Promise.all((stats.top_referrers || []).map(async u => { const info = await db.getUser(u.referrer_id); return { ...u, first_name: info?.first_name || 'Usuario', username: info?.username || 'sin_usuario', telegram_id: u.referrer_id }; }));
+    res.json(users);
+  } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
-
 app.get('/api/users/without-referrals', async (req, res) => {
   try {
     const stats = await db.getAllReferralsStats();
     const allUsers = await db.getAllUsers(10000, 0);
     const usersWithReferrals = new Set(stats.top_referrers?.map(u => u.referrer_id) || []);
-    
-    const usersWithoutReferrals = allUsers.filter(user => {
-      return !usersWithReferrals.has(user.telegram_id.toString());
-    });
-    
-    res.json(usersWithoutReferrals.slice(0, 200));
-  } catch (error) {
-    console.error('❌ Error obteniendo usuarios sin referidos:', error);
-    res.status(500).json({ error: 'Error obteniendo usuarios sin referidos' });
-  }
+    res.json(allUsers.filter(u => !usersWithReferrals.has(u.telegram_id.toString())).slice(0, 200));
+  } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
 
 app.get('/api/usdt/wallet-status', async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      wallet_address: USDT_CONFIG.WALLET_ADDRESS,
-      network: 'BEP20 (Binance Smart Chain)',
-      usdt_contract: USDT_CONFIG.USDT_CONTRACT_ADDRESS,
-      balance: 'Verificación automática desactivada',
-      bscscan_url: `https://bscscan.com/address/${USDT_CONFIG.WALLET_ADDRESS}`,
-      last_check: new Date().toISOString(),
-      check_interval: 'Verificación automática desactivada',
-      mode: 'MANUAL',
-      message: 'Todos los pagos USDT requieren captura y aprobación manual'
-    });
-  } catch (error) {
-    console.error('❌ Error verificando estado de wallet:', error);
-    res.status(500).json({ error: 'Error verificando estado de wallet' });
-  }
+  res.json({ success: true, wallet_address: USDT_CONFIG.WALLET_ADDRESS, network: 'BEP20', usdt_contract: USDT_CONFIG.USDT_CONTRACT_ADDRESS, mode: 'MANUAL', message: 'Todos los pagos USDT requieren captura y aprobación manual' });
 });
+app.get('/api/usdt/verify-transaction/:hash', (req, res) => { res.json({ success: true, status: 'manual_review_required', mode: 'manual' }); });
+app.post('/api/usdt/force-check', (req, res) => { if (!isAdmin(req.body.adminId)) return res.status(403).json({ error: 'No autorizado' }); res.json({ success: true, message: 'Verificación automática desactivada.', result: { transactions: 0, mode: 'manual' } }); });
+app.get('/api/usdt/unassigned-transactions', (req, res) => { res.json([]); });
 
-app.get('/api/usdt/verify-transaction/:hash', async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      status: "manual_review_required",
-      confirmations: "N/A",
-      mode: "manual",
-      message: "Verificación automática desactivada. Revisar captura manualmente."
-    });
-  } catch (error) {
-    console.error('❌ Error verificando transacción:', error);
-    res.status(500).json({ error: 'Error verificando transacción' });
-  }
-});
-
-app.post('/api/usdt/force-check', async (req, res) => {
-  try {
-    const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Verificación automática desactivada. Todos los pagos USDT requieren revisión manual con captura.',
-      result: { transactions: 0, mode: 'manual' }
-    });
-  } catch (error) {
-    console.error('❌ Error en verificación forzada:', error);
-    res.status(500).json({ error: 'Error en verificación forzada' });
-  }
-});
-
-app.get('/api/usdt/unassigned-transactions', async (req, res) => {
-  try {
-    res.json([]);
-  } catch (error) {
-    console.error('❌ Error obteniendo transacciones no asignadas:', error);
-    res.status(500).json({ error: 'Error obteniendo transacciones no asignadas' });
-  }
-});
-
-// ==================== RUTAS PARA ARCHIVOS DE PLANES ====================
-
+// ==================== ARCHIVOS DE PLANES ====================
 app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
   try {
     const { plan, adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!req.file) {
-      return res.status(400).json({ error: 'Archivo de configuración requerido' });
-    }
-    
-    if (!plan || !['basico', 'avanzado', 'premium', 'anual'].includes(plan)) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      return res.status(400).json({ error: 'Plan inválido' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
+    if (!plan || !['basico', 'avanzado', 'premium', 'anual'].includes(plan)) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Plan inválido' }); }
     const fileName = req.file.originalname.toLowerCase();
-    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-      return res.status(400).json({ error: 'El archivo debe tener extensión .conf, .zip o .rar' });
-    }
-    
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Solo .conf, .zip o .rar' }); }
     const fileBuffer = fs.readFileSync(req.file.path);
-    
     const uploadResult = await db.uploadPlanFile(fileBuffer, plan, req.file.originalname);
-    
-    fs.unlink(req.file.path, (err) => {
-      if (err) console.error('❌ Error al eliminar archivo local:', err);
-    });
-    
-    const planFileData = {
-      plan: plan,
-      storage_filename: uploadResult.filename,
-      original_name: uploadResult.originalName,
-      public_url: uploadResult.publicUrl,
-      uploaded_by: adminId,
-      uploaded_at: new Date().toISOString()
-    };
-    
-    const savedFile = await db.savePlanFile(planFileData);
-    
-    res.json({ 
-      success: true, 
-      message: `Archivo de plan ${getPlanName(plan)} subido correctamente`,
-      file: savedFile
-    });
-    
-  } catch (error) {
-    console.error('❌ Error subiendo archivo de plan:', error);
-    
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('❌ Error al eliminar archivo:', err);
-      });
-    }
-    
-    res.status(500).json({ error: 'Error subiendo archivo de plan: ' + error.message });
-  }
+    fs.unlink(req.file.path, () => {});
+    const savedFile = await db.savePlanFile({ plan, storage_filename: uploadResult.filename, original_name: uploadResult.originalName, public_url: uploadResult.publicUrl, uploaded_by: adminId, uploaded_at: new Date().toISOString() });
+    res.json({ success: true, message: `Archivo de plan ${getPlanName(plan)} subido`, file: savedFile });
+  } catch (error) { if (req.file?.path) fs.unlink(req.file.path, () => {}); res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
-// ==================== MULTI-TRIAL FILES ====================
+// ==================== POOL DE PRUEBAS POR PLAN ====================
 
+// Subir archivo al pool de un plan específico
 app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   try {
-    const { adminId, label, planType } = req.body;   // planType es el tipo de prueba (basico, avanzado, premium, anual)
+    const { adminId, label, planType } = req.body;
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
 
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: 'Archivo requerido' });
-    }
-
+    const targetPlan = PLAN_TYPES.includes(planType) ? planType : 'basico';
     const fileName = req.file.originalname.toLowerCase();
-    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
-      fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ error: 'Solo .conf, .zip o .rar' });
-    }
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Solo .conf, .zip o .rar' }); }
 
     const ext = path.extname(req.file.originalname);
-    const uniqueName = `trial_${Date.now()}${ext}`;
-    const localPath = path.join(TRIAL_FILES_DIR, uniqueName);
+    const uniqueName = `trial_${targetPlan}_${Date.now()}${ext}`;
+    const dir = TRIAL_DIRS[targetPlan] || TRIAL_DIRS['basico'];
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const localPath = path.join(dir, uniqueName);
     fs.copyFileSync(req.file.path, localPath);
     fs.unlink(req.file.path, () => {});
 
     let publicUrl = null;
     try {
       const buf = fs.readFileSync(localPath);
-      const up = await db.uploadPlanFile(buf, 'trial', uniqueName);
+      const up = await db.uploadPlanFile(buf, `trial-${targetPlan}`, uniqueName);
       publicUrl = up.publicUrl;
-    } catch (e) {
-      console.warn('⚠️ Supabase backup falló (archivo local OK):', e.message);
-    }
+    } catch (e) { console.warn(`⚠️ Supabase backup falló (${targetPlan}):`, e.message); }
 
-    // Guardar con planType (si no se envía, queda null → archivo general)
-    const saved = await db.saveTrialFile({
+    const saved = await db.saveTrialFileByPlan(targetPlan, {
       original_name: req.file.originalname,
       local_path: localPath,
       public_url: publicUrl,
       label: label || req.file.originalname,
       uploaded_by: adminId,
       is_active: true,
-      plan_type: planType || null,          // ← nuevo campo
       uploaded_at: new Date().toISOString()
     });
 
-    res.json({ success: true, message: 'Archivo de prueba añadido al pool', file: saved });
+    res.json({ success: true, message: `Archivo añadido al pool ${getPlanLabel(targetPlan)}`, file: saved, planType: targetPlan });
   } catch (error) {
     console.error('❌ Error subiendo archivo de prueba:', error);
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -2508,655 +1230,242 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-app.get('/api/trial-files', async (req, res) => {
+// Obtener archivos del pool de un plan específico
+app.get('/api/trial-files/:planType', async (req, res) => {
   try {
-    const files = await db.getTrialFiles();
-    const enriched = (files || []).map(f => ({
-      ...f,
-      local_exists: f.local_path ? fs.existsSync(f.local_path) : false
-    }));
-    res.json(enriched);
-  } catch (error) {
-    console.error('❌ Error obteniendo archivos de prueba:', error);
-    res.status(500).json({ error: 'Error obteniendo archivos de prueba' });
-  }
+    const planType = PLAN_TYPES.includes(req.params.planType) ? req.params.planType : 'basico';
+    const files = await db.getTrialFilesByPlan(planType);
+    res.json((files || []).map(f => ({ ...f, local_exists: f.local_path ? fs.existsSync(f.local_path) : false })));
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo archivos' }); }
 });
 
-app.put('/api/trial-files/:id/toggle', async (req, res) => {
+// Obtener todos los pools en un solo objeto { basico: [...], avanzado: [...], ... }
+app.get('/api/trial-files', async (req, res) => {
+  try {
+    const result = {};
+    for (const pt of PLAN_TYPES) {
+      const files = await db.getTrialFilesByPlan(pt);
+      result[pt] = (files || []).map(f => ({ ...f, local_exists: f.local_path ? fs.existsSync(f.local_path) : false }));
+    }
+    res.json(result);
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo archivos' }); }
+});
+
+app.put('/api/trial-files/:planType/:id/toggle', async (req, res) => {
   try {
     const { adminId, is_active } = req.body;
     if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
-
-    const updated = await db.updateTrialFile(req.params.id, { is_active: !!is_active });
+    const planType = PLAN_TYPES.includes(req.params.planType) ? req.params.planType : 'basico';
+    const updated = await db.updateTrialFileByPlan(planType, req.params.id, { is_active: !!is_active });
     res.json({ success: true, file: updated });
-  } catch (error) {
-    console.error('❌ Error actualizando archivo de prueba:', error);
-    res.status(500).json({ error: 'Error: ' + error.message });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
-app.delete('/api/trial-files/:id', async (req, res) => {
+app.delete('/api/trial-files/:planType/:id', async (req, res) => {
   try {
     const { adminId } = req.body;
     if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
-
-    const file = await db.getTrialFile(req.params.id);
+    const planType = PLAN_TYPES.includes(req.params.planType) ? req.params.planType : 'basico';
+    const file = await db.getTrialFileByPlan(planType, req.params.id);
     if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
-
-    if (file.local_path && fs.existsSync(file.local_path)) {
-      fs.unlinkSync(file.local_path);
-    }
-
-    await db.deleteTrialFile(req.params.id);
+    if (file.local_path && fs.existsSync(file.local_path)) fs.unlinkSync(file.local_path);
+    await db.deleteTrialFileByPlan(planType, req.params.id);
     res.json({ success: true, message: 'Archivo eliminado' });
-  } catch (error) {
-    console.error('❌ Error eliminando archivo de prueba:', error);
-    res.status(500).json({ error: 'Error: ' + error.message });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
+// Legacy: ruta antigua /api/upload-trial-file (mantener por compatibilidad)
 app.post('/api/upload-trial-file', upload.single('file'), async (req, res) => {
   try {
     const { adminId } = req.body;
     if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
-
     const fileName = req.file.originalname.toLowerCase();
-    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) {
-      fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ error: 'Solo .conf, .zip o .rar' });
-    }
-
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Solo .conf, .zip o .rar' }); }
     const ext = path.extname(req.file.originalname);
     const targetPath = TRIAL_CURRENT_FILE + ext;
     fs.copyFileSync(req.file.path, targetPath);
-
-    const uniqueName = `trial_${Date.now()}${ext}`;
-    const poolPath = path.join(TRIAL_FILES_DIR, uniqueName);
+    const poolPath = path.join(TRIAL_DIRS['basico'], `trial_basico_${Date.now()}${ext}`);
     fs.copyFileSync(req.file.path, poolPath);
     fs.unlink(req.file.path, () => {});
-
     let publicUrl = null;
-    try {
-      const buf = fs.readFileSync(targetPath);
-      const up = await db.uploadPlanFile(buf, 'trial', req.file.originalname);
-      publicUrl = up.publicUrl;
-      await db.savePlanFile({ plan: 'trial', storage_filename: up.filename, original_name: up.originalName, public_url: up.publicUrl, uploaded_by: adminId, uploaded_at: new Date().toISOString() });
-    } catch(e) { console.warn('⚠️ Supabase backup falló:', e.message); }
-
-    try {
-      await db.saveTrialFile({ original_name: req.file.originalname, local_path: poolPath, public_url: publicUrl, label: req.file.originalname, uploaded_by: adminId, is_active: true, uploaded_at: new Date().toISOString() });
-    } catch(e) { console.warn('⚠️ No se pudo añadir al pool (tabla puede no existir aún):', e.message); }
-
-    res.json({ success: true, message: 'Archivo de prueba subido', file: { local_path: targetPath } });
-  } catch (error) {
-    console.error('❌ Error:', error);
-    if (req.file?.path) fs.unlink(req.file.path, () => {});
-    res.status(500).json({ error: 'Error: ' + error.message });
-  }
+    try { const buf = fs.readFileSync(targetPath); const up = await db.uploadPlanFile(buf, 'trial', req.file.originalname); publicUrl = up.publicUrl; await db.savePlanFile({ plan: 'trial', storage_filename: up.filename, original_name: up.originalName, public_url: up.publicUrl, uploaded_by: adminId, uploaded_at: new Date().toISOString() }); } catch(e) {}
+    try { await db.saveTrialFileByPlan('basico', { original_name: req.file.originalname, local_path: poolPath, public_url: publicUrl, label: req.file.originalname, uploaded_by: adminId, is_active: true, uploaded_at: new Date().toISOString() }); } catch(e) {}
+    res.json({ success: true, message: 'Archivo de prueba subido al pool Básico', file: { local_path: targetPath } });
+  } catch (error) { if (req.file?.path) fs.unlink(req.file.path, () => {}); res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
-app.get('/api/plan-files', async (req, res) => {
-  try {
-    const planFiles = await db.getAllPlanFiles();
-    res.json(planFiles);
-  } catch (error) {
-    console.error('❌ Error obteniendo archivos de planes:', error);
-    res.status(500).json({ error: 'Error obteniendo archivos de planes' });
-  }
-});
-
-app.get('/api/plan-files/:plan', async (req, res) => {
-  try {
-    const planFile = await db.getPlanFile(req.params.plan);
-    
-    if (!planFile) {
-      return res.status(404).json({ error: 'Archivo de plan no encontrado' });
-    }
-    
-    res.json(planFile);
-  } catch (error) {
-    console.error('❌ Error obteniendo archivo de plan:', error);
-    res.status(500).json({ error: 'Error obteniendo archivo de plan' });
-  }
-});
-
+app.get('/api/plan-files', async (req, res) => { try { res.json(await db.getAllPlanFiles()); } catch (e) { res.status(500).json({ error: 'Error' }); } });
+app.get('/api/plan-files/:plan', async (req, res) => { try { const f = await db.getPlanFile(req.params.plan); if (!f) return res.status(404).json({ error: 'No encontrado' }); res.json(f); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 app.delete('/api/plan-files/:plan', async (req, res) => {
   try {
     const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     const deletedFile = await db.deletePlanFile(req.params.plan);
-    
-    if (req.params.plan === 'trial') {
-      const extensions = ['.conf', '.zip', '.rar'];
-      for (const ext of extensions) {
-        const filePath = TRIAL_CURRENT_FILE + ext;
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-    }
-    
-    res.json({ 
-      success: true, 
-      message: `Archivo de plan ${getPlanName(req.params.plan)} eliminado`,
-      file: deletedFile
-    });
-  } catch (error) {
-    console.error('❌ Error eliminando archivo de plan:', error);
-    res.status(500).json({ error: 'Error eliminando archivo de plan: ' + error.message });
-  }
+    if (req.params.plan === 'trial') { for (const ext of ['.conf', '.zip', '.rar']) { const fp = TRIAL_CURRENT_FILE + ext; if (fs.existsSync(fp)) fs.unlinkSync(fp); } }
+    res.json({ success: true, message: `Archivo ${getPlanName(req.params.plan)} eliminado`, file: deletedFile });
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
 app.get('/api/games-stats', async (req, res) => {
-  try {
-    const stats = await db.getGamesStatistics();
-    res.json(stats.games || []);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de juegos:', error);
-    res.status(500).json({ error: 'Error obteniendo estadísticas de juegos' });
-  }
+  try { const stats = await db.getGamesStatistics(); res.json(stats.games || []); } catch (e) { res.status(500).json({ error: 'Error' }); }
 });
 
 app.get('/api/user/:telegramId/details', async (req, res) => {
   try {
     const user = await db.getUser(req.params.telegramId);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    
-    let referralStats = null;
-    let payments = [];
-    let referrals = [];
-
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    let referralStats = null, payments = [], referrals = [];
     try { referralStats = await db.getReferralStats(req.params.telegramId); } catch(e) {}
     try { payments = await db.getUserPayments(req.params.telegramId) || []; } catch(e) {}
     try { referrals = await db.getReferralsByReferrer(req.params.telegramId) || []; } catch(e) {}
-    
-    const level1Referrals = referrals.filter(r => r.level === 1);
-    const level2Referrals = referrals.filter(r => r.level === 2);
-    const level1Paid = level1Referrals.filter(r => r.has_paid).length;
-    const level2Paid = level2Referrals.filter(r => r.has_paid).length;
-
-    res.json({
-      ...user,
-      telegram_id: user.telegram_id,
-      first_name: user.first_name || 'Usuario',
-      username: user.username || '',
-      vip: user.vip || false,
-      current_plan: user.plan || user.current_plan || null,
-      plan: user.plan || user.current_plan || null,
-      plan_price: user.plan_price || null,
-      vip_since: user.vip_since || null,
-      referrer_id: user.referrer_id || null,
-      referrer_username: user.referrer_username || null,
-      is_active: user.is_active !== false,
-      trial_requested: user.trial_requested || false,
-      trial_received: user.trial_received || false,
-      created_at: user.created_at || null,
-      referral_stats: referralStats,
-      payments: payments,
-      referrals: referrals,
-      level1_referrals: level1Referrals.length,
-      level2_referrals: level2Referrals.length,
-      level1_paid: level1Paid,
-      level2_paid: level2Paid,
-      total_referrals: referrals.length,
-      paid_referrals: level1Paid + level2Paid
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo detalles de usuario:', error);
-    res.status(500).json({ error: 'Error obteniendo detalles de usuario' });
-  }
+    const level1 = referrals.filter(r => r.level === 1), level2 = referrals.filter(r => r.level === 2);
+    res.json({ ...user, telegram_id: user.telegram_id, first_name: user.first_name || 'Usuario', username: user.username || '', vip: user.vip || false, current_plan: user.plan || user.current_plan || null, plan: user.plan || user.current_plan || null, plan_price: user.plan_price || null, vip_since: user.vip_since || null, referrer_id: user.referrer_id || null, referrer_username: user.referrer_username || null, is_active: user.is_active !== false, trial_requested: user.trial_requested || false, trial_received: user.trial_received || false, created_at: user.created_at || null, referral_stats: referralStats, payments, referrals, level1_referrals: level1.length, level2_referrals: level2.length, level1_paid: level1.filter(r => r.has_paid).length, level2_paid: level2.filter(r => r.has_paid).length, total_referrals: referrals.length, paid_referrals: level1.filter(r => r.has_paid).length + level2.filter(r => r.has_paid).length });
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
 app.post('/api/user/:userId/message', async (req, res) => {
   try {
     const { adminId, message } = req.body;
-    const userId = req.params.userId;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!message) {
-      return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
-    }
-    
-    if (!userId || userId === 'undefined' || userId === 'null' || userId === '') {
-      return res.status(400).json({ error: 'ID de usuario inválido' });
-    }
-    
-    const chatId = userId.toString().trim();
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
+    const chatId = req.params.userId.toString().trim();
     const canSend = await canSendMessageToUser(chatId);
-    if (!canSend.canSend) {
-      return res.status(400).json({ 
-        error: `No se puede enviar mensaje al usuario: ${canSend.reason}` 
-      });
-    }
-    
-    await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { 
-      parse_mode: 'Markdown' 
-    });
-    
+    if (!canSend.canSend) return res.status(400).json({ error: `No se puede enviar: ${canSend.reason}` });
+    await bot.telegram.sendMessage(chatId, `📨 *Mensaje del Administrador:*\n\n${message}`, { parse_mode: 'Markdown' });
     res.json({ success: true, message: 'Mensaje enviado' });
-  } catch (error) {
-    console.error('❌ Error enviando mensaje:', error);
-    res.status(500).json({ error: 'Error enviando mensaje: ' + error.message });
-  }
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
 app.post('/api/send-trials-to-valid', async (req, res) => {
   try {
     const { adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    const result = await sendTrialToValidUsers(adminId);
-    
-    res.json(result);
-    
-  } catch (error) {
-    console.error('❌ Error en send-trials-to-valid:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error interno del servidor: ' + error.message 
-    });
-  }
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    res.json(await sendTrialToValidUsers(adminId));
+  } catch (error) { res.status(500).json({ success: false, error: 'Error: ' + error.message }); }
 });
 
-// ==================== RUTAS PARA CUPONES ====================
-
+// ==================== CUPONES ====================
 app.post('/api/coupons', async (req, res) => {
   try {
     const { code, discount, stock, expiry, description, adminId } = req.body;
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!code || !discount || !stock) {
-      return res.status(400).json({ error: 'Faltan campos requeridos: código, descuento y stock' });
-    }
-    
-    if (!/^[A-Z0-9]+$/.test(code)) {
-      return res.status(400).json({ error: 'El código solo puede contener letras mayúsculas y números' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!code || !discount || !stock) return res.status(400).json({ error: 'Faltan campos requeridos' });
+    if (!/^[A-Z0-9]+$/.test(code)) return res.status(400).json({ error: 'Código inválido' });
     const discountNum = parseFloat(discount);
-    if (isNaN(discountNum) || discountNum < 1 || discountNum > 100) {
-      return res.status(400).json({ error: 'El descuento debe estar entre 1% y 100%' });
-    }
-    
+    if (isNaN(discountNum) || discountNum < 1 || discountNum > 100) return res.status(400).json({ error: 'Descuento 1-100' });
     const stockNum = parseInt(stock);
-    if (isNaN(stockNum) || stockNum < 1) {
-      return res.status(400).json({ error: 'El stock debe ser mayor a 0' });
-    }
-    
+    if (isNaN(stockNum) || stockNum < 1) return res.status(400).json({ error: 'Stock debe ser mayor a 0' });
     let expiryDate = null;
     if (expiry) {
-      let expiryStr = expiry;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(expiry)) {
-        expiryStr = expiry + 'T23:59:59';
-      }
+      let expiryStr = /^\d{4}-\d{2}-\d{2}$/.test(expiry) ? expiry + 'T23:59:59' : expiry;
       expiryDate = new Date(expiryStr);
-
-      if (isNaN(expiryDate.getTime())) {
-        expiryDate = new Date(expiry.replace('T', ' '));
-      }
-      
-      if (isNaN(expiryDate.getTime())) {
-        return res.status(400).json({ error: 'Fecha de expiración inválida' });
-      }
-      
-      if (expiryDate <= new Date()) {
-        return res.status(400).json({ error: 'La fecha de expiración debe ser en el futuro' });
-      }
+      if (isNaN(expiryDate.getTime())) expiryDate = new Date(expiry.replace('T', ' '));
+      if (isNaN(expiryDate.getTime())) return res.status(400).json({ error: 'Fecha de expiración inválida' });
+      if (expiryDate <= new Date()) return res.status(400).json({ error: 'La fecha debe ser en el futuro' });
     }
-    
-    const coupon = await db.createCoupon({
-      code: code.toUpperCase(),
-      discount: discountNum,
-      stock: stockNum,
-      expiry: expiryDate,
-      description: description || '',
-      status: 'active',
-      created_by: adminId
-    });
-    
-    res.json({ 
-      success: true, 
-      message: 'Cupón creado exitosamente',
-      coupon 
-    });
-    
+    const coupon = await db.createCoupon({ code: code.toUpperCase(), discount: discountNum, stock: stockNum, expiry: expiryDate, description: description || '', status: 'active', created_by: adminId });
+    res.json({ success: true, message: 'Cupón creado', coupon });
   } catch (error) {
-    console.error('❌ ERROR creando cupón:', error);
-    
-    if (error.message.includes('unique')) {
-      return res.status(400).json({ error: 'Ya existe un cupón con ese código' });
-    }
-    
-    res.status(500).json({ error: 'Error creando cupón: ' + error.message });
+    if (error.message.includes('unique')) return res.status(400).json({ error: 'Ya existe un cupón con ese código' });
+    res.status(500).json({ error: 'Error: ' + error.message });
   }
 });
 
-app.get('/api/coupons', async (req, res) => {
-  try {
-    const coupons = await db.getCoupons();
-    res.json(coupons);
-  } catch (error) {
-    console.error('❌ Error obteniendo cupones:', error);
-    res.status(500).json({ error: 'Error obteniendo cupones' });
-  }
-});
-
-app.get('/api/coupons/stats', async (req, res) => {
-  try {
-    const stats = await db.getCouponsStats();
-    res.json(stats);
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de cupones:', error);
-    res.status(500).json({ error: 'Error obteniendo estadísticas de cupones' });
-  }
-});
-
-app.get('/api/coupons/:code', async (req, res) => {
-  try {
-    const coupon = await db.getCoupon(req.params.code.toUpperCase());
-    
-    if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
-    }
-    
-    res.json(coupon);
-  } catch (error) {
-    console.error('❌ Error obteniendo cupón:', error);
-    res.status(500).json({ error: 'Error obteniendo cupón' });
-  }
-});
+app.get('/api/coupons', async (req, res) => { try { res.json(await db.getCoupons()); } catch (e) { res.status(500).json({ error: 'Error' }); } });
+app.get('/api/coupons/stats', async (req, res) => { try { res.json(await db.getCouponsStats()); } catch (e) { res.status(500).json({ error: 'Error' }); } });
+app.get('/api/coupons/:code', async (req, res) => { try { const c = await db.getCoupon(req.params.code.toUpperCase()); if (!c) return res.status(404).json({ error: 'No encontrado' }); res.json(c); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 
 app.put('/api/coupons/:code', async (req, res) => {
   try {
     const { stock, status, adminId } = req.body;
     const code = req.params.code.toUpperCase();
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     const coupon = await db.getCoupon(code);
-    if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
-    }
-    
+    if (!coupon) return res.status(404).json({ error: 'No encontrado' });
     let stockNum = coupon.stock;
-    if (stock !== undefined) {
-      stockNum = parseInt(stock);
-      if (isNaN(stockNum) || stockNum < 0) {
-        return res.status(400).json({ error: 'Stock inválido' });
-      }
-    }
-    
+    if (stock !== undefined) { stockNum = parseInt(stock); if (isNaN(stockNum) || stockNum < 0) return res.status(400).json({ error: 'Stock inválido' }); }
     let newStatus = coupon.status;
-    if (status && ['active', 'inactive', 'expired'].includes(status)) {
-      newStatus = status;
-    }
-    
-    const updatedCoupon = await db.updateCoupon(code, {
-      stock: stockNum,
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-      updated_by: adminId
-    });
-    
-    res.json({ 
-      success: true, 
-      message: 'Cupón actualizado exitosamente',
-      coupon: updatedCoupon 
-    });
-    
-  } catch (error) {
-    console.error('❌ Error actualizando cupón:', error);
-    res.status(500).json({ error: 'Error actualizando cupón: ' + error.message });
-  }
+    if (status && ['active', 'inactive', 'expired'].includes(status)) newStatus = status;
+    const updated = await db.updateCoupon(code, { stock: stockNum, status: newStatus, updated_at: new Date().toISOString(), updated_by: adminId });
+    res.json({ success: true, message: 'Cupón actualizado', coupon: updated });
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
 app.put('/api/coupons/:code/status', async (req, res) => {
   try {
     const { status, adminId } = req.body;
     const code = req.params.code.toUpperCase();
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
-    if (!status || !['active', 'inactive', 'expired'].includes(status)) {
-      return res.status(400).json({ error: 'Estado inválido. Use: active, inactive, expired' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
+    if (!status || !['active', 'inactive', 'expired'].includes(status)) return res.status(400).json({ error: 'Estado inválido' });
     const coupon = await db.getCoupon(code);
-    if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
-    }
-    
-    const updatedCoupon = await db.updateCouponStatus(code, status, adminId);
-    
-    res.json({ 
-      success: true, 
-      message: `Cupón ${status === 'active' ? 'activado' : 'desactivado'} exitosamente`,
-      coupon: updatedCoupon 
-    });
-    
-  } catch (error) {
-    console.error('❌ Error cambiando estado de cupón:', error);
-    res.status(500).json({ error: 'Error cambiando estado de cupón: ' + error.message });
-  }
+    if (!coupon) return res.status(404).json({ error: 'No encontrado' });
+    const updated = await db.updateCouponStatus(code, status, adminId);
+    res.json({ success: true, message: `Cupón ${status === 'active' ? 'activado' : 'desactivado'}`, coupon: updated });
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
 app.delete('/api/coupons/:code', async (req, res) => {
   try {
     const { adminId } = req.body;
     const code = req.params.code.toUpperCase();
-    
-    if (!isAdmin(adminId)) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    
+    if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     const coupon = await db.getCoupon(code);
-    if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
-    }
-    
-    if (coupon.used && coupon.used > 0) {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar un cupón que ha sido usado. Puedes desactivarlo en su lugar.' 
-      });
-    }
-    
+    if (!coupon) return res.status(404).json({ error: 'No encontrado' });
+    if (coupon.used && coupon.used > 0) return res.status(400).json({ error: 'No se puede eliminar un cupón que ha sido usado. Desactívalo en su lugar.' });
     await db.deleteCoupon(code);
-    
-    res.json({ 
-      success: true, 
-      message: 'Cupón eliminado exitosamente' 
-    });
-    
-  } catch (error) {
-    console.error('❌ Error eliminando cupón:', error);
-    res.status(500).json({ error: 'Error eliminando cupón: ' + error.message });
-  }
+    res.json({ success: true, message: 'Cupón eliminado' });
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
 app.post('/api/coupons/verify/:code', async (req, res) => {
   try {
     const { telegramId } = req.body;
     const code = req.params.code.toUpperCase();
-    
-    if (!telegramId) {
-      return res.status(400).json({ error: 'ID de usuario requerido' });
-    }
-    
+    if (!telegramId) return res.status(400).json({ error: 'ID de usuario requerido' });
     const coupon = await db.getCoupon(code);
-    if (!coupon) {
-      return res.json({ success: false, error: 'Cupón no encontrado' });
-    }
-    
-    if (coupon.status !== 'active') {
-      return res.json({ 
-        success: false, 
-        error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
-      });
-    }
-    
+    if (!coupon) return res.json({ success: false, error: 'Cupón no encontrado' });
+    if (coupon.status !== 'active') return res.json({ success: false, error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` });
     if (coupon.expiry) {
-      let expiryStr = coupon.expiry;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(expiryStr)) {
-        expiryStr = expiryStr + 'T23:59:59';
-      }
+      let expiryStr = /^\d{4}-\d{2}-\d{2}$/.test(coupon.expiry) ? coupon.expiry + 'T23:59:59' : coupon.expiry;
       const expiryDate = new Date(expiryStr);
-      const now = new Date();
-      
-      if (expiryDate < now) {
-        await db.updateCouponStatus(code, 'expired', 'system');
-        return res.json({ success: false, error: 'Cupón expirado' });
-      }
+      if (expiryDate < new Date()) { await db.updateCouponStatus(code, 'expired', 'system'); return res.json({ success: false, error: 'Cupón expirado' }); }
     }
-    
-    if (coupon.stock <= 0) {
-      return res.json({ success: false, error: 'Cupón agotado' });
-    }
-    
-    const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
-    if (hasUsed) {
-      return res.json({ success: false, error: 'Ya has usado este cupón' });
-    }
-    
-    res.json({ 
-      success: true,
-      coupon: {
-        code: coupon.code,
-        discount: coupon.discount,
-        description: coupon.description,
-        stock: coupon.stock
-      },
-      message: `Cupón válido. Descuento del ${coupon.discount}% aplicado.`
-    });
-    
-  } catch (error) {
-    console.error('❌ Error verificando cupón:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error verificando cupón: ' + error.message 
-    });
-  }
+    if (coupon.stock <= 0) return res.json({ success: false, error: 'Cupón agotado' });
+    if (await db.hasUserUsedCoupon(telegramId, code)) return res.json({ success: false, error: 'Ya has usado este cupón' });
+    res.json({ success: true, coupon: { code: coupon.code, discount: coupon.discount, description: coupon.description, stock: coupon.stock }, message: `Descuento del ${coupon.discount}% aplicado.` });
+  } catch (error) { res.status(500).json({ success: false, error: 'Error: ' + error.message }); }
 });
 
-// ==================== ENDPOINT: ver usos de un cupón (para cualquier usuario) ====================
 app.get('/api/coupons/public/:code/usage', async (req, res) => {
   try {
-    const code = req.params.code.toUpperCase();
-    
-    const coupon = await db.getCoupon(code);
-    if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
-    }
-    
-    // Solo devolvemos info pública: cuántas veces se usó, estado, sin datos personales
-    res.json({
-      code: coupon.code,
-      used: coupon.used || 0,
-      stock_remaining: coupon.stock || 0,
-      status: coupon.status,
-      description: coupon.description || '',
-      discount: coupon.discount
-    });
-  } catch (error) {
-    console.error('❌ Error obteniendo usos de cupón:', error);
-    res.status(500).json({ error: 'Error obteniendo información del cupón' });
-  }
+    const coupon = await db.getCoupon(req.params.code.toUpperCase());
+    if (!coupon) return res.status(404).json({ error: 'Cupón no encontrado' });
+    res.json({ code: coupon.code, used: coupon.used || 0, stock_remaining: coupon.stock || 0, status: coupon.status, description: coupon.description || '', discount: coupon.discount });
+  } catch (error) { res.status(500).json({ error: 'Error obteniendo cupón' }); }
 });
 
 app.post('/api/coupons/apply/:code', async (req, res) => {
   try {
     const { telegramId, paymentId, adminId } = req.body;
     const code = req.params.code.toUpperCase();
-    
-    if (!telegramId || !paymentId) {
-      return res.status(400).json({ error: 'ID de usuario y pago requeridos' });
-    }
-    
+    if (!telegramId || !paymentId) return res.status(400).json({ error: 'ID de usuario y pago requeridos' });
     const coupon = await db.getCoupon(code);
-    if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
-    }
-    
-    if (coupon.status !== 'active') {
-      return res.status(400).json({ 
-        error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` 
-      });
-    }
-    
-    if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
-      await db.updateCouponStatus(code, 'expired', 'system');
-      return res.status(400).json({ error: 'Cupón expirado' });
-    }
-    
-    if (coupon.stock <= 0) {
-      return res.status(400).json({ error: 'Cupón agotado' });
-    }
-    
-    const hasUsed = await db.hasUserUsedCoupon(telegramId, code);
-    if (hasUsed) {
-      return res.status(400).json({ error: 'Ya has usado este cupón' });
-    }
-    
+    if (!coupon) return res.status(404).json({ error: 'No encontrado' });
+    if (coupon.status !== 'active') return res.status(400).json({ error: `Cupón ${coupon.status === 'expired' ? 'expirado' : 'inactivo'}` });
+    if (coupon.expiry && new Date(coupon.expiry) < new Date()) { await db.updateCouponStatus(code, 'expired', 'system'); return res.status(400).json({ error: 'Cupón expirado' }); }
+    if (coupon.stock <= 0) return res.status(400).json({ error: 'Cupón agotado' });
+    if (await db.hasUserUsedCoupon(telegramId, code)) return res.status(400).json({ error: 'Ya has usado este cupón' });
     const applied = await db.applyCouponToPayment(code, telegramId, paymentId);
-    
-    if (!applied) {
-      return res.status(400).json({ error: 'No se pudo aplicar el cupón al pago' });
-    }
-    
-    const newStock = coupon.stock - 1;
-    await db.updateCoupon(code, {
-      stock: newStock,
-      used: (coupon.used || 0) + 1,
-      updated_at: new Date().toISOString(),
-      updated_by: adminId || 'system'
-    });
-    
-    res.json({ 
-      success: true, 
-      message: `Cupón aplicado. Descuento del ${coupon.discount}% aplicado al pago.`,
-      discount: coupon.discount,
-      coupon: coupon.code
-    });
-    
-  } catch (error) {
-    console.error('❌ Error aplicando cupón:', error);
-    res.status(500).json({ error: 'Error aplicando cupón: ' + error.message });
-  }
+    if (!applied) return res.status(400).json({ error: 'No se pudo aplicar' });
+    await db.updateCoupon(code, { stock: coupon.stock - 1, used: (coupon.used || 0) + 1, updated_at: new Date().toISOString(), updated_by: adminId || 'system' });
+    res.json({ success: true, message: `Descuento del ${coupon.discount}% aplicado.`, discount: coupon.discount, coupon: coupon.code });
+  } catch (error) { res.status(500).json({ error: 'Error: ' + error.message }); }
 });
 
-app.get('/api/coupons/history/:code', async (req, res) => {
-  try {
-    const code = req.params.code.toUpperCase();
-    const history = await db.getCouponUsageHistory(code);
-    res.json(history);
-  } catch (error) {
-    console.error('❌ Error obteniendo historial de cupón:', error);
-    res.status(500).json({ error: 'Error obteniendo historial de cupón' });
-  }
-});
+app.get('/api/coupons/history/:code', async (req, res) => { try { res.json(await db.getCouponUsageHistory(req.params.code.toUpperCase())); } catch (e) { res.status(500).json({ error: 'Error' }); } });
 
-// ==================== SERVIR ARCHIVOS HTML ====================
+// ==================== HTML ESTÁTICO ====================
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public/index.html')); });
 app.get('/plans.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/plans.html')); });
 app.get('/payment.html', (req, res) => { res.sendFile(path.join(__dirname, 'public/payment.html')); });
@@ -3167,35 +1476,13 @@ app.get('/politicas.html', (req, res) => { res.sendFile(path.join(__dirname, 'pu
 
 // ==================== BOT DE TELEGRAM ====================
 
-bot.catch((err, ctx) => { console.error('❌ Error no manejado en el bot:', err); });
+bot.catch((err, ctx) => { console.error('❌ Error en el bot:', err); });
 
 bot.action('show_support', async (ctx) => {
   try {
     await ctx.answerCbQuery();
-    await ctx.reply(
-      getSupportHtml(),
-      {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [
-              createButton("CEO", { url: 'https://t.me/L0quen2' }),
-              createButton("ADMIN", { url: 'https://t.me/ErenJeager129182' })
-            ],
-            [
-              createButton("MOD", { url: 'https://t.me/rov3r777' })
-            ],
-            [
-              createButton("WHATSAPP", { url: WHATSAPP_GROUP_LINK })
-            ],
-            [
-              createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })
-            ]
-          ]
-        }
-      }
-    );
-  } catch (error) { console.error('❌ Error en show_support:', error); await ctx.answerCbQuery('❌ Error al abrir soporte.'); }
+    await ctx.reply(getSupportHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("CEO", { url: 'https://t.me/L0quen2' }), createButton("ADMIN", { url: 'https://t.me/ErenJeager129182' })], [createButton("MOD", { url: 'https://t.me/rov3r777' })], [createButton("WHATSAPP", { url: WHATSAPP_GROUP_LINK })], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+  } catch (error) { await ctx.answerCbQuery('❌ Error'); }
 });
 
 bot.action('check_status', async (ctx) => {
@@ -3203,89 +1490,26 @@ bot.action('check_status', async (ctx) => {
   try {
     await ctx.answerCbQuery();
     const user = await db.getUser(userId);
-    if (!user) {
-      await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' });
-      return;
-    }
-
+    if (!user) { await ctx.reply('❌ *NO ESTÁS REGISTRADO*\n\nUsa "VER PLANES" para comenzar.', { parse_mode: 'Markdown' }); return; }
     const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-
     if (user?.vip) {
       const diasRestantes = calcularDiasRestantes(user);
-
       if (diasRestantes <= 0) {
         await db.removeVIP(userId);
-        await ctx.reply(
-          `⚠️ <b>Tu plan VIP ha expirado</b>\n\n` +
-          `Tu acceso VIP fue removido automáticamente porque tu plan llegó a su fin.\n\n` +
-          `Renueva ahora para continuar disfrutando del servicio.`,
-          {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [createButton("VER PLANES", wa(webappUrl, ctx))],
-                [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-              ]
-            }
-          }
-        );
+        await ctx.reply('⚠️ <b>Tu plan VIP ha expirado</b>\n\nRenueva ahora para continuar.', { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
         return;
       }
-
-      await ctx.reply(getVipStatusHtml(user), {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [createButton("VER PLANES", wa(webappUrl, ctx))],
-            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-          ]
-        }
-      });
-
-      if (diasRestantes <= 5) {
-        await ctx.reply(
-          `⏰ <b>RECORDATORIO: Tu plan expira pronto</b>\n\n` +
-          `Te quedan <b>${diasRestantes} día${diasRestantes === 1 ? '' : 's'}</b> de acceso VIP.\n\n` +
-          `Renueva antes de que expire para no perder el acceso.`,
-          {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [createButton("RENOVAR AHORA", wa(webappUrl, ctx))]
-              ]
-            }
-          }
-        );
-      }
+      await ctx.reply(getVipStatusHtml(user), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+      if (diasRestantes <= 5) await ctx.reply(`⏰ <b>Tu plan expira pronto:</b> ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("RENOVAR AHORA", wa(webappUrl, ctx))]] } });
     } else {
-      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [createButton("VER PLANES", wa(webappUrl, ctx))],
-            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-          ]
-        }
-      });
+      await ctx.reply('❌ *NO ERES USUARIO VIP*\n\nHaz clic para ver nuestros planes.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
     }
-  } catch (error) { console.error('❌ Error en check_status:', error); try { await ctx.reply(`❌ Error al verificar tu estado.`); } catch(e){} try { await ctx.answerCbQuery(); } catch(e){} }
+  } catch (error) { try { await ctx.reply('❌ Error al verificar.'); } catch(e){} try { await ctx.answerCbQuery(); } catch(e){} }
 });
 
 bot.action('download_wireguard', async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.reply(
-    getDownloadWireguardHtml(),
-    {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }), createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],
-          [createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })],
-          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-        ]
-      }
-    }
-  );
+  await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }), createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })], [createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
 });
 
 bot.action('referral_info', async (ctx) => {
@@ -3295,67 +1519,24 @@ bot.action('referral_info', async (ctx) => {
     const user = await db.getUser(userId);
     let referralStats = null;
     if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
-    let message = getReferralInfoHtml(userId, referralStats);
     await ctx.answerCbQuery();
-    await ctx.reply(message, {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],
-          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-        ]
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error en referral_info:', error);
-    await ctx.answerCbQuery();
-    await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\``, {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],
-          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-        ]
-      }
-    });
-  }
+    await ctx.reply(getReferralInfoHtml(userId, referralStats), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+  } catch (error) { await ctx.answerCbQuery(); await ctx.reply(`🤝 Tu enlace: \`https://t.me/vpncubaw_bot?start=ref${userId}\``, { parse_mode: 'Markdown' }); }
 });
 
 bot.action('how_it_works', async (ctx) => {
   try {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-    await ctx.answerCbQuery('🔍 Abriendo guía de uso...');
-    await ctx.reply(
-      getHowItWorksHtml(),
-      {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [createButton("VER GUÍA COMPLETA", wa(`${webappUrl}/how.html`, ctx))],
-            [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-          ]
-        }
-      }
-    );
-  } catch (error) {
-    console.error('❌ Error en how_it_works:', error);
-    await ctx.answerCbQuery('❌ Error al abrir guía.');
-  }
+    await ctx.answerCbQuery();
+    await ctx.reply(getHowItWorksHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", wa(`${webappUrl}/how.html`, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+  } catch (error) { await ctx.answerCbQuery('❌ Error'); }
 });
 
 bot.action('main_menu', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = ctx.from.id.toString();
-  const firstName = ctx.from.first_name;
-  const esAdmin = isAdmin(userId);
-  const keyboard = buildMainMenuKeyboard(userId, firstName, esAdmin, isGroupCtx(ctx));
-  await ctx.reply(
-    `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:`,
-    {
-      parse_mode: 'Markdown',
-      ...keyboard
-    }
-  );
+  const keyboard = buildMainMenuKeyboard(userId, ctx.from.first_name, isAdmin(userId), isGroupCtx(ctx));
+  await ctx.reply('*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:', { parse_mode: 'Markdown', ...keyboard });
 });
 
 bot.action('copy_referral_link', async (ctx) => {
@@ -3363,41 +1544,26 @@ bot.action('copy_referral_link', async (ctx) => {
     const userId = ctx.from.id.toString();
     const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
     await ctx.answerCbQuery('📋 Enlace listo para copiar');
-    await ctx.reply(`📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\nPara copiar, mantén presionado el enlace y selecciona "Copiar".`, { parse_mode: 'Markdown', reply_to_message_id: ctx.callbackQuery.message.message_id });
-  } catch (error) { console.error('❌ Error en copy_referral_link:', error); await ctx.answerCbQuery('❌ Error, intenta nuevamente'); }
+    await ctx.reply(`📋 *Enlace de referido:*\n\n\`${referralLink}\`\n\nMantén presionado para copiar.`, { parse_mode: 'Markdown', reply_to_message_id: ctx.callbackQuery.message.message_id });
+  } catch (error) { await ctx.answerCbQuery('❌ Error'); }
 });
 
 bot.action('politicas', async (ctx) => {
   try {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-    await ctx.answerCbQuery('📜 Abriendo políticas del servicio...');
-    const inlineKeyboard = [
-      [createButton("TÉRMINOS DE SERVICIO", wa(`${webappUrl}/politicas.html?section=terminos`, ctx))],
-      [createButton("POLÍTICA DE REEMBOLSO", wa(`${webappUrl}/politicas.html?section=reembolso`, ctx))],
-      [createButton("POLÍTICA DE PRIVACIDAD", wa(`${webappUrl}/politicas.html?section=privacidad`, ctx))],
-      [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-    ];
-    await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
-  } catch (error) { console.error('❌ Error en action de políticas:', error); await ctx.answerCbQuery('❌ Error al abrir políticas.'); }
+    await ctx.answerCbQuery();
+    await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("TÉRMINOS DE SERVICIO", wa(`${webappUrl}/politicas.html?section=terminos`, ctx))], [createButton("POLÍTICA DE REEMBOLSO", wa(`${webappUrl}/politicas.html?section=reembolso`, ctx))], [createButton("POLÍTICA DE PRIVACIDAD", wa(`${webappUrl}/politicas.html?section=privacidad`, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+  } catch (error) { await ctx.answerCbQuery('❌ Error'); }
 });
 
 bot.action('faq', async (ctx) => {
   try {
     const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-    await ctx.answerCbQuery('❓ Abriendo preguntas frecuentes...');
-    await ctx.reply(getFaqHtml(), {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [createButton("VER PREGUNTAS FRECUENTES", wa(`${webappUrl}/faq.html`, ctx))],
-          [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-        ]
-      }
-    });
-  } catch (error) { console.error('❌ Error en action de FAQ:', error); await ctx.answerCbQuery('❌ Error al abrir FAQ.'); }
+    await ctx.answerCbQuery();
+    await ctx.reply(getFaqHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", wa(`${webappUrl}/faq.html`, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+  } catch (error) { await ctx.answerCbQuery('❌ Error'); }
 });
 
-// ==================== BOT /START — FUNCIONA EN GRUPOS Y PRIVADO ====================
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const firstName = ctx.from.first_name;
@@ -3405,198 +1571,52 @@ bot.start(async (ctx) => {
     const startPayload = ctx.startPayload;
     const chatType = ctx.chat.type;
     const isGroup = chatType === 'group' || chatType === 'supergroup';
-
-    let referrerId = null;
-    let referrerUsername = null;
-
-    // Procesar referido solo en DM
+    let referrerId = null, referrerUsername = null;
     if (startPayload && startPayload.startsWith('ref') && !isGroup) {
         referrerId = startPayload.replace('ref', '');
-        try {
-            const referrer = await db.getUser(referrerId);
-            if (referrer) referrerUsername = referrer.username;
-        } catch (error) { console.error('Error obteniendo referidor:', error); }
-        if (referrerId) {
-            try { await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName); } catch (refError) { console.error('Error creando referido:', refError); }
-        }
+        try { const referrer = await db.getUser(referrerId); if (referrer) referrerUsername = referrer.username; } catch (e) {}
+        if (referrerId) { try { await db.createReferral(referrerId, userId.toString(), ctx.from.username, firstName); } catch (e) {} }
     }
-
     try {
-        const userData = {
-            telegram_id: userId.toString(),
-            username: ctx.from.username,
-            first_name: firstName,
-            last_name: ctx.from.last_name,
-            created_at: new Date().toISOString(),
-            is_active: true
-        };
+        const userData = { telegram_id: userId.toString(), username: ctx.from.username, first_name: firstName, last_name: ctx.from.last_name, created_at: new Date().toISOString(), is_active: true };
         if (referrerId) { userData.referrer_id = referrerId; userData.referrer_username = referrerUsername; }
         await db.saveUser(userId.toString(), userData);
     } catch (error) { console.error('Error guardando usuario:', error); }
-
     const keyboard = buildMainMenuKeyboard(userId.toString(), firstName, esAdmin, isGroup);
-
-    let welcomeMessage;
-    if (isGroup) {
-        welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
-          `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-          `Conéctate con la mejor latencia para gaming y navegación.\n\n` +
-          `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
-          `*Selecciona una opción:*`;
-    } else {
-        welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n` +
-          `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\n` +
-          `Conéctate con la mejor latencia para gaming y navegación.\n\n` +
-          `${referrerId ? '👥 *¡Te invitó un amigo!*\nObtendrás beneficios especiales por ser referido.\n\n' : ''}` +
-          `${esAdmin ? '🔧 *Eres Administrador* - Tienes acceso a funciones especiales\n\n' : ''}` +
-          `*Selecciona una opción:*`;
-    }
-
-    await bot.telegram.sendMessage(
-        ctx.chat.id,
-        welcomeMessage,
-        {
-            parse_mode: 'Markdown',
-            ...keyboard
-        }
-    );
+    let welcomeMessage = `¡Hola ${firstName || 'usuario'}! 👋\n\n*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nConéctate con la mejor latencia para gaming y navegación.\n\n${isGroup ? '' : (referrerId ? '👥 *¡Te invitó un amigo!*\n\n' : '')}${esAdmin ? '🔧 *Eres Administrador*\n\n' : ''}*Selecciona una opción:*`;
+    await bot.telegram.sendMessage(ctx.chat.id, welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
 });
 
-// Comandos adicionales
-bot.command('help', async (ctx) => {
-    const userId = ctx.from.id;
-    const firstName = ctx.from.first_name;
-    const esAdmin = isAdmin(userId);
-    const keyboard = buildMainMenuKeyboard(userId, firstName, esAdmin);
-    await ctx.reply(`🆘 *Ayuda de VPN Cuba*\n\nUsa los botones para navegar. Si no ves el menú, envía /start de nuevo.`, { parse_mode: 'Markdown', ...keyboard });
-});
-
-bot.command('menu', async (ctx) => {
-    const userId = ctx.from.id;
-    const firstName = ctx.from.first_name;
-    const esAdmin = isAdmin(userId);
-    const keyboard = buildMainMenuKeyboard(userId.toString(), firstName, esAdmin);
-    await ctx.reply(
-        `*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:`,
-        { parse_mode: 'Markdown', ...keyboard }
-    );
-});
-
+bot.command('help', async (ctx) => { const keyboard = buildMainMenuKeyboard(ctx.from.id, ctx.from.first_name, isAdmin(ctx.from.id)); await ctx.reply('🆘 *Ayuda de VPN Cuba*\n\nUsa los botones para navegar.', { parse_mode: 'Markdown', ...keyboard }); });
+bot.command('menu', async (ctx) => { const keyboard = buildMainMenuKeyboard(ctx.from.id.toString(), ctx.from.first_name, isAdmin(ctx.from.id)); await ctx.reply('*VPN CUBA - MENÚ PRINCIPAL* 🚀\n\nSelecciona una opción:', { parse_mode: 'Markdown', ...keyboard }); });
 bot.command('referidos', async (ctx) => {
-    const userId = ctx.from.id;
-    const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-    try {
-        const user = await db.getUser(userId);
-        let referralStats = null;
-        if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
-        await ctx.reply(getReferralInfoHtml(userId, referralStats), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } catch (error) {
-        await ctx.reply(`🤝 *SISTEMA DE REFERIDOS*\n\nTu enlace de referido:\n\`${referralLink}\``, { parse_mode: 'Markdown' });
-    }
+  const userId = ctx.from.id;
+  try {
+    const user = await db.getUser(userId);
+    let referralStats = null;
+    if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
+    await ctx.reply(getReferralInfoHtml(userId, referralStats), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
+  } catch (error) { await ctx.reply(`🤝 Tu enlace: \`https://t.me/vpncubaw_bot?start=ref${userId}\``, { parse_mode: 'Markdown' }); }
 });
-
-bot.command('cupon', async (ctx) => {
-    await ctx.reply(`🎫 *Verificar cupón*\n\nEnvía el código de cupón como respuesta a este mensaje.`, { parse_mode: 'Markdown' });
-});
-
 bot.command('trialstatus', async (ctx) => {
-    const userId = ctx.from.id;
-    const eligibility = await db.checkTrialEligibility(userId);
-    if (eligibility.eligible) {
-        await ctx.reply(`✅ *Puedes solicitar una prueba gratuita*\n\n${eligibility.reason}. Usa el botón VER PLANES en el menú.`, { parse_mode: 'Markdown' });
-    } else {
-        await ctx.reply(`❌ *No puedes solicitar una prueba*\n\n${eligibility.reason}`, { parse_mode: 'Markdown' });
-    }
+  const eligibility = await db.checkTrialEligibility(ctx.from.id);
+  await ctx.reply(eligibility.eligible ? `✅ *Puedes solicitar una prueba*\n\n${eligibility.reason}. Usa el botón VER PLANES.` : `❌ *No puedes solicitar prueba*\n\n${eligibility.reason}`, { parse_mode: 'Markdown' });
 });
-
 bot.command('admin', async (ctx) => {
-    const userId = ctx.from.id;
-    if (!isAdmin(userId)) {
-        await ctx.reply('⛔ No tienes permisos de administrador.');
-        return;
-    }
-    const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-    await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*\n\nHaz clic para abrir el panel web:`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", wa(adminUrl, ctx))]] } });
-});
-
-bot.command('enviar', async (ctx) => {
-    const userId = ctx.from.id;
-    if (!isAdmin(userId)) {
-        await ctx.reply('⛔ No autorizado.');
-        return;
-    }
-    await ctx.reply('📤 *Envío manual de configuración*\n\nUsa el panel web para enviar archivos a usuarios.', { parse_mode: 'Markdown' });
+  if (!isAdmin(ctx.from.id)) { await ctx.reply('⛔ No tienes permisos.'); return; }
+  const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${ctx.from.id}&admin=true`;
+  await ctx.reply('🔧 *PANEL DE ADMINISTRACIÓN*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", wa(adminUrl, ctx))]] } });
 });
 
 bot.on('text', async (ctx) => {
-    const text = ctx.message.text;
-    const userId = ctx.from.id.toString();
-    const firstName = ctx.from.first_name;
-    const esAdmin = isAdmin(userId);
-
-    // Ignorar comandos (ya los maneja el handler correspondiente)
-    if (text.startsWith('/')) return;
-
-    console.log(`📨 Mensaje de texto recibido: "${text}" de ${userId}`);
-    if (text === '📁 VER PLANES') {
-        const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-        await ctx.reply(`📋 *NUESTROS PLANES* 🚀`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", wa(webappUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '💻 DESCARGAR WIREGUARD') {
-        await ctx.reply(getDownloadWireguardHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("WINDOWS", { url: 'https://www.wireguard.com/install/' }),createButton("ANDROID", { url: 'https://play.google.com/store/apps/details?id=com.wireguard.android' })],[createButton("IOS", { url: 'https://apps.apple.com/app/id1441195209' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '🆘 SOPORTE') {
-        await ctx.reply(getSupportHtml(), {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [createButton("CEO", { url: 'https://t.me/L0quen2' }), createButton("ADMIN", { url: 'https://t.me/ErenJeager129182' })],
-                    [createButton("MOD", { url: 'https://t.me/rov3r777' })],
-                    [createButton("WHATSAPP", { url: WHATSAPP_GROUP_LINK })],
-                    [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]
-                ]
-            }
-        });
-    } else if (text === '♻️ REFERIDOS') {
-        const referralLink = `https://t.me/vpncubaw_bot?start=ref${userId}`;
-        try {
-            const user = await db.getUser(userId);
-            let referralStats = null;
-            if (user) try { referralStats = await db.getReferralStats(userId); } catch (e) {}
-            await ctx.reply(getReferralInfoHtml(userId, referralStats), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("COPIAR ENLACE", { callback_data: 'copy_referral_link' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-        } catch (error) {
-            await ctx.reply(`🤝 Tu enlace: \`${referralLink}\``, { parse_mode: 'Markdown' });
-        }
-    } else if (text === '❓ CÓMO FUNCIONA') {
-        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply(getHowItWorksHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER GUÍA COMPLETA", wa(`${webappUrl}/how.html`, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '🔈 VPN CANAL') {
-        await ctx.reply(`📢 *CANAL OFICIAL DE VPN CUBA*\n\nÚnete: https://t.me/vpncubaw`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("IR AL CANAL", { url: 'https://t.me/vpncubaw' })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '📲 WHATSAPP') {
-        await ctx.reply('📱 *GRUPO DE WHATSAPP*\n\nÚnete a nuestra comunidad:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WHATSAPP", { url: WHATSAPP_GROUP_LINK })],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '📜 Politicas') {
-        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        const inlineKeyboard = [[createButton("TÉRMINOS DE SERVICIO", wa(`${webappUrl}/politicas.html?section=terminos`, ctx))],[createButton("POLÍTICA DE REEMBOLSO", wa(`${webappUrl}/politicas.html?section=reembolso`, ctx))],[createButton("POLÍTICA DE PRIVACIDAD", wa(`${webappUrl}/politicas.html?section=privacidad`, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]];
-        await ctx.reply(getPoliticasHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } });
-    } else if (text === '❓ FAQ') {
-        const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
-        await ctx.reply(getFaqHtml(), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PREGUNTAS FRECUENTES", wa(`${webappUrl}/faq.html`, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else if (text === '⌨ PANEL ADMIN' && esAdmin) {
-        const adminUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/admin.html?userId=${userId}&admin=true`;
-        await ctx.reply(`🔧 *PANEL DE ADMINISTRACIÓN*`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", wa(adminUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    }
+  const text = ctx.message.text;
+  if (text.startsWith('/')) return;
+  const userId = ctx.from.id.toString();
+  const esAdmin = isAdmin(userId);
+  const webappUrl = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+  if (text === '📁 VER PLANES') { await ctx.reply('📋 *NUESTROS PLANES*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR WEB DE PLANES", wa(`${webappUrl}/plans.html?userId=${userId}`, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } }); }
+  else if (text === '⌨ PANEL ADMIN' && esAdmin) { await ctx.reply('🔧 *PANEL DE ADMINISTRACIÓN*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("ABRIR PANEL WEB", wa(`${webappUrl}/admin.html?userId=${userId}&admin=true`, ctx))], [createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } }); }
 });
-
-async function checkStatusHandler(ctx, userId) {
-  try {
-    const user = await db.getUser(userId);
-    if (!user) { await ctx.reply(`❌ *NO ESTÁS REGISTRADO*\n\nUsa el botón "VER PLANES" para registrarte y comenzar.`, { parse_mode: 'Markdown' }); return; }
-    const webappUrl = `${process.env.WEBAPP_URL || `http://localhost:${PORT}`}/plans.html?userId=${userId}`;
-    if (user?.vip) {
-      await ctx.reply(getVipStatusHtml(user), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    } else {
-      await ctx.reply(`❌ *NO ERES USUARIO VIP*\n\nActualmente no tienes acceso a los servicios premium.\n\nHaz clic en el botón para ver nuestros planes.`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[createButton("VER PLANES", wa(webappUrl, ctx))],[createButton("MENÚ PRINCIPAL", { callback_data: 'main_menu' })]] } });
-    }
-  } catch (error) { console.error('❌ Error en checkStatusHandler:', error); await ctx.reply(`❌ Error al verificar tu estado.`); }
-}
 
 app.post('/webhook', (req, res) => { bot.handleUpdate(req.body, res); });
 
@@ -3605,8 +1625,6 @@ async function setWebhook() {
     try {
         await bot.telegram.setWebhook(webhookUrl);
         console.log(`✅ Webhook establecido en: ${webhookUrl}`);
-        const webhookInfo = await bot.telegram.getWebhookInfo();
-        console.log(`📡 Información del webhook:`, webhookInfo);
     } catch (error) {
         console.error('❌ Error estableciendo webhook:', error);
         console.log('⚠️ Usando polling como fallback...');
@@ -3616,10 +1634,6 @@ async function setWebhook() {
 
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Servidor en http://localhost:${PORT}`);
-    console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅' : '❌'}`);
-    console.log(`🌐 Supabase URL: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
-    console.log(`🔑 Supabase Key: ${process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY ? '✅' : '❌'}`);
-    console.log(`🔐 Supabase Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅' : '❌'}`);
     console.log(`👑 Admins: ${ADMIN_IDS.join(', ')}`);
     console.log(`💰 USDT Wallet: ${USDT_CONFIG.WALLET_ADDRESS}`);
     await verifyStorageBuckets();
@@ -3635,48 +1649,23 @@ app.listen(PORT, '0.0.0.0', async () => {
             { command: 'trialstatus', description: 'Ver estado de prueba gratuita' },
             { command: 'admin', description: 'Panel de administración (solo admins)' }
         ]);
-        console.log('📝 Comandos del bot configurados');
     } catch (error) { console.error('❌ Error configurando comandos:', error); }
     startKeepAlive();
-    console.log(`🎯 Prueba gratuita: Envío automático (1 hora) desde webapp`);
-    console.log(`📊 Estadísticas: /api/stats`);
-    console.log(`🎫 Sistema de cupones: Habilitado`);
-    console.log(`💰 Sistema USDT: MODO MANUAL - Captura requerida`);
-    console.log(`👥 Sistema de referidos: Habilitado`);
-    console.log(`🔗 WhatsApp: ${WHATSAPP_GROUP_LINK}`);
+    console.log(`🎯 Pool de pruebas: separado por plan (basico/avanzado/premium/anual)`);
+    console.log(`💰 Sistema USDT: MODO MANUAL`);
 });
 
-process.on('uncaughtException', async (error) => { console.error('❌ Error no capturado:', error); });
-process.on('unhandledRejection', async (reason, promise) => { console.error('❌ Promesa rechazada no manejada:', reason); });
-process.on('SIGINT', () => { console.log('\n👋 Cerrando...'); bot.telegram.deleteWebhook().catch(() => {}); process.exit(0); });
+process.on('uncaughtException', (error) => { console.error('❌ Error no capturado:', error); });
+process.on('unhandledRejection', (reason) => { console.error('❌ Promesa rechazada:', reason); });
+process.on('SIGINT', () => { bot.telegram.deleteWebhook().catch(() => {}); process.exit(0); });
 
 function startKeepAlive() {
-    const PORT_LOCAL = PORT;
-    const EXTERNAL_URL = process.env.WEBAPP_URL || `http://localhost:${PORT_LOCAL}`;
-    const healthCheckUrl = `http://localhost:${PORT_LOCAL}/api/health`;
-
-    setInterval(async () => {
-        try {
-            const response = await fetch(healthCheckUrl);
-            if (response.ok) console.log(`💓 Keep-alive interno OK [${new Date().toLocaleTimeString()}]`);
-        } catch (error) { console.error('⚠️ Keep-alive interno falló:', error.message); }
-    }, 4 * 60 * 1000);
-
-    setInterval(async () => {
-        try {
-            const response = await fetch(`${EXTERNAL_URL}/api/health`);
-            if (response.ok) console.log(`🌐 Keep-alive externo OK [${new Date().toLocaleTimeString()}]`);
-        } catch (error) { console.error('⚠️ Keep-alive externo falló:', error.message); }
-    }, 10 * 60 * 1000);
-
-    setInterval(async () => {
-        try {
-            await fetch(`${healthCheckUrl}?t=${Date.now()}`);
-            console.log(`🔄 Keep-alive variado OK [${new Date().toLocaleTimeString()}]`);
-        } catch (error) { /* silencioso */ }
-    }, 8 * 60 * 1000);
-
-    console.log(`🔄 Keep-alive INTENSO iniciado (capas: 4min + 8min + 10min) → ${EXTERNAL_URL}`);
+    const healthCheckUrl = `http://localhost:${PORT}/api/health`;
+    const EXTERNAL_URL = process.env.WEBAPP_URL || `http://localhost:${PORT}`;
+    setInterval(async () => { try { await fetch(healthCheckUrl); console.log(`💓 Keep-alive OK [${new Date().toLocaleTimeString()}]`); } catch (e) {} }, 4 * 60 * 1000);
+    setInterval(async () => { try { await fetch(`${EXTERNAL_URL}/api/health`); } catch (e) {} }, 10 * 60 * 1000);
+    setInterval(async () => { try { await fetch(`${healthCheckUrl}?t=${Date.now()}`); } catch (e) {} }, 8 * 60 * 1000);
+    console.log(`🔄 Keep-alive iniciado → ${EXTERNAL_URL}`);
 }
 
 module.exports = { app, isAdmin, ADMIN_IDS, initializeStorageBuckets, initializeUsdtSystem, sendTrialToValidUsers };

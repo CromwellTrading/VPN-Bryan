@@ -42,12 +42,7 @@ if (!db.saveTrialFile) {
     try {
       const { createClient } = require('@supabase/supabase-js');
       const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
-      // Asegurar que trial_type existe (por defecto 'general')
-      const insertData = {
-        ...fileData,
-        trial_type: fileData.trial_type || 'general'
-      };
-      const { data, error } = await sb.from('trial_files').insert([insertData]).select().single();
+      const { data, error } = await sb.from('trial_files').insert([fileData]).select().single();
       if (error) throw error;
       return data;
     } catch(e) { console.warn('⚠️ saveTrialFile falló (tabla puede no existir):', e.message); return fileData; }
@@ -517,48 +512,50 @@ async function initializeStorageBuckets() {
   console.log('✅ Inicialización de buckets completada');
 }
 
-// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS POR TIPO) ====================
-let trialFileRoundRobinIndex = 0;
+// ==================== FUNCIÓN ENVIAR PRUEBA (USANDO POOL DE ARCHIVOS POR TIPO DE PLAN) ====================
+// Índice round‑robin por tipo de plan
+let trialFileRoundRobinIndexByType = {};   // ej: { "basico": 0, "premium": 0, "general": 0 }
 
-async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true, trialType = null) {
+async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true) {
   try {
     const user = await db.getUser(telegramId);
     if (!user) throw new Error(`Usuario ${telegramId} no encontrado`);
 
-    // Obtener el tipo de prueba desde el usuario si no se pasa explícitamente
-    const targetTrialType = trialType || user.trial_plan_type || 'basico';
-
     const gameServer = user.trial_game_server || 'No especificado';
     const connectionType = user.trial_connection_type || 'No especificado';
+    const planType = user.trial_plan_type || null;   // "basico", "avanzado", "premium", "anual"
 
     let filePath = null;
     let fileName = null;
     let fileId = null;
+    let isTemporaryFile = false;   // para saber si debemos borrarlo después
 
-    // 1. Intentar obtener archivos de prueba activos del tipo específico
+    // 1. Obtener archivos activos de prueba desde la BD, opcionalmente filtrados por plan_type
+    let activeFiles = [];
     try {
-      const allTrialFiles = await db.getTrialFiles();
-      const activeFiles = (allTrialFiles || []).filter(f => 
-        f.is_active !== false && 
-        f.local_path && fs.existsSync(f.local_path) &&
-        (f.trial_type === targetTrialType || f.trial_type === 'general')
-      );
-
-      if (activeFiles.length > 0) {
-        // Priorizar los del tipo exacto, si no, los generales
-        let chosen = activeFiles.find(f => f.trial_type === targetTrialType);
-        if (!chosen) chosen = activeFiles[0];
-        filePath = chosen.local_path;
-        fileName = chosen.original_name;
-        fileId = chosen.id;
-        console.log(`📁 Usando archivo de prueba tipo "${targetTrialType}" #${chosen.id}: ${fileName}`);
-      }
+      const trialFiles = await db.getTrialFiles();   // obtiene todos
+      activeFiles = trialFiles.filter(f => {
+        if (f.is_active === false) return false;
+        // Si el archivo tiene un plan_type específico, debe coincidir con el del usuario
+        if (f.plan_type && planType && f.plan_type !== planType) return false;
+        // Si el archivo NO tiene plan_type, se considera "general" → válido para cualquier plan
+        // (solo si no existe un archivo específico para el plan, pero lo manejamos después)
+        return true;
+      });
     } catch (dbErr) {
       console.warn('⚠️ No se pudieron obtener archivos de prueba de BD:', dbErr.message);
     }
 
-    // 2. Fallback: archivo local fijo
-    if (!filePath) {
+    // 2. Si no hay archivos, intentar con archivos generales (plan_type = null)
+    if (activeFiles.length === 0 && planType) {
+      try {
+        const trialFiles = await db.getTrialFiles();
+        activeFiles = trialFiles.filter(f => f.is_active !== false && !f.plan_type);
+      } catch (dbErr) {}
+    }
+
+    // 3. Si todavía no hay archivos, intentar archivo local fijo (trial_current)
+    if (activeFiles.length === 0) {
       const extensions = ['.conf', '.zip', '.rar'];
       for (const ext of extensions) {
         const testPath = TRIAL_CURRENT_FILE + ext;
@@ -570,17 +567,13 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
       }
     }
 
-    // 3. Fallback: descargar desde Supabase public_url si el archivo local no existe
-    if (!filePath) {
+    // 4. Fallback: descargar desde Supabase public_url (solo si el archivo local no existe)
+    if (!filePath && activeFiles.length === 0) {
       try {
-        const allTrialFiles = await db.getTrialFiles();
-        const urlFiles = (allTrialFiles || []).filter(f => 
-          f.is_active !== false && f.public_url &&
-          (f.trial_type === targetTrialType || f.trial_type === 'general')
-        );
+        const trialFiles = await db.getTrialFiles();
+        const urlFiles = trialFiles.filter(f => f.is_active !== false && f.public_url);
         if (urlFiles.length > 0) {
-          let chosen = urlFiles.find(f => f.trial_type === targetTrialType);
-          if (!chosen) chosen = urlFiles[0];
+          const chosen = urlFiles[0];
           console.log(`🌐 Descargando archivo de prueba desde Supabase: ${chosen.public_url}`);
           const urlResponse = await fetch(chosen.public_url);
           if (urlResponse.ok) {
@@ -592,6 +585,7 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
             filePath = tempPath;
             fileName = chosen.original_name || path.basename(tempPath);
             fileId = chosen.id;
+            isTemporaryFile = true;
             console.log(`✅ Archivo descargado y listo: ${fileName}`);
           } else {
             console.warn(`⚠️ Error descargando desde URL (${urlResponse.status}): ${chosen.public_url}`);
@@ -602,10 +596,28 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
       }
     }
 
-    if (!filePath) {
-      throw new Error(`No hay archivo de prueba disponible para tipo "${targetTrialType}". Sube uno en el panel de admin.`);
+    // 5. Selección round‑robin si tenemos múltiples archivos en activeFiles (pool local)
+    if (activeFiles.length > 0 && !filePath) {
+      // Inicializar índice para este tipo de plan si no existe
+      const typeKey = planType || 'general';
+      if (trialFileRoundRobinIndexByType[typeKey] === undefined) {
+        trialFileRoundRobinIndexByType[typeKey] = 0;
+      }
+      const idx = trialFileRoundRobinIndexByType[typeKey] % activeFiles.length;
+      const chosen = activeFiles[idx];
+      trialFileRoundRobinIndexByType[typeKey] = idx + 1;
+
+      filePath = chosen.local_path;
+      fileName = chosen.original_name;
+      fileId = chosen.id;
+      console.log(`📁 Usando archivo de prueba #${chosen.id} (${typeKey} pool): ${fileName}`);
     }
 
+    if (!filePath) {
+      throw new Error('No hay archivo de prueba disponible para este tipo de plan. Sube uno en el panel de admin.');
+    }
+
+    // Enviar el documento
     const MAX_RETRIES = 3;
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -629,20 +641,16 @@ async function sendTrialConfigToUser(telegramId, adminId, deleteAfterSend = true
           }
         );
         await db.markTrialAsSent(telegramId, adminId);
-        console.log(`✅ Prueba (tipo ${targetTrialType}) enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
+        console.log(`✅ Prueba enviada a ${telegramId}: ${fileName} (intento ${attempt})`);
 
-        if (deleteAfterSend && fileId) {
-          try {
-            if (filePath && fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
-              console.log(`🗑️ Archivo de prueba eliminado del sistema: ${filePath}`);
-            }
-            await db.deleteTrialFile(fileId);
-            console.log(`🗑️ Registro de archivo de prueba ${fileId} eliminado de la BD`);
-          } catch (delErr) {
-            console.warn(`⚠️ No se pudo eliminar archivo #${fileId}:`, delErr.message);
+        // Eliminar solo si es un archivo temporal o si se pidió explícitamente (deleteAfterSend)
+        if (deleteAfterSend && isTemporaryFile) {
+          if (filePath && fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`🗑️ Archivo temporal eliminado: ${filePath}`);
           }
         }
+        // NO eliminar archivos del pool (ni su registro) porque son reutilizables
         return true;
       } catch (sendError) {
         lastError = sendError;
@@ -679,7 +687,7 @@ async function sendTrialToValidUsers(adminId) {
       try {
         if (!user.telegram_id) { failedCount++; continue; }
 
-        await sendTrialConfigToUser(user.telegram_id, adminId, true, user.trial_plan_type);
+        await sendTrialConfigToUser(user.telegram_id, adminId, true);
         sentCount++;
         await new Promise(resolve => setTimeout(resolve, 80));
       } catch (error) {
@@ -1660,7 +1668,7 @@ app.post('/api/request-trial', async (req, res) => {
         throw new Error(`Usuario no disponible: ${canSend.reason}`);
       }
       
-      await sendTrialConfigToUser(telegramId, 'system', true, trialPlanType);
+      await sendTrialConfigToUser(telegramId, 'system');
       sentSuccessfully = true;
       console.log(`✅ Prueba enviada automáticamente a ${telegramId}`);
     } catch (error) {
@@ -1853,7 +1861,7 @@ app.post('/api/send-trial-config', async (req, res) => {
       });
     }
 
-    await sendTrialConfigToUser(chatId, adminId, true, user.trial_plan_type);
+    await sendTrialConfigToUser(chatId, adminId);
 
     res.json({
       success: true,
@@ -2449,7 +2457,7 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
 
 app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
   try {
-    const { adminId, label, trialType } = req.body;
+    const { adminId, label, planType } = req.body;   // planType es el tipo de prueba (basico, avanzado, premium, anual)
 
     if (!isAdmin(adminId)) {
       return res.status(403).json({ error: 'No autorizado' });
@@ -2480,6 +2488,7 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
       console.warn('⚠️ Supabase backup falló (archivo local OK):', e.message);
     }
 
+    // Guardar con planType (si no se envía, queda null → archivo general)
     const saved = await db.saveTrialFile({
       original_name: req.file.originalname,
       local_path: localPath,
@@ -2487,7 +2496,7 @@ app.post('/api/trial-files/upload', upload.single('file'), async (req, res) => {
       label: label || req.file.originalname,
       uploaded_by: adminId,
       is_active: true,
-      trial_type: trialType || 'general',  // NUEVO: tipo de prueba
+      plan_type: planType || null,          // ← nuevo campo
       uploaded_at: new Date().toISOString()
     });
 
@@ -3486,7 +3495,7 @@ bot.command('referidos', async (ctx) => {
     }
 });
 
-bot.command('cupon', async (req, res) => {
+bot.command('cupon', async (ctx) => {
     await ctx.reply(`🎫 *Verificar cupón*\n\nEnvía el código de cupón como respuesta a este mensaje.`, { parse_mode: 'Markdown' });
 });
 

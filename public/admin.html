@@ -18,7 +18,7 @@
   --green:#00ff88;--red:#ff4455;--amber:#ffb020;--purple:#9966ff;
   --f-head:'Bebas Neue',sans-serif;--f-body:'Cabinet Grotesk',sans-serif;--f-mono:'Azeret Mono',monospace;
   /* colores por plan */
-  --col-basico:#00d4ff;--col-avanzado:#e8e8ff;--col-premium:#ff3d3d;--col-anual:#00ff88;
+  --col-basico:#00d4ff;--col-avanzado:#e8e8ff;--col-cuba:#ffb300;--col-premium:#ff3d3d;--col-anual:#00ff88;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--black);color:var(--txt);font-family:var(--f-body);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
@@ -501,8 +501,8 @@ let allReferrals = [], filteredReferrals = [], currentReferralsPage = 1, referra
 let allCoupons = [];
 
 const PLAN_TYPES = ['basico', 'avanzado', 'premium', 'anual'];
-const PLAN_LABELS = { basico: '🌐 Básico', avanzado: '🌟 Avanzado', premium: '🎮 Gaming', anual: '📅 Anual' };
-const PLAN_NAMES  = { basico: 'Básico (1 mes)', avanzado: 'Avanzado (2 meses)', premium: 'Gaming (1 mes)', anual: 'Anual (12 meses)', trial: 'Prueba Gratuita' };
+const PLAN_LABELS = { basico: '🌐 Básico', avanzado: '🌟 Avanzado', cuba_vip: '🇨🇺 Cuba VIP', premium: '🎮 Gaming', anual: '📅 Anual' };
+const PLAN_NAMES  = { basico: 'Básico (1 mes)', avanzado: 'Avanzado (2 meses)', cuba_vip: 'Cuba VIP (1 mes)', premium: 'Gaming (1 mes)', anual: 'Anual (12 meses)', trial: 'Prueba Gratuita' };
 
 // ── helpers ──────────────────────────────────────────
 function getPlanName(p) { return PLAN_NAMES[p] || p || '—'; }
@@ -660,7 +660,7 @@ async function loadPendingTrials() {
     trials.forEach(t => {
       const planType = t.trial_plan_type || t.trial_info?.plan_type || 'basico';
       const planLbl = getPlanLabel(planType);
-      const planColors = { basico: 'var(--col-basico)', avanzado: 'var(--col-avanzado)', premium: 'var(--col-premium)', anual: 'var(--col-anual)' };
+      const planColors = { basico: 'var(--col-basico)', avanzado: 'var(--col-avanzado)', cuba_vip: 'var(--col-cuba)', premium: 'var(--col-premium)', anual: 'var(--col-anual)' };
       const color = planColors[planType] || 'var(--sig)';
       tb.innerHTML += `<tr>
         <td><code>${t.telegram_id}</code></td>
@@ -1032,8 +1032,8 @@ async function loadPlanFiles() {
   try {
     const res = await fetch('/api/plan-files');
     const files = await res.json();
-    const plans = ['basico', 'avanzado', 'premium', 'anual'];
-    const planNames = { basico: 'Básico (1 mes)', avanzado: 'Avanzado (2 meses)', premium: 'Gaming (1 mes)', anual: 'Anual (12 meses)' };
+    const plans = ['basico', 'avanzado', 'cuba_vip', 'premium', 'anual'];
+    const planNames = { basico: 'Básico (1 mes)', avanzado: 'Avanzado (2 meses)', cuba_vip: 'Cuba VIP (1 mes)', premium: 'Gaming (1 mes)', anual: 'Anual (12 meses)' };
     const grid = document.getElementById('planFilesGrid'); grid.innerHTML = '';
     for (const plan of plans) {
       const file = (files || []).find(f => f.plan === plan);

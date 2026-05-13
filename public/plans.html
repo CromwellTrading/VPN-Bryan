@@ -29,12 +29,14 @@
   --sig-trial:   #f5c542;
   --sig-basic:   #00d4ff;
   --sig-adv:     #e8e8ff;
+  --sig-cuba:    #ffb300;
   --sig-prem:    #ff3d3d;
   --sig-ann:     #00ff88;
 
   --glow-trial:  rgba(245,197,66,.18);
   --glow-basic:  rgba(0,212,255,.18);
   --glow-adv:    rgba(232,232,255,.12);
+  --glow-cuba:   rgba(255,179,0,.18);
   --glow-prem:   rgba(255,61,61,.18);
   --glow-ann:    rgba(0,255,136,.18);
 }
@@ -316,6 +318,7 @@ body::before {
 .shell.trial   { --sig: var(--sig-trial);  --glow: var(--glow-trial); }
 .shell.basic   { --sig: var(--sig-basic);  --glow: var(--glow-basic); }
 .shell.advanced{ --sig: var(--sig-adv);    --glow: var(--glow-adv); }
+.shell.cuba_vip{ --sig: var(--sig-cuba);    --glow: var(--glow-cuba); }
 .shell.premium { --sig: var(--sig-prem);   --glow: var(--glow-prem); }
 .shell.annual  { --sig: var(--sig-ann);    --glow: var(--glow-ann); }
 
@@ -373,6 +376,7 @@ body::before {
 .shell.trial    .plan-video-box { height: 650px; }
 .shell.basic    .plan-video-box { height: 580px; }
 .shell.advanced .plan-video-box { height: 590px; }
+.shell.cuba_vip .plan-video-box { height: 620px; }
 .shell.premium  .plan-video-box { height: 675px; }
 .shell.annual   .plan-video-box { height: 610px; }
 
@@ -410,6 +414,7 @@ body::before {
   transition: transform .5s ease, filter .5s ease;
 }
 
+.shell.cuba_vip .plan-video { object-position: center center; }
 .shell.premium .plan-video { object-position: 72% center; }
 .shell:hover .plan-video   { transform: scale(1.04); filter: brightness(1.05) saturate(1.06); }
 
@@ -1079,7 +1084,7 @@ body::before {
     <span>Pago en CUP · Saldo Móvil · USDT</span>
     <span class="hi">Soporte directo · Respuesta inmediata</span>
     <span>Latencia mínima · Servidores optimizados</span>
-    <span class="hi">5 planes disponibles · Desde 0 CUP</span>
+    <span class="hi">6 planes disponibles · Desde 0 CUP</span>
     <span>WireGuard protocol · Máxima seguridad</span>
     <span class="hi">Trial gratuito disponible ahora</span>
     <span>VPN CUBA · Sistema activo</span>
@@ -1087,7 +1092,7 @@ body::before {
     <span>Pago en CUP · Saldo Móvil · USDT</span>
     <span class="hi">Soporte directo · Respuesta inmediata</span>
     <span>Latencia mínima · Servidores optimizados</span>
-    <span class="hi">5 planes disponibles · Desde 0 CUP</span>
+    <span class="hi">6 planes disponibles · Desde 0 CUP</span>
     <span>WireGuard protocol · Máxima seguridad</span>
     <span class="hi">Trial gratuito disponible ahora</span>
   </div>
@@ -1112,15 +1117,15 @@ body::before {
       <div class="plan-selector" id="planSelector">
         <div class="plan-option selected" data-plan="basico" onclick="selectTrialPlan(this)">
           <span class="plan-opt-name">Básico</span>
-          <span class="plan-opt-price">1 mes · 900 CUP</span>
+          <span class="plan-opt-price">1 mes · 400 CUP</span>
         </div>
         <div class="plan-option" data-plan="avanzado" onclick="selectTrialPlan(this)">
           <span class="plan-opt-name">Avanzado</span>
-          <span class="plan-opt-price">2 meses · 1,800 CUP</span>
+          <span class="plan-opt-price">2 meses · 900 CUP</span>
         </div>
         <div class="plan-option" data-plan="premium" onclick="selectTrialPlan(this)">
           <span class="plan-opt-name">Gaming</span>
-          <span class="plan-opt-price">1 mes · 1,500 CUP</span>
+          <span class="plan-opt-price">1 mes · 700 CUP</span>
         </div>
         <div class="plan-option" data-plan="anual" onclick="selectTrialPlan(this)">
           <span class="plan-opt-name">Anual</span>
@@ -1262,9 +1267,9 @@ body::before {
                   <div class="sb"></div><div class="sb"></div>
                   <div class="sb"></div><div class="sb"></div>
                 </div>
-                <div class="price-main">900 CUP</div>
-                <div class="price-mobile">📱 300 CUP móvil</div>
-                <div class="price-usdt">≈ 1.4 USDT</div>
+                <div class="price-main">400 CUP</div>
+                <div class="price-mobile">📱 200 CUP móvil</div>
+                <div class="price-usdt">≈ 0.7 USDT</div>
               </div>
             </div>
           </div>
@@ -1282,7 +1287,7 @@ body::before {
             </div>
           </div>
           <div class="bot-block">
-            <button class="action" onclick="selectPlan('basico', 900, 1.4, this)">
+            <button class="action" onclick="selectPlan('basico', 400, 0.7, this)">
               <i class="fas fa-arrow-right"></i> Activar señal
             </button>
           </div>
@@ -1311,9 +1316,9 @@ body::before {
                   <div class="sb"></div><div class="sb"></div>
                   <div class="sb"></div><div class="sb"></div>
                 </div>
-                <div class="price-main">1,800 CUP</div>
-                <div class="price-mobile">📱 600 CUP móvil</div>
-                <div class="price-usdt">≈ 1.8 USDT</div>
+                <div class="price-main">900 CUP</div>
+                <div class="price-mobile">📱 300 CUP móvil</div>
+                <div class="price-usdt">≈ 1.4 USDT</div>
               </div>
             </div>
           </div>
@@ -1332,8 +1337,58 @@ body::before {
             </div>
           </div>
           <div class="bot-block">
-            <button class="action" onclick="selectPlan('avanzado', 1800, 1.8, this)">
+            <button class="action" onclick="selectPlan('avanzado', 900, 1.4, this)">
               <i class="fas fa-arrow-right"></i> Activar señal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CUBA VIP ── -->
+    <div class="shell cuba_vip individual" data-plan-key="cuba_vip">
+      <div class="tag">🇨🇺 FREQ·CU · IP RESIDENCIAL</div>
+      <div class="plan-video-box">
+        <video class="plan-video" autoplay muted loop playsinline preload="metadata">
+          <source src="videos/cuba_vip.mp4" type="video/mp4">
+        </video>
+        <div class="plan-scrim"></div>
+        <div class="plan-overlay">
+          <div class="top-block">
+            <div class="freq-label">freq·cu · 1 mes</div>
+            <div class="top">
+              <div>
+                <div class="plan-title">CUBA VIP</div>
+                <div class="plan-sub">ip residencial cubana · acceso local</div>
+              </div>
+              <div class="price-block">
+                <div class="sig-bars">
+                  <div class="sb"></div><div class="sb"></div>
+                  <div class="sb"></div><div class="sb"></div>
+                </div>
+                <div class="price-main">1,200 CUP</div>
+                <div class="price-mobile">📱 400 CUP móvil</div>
+                <div class="price-usdt">≈ 2.0 USDT</div>
+              </div>
+            </div>
+          </div>
+          <div class="mid-block">
+            <div class="chips">
+              <span class="chip hi">cubano real</span>
+              <span class="chip">sin bloqueos</span>
+              <span class="chip">trámites .cu</span>
+            </div>
+            <div class="savings"><i class="fas fa-passport"></i> IP residencial cubana para acceso local auténtico</div>
+            <div class="features">
+              <div class="feature"><i class="fas fa-map-marker-alt"></i><span>Acceso a Enzona, Transfermóvil y Banca Remota</span></div>
+              <div class="feature"><i class="fas fa-shield-alt"></i><span>Evita bloqueos geográficos y alertas sospechosas</span></div>
+              <div class="feature"><i class="fas fa-globe"></i><span>Gestiona sitios .cu como usuario local</span></div>
+              <div class="feature"><i class="fas fa-lock"></i><span>Seguridad bancaria reforzada</span></div>
+            </div>
+          </div>
+          <div class="bot-block">
+            <button class="action" onclick="selectPlan('cuba_vip', 1200, 2.0, this)">
+              <i class="fas fa-star"></i> Activar acceso VIP
             </button>
           </div>
         </div>
@@ -1361,9 +1416,9 @@ body::before {
                   <div class="sb"></div><div class="sb"></div>
                   <div class="sb"></div><div class="sb"></div>
                 </div>
-                <div class="price-main">1,500 CUP</div>
-                <div class="price-mobile">📱 500 CUP móvil</div>
-                <div class="price-usdt">≈ 2.3 USDT</div>
+                <div class="price-main">700 CUP</div>
+                <div class="price-mobile">📱 250 CUP móvil</div>
+                <div class="price-usdt">≈ 1.1 USDT</div>
               </div>
             </div>
           </div>
@@ -1382,7 +1437,7 @@ body::before {
             </div>
           </div>
           <div class="bot-block">
-            <button class="action" onclick="selectPlan('premium', 1500, 2.3, this)">
+            <button class="action" onclick="selectPlan('premium', 700, 1.1, this)">
               <i class="fas fa-crosshairs"></i> Activar señal
             </button>
           </div>
@@ -1478,16 +1533,18 @@ let userReferralDiscount = 0;
 
 // Precios base de todos los planes
 const BASE_PRICES = {
-  basico:  { cup: 900,   mobile: 300,  usdt: 1.4 },
-  avanzado:{ cup: 1800,  mobile: 600,  usdt: 1.8 },
-  premium: { cup: 1500,  mobile: 500,  usdt: 2.3 },
-  anual:   { cup: 15000, mobile: 5000, usdt: 30  }
+  basico:   { cup: 400,   mobile: 200,  usdt: 0.7 },
+  avanzado: { cup: 900,   mobile: 300,  usdt: 1.4 },
+  cuba_vip: { cup: 1200,  mobile: 400,  usdt: 2.0 },
+  premium:  { cup: 700,   mobile: 250,  usdt: 1.1 },
+  anual:    { cup: 15000, mobile: 5000, usdt: 30  }
 };
 
 // Mapeo: clase CSS del shell → clave de plan
 const SHELL_CLASS_TO_KEY = {
   basic:    'basico',
   advanced: 'avanzado',
+  cuba_vip: 'cuba_vip',
   premium:  'premium',
   annual:   'anual'
 };

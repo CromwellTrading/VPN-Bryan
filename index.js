@@ -121,13 +121,15 @@ const USDT_CONFIG = {
 };
 
 const USDT_PRICES = {
-    'basico': '1.4',
-    'avanzado': '1.8',
-    'premium': '2.3',
+    'basico': '0.7',
+    'avanzado': '1.4',
+    'cuba_vip': '2.0',
+    'premium': '1.1',
     'anual': '30'
 };
 
 const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/Fj5dBROMqmeECOllIjVEYu?mode=gi_t';
+const WHATSAPP_GROUP2_LINK = 'https://chat.whatsapp.com/LPvCEZ7T20u47ShITic2p7';
 
 function isAdmin(userId) {
     return ADMIN_IDS.includes(userId.toString());
@@ -277,8 +279,8 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
             createButton("POLÍTICAS", { callback_data: "politicas" })
         ],
         [
-            createButton("WHATSAPP G1", { url: WHATSAPP_GROUP_LINK }),
-            createButton("WHATSAPP G2", { url: "https://chat.whatsapp.com/Lf3oMMKSHhY4pX5d2bE4TJ" })
+            createButton("👥 WHATSAPP G1", { url: WHATSAPP_GROUP_LINK }),
+            createButton("👥 WHATSAPP G2", { url: WHATSAPP_GROUP2_LINK })
         ],
         [createButton("FAQ", { callback_data: "faq" })]
     ];
@@ -350,6 +352,7 @@ function getPlanName(planType) {
   const plans = {
     'basico': 'Básico (1 mes)',
     'avanzado': 'Avanzado (2 meses)',
+    'cuba_vip': 'Cuba VIP (1 mes)',
     'premium': 'Gaming (1 mes)',
     'anual': 'Anual (12 meses)',
     'trial': 'Prueba Gratuita'
@@ -361,6 +364,7 @@ function getPlanLabel(planType) {
   const labels = {
     'basico': '🌐 Básico',
     'avanzado': '🌟 Avanzado',
+    'cuba_vip': '🇨🇺 Cuba VIP',
     'premium': '🎮 Gaming',
     'anual': '📅 Anual'
   };
@@ -390,6 +394,7 @@ function calcularDiasRestantes(user) {
     switch(user.plan.toLowerCase()) {
         case 'basico': duracionDias = 30; break;
         case 'avanzado': duracionDias = 60; break;
+        case 'cuba_vip': duracionDias = 30; break;
         case 'premium': duracionDias = 30; break;
         case 'anual': duracionDias = 365; break;
         default: duracionDias = 30;
@@ -719,9 +724,19 @@ app.post('/api/payment', upload.single('screenshot'), async (req, res) => {
       for (const adminId of ADMIN_IDS) {
         try { await bot.telegram.sendMessage(adminId, adminMessage, { parse_mode: 'Markdown' }); } catch (e) {}
       }
+
+      try {
+        const userMessage = `✅ <b>Captura recibida</b>
+
+Ya registramos tu comprobante para <b>${getPlanName(plan)}</b>.
+No hace falta enviar otra foto. Tu pago quedó en revisión manual.
+
+<b>Estado:</b> ⏳ Revisión manual de 1-12 horas`;
+        await bot.telegram.sendMessage(telegramId, userMessage, { parse_mode: 'HTML' });
+      } catch (e) {}
     } catch (e) {}
 
-    res.json({ success: true, message: 'Pago recibido. El administrador revisará la captura y te notificará.', payment, couponApplied: couponUsed, discount: couponDiscount, finalPrice });
+    res.json({ success: true, message: 'Captura recibida. No hace falta enviar otra foto.', payment, couponApplied: couponUsed, discount: couponDiscount, finalPrice });
   } catch (error) {
     console.error('❌ Error procesando pago:', error);
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -1173,7 +1188,7 @@ app.post('/api/upload-plan-file', upload.single('file'), async (req, res) => {
     const { plan, adminId } = req.body;
     if (!isAdmin(adminId)) return res.status(403).json({ error: 'No autorizado' });
     if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
-    if (!plan || !['basico', 'avanzado', 'premium', 'anual'].includes(plan)) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Plan inválido' }); }
+    if (!plan || !['basico', 'avanzado', 'cuba_vip', 'premium', 'anual'].includes(plan)) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Plan inválido' }); }
     const fileName = req.file.originalname.toLowerCase();
     if (!fileName.endsWith('.zip') && !fileName.endsWith('.rar') && !fileName.endsWith('.conf')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Solo .conf, .zip o .rar' }); }
     const fileBuffer = fs.readFileSync(req.file.path);
@@ -1651,7 +1666,7 @@ app.listen(PORT, '0.0.0.0', async () => {
         ]);
     } catch (error) { console.error('❌ Error configurando comandos:', error); }
     startKeepAlive();
-    console.log(`🎯 Pool de pruebas: separado por plan (basico/avanzado/premium/anual)`);
+    console.log(`🎯 Pool de pruebas: separado por plan (basico/avanzado/cuba_vip/premium/anual)`);
     console.log(`💰 Sistema USDT: MODO MANUAL`);
 });
 

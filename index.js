@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
@@ -159,6 +159,8 @@ const BUTTON_ICONS = {
     'VPN CANAL': '5771695636411847302',
     'POLÍTICAS': '6021738534916854774',
     'WHATSAPP': '5884179047482659474',
+    'WHATSAPP G1': '6019328362479097179',   // Nuevo: emoji custom para Grupo 1
+    'WHATSAPP G2': '6019328362479097179',   // Nuevo: emoji custom para Grupo 2
     'FAQ': '5879501875341955281',
     'PANEL ADMIN': '5839116473951328489',
     'WINDOWS': '5933679370202778681',
@@ -279,8 +281,8 @@ function buildMainMenuKeyboard(userId, firstName, esAdmin, isGroup = false) {
             createButton("POLÍTICAS", { callback_data: "politicas" })
         ],
         [
-            createButton("👥 WHATSAPP G1", { url: WHATSAPP_GROUP_LINK }),
-            createButton("👥 WHATSAPP G2", { url: WHATSAPP_GROUP2_LINK })
+            createButton("WHATSAPP G1", { url: WHATSAPP_GROUP_LINK }),   // 👈 sin emoji, solo texto
+            createButton("WHATSAPP G2", { url: WHATSAPP_GROUP2_LINK })    // 👈 sin emoji, solo texto
         ],
         [createButton("FAQ", { callback_data: "faq" })]
     ];
